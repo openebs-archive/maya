@@ -25,10 +25,15 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
+	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/openebs/maya/tests/cstor"
+
+	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
+	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -38,6 +43,8 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 		pvcName      = "test-cstor-clone-pvc"
 		snapName     = "test-cstor-clone-snapshot"
 		clonepvcName = "test-cstor-clone-pvc-cloned"
+		appName      = "busybox-cstor"
+		cloneAppName = "busybox-cstor-clone"
 	)
 
 	BeforeEach(func() {
@@ -143,6 +150,51 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 			cvCount := ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 1)
 			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
 
+			By("building a busybox app pod using above cstor volume")
+			podObj, err = pod.NewBuilder().
+				WithName(appName).
+				WithNamespace(nsObj.Name).
+				WithContainerBuilder(
+					container.NewBuilder().
+						WithName("busybox").
+						WithImage("busybox").
+						WithCommand(
+							[]string{
+								"sh",
+								"-c",
+								"date > /mnt/cstore1/date.txt; sync; sleep 5; sync; tail -f /dev/null;",
+							},
+						).
+						WithVolumeMounts(
+							[]corev1.VolumeMount{
+								corev1.VolumeMount{
+									Name:      "datavol1",
+									MountPath: "/mnt/cstore1",
+								},
+							},
+						),
+				).
+				WithVolumeBuilder(
+					volume.NewBuilder().
+						WithName("datavol1").
+						WithPVCSource(pvcName),
+				).
+				Build()
+			Expect(err).ShouldNot(HaveOccurred(), "while building pod {%s}", appName)
+
+			By("creating pod with above pvc as volume")
+			podObj, err = ops.PodClient.WithNamespace(nsObj.Name).Create(podObj)
+			Expect(err).ShouldNot(
+				HaveOccurred(),
+				"while creating pod {%s} in namespace {%s}",
+				appName,
+				nsObj.Name,
+			)
+
+			By("verifying app pod is running")
+			status = ops.IsPodRunningEventually(nsObj.Name, appName)
+			Expect(status).To(Equal(true), "while checking status of pod {%s}", appName)
+
 			By("building a cstor volume snapshot")
 			snapObj, err = snap.NewBuilder().
 				WithName(snapName).
@@ -208,7 +260,7 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 			Expect(err).To(
 				BeNil(),
 				"while getting pvc {%s} in namespace {%s}",
-				pvcName,
+				clonepvcName,
 				nsObj.Name,
 			)
 
@@ -219,6 +271,110 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 			By("verifying clone pvc status as bound")
 			status = ops.IsPVCBoundEventually(clonepvcName)
 			Expect(status).To(Equal(true), "while checking status equal to bound")
+
+			By("building a busybox app pod with above clone pvc as volume")
+			clonePodObj, err = pod.NewBuilder().
+				WithName(cloneAppName).
+				WithNamespace(nsObj.Name).
+				WithContainerBuilder(
+					container.NewBuilder().
+						WithName("busybox").
+						WithImage("busybox").
+						WithCommand(
+							[]string{
+								"sh",
+								"-c",
+								"tail -f /dev/null",
+							},
+						).
+						WithVolumeMounts(
+							[]corev1.VolumeMount{
+								corev1.VolumeMount{
+									Name:      "datavol2",
+									MountPath: "/mnt/cstore1",
+								},
+							},
+						),
+				).
+				WithVolumeBuilder(
+					volume.NewBuilder().
+						WithName("datavol2").
+						WithPVCSource(clonepvcName),
+				).
+				Build()
+			Expect(err).ShouldNot(
+				HaveOccurred(),
+				"while building pod {%s}",
+				cloneAppName,
+			)
+
+			By("creating pod with above clone pvc as volume")
+			clonePodObj, err = ops.PodClient.WithNamespace(nsObj.Name).
+				Create(clonePodObj)
+			Expect(err).ShouldNot(
+				HaveOccurred(),
+				"while creating pod {%s} in namespace {%s}",
+				cloneAppName,
+				nsObj.Name,
+			)
+
+			By("verifying pod is running")
+			status = ops.IsPodRunningEventually(nsObj.Name, cloneAppName)
+			Expect(status).To(
+				Equal(true),
+				"while checking status of pod {%s}",
+				cloneAppName,
+			)
+
+			By("verifying data consistency in pvc and clone pvc")
+			By("fetching data from original pvc")
+			podOutput, err := ops.PodClient.WithNamespace(nsObj.Name).
+				Exec(
+					podObj.Name,
+					&corev1.PodExecOptions{
+						Command: []string{
+							"sh",
+							"-c",
+							"md5sum mnt/cstore1/date.txt",
+						},
+						Container: "busybox",
+						Stdin:     false,
+						Stdout:    true,
+						Stderr:    true,
+					},
+				)
+			Expect(err).ShouldNot(HaveOccurred(), "while exec in application pod")
+
+			By("fetching data from clone pvc")
+			clonePodOutput, err := ops.PodClient.WithNamespace(nsObj.Name).
+				Exec(
+					clonePodObj.Name,
+					&corev1.PodExecOptions{
+						Command: []string{
+							"sh",
+							"-c",
+							"md5sum mnt/cstore1/date.txt",
+						},
+						Container: "busybox",
+						Stdin:     false,
+						Stdout:    true,
+						Stderr:    true,
+					},
+				)
+			Expect(err).ShouldNot(HaveOccurred(), "while exec in clone application pod")
+
+			By("veryfing data consistency")
+			Expect(podOutput).To(Equal(clonePodOutput), "while checking data consistency")
+
+			By("deleting application pod")
+			err = ops.PodClient.WithNamespace(nsObj.Name).
+				Delete(podObj.Name, &metav1.DeleteOptions{})
+			Expect(err).ShouldNot(HaveOccurred(), "while deleting application pod")
+
+			By("deleting clone application pod")
+			err = ops.PodClient.WithNamespace(nsObj.Name).
+				Delete(clonePodObj.Name, &metav1.DeleteOptions{})
+			Expect(err).ShouldNot(HaveOccurred(), "while deleting clone application pod")
 
 			By("deleting clone persistentvolumeclaim")
 			err = ops.PVCClient.Delete(clonepvcName, &metav1.DeleteOptions{})
