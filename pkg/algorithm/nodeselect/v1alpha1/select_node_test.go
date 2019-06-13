@@ -515,6 +515,22 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 			expectedDiskListLength: 0,
 			expectedErr:            false,
 		},
+		// Test Case #22
+		"manualSPC22Raidz2": {
+			fakeCasPool: &v1alpha1.StoragePoolClaim{
+				Spec: v1alpha1.StoragePoolClaimSpec{
+					Type: "disk",
+					PoolSpec: v1alpha1.CStorPoolAttr{
+						PoolType: "mirrored",
+					},
+					BlockDevices: v1alpha1.BlockDeviceAttr{
+						BlockDeviceList: []string{"blockdevice0", "blockdevice1"},
+					},
+				},
+			},
+			expectedDiskListLength: 6,
+			expectedErr:            true,
+		},
 	}
 
 	for name, test := range tests {
