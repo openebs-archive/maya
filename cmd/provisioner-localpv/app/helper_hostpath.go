@@ -39,7 +39,8 @@ import (
 )
 
 var (
-	//CmdTimeoutCounts specifies the duration to wait for cleanup pod to be launched.
+	//CmdTimeoutCounts specifies the duration to wait for cleanup pod
+	//to be launched.
 	CmdTimeoutCounts = 120
 )
 
@@ -82,7 +83,8 @@ func (p *Provisioner) getPathAndNodeForPV(pv *corev1.PersistentVolume) (string, 
 	path := ""
 	local := pv.Spec.PersistentVolumeSource.Local
 	if local == nil {
-		//Handle the case of Local PV created in 0.9 using HostPathVolumeSource
+		//Handle the case of Local PV created in 0.9 using
+		//HostPathVolumeSource
 		hostPath := pv.Spec.PersistentVolumeSource.HostPath
 		if hostPath == nil {
 			return "", "", errors.Errorf("no HostPath set")
@@ -104,7 +106,8 @@ func (p *Provisioner) getPathAndNodeForPV(pv *corev1.PersistentVolume) (string, 
 	node := ""
 	for _, selectorTerm := range required.NodeSelectorTerms {
 		for _, expression := range selectorTerm.MatchExpressions {
-			if expression.Key == KeyNode && expression.Operator == corev1.NodeSelectorOpIn {
+			if expression.Key == KeyNode &&
+				expression.Operator == corev1.NodeSelectorOpIn {
 				if len(expression.Values) != 1 {
 					return "", "", errors.Errorf("multiple values for the node affinity")
 				}
@@ -141,32 +144,28 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 		return vErr
 	}
 
-	conObj, _ := container.NewBuilder().
-		WithName("local-path-init").
-		WithImage(p.helperImage).
-		WithCommand(append(pOpts.cmdsForPath, filepath.Join("/data/", volumeDir))).
-		WithVolumeMounts([]corev1.VolumeMount{
-			{
-				Name:      "data",
-				ReadOnly:  false,
-				MountPath: "/data/",
-			},
-		}).
-		Build()
-	//containers := []v1.Container{conObj}
-
-	volObj, _ := volume.NewBuilder().
-		WithName("data").
-		WithHostDirectory(parentDir).
-		Build()
-	//volumes := []v1.Volume{*volObj}
-
 	helperPod, _ := pod.NewBuilder().
 		WithName("init-" + pOpts.name).
 		WithRestartPolicy(corev1.RestartPolicyNever).
 		WithNodeName(pOpts.nodeName).
-		WithContainer(conObj).
-		WithVolume(*volObj).
+		WithContainerBuilder(
+			container.NewBuilder().
+				WithName("local-path-init").
+				WithImage(p.helperImage).
+				WithCommand(append(pOpts.cmdsForPath, filepath.Join("/data/", volumeDir))).
+				WithVolumeMounts([]corev1.VolumeMount{
+					{
+						Name:      "data",
+						ReadOnly:  false,
+						MountPath: "/data/",
+					},
+				}),
+		).
+		WithVolumeBuilder(
+			volume.NewBuilder().
+				WithName("data").
+				WithHostDirectory(parentDir),
+		).
 		Build()
 
 	//Launch the init pod.
@@ -223,32 +222,28 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 		return vErr
 	}
 
-	conObj, _ := container.NewBuilder().
-		WithName("local-path-cleanup").
-		WithImage(p.helperImage).
-		WithCommand(append(pOpts.cmdsForPath, filepath.Join("/data/", volumeDir))).
-		WithVolumeMounts([]corev1.VolumeMount{
-			{
-				Name:      "data",
-				ReadOnly:  false,
-				MountPath: "/data/",
-			},
-		}).
-		Build()
-	//containers := []v1.Container{conObj}
-
-	volObj, _ := volume.NewBuilder().
-		WithName("data").
-		WithHostDirectory(parentDir).
-		Build()
-	//volumes := []v1.Volume{*volObj}
-
 	helperPod, _ := pod.NewBuilder().
 		WithName("cleanup-" + pOpts.name).
 		WithRestartPolicy(corev1.RestartPolicyNever).
 		WithNodeName(pOpts.nodeName).
-		WithContainer(conObj).
-		WithVolume(*volObj).
+		WithContainerBuilder(
+			container.NewBuilder().
+				WithName("local-path-cleanup").
+				WithImage(p.helperImage).
+				WithCommand(append(pOpts.cmdsForPath, filepath.Join("/data/", volumeDir))).
+				WithVolumeMounts([]corev1.VolumeMount{
+					{
+						Name:      "data",
+						ReadOnly:  false,
+						MountPath: "/data/",
+					},
+				}),
+		).
+		WithVolumeBuilder(
+			volume.NewBuilder().
+				WithName("data").
+				WithHostDirectory(parentDir),
+		).
 		Build()
 
 	//Launch the cleanup pod.
