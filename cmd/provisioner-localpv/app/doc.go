@@ -39,18 +39,18 @@ by making use of the OpenEBS Node Storage Device Manager (NDM), the significant
 differences include:
 - Users need not pre-format and mount the devices in the node.
 - Supports Dynamic Local PVs - where the devices can be used by CAS solutions
-  and also by applications. CAS solutions typically directly access a device. 
-  OpenEBS Local PV ease the management of storage devices to be used between 
+  and also by applications. CAS solutions typically directly access a device.
+  OpenEBS Local PV ease the management of storage devices to be used between
   CAS solutions (direct access) and applications (via PV), by making use of
   BlockDeviceClaims supported by OpenEBS NDM.
 - Supports using hostpath as well for provisioning a Local PV. In fact in some
-  cases, the Kubernetes nodes may have limited number of storage devices 
+  cases, the Kubernetes nodes may have limited number of storage devices
   attached to the node and hostpath based Local PVs offer efficient management
   of the storage available on the node.
-  
+
 Inspiration:
 ------------
-OpenEBS Local PV has been inspired by the prior work done by the following 
+OpenEBS Local PV has been inspired by the prior work done by the following
 the Kubernetes projects:
 - https://github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/tree/master/examples/hostpath-provisioner
 - https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner
@@ -163,7 +163,7 @@ Implementation Details:
     identify the device to be used. Each PVC of type StorageType=device
     will create a BDC and wait for the NDM to provide an appropriate BD.
     From the BD, the provisioner will extract the path details and create
-    a Local PV. When using unformatted block devices, the administrator 
+    a Local PV. When using unformatted block devices, the administrator
     can specific the type of FS to be put on block devices using the
     FSType CAS Policy in StorageClass.
 (c) The StorageClass can work either with `waitForConsumer`, in which
@@ -171,32 +171,32 @@ Implementation Details:
     vice versa. (Note: In the initial version, only `waitForConsumer` is
     supported.)
 (d) When using the hostpath, the administrator can select the location using:
-    - BasePath: By default, the hostpath volumes will be created under 
-      `/var/openebs/local`. This default path can be changed by passing the 
-      "OPENEBS_IO_BASE_PATH" ENV variable to the Hostpath Provisioner Pod. 
-      It is also possible to specify a different location using the 
+    - BasePath: By default, the hostpath volumes will be created under
+      `/var/openebs/local`. This default path can be changed by passing the
+      "OPENEBS_IO_BASE_PATH" ENV variable to the Hostpath Provisioner Pod.
+      It is also possible to specify a different location using the
       CAS Policy `BasePath` in the StorageClass.
 
     The hostpath used in the above configuration can be:
     - OS Disk  - possibly a folder dedicated to saving data on each node.
     - Additional Disks - mounted as ext4 or any other filesystem
     - External Storage - mounted as ext4 or any other filesystem
-(e) The backup and restore via Velero Plugin has been verified to work for 
-    OpenEBS Local PV. Supported from OpenEBS 1.0 and higher. 
+(e) The backup and restore via Velero Plugin has been verified to work for
+    OpenEBS Local PV. Supported from OpenEBS 1.0 and higher.
 
 Future Improvements and Limitations:
 ------------------------------------
-- Ability to enforce capacity limits. The application can exceed it usage 
+- Ability to enforce capacity limits. The application can exceed it usage
   of capacity beyond what it requested.
-- Ability to enforce provisioning limits based on the capacity available 
+- Ability to enforce provisioning limits based on the capacity available
   on a given node or the number of PVs already provisioned.
 - Ability to use hostpaths and devices that can potentially support snapshots.
   Example: a hostpath backed by github, or by LVM or ZFS where capacity also
-  can be enforced.  
-- Extend the capabilities of the Local PV provisioner to handle cases where 
-  underlying devices are moved to new node and needs changes to the node 
-  affinity. 
-- Move towards using a CSI based Hostpath provisioner. 
+  can be enforced.
+- Extend the capabilities of the Local PV provisioner to handle cases where
+  underlying devices are moved to new node and needs changes to the node
+  affinity.
+- Move towards using a CSI based Hostpath provisioner.
 
 */
 package app

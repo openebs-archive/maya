@@ -144,7 +144,7 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 		return vErr
 	}
 
-	helperPod, _ := pod.NewBuilder().
+	initPod, _ := pod.NewBuilder().
 		WithName("init-" + pOpts.name).
 		WithRestartPolicy(corev1.RestartPolicyNever).
 		WithNodeName(pOpts.nodeName).
@@ -169,13 +169,13 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 		Build()
 
 	//Launch the init pod.
-	hPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Create(helperPod)
+	iPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Create(initPod)
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(hPod.Name, &metav1.DeleteOptions{})
+		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(iPod.Name, &metav1.DeleteOptions{})
 		if e != nil {
 			glog.Errorf("unable to delete the helper pod: %v", e)
 		}
@@ -184,7 +184,7 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 	//Wait for the cleanup pod to complete it job and exit
 	completed := false
 	for i := 0; i < CmdTimeoutCounts; i++ {
-		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(hPod.Name, metav1.GetOptions{})
+		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(iPod.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		} else if checkPod.Status.Phase == corev1.PodSucceeded {
@@ -222,7 +222,7 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 		return vErr
 	}
 
-	helperPod, _ := pod.NewBuilder().
+	cleanerPod, _ := pod.NewBuilder().
 		WithName("cleanup-" + pOpts.name).
 		WithRestartPolicy(corev1.RestartPolicyNever).
 		WithNodeName(pOpts.nodeName).
@@ -247,13 +247,13 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 		Build()
 
 	//Launch the cleanup pod.
-	hPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Create(helperPod)
+	cPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Create(cleanerPod)
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(hPod.Name, &metav1.DeleteOptions{})
+		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(cPod.Name, &metav1.DeleteOptions{})
 		if e != nil {
 			glog.Errorf("unable to delete the helper pod: %v", e)
 		}
@@ -262,7 +262,7 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 	//Wait for the cleanup pod to complete it job and exit
 	completed := false
 	for i := 0; i < CmdTimeoutCounts; i++ {
-		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(hPod.Name, metav1.GetOptions{})
+		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(cPod.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		} else if checkPod.Status.Phase == corev1.PodSucceeded {
