@@ -156,8 +156,11 @@ func (c *Controller) addSpc(obj interface{}) {
 		runtime.HandleError(fmt.Errorf("Couldn't get spc object %#v", obj))
 		return
 	}
-	if spc.Labels[string(apis.OpenEBSUpgradeKey)] == "true" {
-		glog.Infof("spc %s is not reconciled reason upgrade value: %s", spc.Name, spc.Labels[string(apis.OpenEBSUpgradeKey)])
+	if spc.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+		glog.Infof("spc %s is not reconciled reason %s key set to : %s",
+			spc.Name,
+			string(apis.OpenEBSDisableReconcileKey),
+			spc.Labels[string(apis.OpenEBSDisableReconcileKey)])
 		return
 	}
 	glog.V(4).Infof("Queuing SPC %s for add event", spc.Name)
@@ -171,8 +174,11 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 		runtime.HandleError(fmt.Errorf("Couldn't get spc object %#v", newSpc))
 		return
 	}
-	if spc.Labels[string(apis.OpenEBSUpgradeKey)] == "true" {
-		glog.Infof("spc %s is not reconciled reason upgrade value: %s", spc.Name, spc.Labels[string(apis.OpenEBSUpgradeKey)])
+	if spc.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+		glog.Infof("spc %s is not reconciled reason %s key set to : %s",
+			spc.Name,
+			string(apis.OpenEBSDisableReconcileKey),
+			spc.Labels[string(apis.OpenEBSDisableReconcileKey)])
 		return
 	}
 	// Enqueue spc only when there is a pending pool to be created.
@@ -196,8 +202,11 @@ func (c *Controller) deleteSpc(obj interface{}) {
 			return
 		}
 	}
-	if spc.Labels[string(apis.OpenEBSUpgradeKey)] == "true" {
-		glog.Infof("spc %s is not reconciled reason upgrade value: %s", spc.Name, spc.Labels[string(apis.OpenEBSUpgradeKey)])
+	if spc.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+		glog.Infof("spc %s is not reconciled reason %s key set to : %s",
+			spc.Name,
+			string(apis.OpenEBSDisableReconcileKey),
+			spc.Labels[string(apis.OpenEBSDisableReconcileKey)])
 		return
 	}
 	glog.V(4).Infof("Deleting storagepoolclaim %s", spc.Name)

@@ -45,8 +45,8 @@ const (
 	// OpenEBS
 	OpenEBSVersionKey CASKey = "openebs.io/version"
 
-	// OpenEBSUpgradeKey is the label key which provides upgrade state
-	OpenEBSUpgradeKey CASKey = "openebs.io/upgrade"
+	// OpenEBSDisableReconcileKey is the label key decides to reconcile or not
+	OpenEBSDisableReconcileKey CASKey = "reconcile.openebs.io/disable"
 
 	// CASConfigKey is the key to fetch configurations w.r.t a CAS entity
 	CASConfigKey CASKey = "cas.openebs.io/config"

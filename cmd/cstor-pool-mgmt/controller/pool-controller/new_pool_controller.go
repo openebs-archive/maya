@@ -117,8 +117,8 @@ func NewCStorPoolController(
 				return
 			}
 			if cStorPool.Labels[string(apis.OpenEBSVersionKey)] != curVersion {
-				glog.Infof("csp %s is not reconciled current version of controller: %s csp version: %s",
-					cStorPool.Name, curVersion, cStorPool.Labels[string(apis.OpenEBSUpgradeKey)])
+				glog.Infof("csp %s is not reconciled due to mismatch of controller version: %s and csp version: %s",
+					cStorPool.Name, curVersion, cStorPool.Labels[string(apis.OpenEBSVersionKey)])
 				return
 			}
 			q.Operation = common.QOpAdd
@@ -142,8 +142,8 @@ func NewCStorPoolController(
 				return
 			}
 			if newCStorPool.Labels[string(apis.OpenEBSVersionKey)] != curVersion {
-				glog.Infof("csp %s is not reconciled current version of controller: %s csp version: %s",
-					newCStorPool.Name, curVersion, newCStorPool.Labels[string(apis.OpenEBSUpgradeKey)])
+				glog.Infof("csp %s is not reconciled due to mismatch of controller version: %s csp version: %s",
+					newCStorPool.Name, curVersion, newCStorPool.Labels[string(apis.OpenEBSVersionKey)])
 				return
 			}
 			// Periodic resync will send update events for all known CStorPool.
@@ -170,8 +170,8 @@ func NewCStorPoolController(
 				return
 			}
 			if cStorPool.Labels[string(apis.OpenEBSVersionKey)] != curVersion {
-				glog.Infof("csp %s is not reconciled current version of controller: %s csp version: %s",
-					cStorPool.Name, curVersion, cStorPool.Labels[string(apis.OpenEBSUpgradeKey)])
+				glog.Infof("csp %s is not reconciled due to mismatch of controller version: %s and csp version: %s",
+					cStorPool.Name, curVersion, cStorPool.Labels[string(apis.OpenEBSVersionKey)])
 				return
 			}
 			glog.Infof("cStorPool Resource deleted event: %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
