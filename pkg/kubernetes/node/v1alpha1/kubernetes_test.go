@@ -15,11 +15,13 @@
 package v1alpha1
 
 import (
+	"encoding/json"
 	"testing"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	clientset "k8s.io/client-go/kubernetes"
 )
 
@@ -49,6 +51,29 @@ func fakeGetClientSetForPathOk(fakeConfigPath string) (cli *clientset.Clientset,
 
 func fakeGetClientSetForPathErr(fakeConfigPath string) (cli *clientset.Clientset, err error) {
 	return nil, errors.New("fake error")
+}
+
+func fakePatchFnOk(cli *clientset.Clientset, name string,
+	pt types.PatchType, data []byte,
+	subresources ...string) (*corev1.Node, error) {
+	return &corev1.Node{}, nil
+}
+
+func fakePatchFnErr(cli *clientset.Clientset, name string,
+	pt types.PatchType, data []byte,
+	subresources ...string) (*corev1.Node, error) {
+	return nil, errors.New("fake error")
+}
+
+func fakeUpdateFnOk(cli *clientset.Clientset,
+	node *corev1.Node) (*corev1.Node, error) {
+	return &corev1.Node{}, nil
+}
+
+func fakeUpdateFnErr(cli *clientset.Clientset,
+	node *corev1.Node) (*corev1.Node, error) {
+	return nil, errors.New("fake error")
+
 }
 
 func TestWithDefaultOptions(t *testing.T) {
@@ -221,5 +246,290 @@ func TestKubenetesNodeList(t *testing.T) {
 				t.Fatalf("Test %q failed: expected error to be nil", name)
 			}
 		})
+	}
+}
+
+func TestNodePatch(t *testing.T) {
+	tests := map[string]struct {
+		getClientset        getClientsetFn
+		getClientSetForPath getClientsetForPathFn
+		kubeConfigPath      string
+		patch               patchFn
+		Name                string
+		expectErr           bool
+	}{
+		"Patch Test 1": {fakeGetClientSetErr, fakeGetClientSetForPathOk, "", fakePatchFnOk, "alpha-1", true},
+		"Patch Test 2": {fakeGetClientSetOk, fakeGetClientSetForPathErr, "fake-path", fakePatchFnOk, "alpha-2", true},
+		"Patch Test 3": {fakeGetClientSetOk, fakeGetClientSetForPathOk, "", fakePatchFnOk, "beta-1", false},
+		"Patch Test 4": {fakeGetClientSetOk, fakeGetClientSetForPathOk, "fp", fakePatchFnErr, "beta-2", true},
+		"Patch Test 5": {fakeGetClientSetOk, fakeGetClientSetForPathOk, "fakepath", fakePatchFnOk, "", true},
+	}
+
+	for name, mock := range tests {
+		name := name
+		mock := mock
+		t.Run(name, func(t *testing.T) {
+			k := &Kubeclient{
+				getClientset:        mock.getClientset,
+				getClientsetForPath: mock.getClientSetForPath,
+				kubeConfigPath:      mock.kubeConfigPath,
+				patch:               mock.patch,
+			}
+			//fake data
+			data, _ := json.Marshal(mock)
+			_, err := k.Patch(mock.Name, types.MergePatchType, data)
+			if mock.expectErr && err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestCordonViaPatch(t *testing.T) {
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "alpha1",
+		},
+		Spec: corev1.NodeSpec{
+			Taints: []corev1.Taint{
+				{
+					Key:    "foo",
+					Value:  "bar",
+					Effect: corev1.TaintEffectNoSchedule,
+				},
+			},
+		},
+	}
+
+	cases := []struct {
+		name                  string
+		getClientset          getClientsetFn
+		patch                 patchFn
+		expectedErr, isCordon bool
+	}{
+		{
+			name:         "cordon node",
+			getClientset: fakeGetClientSetOk,
+			patch:        fakePatchFnOk,
+			isCordon:     true,
+			expectedErr:  false,
+		},
+		{
+			name:         "cordon node with add new taint",
+			getClientset: fakeGetClientSetOk,
+			patch:        fakePatchFnOk,
+			isCordon:     true,
+			expectedErr:  false,
+		},
+		{
+			name:         "uncordon node with no changes taints",
+			getClientset: fakeGetClientSetOk,
+			patch:        fakePatchFnOk,
+			isCordon:     false,
+			expectedErr:  false,
+		},
+		{
+			name:         "uncordon node with client err",
+			getClientset: fakeGetClientSetErr,
+			patch:        fakePatchFnOk,
+			isCordon:     false,
+			expectedErr:  true,
+		},
+		{
+			name:         "uncordon node with fake patch err",
+			getClientset: fakeGetClientSetOk,
+			patch:        fakePatchFnErr,
+			isCordon:     false,
+			expectedErr:  true,
+		},
+	}
+
+	for _, mock := range cases {
+		k := &Kubeclient{
+			getClientset: mock.getClientset,
+			patch:        mock.patch,
+		}
+
+		err := k.CordonViaPatch(node, mock.isCordon)
+		if mock.expectedErr && err == nil {
+			t.Fatalf("Test %q failed: expected error not to be nil", mock.name)
+		}
+		if !mock.expectedErr && err != nil {
+			t.Fatalf("Test %q failed: expected error to be nil", mock.name)
+		}
+	}
+}
+
+func TestCordonViaUpdate(t *testing.T) {
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "alpha1",
+		},
+		Spec: corev1.NodeSpec{
+			Taints: []corev1.Taint{
+				{
+					Key:    "foo",
+					Value:  "bar",
+					Effect: corev1.TaintEffectNoSchedule,
+				},
+			},
+		},
+	}
+
+	cases := []struct {
+		name                  string
+		getClientset          getClientsetFn
+		update                updateFn
+		expectedErr, isCordon bool
+	}{
+		{
+			name:         "cordon node with no changes taints",
+			getClientset: fakeGetClientSetOk,
+			update:       fakeUpdateFnOk,
+			isCordon:     true,
+			expectedErr:  false,
+		},
+		{
+			name:         "cordon node with add new taint",
+			getClientset: fakeGetClientSetOk,
+			update:       fakeUpdateFnOk,
+			isCordon:     true,
+			expectedErr:  false,
+		},
+		{
+			name:         "uncordon node with no changes taints",
+			getClientset: fakeGetClientSetOk,
+			update:       fakeUpdateFnOk,
+			isCordon:     false,
+			expectedErr:  false,
+		},
+		{
+			name:         "uncordon node with client err",
+			getClientset: fakeGetClientSetErr,
+			update:       fakeUpdateFnOk,
+			isCordon:     false,
+			expectedErr:  true,
+		},
+		{
+			name:         "uncordon node with fake update err",
+			getClientset: fakeGetClientSetOk,
+			update:       fakeUpdateFnErr,
+			isCordon:     false,
+			expectedErr:  true,
+		},
+	}
+
+	for _, mock := range cases {
+		k := &Kubeclient{
+			getClientset: mock.getClientset,
+			update:       mock.update,
+		}
+
+		err := k.CordonViaUpdate(node, mock.isCordon)
+		if mock.expectedErr && err == nil {
+			t.Fatalf("Test %q failed: expected error not to be nil", mock.name)
+		}
+		if !mock.expectedErr && err != nil {
+			t.Fatalf("Test %q failed: expected error to be nil", mock.name)
+		}
+
+	}
+}
+
+func TestCordonWithTaintsPatch(t *testing.T) {
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "alpha1",
+		},
+		Spec: corev1.NodeSpec{
+			Taints: []corev1.Taint{
+				{
+					Key:    "foo",
+					Value:  "bar",
+					Effect: corev1.TaintEffectNoSchedule,
+				},
+			},
+		},
+	}
+
+	cases := []struct {
+		name                  string
+		getClientset          getClientsetFn
+		patch                 patchFn
+		taintsToAdd           []corev1.Taint
+		expectedTaints        []corev1.Taint
+		expectedErr, isCordon bool
+	}{
+		{
+			name:           "cordon node with no changes taints",
+			getClientset:   fakeGetClientSetOk,
+			patch:          fakePatchFnOk,
+			taintsToAdd:    []corev1.Taint{},
+			expectedTaints: node.Spec.Taints,
+			isCordon:       true,
+			expectedErr:    false,
+		},
+		{
+			name:         "cordon node with add new taint",
+			getClientset: fakeGetClientSetOk,
+			patch:        fakePatchFnOk,
+			taintsToAdd: []corev1.Taint{
+				{
+					Key:    "foo_1",
+					Effect: corev1.TaintEffectNoExecute,
+				},
+			},
+			expectedTaints: append([]corev1.Taint{{Key: "foo_1",
+				Effect: corev1.TaintEffectNoExecute}},
+				node.Spec.Taints...),
+			isCordon:    true,
+			expectedErr: false,
+		},
+		{
+			name:           "uncordon node with no changes taints",
+			getClientset:   fakeGetClientSetOk,
+			patch:          fakePatchFnOk,
+			taintsToAdd:    []corev1.Taint{},
+			expectedTaints: node.Spec.Taints,
+			isCordon:       false,
+			expectedErr:    false,
+		},
+		{
+			name:           "uncordon node with client err",
+			getClientset:   fakeGetClientSetErr,
+			patch:          fakePatchFnOk,
+			taintsToAdd:    []corev1.Taint{},
+			expectedTaints: node.Spec.Taints,
+			isCordon:       false,
+			expectedErr:    true,
+		},
+		{
+			name:           "uncordon node with fake patch err",
+			getClientset:   fakeGetClientSetOk,
+			patch:          fakePatchFnErr,
+			taintsToAdd:    []corev1.Taint{},
+			expectedTaints: node.Spec.Taints,
+			isCordon:       false,
+			expectedErr:    true,
+		},
+	}
+
+	for _, mock := range cases {
+		k := &Kubeclient{
+			getClientset: mock.getClientset,
+			patch:        mock.patch,
+		}
+
+		b := NewBuilder().WithAPINode(node).WithTaints(mock.taintsToAdd)
+		err := k.CordonViaPatch(b.Node.object, mock.isCordon)
+		if mock.expectedErr && err == nil {
+			t.Fatalf("Test %q failed: expected error not to be nil", mock.name)
+		}
+		if !mock.expectedErr && err != nil {
+			t.Fatalf("Test %q failed: expected error to be nil", mock.name)
+		}
 	}
 }

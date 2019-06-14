@@ -15,6 +15,7 @@
 package v1alpha1
 
 import (
+	"reflect"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -42,8 +43,8 @@ func fakeNodeListAPI(nodeNames []string) *corev1.NodeList {
 	return list
 }
 
-func fakeNodeInstances(nodes map[string]corev1.NodeConditionType) []*node {
-	nlist := []*node{}
+func fakeNodeInstances(nodes map[string]corev1.NodeConditionType) []*Node {
+	nlist := []*Node{}
 	for k := range nodes {
 		n := &corev1.Node{}
 		fakeNodeCondition := corev1.NodeCondition{
@@ -52,7 +53,7 @@ func fakeNodeInstances(nodes map[string]corev1.NodeConditionType) []*node {
 		}
 		n.SetName(k)
 		n.Status.Conditions = append(n.Status.Conditions, fakeNodeCondition)
-		nlist = append(nlist, &node{n})
+		nlist = append(nlist, &Node{n})
 	}
 	return nlist
 }
@@ -190,5 +191,55 @@ func TestFilterList(t *testing.T) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, len(mock.filteredNodes), len(list.items))
 			}
 		})
+	}
+}
+
+func TestWithTaints(t *testing.T) {
+	node := &corev1.Node{
+		Spec: corev1.NodeSpec{
+			Taints: []corev1.Taint{
+				{
+					Key:    "foo",
+					Value:  "bar",
+					Effect: corev1.TaintEffectNoSchedule,
+				},
+			},
+		},
+	}
+
+	cases := []struct {
+		name           string
+		taintsToAdd    []corev1.Taint
+		expectedTaints []corev1.Taint
+		expectedErr    bool
+	}{
+		{
+			name:           "no changes with taints",
+			taintsToAdd:    []corev1.Taint{},
+			expectedTaints: node.Spec.Taints,
+			expectedErr:    false,
+		},
+		{
+			name: "add new taint",
+			taintsToAdd: []corev1.Taint{
+				{
+					Key:    "foo_1",
+					Effect: corev1.TaintEffectNoExecute,
+				},
+			},
+			expectedTaints: append([]corev1.Taint{{Key: "foo_1",
+				Effect: corev1.TaintEffectNoExecute}},
+				node.Spec.Taints...),
+			expectedErr: false,
+		},
+	}
+
+	for _, c := range cases {
+		b := NewBuilder().WithAPINode(node).WithTaints(c.taintsToAdd)
+		if !reflect.DeepEqual(c.expectedTaints, b.Node.object.Spec.Taints) {
+			t.Errorf("[%s] expect to see taint list %#v, but got: %#v",
+				c.name, c.expectedTaints,
+				b.Node.object.Spec.Taints)
+		}
 	}
 }

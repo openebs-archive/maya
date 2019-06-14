@@ -15,10 +15,16 @@
 package v1alpha1
 
 import (
+	"encoding/json"
+	"strings"
+
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
+
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -30,9 +36,22 @@ type getClientsetFn func() (clientset *kubernetes.Clientset, err error)
 // abstracts fetching of clientset from kubeConfigPath
 type getClientsetForPathFn func(kubeConfigPath string) (clientset *kubernetes.Clientset, err error)
 
+// getFn is a typed function that abstracts
+// get of node
+type getFn func(cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*corev1.Node, error)
+
 // listFn is a typed function that abstracts
 // listing of nodes
 type listFn func(cli *kubernetes.Clientset, opts metav1.ListOptions) (*corev1.NodeList, error)
+
+// updateFn is a typed function that abstracts
+// updating of node
+type updateFn func(cli *kubernetes.Clientset, node *corev1.Node) (*corev1.Node, error)
+
+// patchFn is a typed function that abstracts
+// patch of a node
+type patchFn func(cli *kubernetes.Clientset, name string, pt types.PatchType,
+	data []byte, subresources ...string) (*corev1.Node, error)
 
 // Kubeclient enables kubernetes API operations on node instance
 type Kubeclient struct {
@@ -47,7 +66,10 @@ type Kubeclient struct {
 	// functions useful during mocking
 	getClientset        getClientsetFn
 	getClientsetForPath getClientsetForPathFn
+	get                 getFn
 	list                listFn
+	patch               patchFn
+	update              updateFn
 }
 
 // KubeClientBuildOption defines the abstraction
@@ -65,11 +87,27 @@ func (k *Kubeclient) withDefaults() {
 			return client.New(client.WithKubeConfigPath(kubeConfigPath)).Clientset()
 		}
 	}
+	if k.get == nil {
+		k.get = func(cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*corev1.Node, error) {
+			return cli.CoreV1().Nodes().Get(name, opts)
+		}
+	}
 	if k.list == nil {
 		k.list = func(cli *kubernetes.Clientset, opts metav1.ListOptions) (*corev1.NodeList, error) {
 			return cli.CoreV1().Nodes().List(opts)
 		}
 	}
+	if k.patch == nil {
+		k.patch = func(cli *kubernetes.Clientset, name string, pt types.PatchType, data []byte, subresources ...string) (*corev1.Node, error) {
+			return cli.CoreV1().Nodes().Patch(name, pt, data, subresources...)
+		}
+	}
+	if k.update == nil {
+		k.update = func(cli *kubernetes.Clientset, node *corev1.Node) (*corev1.Node, error) {
+			return cli.CoreV1().Nodes().Update(node)
+		}
+	}
+
 }
 
 // WithKubeConfigPath sets the kubeConfig path
@@ -112,6 +150,19 @@ func (k *Kubeclient) getClientsetOrCached() (*kubernetes.Clientset, error) {
 	return k.clientset, nil
 }
 
+// Get returns a node resource
+// instances present in kubernetes cluster
+func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*corev1.Node, error) {
+	if strings.TrimSpace(name) == "" {
+		return nil, errors.New("failed to get node: missing node name")
+	}
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get node {%s}", name)
+	}
+	return k.get(cli, name, opts)
+}
+
 // List returns a list of nodes instances present in kubernetes cluster
 func (k *Kubeclient) List(opts metav1.ListOptions) (*corev1.NodeList, error) {
 	cli, err := k.getClientsetOrCached()
@@ -119,4 +170,60 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*corev1.NodeList, error) {
 		return nil, errors.Wrapf(err, "failed to list")
 	}
 	return k.list(cli, opts)
+}
+
+// Patch patches the Node in kubernetes cluster
+func (k *Kubeclient) Patch(name string,
+	pt types.PatchType,
+	data []byte,
+	subresources ...string) (*corev1.Node, error) {
+	if len(name) == 0 {
+		return nil, errors.New("failed to patch node: missing node name")
+	}
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to patch node {%s}", name)
+	}
+	return k.patch(cli, name, pt, data, subresources...)
+}
+
+// Update updates the Node in kubernetes cluster
+func (k *Kubeclient) Update(node *corev1.Node) (*corev1.Node, error) {
+	if len(node.Name) == 0 {
+		return nil, errors.New("failed to patch node: missing node name")
+	}
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to patch node {%s}", node.Name)
+	}
+	return k.update(cli, node)
+}
+
+// CordonViaUpdate cordon/uncordon node in cluster using update
+func (k *Kubeclient) CordonViaUpdate(node *corev1.Node, isCordon bool) error {
+	node.Spec.Unschedulable = isCordon
+
+	_, err := k.Update(node)
+	return err
+}
+
+// CordonViaPatch cordon/uncordon node in cluster using patch
+func (k *Kubeclient) CordonViaPatch(node *corev1.Node, isCordon bool) error {
+	oldData, err := json.Marshal(node)
+	if err != nil {
+		return err
+	}
+
+	node.Spec.Unschedulable = isCordon
+
+	newData, err := json.Marshal(node)
+	if err != nil {
+		return err
+	}
+
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, node)
+	if err == nil {
+		_, err = k.Patch(node.Name, types.StrategicMergePatchType, patchBytes)
+	}
+	return err
 }

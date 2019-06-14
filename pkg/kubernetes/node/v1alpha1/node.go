@@ -14,29 +14,34 @@
 
 package v1alpha1
 
-import v1 "k8s.io/api/core/v1"
+import corev1 "k8s.io/api/core/v1"
 
 const (
 	kubeletReady = "KubeletReady"
 )
 
-// node holds the api's node object
-type node struct {
-	object *v1.Node
+// Node holds the api's node object
+type Node struct {
+	object *corev1.Node
 }
 
 // NodeList holds the list of node instances
 type NodeList struct {
-	items []*node
+	items []*Node
 }
 
 // Predicate defines an abstraction
 // to determine conditional checks
 // against the provided node instance
-type Predicate func(*node) bool
+type Predicate func(*Node) bool
 
 // predicateList holds the list of predicates
 type predicateList []Predicate
+
+// Builder is the builder object for Pod
+type Builder struct {
+	Node *Node
+}
 
 // ListBuilder enables building an instance of NodeList
 type ListBuilder struct {
@@ -44,10 +49,25 @@ type ListBuilder struct {
 	filters predicateList
 }
 
+// NewBuilder returns new instance of Builder
+func NewBuilder() *Builder {
+	return &Builder{Node: &Node{object: &corev1.Node{}}}
+}
+
+// WithAPINode builds the node
+// instances based on the provided node
+func (b *Builder) WithAPINode(node *corev1.Node) *Builder {
+	if node == nil {
+		return b
+	}
+	return &Builder{Node: &Node{object: node}}
+
+}
+
 // WithAPIList builds the list of node
 // instances based on the provided
 // node list
-func (b *ListBuilder) WithAPIList(nodes *v1.NodeList) *ListBuilder {
+func (b *ListBuilder) WithAPIList(nodes *corev1.NodeList) *ListBuilder {
 	if nodes == nil {
 		return b
 	}
@@ -57,16 +77,16 @@ func (b *ListBuilder) WithAPIList(nodes *v1.NodeList) *ListBuilder {
 
 // WithObject builds the list of node instances based on the provided
 // node list instance
-func (b *ListBuilder) WithObject(nodes ...*node) *ListBuilder {
+func (b *ListBuilder) WithObject(nodes ...*Node) *ListBuilder {
 	b.list.items = append(b.list.items, nodes...)
 	return b
 }
 
 // WithAPIObject builds the list of node instances based on node api instances
-func (b *ListBuilder) WithAPIObject(nodes ...v1.Node) *ListBuilder {
+func (b *ListBuilder) WithAPIObject(nodes ...corev1.Node) *ListBuilder {
 	for _, n := range nodes {
 		n := n
-		b.list.items = append(b.list.items, &node{&n})
+		b.list.items = append(b.list.items, &Node{&n})
 	}
 	return b
 }
@@ -88,12 +108,12 @@ func (b *ListBuilder) List() *NodeList {
 
 // NewListBuilder returns a instance of ListBuilder
 func NewListBuilder() *ListBuilder {
-	return &ListBuilder{list: &NodeList{items: []*node{}}}
+	return &ListBuilder{list: &NodeList{items: []*Node{}}}
 }
 
 // ToAPIList converts NodeList to API NodeList
-func (n *NodeList) ToAPIList() *v1.NodeList {
-	nlist := &v1.NodeList{}
+func (n *NodeList) ToAPIList() *corev1.NodeList {
+	nlist := &corev1.NodeList{}
 	for _, node := range n.items {
 		nlist.Items = append(nlist.Items, *node.object)
 	}
@@ -103,7 +123,7 @@ func (n *NodeList) ToAPIList() *v1.NodeList {
 // all returns true if all the predicateList
 // succeed against the provided node
 // instance
-func (l predicateList) all(n *node) bool {
+func (l predicateList) all(n *Node) bool {
 	for _, pred := range l {
 		if !pred(n) {
 			return false
@@ -113,9 +133,9 @@ func (l predicateList) all(n *node) bool {
 }
 
 // IsReady retuns true if the node is in ready state
-func (n *node) IsReady() bool {
+func (n *Node) IsReady() bool {
 	for _, nodeCond := range n.object.Status.Conditions {
-		if nodeCond.Reason == kubeletReady && nodeCond.Type == v1.NodeReady {
+		if nodeCond.Reason == kubeletReady && nodeCond.Type == corev1.NodeReady {
 			return true
 		}
 	}
@@ -124,7 +144,7 @@ func (n *node) IsReady() bool {
 
 // IsReady is a Predicate to filter out nodes which are in running state
 func IsReady() Predicate {
-	return func(n *node) bool {
+	return func(n *Node) bool {
 		return n.IsReady()
 	}
 }
@@ -132,6 +152,44 @@ func IsReady() Predicate {
 // WithFilter add filters on which the node has to be filtered
 func (b *ListBuilder) WithFilter(pred ...Predicate) *ListBuilder {
 	b.filters = append(b.filters, pred...)
+	return b
+}
+
+// TODO:
+// use type and have a contains func to check the taints
+// before adding a taints
+//
+// type TaintList []corev1.Taint
+//
+// func (l TaintList) Contains(given corev1.Taint) bool {
+//  for _, available := range l {
+//    if available.MatchTaint(&given) {
+//      return true
+//     }
+//   }
+//  return false
+// }
+
+// WithTaints add taints to the Node resource
+func (b *Builder) WithTaints(taintsToAdd []corev1.Taint) *Builder {
+	newTaints := append([]corev1.Taint{}, taintsToAdd...)
+	oldTaints := b.Node.object.Spec.Taints
+
+	for _, oldTaint := range oldTaints {
+		oldTaint := oldTaint
+		existsInNew := false
+		for _, taint := range newTaints {
+			taint := taint
+			if taint.MatchTaint(&oldTaint) {
+				existsInNew = true
+				break
+			}
+		}
+		if !existsInNew {
+			newTaints = append(newTaints, oldTaint)
+		}
+	}
+	b.Node.object.Spec.Taints = newTaints
 	return b
 }
 
