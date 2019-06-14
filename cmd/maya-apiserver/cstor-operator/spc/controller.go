@@ -156,8 +156,8 @@ func (c *Controller) addSpc(obj interface{}) {
 		runtime.HandleError(fmt.Errorf("Couldn't get spc object %#v", obj))
 		return
 	}
-	if spc.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
-		message := fmt.Sprintf("reconcile is disabled via %q label", string(apis.OpenEBSDisableReconcileKey))
+	if spc.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey))
 		c.recorder.Event(spc, corev1.EventTypeWarning, "Create", message)
 		return
 	}
@@ -172,8 +172,8 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 		runtime.HandleError(fmt.Errorf("Couldn't get spc object %#v", newSpc))
 		return
 	}
-	if spc.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
-		message := fmt.Sprintf("reconcile is disabled via %q label", string(apis.OpenEBSDisableReconcileKey))
+	if spc.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey))
 		c.recorder.Event(spc, corev1.EventTypeWarning, "Update", message)
 		return
 	}
@@ -198,8 +198,8 @@ func (c *Controller) deleteSpc(obj interface{}) {
 			return
 		}
 	}
-	if spc.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
-		message := fmt.Sprintf("reconcile is disabled via %q label", string(apis.OpenEBSDisableReconcileKey))
+	if spc.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey))
 		c.recorder.Event(spc, corev1.EventTypeWarning, "Delete", message)
 		return
 	}
