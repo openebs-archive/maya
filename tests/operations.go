@@ -245,7 +245,7 @@ func (ops *Operations) GetCstorVolumeCountEventually(namespace, lselector string
 		cvCount := ops.GetCVCount(namespace, lselector)
 		return cvCount
 	},
-		60, 10).Should(Equal(expectedCVCount))
+		120, 10).Should(Equal(expectedCVCount))
 }
 
 // GetCstorVolumeReplicaCountEventually gives the count of cstorvolume based on
@@ -255,7 +255,7 @@ func (ops *Operations) GetCstorVolumeReplicaCountEventually(namespace, lselector
 		cvCount := ops.GetCstorVolumeReplicaCount(namespace, lselector)
 		return cvCount
 	},
-		60, 10).Should(Equal(expectedCVRCount))
+		120, 10).Should(Equal(expectedCVRCount))
 }
 
 // GetPodRunningCount gives number of pods running currently
@@ -313,7 +313,7 @@ func (ops *Operations) IsPVCBoundEventually(pvcName string) bool {
 		Expect(err).ShouldNot(HaveOccurred())
 		return pvc.NewForAPIObject(volume).IsBound()
 	},
-		60, 10).
+		120, 10).
 		Should(BeTrue())
 }
 
@@ -388,7 +388,7 @@ func (ops *Operations) IsPodDeletedEventually(namespace, podName string) bool {
 			Get(podName, metav1.GetOptions{})
 		return isNotFound(err)
 	},
-		60, 10).
+		120, 10).
 		Should(BeTrue())
 }
 
@@ -480,7 +480,7 @@ func (ops *Operations) GetHealthyCSPCountEventually(spcName string, expectedCSPC
 			Len()
 		return count
 	},
-		60, 10).
+		120, 10).
 		Should(Equal(expectedCSPCount))
 }
 
