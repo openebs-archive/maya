@@ -83,7 +83,7 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 		WithAccessModes(pvc.Spec.AccessModes).
 		WithVolumeMode(fs).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
-		WithFormatLocalHostPath(path, fsType).
+		WithLocalHostPathFormat(path, fsType).
 		WithNodeAffinity(node.Name).
 		Build()
 
