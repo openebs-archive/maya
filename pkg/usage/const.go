@@ -42,4 +42,8 @@ const (
 
 	// Event application name constant for volume event
 	DefaultCASType string = "jiva"
+
+	// LocalPVReplicaCount is the constant used by usage to represent
+	// replication factor in LocalPV
+	LocalPVReplicaCount string = "1"
 )

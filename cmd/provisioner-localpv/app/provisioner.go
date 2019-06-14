@@ -161,12 +161,15 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 }
 
 func sendEventOrIgnore(pvName, capacity, stgType, method string) {
+	if method == analytics.VolumeProvision {
+		stgType = "local-" + stgType
+	}
 	if menv.Truthy(menv.OpenEBSEnableAnalytics) {
 		analytics.New().Build().ApplicationBuilder().
 			SetVolumeType(stgType, method).
 			SetDocumentTitle(pvName).
 			SetLabel(analytics.EventLabelCapacity).
-			SetReplicaCount("1", method).
+			SetReplicaCount(analytics.LocalPVReplicaCount, method).
 			SetCategory(method).
 			SetVolumeCapacity(capacity).Send()
 	}
