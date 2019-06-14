@@ -46,7 +46,7 @@ var _ = Describe("TEST DEPLOYMENT CREATION ", func() {
 			deployObj, err = deploy.NewBuilder().
 				WithName(deployName).
 				WithNamespace(namespaceObj.Name).
-				WithLabelsAndSelector(labelselector).
+				WithLabelSelector(labelselector).
 				WithContainerBuilder(
 					con.NewBuilder().
 						WithName("busybox").

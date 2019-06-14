@@ -165,6 +165,54 @@ func TestBuildWithLabels(t *testing.T) {
 	}
 }
 
+func TestBuildWithLabelsNew(t *testing.T) {
+	tests := map[string]struct {
+		labels    map[string]string
+		builder   *Builder
+		expectErr bool
+	}{
+		"Test 1 - with labels": {
+			labels: map[string]string{
+				"persistent-volume": "PV",
+				"application":       "percona",
+			},
+			builder: &Builder{pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: false,
+		},
+
+		"Test 2 - with empty labels": {
+			labels: map[string]string{},
+			builder: &Builder{pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: true,
+		},
+
+		"Test 3 - with nil labels": {
+			labels: nil,
+			builder: &Builder{pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: true,
+		},
+	}
+
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithLabelsNew(mock.labels)
+			if mock.expectErr && len(b.errs) == 0 {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && len(b.errs) > 0 {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
 func TestBuildWithAccessModes(t *testing.T) {
 	tests := map[string]struct {
 		accessModes []corev1.PersistentVolumeAccessMode

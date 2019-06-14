@@ -511,3 +511,64 @@ func TestKubernetesPVCCreate(t *testing.T) {
 		})
 	}
 }
+
+func TestKubernetesPVCCreateCollection(t *testing.T) {
+	tests := map[string]struct {
+		getClientSet getClientsetFn
+		create       createFn
+		pvc          *v1.PersistentVolumeClaim
+		expectErr    bool
+	}{
+		"Test 1": {
+			getClientSet: fakeGetClientSetErr,
+			create:       fakeCreateFnOk,
+			pvc: &v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{GenerateName: "PVC-1"},
+			},
+			expectErr: true,
+		},
+		"Test 2": {
+			getClientSet: fakeGetClientSetOk,
+			create:       fakeCreateFnErr,
+			pvc: &v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{GenerateName: "PVC-2"},
+			},
+			expectErr: true,
+		},
+		"Test 3": {
+			getClientSet: fakeGetClientSetOk,
+			create:       fakeCreateFnOk,
+			pvc:          nil,
+			expectErr:    true,
+		},
+		"Test 4": {
+			getClientSet: fakeGetClientSetOk,
+			create:       fakeCreateFnOk,
+			pvc: &v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{GenerateName: "PVC-4"},
+			},
+			expectErr: false,
+		},
+	}
+
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			fc := &Kubeclient{
+				getClientset: mock.getClientSet,
+				create:       mock.create,
+			}
+			pvclist, _ := ListBuilderFromTemplate(mock.pvc).WithCount(10).APIList()
+			newlist, err := fc.CreateCollection(pvclist)
+			if mock.expectErr && err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+			if !mock.expectErr && len(newlist.Items) != 10 {
+				t.Fatalf("Test %q failed: expected count {%d} got {%d}", name, 10, len(newlist.Items))
+			}
+		})
+	}
+}

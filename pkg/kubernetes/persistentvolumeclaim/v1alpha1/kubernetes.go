@@ -90,31 +90,37 @@ func (k *Kubeclient) withDefaults() {
 			return client.New().Clientset()
 		}
 	}
+
 	if k.getClientsetForPath == nil {
 		k.getClientsetForPath = func(kubeConfigPath string) (clients *kubernetes.Clientset, err error) {
 			return client.New(client.WithKubeConfigPath(kubeConfigPath)).Clientset()
 		}
 	}
+
 	if k.get == nil {
 		k.get = func(cli *kubernetes.Clientset, name string, namespace string, opts metav1.GetOptions) (*corev1.PersistentVolumeClaim, error) {
 			return cli.CoreV1().PersistentVolumeClaims(namespace).Get(name, opts)
 		}
 	}
+
 	if k.list == nil {
 		k.list = func(cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PersistentVolumeClaimList, error) {
 			return cli.CoreV1().PersistentVolumeClaims(namespace).List(opts)
 		}
 	}
+
 	if k.del == nil {
 		k.del = func(cli *kubernetes.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error {
 			return cli.CoreV1().PersistentVolumeClaims(namespace).Delete(name, deleteOpts)
 		}
 	}
+
 	if k.delCollection == nil {
 		k.delCollection = func(cli *kubernetes.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
 			return cli.CoreV1().PersistentVolumeClaims(namespace).DeleteCollection(deleteOpts, listOpts)
 		}
 	}
+
 	if k.create == nil {
 		k.create = func(cli *kubernetes.Clientset, namespace string, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
 			return cli.CoreV1().PersistentVolumeClaims(namespace).Create(pvc)
@@ -224,6 +230,29 @@ func (k *Kubeclient) Create(pvc *corev1.PersistentVolumeClaim) (*corev1.Persiste
 		return nil, errors.Wrapf(err, "failed to create pvc {%s} in namespace {%s}", pvc.Name, pvc.Namespace)
 	}
 	return k.create(cli, k.namespace, pvc)
+}
+
+// CreateCollection creates a list of pvcs
+// in specified namespace in kubernetes cluster
+func (k *Kubeclient) CreateCollection(
+	list *corev1.PersistentVolumeClaimList,
+) (*corev1.PersistentVolumeClaimList, error) {
+	if list == nil || len(list.Items) == 0 {
+		return nil, errors.New("failed to create list of pvcs: nil pvc list provided")
+	}
+
+	newlist := &corev1.PersistentVolumeClaimList{}
+	for _, item := range list.Items {
+		item := item
+		obj, err := k.Create(&item)
+		if err != nil {
+			return nil, err
+		}
+
+		newlist.Items = append(newlist.Items, *obj)
+	}
+
+	return newlist, nil
 }
 
 // DeleteCollection deletes a collection of pvc objects.
