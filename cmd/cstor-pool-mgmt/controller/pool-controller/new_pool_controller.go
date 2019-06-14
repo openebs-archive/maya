@@ -115,8 +115,8 @@ func NewCStorPoolController(
 			if IsDeletionFailedBefore(cStorPool) || IsErrorDuplicate(cStorPool) {
 				return
 			}
-			if cStorPool.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
-				message := fmt.Sprintf("reconcile is disabled via %q label", string(apis.OpenEBSDisableReconcileKey))
+			if cStorPool.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+				message := fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey))
 				controller.recorder.Event(cStorPool, corev1.EventTypeWarning, "Create", message)
 				return
 			}
@@ -140,8 +140,8 @@ func NewCStorPoolController(
 			if IsDeletionFailedBefore(newCStorPool) || IsErrorDuplicate(newCStorPool) {
 				return
 			}
-			if newCStorPool.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
-				message := fmt.Sprintf("reconcile is disabled via %q label", string(apis.OpenEBSDisableReconcileKey))
+			if newCStorPool.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+				message := fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey))
 				controller.recorder.Event(newCStorPool, corev1.EventTypeWarning, "Update", message)
 				return
 			}
@@ -168,8 +168,8 @@ func NewCStorPoolController(
 			if !IsRightCStorPoolMgmt(cStorPool) {
 				return
 			}
-			if cStorPool.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
-				message := fmt.Sprintf("reconcile is disabled via %q label", string(apis.OpenEBSDisableReconcileKey))
+			if cStorPool.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+				message := fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey))
 				controller.recorder.Event(cStorPool, corev1.EventTypeWarning, "Delete", message)
 				return
 			}
