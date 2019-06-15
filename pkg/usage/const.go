@@ -29,8 +29,7 @@ const (
 	VolumeProvision string = "volume-provision"
 	//VolumeDeprovision event is sent when a volume is deleted
 	VolumeDeprovision string = "volume-deprovision"
-
-	AppName string = "OpenEBS"
+	AppName           string = "OpenEBS"
 
 	// Event labels
 	RunningStatus      string = "running"
@@ -43,4 +42,8 @@ const (
 
 	// Event application name constant for volume event
 	DefaultCASType string = "jiva"
+
+	// LocalPVReplicaCount is the constant used by usage to represent
+	// replication factor in LocalPV
+	LocalPVReplicaCount string = "1"
 )
