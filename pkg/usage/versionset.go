@@ -29,6 +29,7 @@ var (
 	clusterArch    env.ENVKey = "OPENEBS_IO_K8S_ARCH"
 	openEBSversion env.ENVKey = "OPENEBS_IO_VERSION_TAG"
 	nodeType       env.ENVKey = "OPENEBS_IO_NODE_TYPE"
+	installerType  env.ENVKey = "OPENEBS_IO_INSTALLER_TYPE"
 )
 
 // versionSet is a struct which stores (sort of) fixed information about a
@@ -39,6 +40,7 @@ type versionSet struct {
 	k8sArch        string // OPENEBS_IO_K8S_ARCH
 	openebsVersion string // OPENEBS_IO_VERSION_TAG
 	nodeType       string // OPENEBS_IO_NODE_TYPE
+	installerType  string // OPENEBS_IO_INSTALLER_TYPE
 }
 
 // NewVersion returns a new versionSet struct
@@ -91,6 +93,7 @@ func (v *versionSet) getVersion(override bool) error {
 	v.k8sVersion = env.Get(clusterVersion)
 	v.nodeType = env.Get(nodeType)
 	v.openebsVersion = env.Get(openEBSversion)
+	v.installerType = env.Get(installerType)
 	return nil
 }
 

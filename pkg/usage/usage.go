@@ -79,8 +79,12 @@ type Application struct {
 type Gclient struct {
 	// constant tracking-id used to send a hit
 	trackID string
+
 	// anonymous client-id
 	clientID string
+
+	// anonymous campaign source
+	campaignSource string
 
 	// https://developers.google.com/analytics/devguides/collection/protocol/v1/parameters#ds
 	// (usecase) node-detail
@@ -106,6 +110,14 @@ func (u *Usage) SetDataSource(dataSource string) *Usage {
 // SetTrackingID Sets the GA-code for the project
 func (u *Usage) SetTrackingID(track string) *Usage {
 	u.trackID = track
+	return u
+}
+
+// SetCampaignSource : source of openebs installater like:
+// helm or operator etc. This will have to be configured
+// via ENV variable OPENEBS_IO_INSTALLER_TYPE
+func (u *Usage) SetCampaignSource(campaignSrc string) *Usage {
+	u.campaignSource = campaignSrc
 	return u
 }
 
@@ -176,7 +188,8 @@ func (u *Usage) Build() *Usage {
 	v.getVersion(false)
 	u.SetApplicationID(AppName).
 		SetTrackingID(GAclientID).
-		SetClientID(v.id)
+		SetClientID(v.id).
+		SetCampaignSource(v.installerType)
 	// TODO: Add condition for version over-ride
 	// Case: CAS/Jiva version, etc
 	return u
