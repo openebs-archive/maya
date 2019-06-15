@@ -160,6 +160,7 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 	return nil
 }
 
+// sendEventOrIgnore sends anonymous local-pv provision/delete events
 func sendEventOrIgnore(pvName, capacity, stgType, method string) {
 	if method == analytics.VolumeProvision {
 		stgType = "local-" + stgType
