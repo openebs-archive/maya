@@ -317,6 +317,16 @@ func (ops *Operations) IsPVCBoundEventually(pvcName string) bool {
 		Should(BeTrue())
 }
 
+// PodDeleteCollection deletes all the pods in a namespace matched the given
+// labelselector
+func (ops *Operations) PodDeleteCollection(ns string, lopts metav1.ListOptions) error {
+	deletePolicy := metav1.DeletePropagationForeground
+	dopts := &metav1.DeleteOptions{
+		PropagationPolicy: &deletePolicy,
+	}
+	return ops.PodClient.WithNamespace(ns).DeleteCollection(lopts, dopts)
+}
+
 // IsPodRunningEventually checks if the pvc is bound or not eventually
 func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
 	return Eventually(func() bool {

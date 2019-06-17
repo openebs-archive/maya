@@ -136,9 +136,9 @@ var _ = Describe("[cstor] TEST BULK VOLUME PROVISIONING", func() {
 			podCount := ops.GetPodRunningCountEventually(
 				openebsNamespace,
 				"openebs.io/storage-class="+scObj.Name,
-				10,
+				bulkCount,
 			)
-			Expect(podCount).To(Equal(10), "while checking target pod count")
+			Expect(podCount).To(Equal(bulkCount), "while checking target pod count")
 
 			By("fetching pvc list")
 			pvcObjList, err = ops.PVCClient.WithNamespace(nsObj.Name).
@@ -185,6 +185,21 @@ var _ = Describe("[cstor] TEST BULK VOLUME PROVISIONING", func() {
 		})
 	})
 
+	When("eventually pool pods are deleted", func() {
+		It("should delete cstor pools pod before pvc delete", func() {
+
+			lopts := metav1.ListOptions{
+				LabelSelector: "openebs.io/cstor-pool=" + spcObj.Name,
+			}
+
+			err = ops.PodDeleteCollection(nsObj.Name, lopts)
+			Expect(err).To(
+				BeNil(),
+				"while deleting pools {%s} in namespace {%s}", spcObj.Name, nsObj.Name,
+			)
+		})
+	})
+
 	When("cstor pvcs are deleted", func() {
 		It("should delete cstor volumes", func() {
 
@@ -197,6 +212,12 @@ var _ = Describe("[cstor] TEST BULK VOLUME PROVISIONING", func() {
 			dopts := &metav1.DeleteOptions{
 				PropagationPolicy: &deletePolicy,
 			}
+			By("deleting the pool pods again")
+			err = ops.PodDeleteCollection(nsObj.Name, lopts)
+			Expect(err).To(
+				BeNil(),
+				"while deleting pools {%s} in namespace {%s}", spcObj.Name, nsObj.Name,
+			)
 
 			err = ops.PVCClient.
 				WithNamespace(nsObj.Name).

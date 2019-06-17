@@ -90,7 +90,7 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 		})
 	})
 
-	When("cstor pvc with replicacount 1 is created", func() {
+	When("cstor pvc with replicacount n is created", func() {
 		It("should create cstor volume target pod", func() {
 
 			By("building a pvc")
@@ -138,8 +138,36 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 			status := ops.IsPVCBound(pvcName)
 			Expect(status).To(Equal(true), "while checking status equal to bound")
 
+			By("should delete cstor pools pod before pvc delete")
+			lopts := metav1.ListOptions{
+				LabelSelector: "openebs.io/cstor-pool=" + spcObj.Name,
+			}
+
+			err = ops.PodDeleteCollection(nsObj.Name, lopts)
+			Expect(err).To(
+				BeNil(),
+				"while deleting pools {%s} in namespace {%s}", spcObj.Name, nsObj.Name,
+			)
+
+			//			poolLabel := "openebs.io/cstor-pool=" + spcObj.Name
+			//			podList, err := ops.PodClient.
+			//				WithNamespace(nsObj.Name).
+			//				List(metav1.ListOptions{LabelSelector: poolLabel})
+			//			Expect(err).ShouldNot(HaveOccurred(), "while deleting cstor pool pods")
+			//			count := len(podList.Items)
+			//			for i := 0; i < count; i++ {
+			//				By("deleting a pool pods")
+			//				err = ops.PodClient.Delete(podList.Items[i].Name, &metav1.DeleteOptions{})
+			//			}
+			//
 			By("deleting above pvc")
-			err := ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
+			err = ops.PodDeleteCollection(nsObj.Name, lopts)
+			Expect(err).To(
+				BeNil(),
+				"while deleting pools {%s} in namespace {%s}", spcObj.Name, nsObj.Name,
+			)
+
+			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting pvc {%s} in namespace {%s}",
