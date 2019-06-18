@@ -71,6 +71,53 @@ func (p *PV) IsNil() bool {
 	return p.object == nil
 }
 
+// GetPath returns path configured on VolumeSource
+// The VolumeSource can be either Local or HostPath
+func (p *PV) GetPath() string {
+	local := p.object.Spec.PersistentVolumeSource.Local
+	if local != nil {
+		return local.Path
+	}
+	//Handle the case of Local PV created in 0.9 using
+	//HostPath VolumeSource
+	hostPath := p.object.Spec.PersistentVolumeSource.HostPath
+	if hostPath != nil {
+		return hostPath.Path
+	}
+	return ""
+}
+
+// GetAffinitedNode returns nodeName configured using the NodeAffinity
+// This method expects only a single node to be set.
+func (p *PV) GetAffinitedNode() string {
+	nodeAffinity := p.object.Spec.NodeAffinity
+	if nodeAffinity == nil {
+		return ""
+	}
+	required := nodeAffinity.Required
+	if required == nil {
+		return ""
+	}
+
+	node := ""
+	for _, selectorTerm := range required.NodeSelectorTerms {
+		for _, expression := range selectorTerm.MatchExpressions {
+			if expression.Key == KeyNode &&
+				expression.Operator == corev1.NodeSelectorOpIn {
+				if len(expression.Values) != 1 {
+					return ""
+				}
+				node = expression.Values[0]
+				break
+			}
+		}
+		if node != "" {
+			break
+		}
+	}
+	return node
+}
+
 // IsNil is predicate to filter out nil PV
 // instances
 func IsNil() Predicate {
