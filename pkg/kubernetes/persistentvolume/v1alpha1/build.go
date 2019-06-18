@@ -141,7 +141,7 @@ func (b *Builder) WithNodeAffinity(nodeName string) *Builder {
 				{
 					MatchExpressions: []corev1.NodeSelectorRequirement{
 						{
-							Key:      "kubernetes.io/hostname",
+							Key:      KeyNode,
 							Operator: corev1.NodeSelectorOpIn,
 							Values: []string{
 								nodeName,

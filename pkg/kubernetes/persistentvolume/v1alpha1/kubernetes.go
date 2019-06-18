@@ -26,6 +26,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+const (
+	//KeyNode represents the key values used for specifying the Node Affinity
+	// based on the hostname
+	KeyNode = "kubernetes.io/hostname"
+)
+
 // getClientsetFn is a typed function that
 // abstracts fetching of clientset
 type getClientsetFn func() (clientset *kubernetes.Clientset, err error)

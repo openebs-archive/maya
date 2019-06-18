@@ -305,7 +305,7 @@ func TestBuildHostPath(t *testing.T) {
 								{
 									MatchExpressions: []corev1.NodeSelectorRequirement{
 										{
-											Key:      "kubernetes.io/hostname",
+											Key:      KeyNode,
 											Operator: corev1.NodeSelectorOpIn,
 											Values: []string{
 												"node1",
