@@ -83,7 +83,8 @@ func (k *Kubeclient) withDefaults() {
 		}
 	}
 	if k.getClientsetForPath == nil {
-		k.getClientsetForPath = func(kubeConfigPath string) (clients *kubernetes.Clientset, err error) {
+		k.getClientsetForPath = func(
+			kubeConfigPath string) (clients *kubernetes.Clientset, err error) {
 			return client.New(client.WithKubeConfigPath(kubeConfigPath)).Clientset()
 		}
 	}
@@ -93,7 +94,8 @@ func (k *Kubeclient) withDefaults() {
 		}
 	}
 	if k.list == nil {
-		k.list = func(cli *kubernetes.Clientset, opts metav1.ListOptions) (*corev1.NodeList, error) {
+		k.list = func(cli *kubernetes.Clientset,
+			opts metav1.ListOptions) (*corev1.NodeList, error) {
 			return cli.CoreV1().Nodes().List(opts)
 		}
 	}
