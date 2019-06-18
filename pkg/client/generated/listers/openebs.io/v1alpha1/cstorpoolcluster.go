@@ -29,8 +29,8 @@ import (
 type CStorPoolClusterLister interface {
 	// List lists all CStorPoolClusters in the indexer.
 	List(selector labels.Selector) (ret []*v1alpha1.CStorPoolCluster, err error)
-	// Get retrieves the CStorPoolCluster from the index for a given name.
-	Get(name string) (*v1alpha1.CStorPoolCluster, error)
+	// CStorPoolClusters returns an object that can list and get CStorPoolClusters.
+	CStorPoolClusters(namespace string) CStorPoolClusterNamespaceLister
 	CStorPoolClusterListerExpansion
 }
 
@@ -52,9 +52,38 @@ func (s *cStorPoolClusterLister) List(selector labels.Selector) (ret []*v1alpha1
 	return ret, err
 }
 
-// Get retrieves the CStorPoolCluster from the index for a given name.
-func (s *cStorPoolClusterLister) Get(name string) (*v1alpha1.CStorPoolCluster, error) {
-	obj, exists, err := s.indexer.GetByKey(name)
+// CStorPoolClusters returns an object that can list and get CStorPoolClusters.
+func (s *cStorPoolClusterLister) CStorPoolClusters(namespace string) CStorPoolClusterNamespaceLister {
+	return cStorPoolClusterNamespaceLister{indexer: s.indexer, namespace: namespace}
+}
+
+// CStorPoolClusterNamespaceLister helps list and get CStorPoolClusters.
+type CStorPoolClusterNamespaceLister interface {
+	// List lists all CStorPoolClusters in the indexer for a given namespace.
+	List(selector labels.Selector) (ret []*v1alpha1.CStorPoolCluster, err error)
+	// Get retrieves the CStorPoolCluster from the indexer for a given namespace and name.
+	Get(name string) (*v1alpha1.CStorPoolCluster, error)
+	CStorPoolClusterNamespaceListerExpansion
+}
+
+// cStorPoolClusterNamespaceLister implements the CStorPoolClusterNamespaceLister
+// interface.
+type cStorPoolClusterNamespaceLister struct {
+	indexer   cache.Indexer
+	namespace string
+}
+
+// List lists all CStorPoolClusters in the indexer for a given namespace.
+func (s cStorPoolClusterNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.CStorPoolCluster, err error) {
+	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
+		ret = append(ret, m.(*v1alpha1.CStorPoolCluster))
+	})
+	return ret, err
+}
+
+// Get retrieves the CStorPoolCluster from the indexer for a given namespace and name.
+func (s cStorPoolClusterNamespaceLister) Get(name string) (*v1alpha1.CStorPoolCluster, error) {
+	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}

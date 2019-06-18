@@ -61,8 +61,8 @@ func (c *OpenebsV1alpha1Client) CStorPools() CStorPoolInterface {
 	return newCStorPools(c)
 }
 
-func (c *OpenebsV1alpha1Client) CStorPoolClusters() CStorPoolClusterInterface {
-	return newCStorPoolClusters(c)
+func (c *OpenebsV1alpha1Client) CStorPoolClusters(namespace string) CStorPoolClusterInterface {
+	return newCStorPoolClusters(c, namespace)
 }
 
 func (c *OpenebsV1alpha1Client) CStorRestores(namespace string) CStorRestoreInterface {

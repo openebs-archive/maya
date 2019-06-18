@@ -81,7 +81,7 @@ func (v *version) CStorPools() CStorPoolInformer {
 
 // CStorPoolClusters returns a CStorPoolClusterInformer.
 func (v *version) CStorPoolClusters() CStorPoolClusterInformer {
-	return &cStorPoolClusterInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+	return &cStorPoolClusterInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // CStorRestores returns a CStorRestoreInformer.

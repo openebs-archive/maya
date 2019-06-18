@@ -30,7 +30,7 @@ import (
 // CStorPoolClustersGetter has a method to return a CStorPoolClusterInterface.
 // A group's client should implement this interface.
 type CStorPoolClustersGetter interface {
-	CStorPoolClusters() CStorPoolClusterInterface
+	CStorPoolClusters(namespace string) CStorPoolClusterInterface
 }
 
 // CStorPoolClusterInterface has methods to work with CStorPoolCluster resources.
@@ -49,12 +49,14 @@ type CStorPoolClusterInterface interface {
 // cStorPoolClusters implements CStorPoolClusterInterface
 type cStorPoolClusters struct {
 	client rest.Interface
+	ns     string
 }
 
 // newCStorPoolClusters returns a CStorPoolClusters
-func newCStorPoolClusters(c *OpenebsV1alpha1Client) *cStorPoolClusters {
+func newCStorPoolClusters(c *OpenebsV1alpha1Client, namespace string) *cStorPoolClusters {
 	return &cStorPoolClusters{
 		client: c.RESTClient(),
+		ns:     namespace,
 	}
 }
 
@@ -62,6 +64,7 @@ func newCStorPoolClusters(c *OpenebsV1alpha1Client) *cStorPoolClusters {
 func (c *cStorPoolClusters) Get(name string, options v1.GetOptions) (result *v1alpha1.CStorPoolCluster, err error) {
 	result = &v1alpha1.CStorPoolCluster{}
 	err = c.client.Get().
+		Namespace(c.ns).
 		Resource("cstorpoolclusters").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -74,6 +77,7 @@ func (c *cStorPoolClusters) Get(name string, options v1.GetOptions) (result *v1a
 func (c *cStorPoolClusters) List(opts v1.ListOptions) (result *v1alpha1.CStorPoolClusterList, err error) {
 	result = &v1alpha1.CStorPoolClusterList{}
 	err = c.client.Get().
+		Namespace(c.ns).
 		Resource("cstorpoolclusters").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
@@ -85,6 +89,7 @@ func (c *cStorPoolClusters) List(opts v1.ListOptions) (result *v1alpha1.CStorPoo
 func (c *cStorPoolClusters) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
+		Namespace(c.ns).
 		Resource("cstorpoolclusters").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
@@ -94,6 +99,7 @@ func (c *cStorPoolClusters) Watch(opts v1.ListOptions) (watch.Interface, error) 
 func (c *cStorPoolClusters) Create(cStorPoolCluster *v1alpha1.CStorPoolCluster) (result *v1alpha1.CStorPoolCluster, err error) {
 	result = &v1alpha1.CStorPoolCluster{}
 	err = c.client.Post().
+		Namespace(c.ns).
 		Resource("cstorpoolclusters").
 		Body(cStorPoolCluster).
 		Do().
@@ -105,6 +111,7 @@ func (c *cStorPoolClusters) Create(cStorPoolCluster *v1alpha1.CStorPoolCluster) 
 func (c *cStorPoolClusters) Update(cStorPoolCluster *v1alpha1.CStorPoolCluster) (result *v1alpha1.CStorPoolCluster, err error) {
 	result = &v1alpha1.CStorPoolCluster{}
 	err = c.client.Put().
+		Namespace(c.ns).
 		Resource("cstorpoolclusters").
 		Name(cStorPoolCluster.Name).
 		Body(cStorPoolCluster).
@@ -116,6 +123,7 @@ func (c *cStorPoolClusters) Update(cStorPoolCluster *v1alpha1.CStorPoolCluster) 
 // Delete takes name of the cStorPoolCluster and deletes it. Returns an error if one occurs.
 func (c *cStorPoolClusters) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
+		Namespace(c.ns).
 		Resource("cstorpoolclusters").
 		Name(name).
 		Body(options).
@@ -126,6 +134,7 @@ func (c *cStorPoolClusters) Delete(name string, options *v1.DeleteOptions) error
 // DeleteCollection deletes a collection of objects.
 func (c *cStorPoolClusters) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
+		Namespace(c.ns).
 		Resource("cstorpoolclusters").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
@@ -137,6 +146,7 @@ func (c *cStorPoolClusters) DeleteCollection(options *v1.DeleteOptions, listOpti
 func (c *cStorPoolClusters) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CStorPoolCluster, err error) {
 	result = &v1alpha1.CStorPoolCluster{}
 	err = c.client.Patch(pt).
+		Namespace(c.ns).
 		Resource("cstorpoolclusters").
 		SubResource(subresources...).
 		Name(name).
