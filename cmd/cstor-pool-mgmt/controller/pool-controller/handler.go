@@ -138,18 +138,14 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 }
 
 func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorPool) (string, error) {
-	// CheckValidPool is to check if pool attributes are correct.
-	devIDList, err := c.getDeviceIDs(cStorPoolGot)
-	if err != nil {
-		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
-	}
-	// ValidatePool is to check if pool attributes are correct.
-	err = pool.ValidatePool(cStorPoolGot, devIDList)
-	if err != nil {
-		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
-		return string(apis.CStorPoolStatusOffline), err
-	}
+	var importPoolErr error
+	var status string
 
+	// To import the pool this check is important
+	if cStorPoolGot.ObjectMeta.UID == "" {
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
+		return string(apis.CStorPoolStatusOffline), fmt.Errorf("Poolname/UID cannot be empty")
+	}
 	/* 	If pool is already present.
 	Pool CR status is online. This means pool (main car) is running successfully,
 	but watcher container got restarted.
@@ -165,6 +161,35 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 	cnt := common.NoOfPoolWaitAttempts
 	existingPool, _ := pool.GetPoolName()
 	isPoolExists := len(existingPool) != 0
+
+	if !isPoolExists {
+		cachefileFlags := []bool{true, false}
+		for _, cachefileFlag := range cachefileFlags {
+			status, importPoolErr = c.importPool(cStorPoolGot, cachefileFlag)
+			if status == string(apis.CStorPoolStatusOnline) {
+				c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
+				common.SyncResources.IsImported = true
+				return status, nil
+			}
+			if importPoolErr != nil {
+				glog.Errorf("Import succeded, but, other operations failed %v", importPoolErr)
+				c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureImported), string(common.FailureImportOperations))
+				return status, importPoolErr
+			}
+		}
+	}
+
+	// CheckValidPool is to check if pool attributes are correct.
+	devIDList, err := c.getDeviceIDs(cStorPoolGot)
+	if err != nil {
+		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
+	}
+	// ValidatePool is to check if pool attributes are correct.
+	err = pool.ValidatePool(cStorPoolGot, devIDList)
+	if err != nil {
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
+		return string(apis.CStorPoolStatusOffline), err
+	}
 
 	// There is no need of loop here, if the GetPoolName returns poolname with cStorPoolGot.GetUID.
 	// It is going to stay forever until zrepl restarts
@@ -198,22 +223,6 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 			// If no pool is present while trying for getpoolname, set isPoolExists to false and
 			// break the loop, to import the pool later.
 			isPoolExists = false
-		}
-	}
-	var importPoolErr error
-	var status string
-	cachefileFlags := []bool{true, false}
-	for _, cachefileFlag := range cachefileFlags {
-		status, importPoolErr = c.importPool(cStorPoolGot, cachefileFlag)
-		if status == string(apis.CStorPoolStatusOnline) {
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
-			common.SyncResources.IsImported = true
-			return status, nil
-		}
-		if importPoolErr != nil {
-			glog.Errorf("Import succeded, but, other operations failed %v", importPoolErr)
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureImported), string(common.FailureImportOperations))
-			return status, importPoolErr
 		}
 	}
 
