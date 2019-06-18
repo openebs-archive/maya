@@ -76,8 +76,12 @@ type DeviceClaimDetails struct {
 	// 3) VolumeModeFileSystem: BD should have a filesystem and mountpoint. If DeviceFormat is
 	//    specified then the format should match with the FSType in BD
 	BlockVolumeMode BlockDeviceVolumeMode `json:"blockVolumeMode,omitempty"`
-	DeviceFormat    string                `json:"formatType,omitempty"`     //Format of the device required, eg:ext4, xfs
-	AllowPartition  bool                  `json:"allowPartition,omitempty"` //AllowPartition represents whether to claim a full block device or a device that is a partition
+
+	//Format of the device required, eg:ext4, xfs
+	DeviceFormat string `json:"formatType,omitempty"`
+
+	//AllowPartition represents whether to claim a full block device or a device that is a partition
+	AllowPartition bool `json:"allowPartition,omitempty"`
 }
 
 // BlockDeviceVolumeMode specifies the type in which the BlockDevice can be used
@@ -86,7 +90,9 @@ type BlockDeviceVolumeMode string
 const (
 	// VolumeModeBlock specifies that the block device needs to be used as a raw block
 	VolumeModeBlock BlockDeviceVolumeMode = "Block"
-	// VolumeModeFileSystem specifies that block device will be used with a filesystem already existing
+
+	// VolumeModeFileSystem specifies that block device will be used with a filesystem
+	// already existing
 	VolumeModeFileSystem BlockDeviceVolumeMode = "FileSystem"
 )
 
