@@ -340,7 +340,7 @@ func (k *K8sClient) oeV1alpha1SPCOps() typed_oe_v1alpha1.StoragePoolClaimInterfa
 // oeV1alpha1CSPCOps is a utility function that provides a instance capable of
 // executing various OpenEBS CStorPoolCluster related operations
 func (k *K8sClient) oeV1alpha1CSPCOps() typed_oe_v1alpha1.CStorPoolClusterInterface {
-	return k.oecs.OpenebsV1alpha1().CStorPoolClusters()
+	return k.oecs.OpenebsV1alpha1().CStorPoolClusters(k.ns)
 }
 
 // oeV1alpha1SPOps is a utility function that provides a instance capable of
@@ -1077,7 +1077,7 @@ func (k *K8sClient) PatchOEV1alpha1SPCAsRaw(name string, patchType types.PatchTy
 
 // PatchOEV1alpha1CSPCAsRaw patches the CSPC object with the provided patches
 func (k *K8sClient) PatchOEV1alpha1CSPCAsRaw(name string, patchType types.PatchType, patches []byte) (result *api_oe_v1alpha1.CStorPoolCluster, err error) {
-	result, err = k.oecs.OpenebsV1alpha1().CStorPoolClusters().Patch(name, patchType, patches)
+	result, err = k.oecs.OpenebsV1alpha1().CStorPoolClusters(k.ns).Patch(name, patchType, patches)
 	return
 }
 

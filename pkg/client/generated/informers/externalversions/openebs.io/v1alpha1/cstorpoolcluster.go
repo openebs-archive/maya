@@ -41,32 +41,33 @@ type CStorPoolClusterInformer interface {
 type cStorPoolClusterInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
+	namespace        string
 }
 
 // NewCStorPoolClusterInformer constructs a new informer for CStorPoolCluster type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewCStorPoolClusterInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredCStorPoolClusterInformer(client, resyncPeriod, indexers, nil)
+func NewCStorPoolClusterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredCStorPoolClusterInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
 // NewFilteredCStorPoolClusterInformer constructs a new informer for CStorPoolCluster type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredCStorPoolClusterInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredCStorPoolClusterInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenebsV1alpha1().CStorPoolClusters().List(options)
+				return client.OpenebsV1alpha1().CStorPoolClusters(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenebsV1alpha1().CStorPoolClusters().Watch(options)
+				return client.OpenebsV1alpha1().CStorPoolClusters(namespace).Watch(options)
 			},
 		},
 		&openebsiov1alpha1.CStorPoolCluster{},
@@ -76,7 +77,7 @@ func NewFilteredCStorPoolClusterInformer(client versioned.Interface, resyncPerio
 }
 
 func (f *cStorPoolClusterInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredCStorPoolClusterInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+	return NewFilteredCStorPoolClusterInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *cStorPoolClusterInformer) Informer() cache.SharedIndexInformer {

@@ -101,7 +101,7 @@ spec:
   # version name to use for REST API: /apis/<group>/<version>
   version: v1alpha1
   # either Namespaced or Cluster
-  scope: Cluster
+  scope: Namespaced
   names:
     # plural name to be used in the URL: /apis/<group>/<version>/<plural>
     plural: cstorpoolclusters
