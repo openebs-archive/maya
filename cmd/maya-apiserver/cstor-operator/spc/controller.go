@@ -149,11 +149,16 @@ func (cb *ControllerBuilder) Build() (*Controller, error) {
 	return cb.Controller, nil
 }
 
-// addSpc is the add event handler for spc.
+// addSpc is the add event handler for spc
 func (c *Controller) addSpc(obj interface{}) {
 	spc, ok := obj.(*apis.StoragePoolClaim)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Couldn't get spc object %#v", obj))
+		return
+	}
+	if spc.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey))
+		c.recorder.Event(spc, corev1.EventTypeWarning, "Create", message)
 		return
 	}
 	glog.V(4).Infof("Queuing SPC %s for add event", spc.Name)
@@ -165,6 +170,11 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 	spc, ok := newSpc.(*apis.StoragePoolClaim)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Couldn't get spc object %#v", newSpc))
+		return
+	}
+	if spc.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey))
+		c.recorder.Event(spc, corev1.EventTypeWarning, "Update", message)
 		return
 	}
 	// Enqueue spc only when there is a pending pool to be created.
@@ -187,6 +197,11 @@ func (c *Controller) deleteSpc(obj interface{}) {
 			runtime.HandleError(fmt.Errorf("Tombstone contained object that is not a storagepoolclaim %#v", obj))
 			return
 		}
+	}
+	if spc.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey))
+		c.recorder.Event(spc, corev1.EventTypeWarning, "Delete", message)
+		return
 	}
 	glog.V(4).Infof("Deleting storagepoolclaim %s", spc.Name)
 	c.enqueueSpc(spc)

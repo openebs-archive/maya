@@ -56,7 +56,7 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 
 			By("verifying healthy csp count")
 			cspCount := ops.GetHealthyCSPCount(spcObj.Name, cstor.PoolCount)
-			Expect(cspCount).To(Equal(1), "while checking cstorpool health count")
+			Expect(cspCount).To(Equal(cstor.ReplicaCount), "while checking cstorpool health count")
 
 			By("building a CAS Config with generated SPC name")
 			CASConfig := strings.Replace(openebsCASConfigValue, "$spcName", spcObj.Name, 1)
@@ -91,7 +91,7 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 		})
 	})
 
-	When("cstor pvc with replicacount 1 is created", func() {
+	When("cstor pvc with replicacount n is created", func() {
 		It("should create cstor volume target pod", func() {
 
 			By("building a persistentvolumeclaim")

@@ -272,6 +272,7 @@ func TestBuildWithNodeAffinity(t *testing.T) {
 }
 
 func TestBuildHostPath(t *testing.T) {
+	fsType := ""
 
 	tests := map[string]struct {
 		name        string
@@ -295,7 +296,7 @@ func TestBuildHostPath(t *testing.T) {
 					PersistentVolumeSource: corev1.PersistentVolumeSource{
 						Local: &corev1.LocalVolumeSource{
 							Path:   "/var/openebs/local/PV1",
-							FSType: nil,
+							FSType: &fsType,
 						},
 					},
 					NodeAffinity: &corev1.VolumeNodeAffinity{
@@ -304,7 +305,7 @@ func TestBuildHostPath(t *testing.T) {
 								{
 									MatchExpressions: []corev1.NodeSelectorRequirement{
 										{
-											Key:      "kubernetes.io/hostname",
+											Key:      KeyNode,
 											Operator: corev1.NodeSelectorOpIn,
 											Values: []string{
 												"node1",

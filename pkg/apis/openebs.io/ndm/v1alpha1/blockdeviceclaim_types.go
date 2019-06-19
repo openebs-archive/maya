@@ -17,17 +17,17 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // DeviceClaimSpec defines the desired state of BlockDeviceClaim
 type DeviceClaimSpec struct {
-	Requirements    DeviceClaimRequirements `json:"requirements"`                 // the requirements in the claim like Capacity, IOPS
-	DeviceType      string                  `json:"deviceType"`                   // DeviceType represents the type of drive like SSD, HDD etc.,
-	HostName        string                  `json:"hostName"`                     // Node name from where blockdevice has to be claimed.
-	Details         DeviceClaimDetails      `json:"deviceClaimDetails,omitempty"` // Details of the device to be claimed
-	BlockDeviceName string                  `json:"blockDeviceName,omitempty"`    // BlockDeviceName is the reference to the block-device backing this claim
+	Resources       DeviceClaimResources `json:"resources"`                    // the resources in the claim like Capacity, IOPS
+	DeviceType      string               `json:"deviceType"`                   // DeviceType represents the type of drive like SSD, HDD etc.,
+	HostName        string               `json:"hostName"`                     // Node name from where blockdevice has to be claimed.
+	Details         DeviceClaimDetails   `json:"deviceClaimDetails,omitempty"` // Details of the device to be claimed
+	BlockDeviceName string               `json:"blockDeviceName,omitempty"`    // BlockDeviceName is the reference to the block-device backing this claim
 }
 
 // DeviceClaimStatus defines the observed state of BlockDeviceClaim
@@ -55,24 +55,46 @@ const (
 	BlockDeviceClaimStatusDone DeviceClaimPhase = "Bound"
 )
 
-// DeviceClaimRequirements defines the request by the claim, eg, Capacity, IOPS
-type DeviceClaimRequirements struct {
+// DeviceClaimResources defines the request by the claim, eg, Capacity, IOPS
+type DeviceClaimResources struct {
 	// Requests describes the minimum resources required. eg: if storage resource of 10G is
 	// requested minimum capacity of 10G should be available
-	Requests v1.ResourceList `json:"requests"`
+	Requests corev1.ResourceList `json:"requests"`
 }
 
 const (
-	// ResourceCapacity defines the capacity required as v1.Quantity
-	ResourceCapacity v1.ResourceName = "capacity"
+	// ResourceStorage defines the storage required as v1.Quantity
+	ResourceStorage corev1.ResourceName = "storage"
 )
 
 // DeviceClaimDetails defines the details of the block device that should be claimed
 type DeviceClaimDetails struct {
-	DeviceFormat   string `json:"formatType,omitempty"`     //Format of the device required, eg:ext4, xfs
-	MountPoint     string `json:"mountPoint,omitempty"`     //MountPoint of the device required. Claim device from the specified mountpoint.
-	AllowPartition bool   `json:"allowPartition,omitempty"` //AllowPartition represents whether to claim a full block device or a device that is a partition
+	// BlockVolumeMode represents whether to claim a device in Block mode or Filesystem mode.
+	// These are use cases of BlockVolumeMode:
+	// 1) Not specified: VolumeMode check will not be effective
+	// 2) VolumeModeBlock: BD should not have any filesystem or mountpoint
+	// 3) VolumeModeFileSystem: BD should have a filesystem and mountpoint. If DeviceFormat is
+	//    specified then the format should match with the FSType in BD
+	BlockVolumeMode BlockDeviceVolumeMode `json:"blockVolumeMode,omitempty"`
+
+	//Format of the device required, eg:ext4, xfs
+	DeviceFormat string `json:"formatType,omitempty"`
+
+	//AllowPartition represents whether to claim a full block device or a device that is a partition
+	AllowPartition bool `json:"allowPartition,omitempty"`
 }
+
+// BlockDeviceVolumeMode specifies the type in which the BlockDevice can be used
+type BlockDeviceVolumeMode string
+
+const (
+	// VolumeModeBlock specifies that the block device needs to be used as a raw block
+	VolumeModeBlock BlockDeviceVolumeMode = "Block"
+
+	// VolumeModeFileSystem specifies that block device will be used with a filesystem
+	// already existing
+	VolumeModeFileSystem BlockDeviceVolumeMode = "FileSystem"
+)
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

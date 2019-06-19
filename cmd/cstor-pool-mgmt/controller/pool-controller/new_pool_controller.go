@@ -17,6 +17,8 @@ limitations under the License.
 package poolcontroller
 
 import (
+	"fmt"
+
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -113,6 +115,11 @@ func NewCStorPoolController(
 			if IsDeletionFailedBefore(cStorPool) || IsErrorDuplicate(cStorPool) {
 				return
 			}
+			if cStorPool.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+				message := fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey))
+				controller.recorder.Event(cStorPool, corev1.EventTypeWarning, "Create", message)
+				return
+			}
 			q.Operation = common.QOpAdd
 			glog.Infof("cStorPool Added event : %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
 			controller.recorder.Event(cStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
@@ -131,6 +138,11 @@ func NewCStorPoolController(
 				return
 			}
 			if IsDeletionFailedBefore(newCStorPool) || IsErrorDuplicate(newCStorPool) {
+				return
+			}
+			if newCStorPool.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+				message := fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey))
+				controller.recorder.Event(newCStorPool, corev1.EventTypeWarning, "Update", message)
 				return
 			}
 			// Periodic resync will send update events for all known CStorPool.
@@ -154,6 +166,11 @@ func NewCStorPoolController(
 		DeleteFunc: func(obj interface{}) {
 			cStorPool := obj.(*apis.CStorPool)
 			if !IsRightCStorPoolMgmt(cStorPool) {
+				return
+			}
+			if cStorPool.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+				message := fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey))
+				controller.recorder.Event(cStorPool, corev1.EventTypeWarning, "Delete", message)
 				return
 			}
 			glog.Infof("cStorPool Resource deleted event: %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))

@@ -43,6 +43,21 @@ func (b *Builder) WithName(name string) *Builder {
 	return b
 }
 
+// WithGenerateName sets the GenerateName field of
+// PVC with provided value
+func (b *Builder) WithGenerateName(name string) *Builder {
+	if len(name) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build PVC object: missing PVC generateName"),
+		)
+		return b
+	}
+
+	b.pvc.object.GenerateName = name
+	return b
+}
+
 // WithNamespace sets the Namespace field of PVC provided arguments
 func (b *Builder) WithNamespace(namespace string) *Builder {
 	if len(namespace) == 0 {
@@ -62,13 +77,46 @@ func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 	return b
 }
 
-// WithLabels sets the Labels field of PVC with provided arguments
+// WithLabels merges existing labels if any
+// with the ones that are provided here
 func (b *Builder) WithLabels(labels map[string]string) *Builder {
 	if len(labels) == 0 {
-		b.errs = append(b.errs, errors.New("failed to build PVC object: missing labels"))
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build PVC object: missing labels"),
+		)
 		return b
 	}
-	b.pvc.object.Labels = labels
+
+	if b.pvc.object.Labels == nil {
+		b.pvc.object.Labels = map[string]string{}
+	}
+
+	for key, value := range labels {
+		b.pvc.object.Labels[key] = value
+	}
+	return b
+}
+
+// WithLabelsNew resets existing labels if any with
+// ones that are provided here
+func (b *Builder) WithLabelsNew(labels map[string]string) *Builder {
+	if len(labels) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build PVC object: missing labels"),
+		)
+		return b
+	}
+
+	// copy of original map
+	newlbls := map[string]string{}
+	for key, value := range labels {
+		newlbls[key] = value
+	}
+
+	// override
+	b.pvc.object.Labels = newlbls
 	return b
 }
 

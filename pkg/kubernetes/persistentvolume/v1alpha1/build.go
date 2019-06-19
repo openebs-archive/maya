@@ -107,13 +107,21 @@ func (b *Builder) WithCapacityQty(resCapacity resource.Quantity) *Builder {
 
 // WithLocalHostDirectory sets the LocalVolumeSource field of PV with provided hostpath
 func (b *Builder) WithLocalHostDirectory(path string) *Builder {
+	return b.WithLocalHostPathFormat(path, "")
+}
+
+// WithLocalHostPathFormat sets the LocalVolumeSource field of PV with provided hostpath
+// and request to format it with fstype - if not already formatted. A "" value for fstype
+// indicates that the Local PV can determine the type of FS.
+func (b *Builder) WithLocalHostPathFormat(path, fstype string) *Builder {
 	if len(path) == 0 {
 		b.errs = append(b.errs, errors.New("failed to build PV object: missing PV path"))
 		return b
 	}
 	volumeSource := corev1.PersistentVolumeSource{
 		Local: &corev1.LocalVolumeSource{
-			Path: path,
+			Path:   path,
+			FSType: &fstype,
 		},
 	}
 
@@ -133,7 +141,7 @@ func (b *Builder) WithNodeAffinity(nodeName string) *Builder {
 				{
 					MatchExpressions: []corev1.NodeSelectorRequirement{
 						{
-							Key:      "kubernetes.io/hostname",
+							Key:      KeyNode,
 							Operator: corev1.NodeSelectorOpIn,
 							Values: []string{
 								nodeName,

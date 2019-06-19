@@ -138,18 +138,11 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 }
 
 func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorPool) (string, error) {
-	// CheckValidPool is to check if pool attributes are correct.
-	devIDList, err := c.getDeviceIDs(cStorPoolGot)
-	if err != nil {
-		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
-	}
-	// ValidatePool is to check if pool attributes are correct.
-	err = pool.ValidatePool(cStorPoolGot, devIDList)
-	if err != nil {
+	// To import the pool this check is important
+	if cStorPoolGot.ObjectMeta.UID == "" {
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
-		return string(apis.CStorPoolStatusOffline), err
+		return string(apis.CStorPoolStatusOffline), fmt.Errorf("Poolname/UID cannot be empty")
 	}
-
 	/* 	If pool is already present.
 	Pool CR status is online. This means pool (main car) is running successfully,
 	but watcher container got restarted.
@@ -223,6 +216,18 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 		common.SyncResources.IsImported = true
 	} else {
 		common.SyncResources.IsImported = false
+	}
+
+	// CheckValidPool is to check if pool attributes are correct.
+	devIDList, err := c.getDeviceIDs(cStorPoolGot)
+	if err != nil {
+		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
+	}
+	// ValidatePool is to check if pool attributes are correct.
+	err = pool.ValidatePool(cStorPoolGot, devIDList)
+	if err != nil {
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
+		return string(apis.CStorPoolStatusOffline), err
 	}
 
 	// IsInitStatus is to check if initial status of cstorpool object is `init`.

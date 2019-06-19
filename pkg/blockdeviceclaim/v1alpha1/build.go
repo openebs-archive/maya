@@ -221,9 +221,9 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 		return b
 	}
 	resourceList := corev1.ResourceList{
-		corev1.ResourceName("capacity"): resCapacity,
+		corev1.ResourceName(ndm.ResourceStorage): resCapacity,
 	}
-	b.BDC.Object.Spec.Requirements.Requests = resourceList
+	b.BDC.Object.Spec.Resources.Requests = resourceList
 	return b
 }
 

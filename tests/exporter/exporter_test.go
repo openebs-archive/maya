@@ -89,7 +89,7 @@ var _ = Describe("Test maya-exporter [single-pool-pod]", func() {
 			By("listing cstor pool pods")
 			selector := map[string]string{
 				string(apis.StoragePoolClaimCPK): spcName,
-				"app": "cstor-pool",
+				"app":                            "cstor-pool",
 			}
 
 			ls := labels.Set(selector).

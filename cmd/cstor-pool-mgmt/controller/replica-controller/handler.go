@@ -351,13 +351,10 @@ func IsOnlyStatusChange(oldCVR, newCVR *apis.CStorVolumeReplica) bool {
 	return false
 }
 
-// IsDeletionFailedBefore is to make sure no other operation should happen if the
-// status of CStorVolumeReplica is deletion-failed.
-func IsDeletionFailedBefore(cVR *apis.CStorVolumeReplica) bool {
-	if cVR.Status.Phase == apis.CVRStatusDeletionFailed {
-		return true
-	}
-	return false
+// IsDeletionFailedBefore flags if status of
+// cvr is CVRStatusDeletionFailed
+func IsDeletionFailedBefore(cvrObj *apis.CStorVolumeReplica) bool {
+	return cvrObj.Status.Phase == apis.CVRStatusDeletionFailed
 }
 
 // IsStatusOnline is to check if the status of cStorVolumeReplica object is
@@ -402,14 +399,10 @@ func IsRecreateStatus(cVR *apis.CStorVolumeReplica) bool {
 	return false
 }
 
-// IsErrorDuplicate is to check if the status of cStorVolumeReplica object is error-duplicate.
-func IsErrorDuplicate(cVR *apis.CStorVolumeReplica) bool {
-	if string(cVR.Status.Phase) == string(apis.CVRStatusErrorDuplicate) {
-		glog.Infof("cVR duplication error: %v", string(cVR.ObjectMeta.UID))
-		return true
-	}
-	glog.V(4).Infof("Not error duplicate status: %v", string(cVR.ObjectMeta.UID))
-	return false
+// IsErrorDuplicate flags if cvr resource is a duplicate
+// entry
+func IsErrorDuplicate(cvrObj *apis.CStorVolumeReplica) bool {
+	return cvrObj.Status.Phase == apis.CVRStatusErrorDuplicate
 }
 
 //  getCVRStatus is a wrapper that fetches the status of cstor volume.

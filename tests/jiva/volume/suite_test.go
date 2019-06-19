@@ -43,6 +43,7 @@ var (
 	namespaceObj          *corev1.Namespace
 	scObj                 *storagev1.StorageClass
 	annotations           = map[string]string{}
+	err                   error
 )
 
 func TestSource(t *testing.T) {
