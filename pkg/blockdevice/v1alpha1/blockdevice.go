@@ -34,10 +34,11 @@ const (
 	FilterInactive    = "filterInactive"
 	FilterNonInactive = "filterNonInactive"
 	//FilterNonPartitions    = "filterNonPartitions"
-	FilterNonFSType        = "filterNonFSType"
-	FilterSparseDevices    = "filterSparseDevices"
-	FilterNonSparseDevices = "filterNonSparseDevices"
-	InActiveStatus         = "Inactive"
+	FilterNonFSType         = "filterNonFSType"
+	FilterSparseDevices     = "filterSparseDevices"
+	FilterNonSparseDevices  = "filterNonSparseDevices"
+	InActiveStatus          = "Inactive"
+	FilterNonRelesedDevices = "filterNonRelesedDevices"
 )
 
 // DefaultDiskCount is a map containing the default block device count of various raid types.
@@ -113,9 +114,10 @@ var filterOptionFuncMap = map[string]filterOptionFunc{
 	FilterInactive:    filterInactive,
 	FilterNonInactive: filterNonInactive,
 	//FilterNonPartitions:    filterNonPartitions,
-	FilterNonFSType:        filterNonFSType,
-	FilterSparseDevices:    filterSparseDevices,
-	FilterNonSparseDevices: filterNonSparseDevices,
+	FilterNonFSType:         filterNonFSType,
+	FilterSparseDevices:     filterSparseDevices,
+	FilterNonSparseDevices:  filterNonSparseDevices,
+	FilterNonRelesedDevices: filterNonRelesedDevices,
 }
 
 // predicateFailedError returns the predicate error which is provided to this function as an argument
@@ -283,6 +285,19 @@ func filterNonSparseDevices(originalList *BlockDeviceList) *BlockDeviceList {
 	}
 	for _, device := range originalList.Items {
 		if !(device.Spec.Details.DeviceType == string(apis.TypeSparseCPV)) {
+			filteredList.Items = append(filteredList.Items, device)
+		}
+	}
+	return filteredList
+}
+
+func filterNonRelesedDevices(originalList *BlockDeviceList) *BlockDeviceList {
+	filteredList := &BlockDeviceList{
+		BlockDeviceList: &ndm.BlockDeviceList{},
+		errs:            nil,
+	}
+	for _, device := range originalList.Items {
+		if !(device.Status.ClaimState == ndm.BlockDeviceReleased) {
 			filteredList.Items = append(filteredList.Items, device)
 		}
 	}
