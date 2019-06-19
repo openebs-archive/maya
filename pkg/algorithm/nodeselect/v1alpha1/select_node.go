@@ -256,7 +256,7 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	}
 
 	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
-		filterList = append(filterList, blockdevice.FilterNonFSType)
+		filterList = append(filterList, blockdevice.FilterNonFSType, blockdevice.FilterNonReleasedDevices)
 	}
 
 	bdl = bdList.Filter(filterList...)
