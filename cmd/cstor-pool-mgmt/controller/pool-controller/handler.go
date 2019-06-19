@@ -166,15 +166,10 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 		pool.CStorZpools = map[string]zpool.Topology{}
 	}
 
-	devIDList, err := c.getDeviceIDs(cStorPoolGot)
-	if err != nil {
-		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
-	}
-	// ValidatePool is to check if pool attributes are correct.
-	err = pool.ValidatePool(cStorPoolGot, devIDList)
-	if err != nil {
+	// To import the pool this check is required
+	if cStorPoolGot.ObjectMeta.UID == "" {
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
-		return string(apis.CStorPoolStatusOffline), err
+		return string(apis.CStorPoolStatusOffline), fmt.Errorf("Poolname/UID cannot be empty")
 	}
 
 	/* 	If pool is already present.
@@ -250,6 +245,17 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 		common.SyncResources.IsImported = true
 	} else {
 		common.SyncResources.IsImported = false
+	}
+
+	devIDList, err := c.getDeviceIDs(cStorPoolGot)
+	if err != nil {
+		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
+	}
+	// ValidatePool is to check if pool attributes are correct.
+	err = pool.ValidatePool(cStorPoolGot, devIDList)
+	if err != nil {
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
+		return string(apis.CStorPoolStatusOffline), err
 	}
 
 	// IsInitStatus is to check if initial status of cstorpool object is `init`.
