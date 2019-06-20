@@ -39,27 +39,49 @@ type getClientsetForPathFn func(kubeConfigPath string) (clientset *clientset.Cli
 
 // listFn is a typed function that abstracts
 // listing of CStorPoolCluster
-type listFn func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apisv1alpha1.CStorPoolClusterList, error)
+type listFn func(
+	cli *clientset.Clientset,
+	namespace string,
+	opts metav1.ListOptions) (*apisv1alpha1.CStorPoolClusterList, error)
 
 // getFn is a typed function that
 // abstracts fetching of CStorPoolCluster
-type getFn func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*apisv1alpha1.CStorPoolCluster, error)
+type getFn func(
+	cli *clientset.Clientset,
+	namespace, name string,
+	opts metav1.GetOptions) (*apisv1alpha1.CStorPoolCluster, error)
 
 // createFn is a typed function that abstracts
 // creation of CStorPoolCluster
-type createFn func(cli *clientset.Clientset, namespace string, cspc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error)
+type createFn func(
+	cli *clientset.Clientset,
+	namespace string,
+	cspc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error)
 
 // deleteFn is a typed function that abstracts
 // deletion of cspcs
-type deleteFn func(cli *clientset.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error
+type deleteFn func(
+	cli *clientset.Clientset,
+	namespace string,
+	name string,
+	deleteOpts *metav1.DeleteOptions) error
 
 // deleteFn is a typed function that abstracts
 // deletion of cspc's collection
-type deleteCollectionFn func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
+type deleteCollectionFn func(
+	cli *clientset.Clientset,
+	namespace string,
+	listOpts metav1.ListOptions,
+	deleteOpts *metav1.DeleteOptions) error
 
 // patchFn is a typed function that abstracts
 // to patch CStorPoolCluster claim
-type patchFn func(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apisv1alpha1.CStorPoolCluster, error)
+type patchFn func(
+	cli *clientset.Clientset,
+	namespace,
+	name string,
+	pt types.PatchType,
+	data []byte, subresources ...string) (*apisv1alpha1.CStorPoolCluster, error)
 
 // Kubeclient enables kubernetes API operations
 // on CStorPoolCluster instance
@@ -108,33 +130,56 @@ func (k *Kubeclient) WithDefaults() {
 		}
 	}
 	if k.list == nil {
-		k.list = func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apisv1alpha1.CStorPoolClusterList, error) {
+		k.list = func(
+			cli *clientset.Clientset,
+			namespace string,
+			opts metav1.ListOptions) (*apisv1alpha1.CStorPoolClusterList, error) {
 			return cli.OpenebsV1alpha1().CStorPoolClusters(namespace).List(opts)
 		}
 	}
 
 	if k.get == nil {
-		k.get = func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*apisv1alpha1.CStorPoolCluster, error) {
+		k.get = func(
+			cli *clientset.Clientset,
+			namespace,
+			name string,
+			opts metav1.GetOptions) (*apisv1alpha1.CStorPoolCluster, error) {
 			return cli.OpenebsV1alpha1().CStorPoolClusters(namespace).Get(name, opts)
 		}
 	}
 	if k.create == nil {
-		k.create = func(cli *clientset.Clientset, namespace string, cspc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
+		k.create = func(
+			cli *clientset.Clientset,
+			namespace string,
+			cspc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
 			return cli.OpenebsV1alpha1().CStorPoolClusters(namespace).Create(cspc)
 		}
 	}
 	if k.del == nil {
-		k.del = func(cli *clientset.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error {
+		k.del = func(
+			cli *clientset.Clientset,
+			namespace string,
+			name string,
+			deleteOpts *metav1.DeleteOptions) error {
 			return cli.OpenebsV1alpha1().CStorPoolClusters(namespace).Delete(name, deleteOpts)
 		}
 	}
 	if k.delCollection == nil {
-		k.delCollection = func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+		k.delCollection = func(
+			cli *clientset.Clientset,
+			namespace string,
+			listOpts metav1.ListOptions,
+			deleteOpts *metav1.DeleteOptions) error {
 			return cli.OpenebsV1alpha1().CStorPoolClusters(namespace).DeleteCollection(deleteOpts, listOpts)
 		}
 	}
 	if k.patch == nil {
-		k.patch = func(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apisv1alpha1.CStorPoolCluster, error) {
+		k.patch = func(
+			cli *clientset.Clientset,
+			namespace,
+			name string,
+			pt types.PatchType,
+			data []byte, subresources ...string) (*apisv1alpha1.CStorPoolCluster, error) {
 			return cli.OpenebsV1alpha1().CStorPoolClusters(namespace).Patch(name, pt, data, subresources...)
 		}
 	}
@@ -252,7 +297,10 @@ func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 }
 
 // Patch patches the CStorPoolCluster claim if present in kubernetes cluster
-func (k *Kubeclient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*apisv1alpha1.CStorPoolCluster, error) {
+func (k *Kubeclient) Patch(
+	name string,
+	pt types.PatchType,
+	data []byte, subresources ...string) (*apisv1alpha1.CStorPoolCluster, error) {
 	if len(name) == 0 {
 		return nil, errors.New("failed to patch cspc : missing cspc name")
 	}

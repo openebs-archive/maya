@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package cstorpoolspecs
 
 import (
 	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	raidgroup "github.com/openebs/maya/pkg/cstorpoolcluster/v1alpha1/raidgroups/v1alpha1"
+	raidgroup "github.com/openebs/maya/pkg/cstorpoolcluster/v1alpha1/raidgroups"
 	"github.com/pkg/errors"
 )
 

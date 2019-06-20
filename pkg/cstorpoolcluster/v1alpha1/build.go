@@ -18,7 +18,7 @@ package v1alpha1
 
 import (
 	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	poolspec "github.com/openebs/maya/pkg/cstorpoolcluster/v1alpha1/cstorpoolspecs/v1alpha1"
+	poolspec "github.com/openebs/maya/pkg/cstorpoolcluster/v1alpha1/cstorpoolspecs"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 )
 

@@ -38,27 +38,49 @@ func fakeGetClientsetForPathErr(fakeConfigPath string) (cli *clientset.Clientset
 	return nil, errors.New("fake error")
 }
 
-func fakeGetFnOk(cli *clientset.Clientset, name, namespace string, opts metav1.GetOptions) (*apis.CStorPoolCluster, error) {
+func fakeGetFnOk(
+	cli *clientset.Clientset,
+	name,
+	namespace string,
+	opts metav1.GetOptions) (*apis.CStorPoolCluster, error) {
 	return &apis.CStorPoolCluster{}, nil
 }
 
-func fakeListFnOk(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.CStorPoolClusterList, error) {
+func fakeListFnOk(
+	cli *clientset.Clientset,
+	namespace string,
+	opts metav1.ListOptions) (*apis.CStorPoolClusterList, error) {
 	return &apis.CStorPoolClusterList{}, nil
 }
 
-func fakeDeleteFnOk(cli *clientset.Clientset, name, namespace string, opts *metav1.DeleteOptions) error {
+func fakeDeleteFnOk(
+	cli *clientset.Clientset,
+	name,
+	namespace string,
+	opts *metav1.DeleteOptions) error {
 	return nil
 }
 
-func fakeListFnErr(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.CStorPoolClusterList, error) {
+func fakeListFnErr(
+	cli *clientset.Clientset,
+	namespace string,
+	opts metav1.ListOptions) (*apis.CStorPoolClusterList, error) {
 	return &apis.CStorPoolClusterList{}, errors.New("some error")
 }
 
-func fakeGetFnErr(cli *clientset.Clientset, name, namespace string, opts metav1.GetOptions) (*apis.CStorPoolCluster, error) {
+func fakeGetFnErr(
+	cli *clientset.Clientset,
+	name,
+	namespace string,
+	opts metav1.GetOptions) (*apis.CStorPoolCluster, error) {
 	return &apis.CStorPoolCluster{}, errors.New("some error")
 }
 
-func fakeDeleteFnErr(cli *clientset.Clientset, name, namespace string, opts *metav1.DeleteOptions) error {
+func fakeDeleteFnErr(
+	cli *clientset.Clientset,
+	name,
+	namespace string,
+	opts *metav1.DeleteOptions) error {
 	return errors.New("some error")
 }
 
@@ -66,19 +88,37 @@ func fakeGetClientsetErr() (clientset *clientset.Clientset, err error) {
 	return nil, errors.New("Some error")
 }
 
-func fakeCreateFnOk(cli *clientset.Clientset, namespace string, cspc *apis.CStorPoolCluster) (*apis.CStorPoolCluster, error) {
+func fakeCreateFnOk(
+	cli *clientset.Clientset,
+	namespace string,
+	cspc *apis.CStorPoolCluster) (*apis.CStorPoolCluster, error) {
 	return &apis.CStorPoolCluster{}, nil
 }
 
-func fakeCreateErr(cli *clientset.Clientset, namespace string, cspc *apis.CStorPoolCluster) (*apis.CStorPoolCluster, error) {
+func fakeCreateErr(
+	cli *clientset.Clientset,
+	namespace string,
+	cspc *apis.CStorPoolCluster) (*apis.CStorPoolCluster, error) {
 	return nil, errors.New("failed to create CSPC")
 }
 
-func fakePatchFnOk(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.CStorPoolCluster, error) {
+func fakePatchFnOk(
+	cli *clientset.Clientset,
+	namespace,
+	name string,
+	pt types.PatchType,
+	data []byte,
+	subresources ...string) (*apis.CStorPoolCluster, error) {
 	return &apis.CStorPoolCluster{}, nil
 }
 
-func fakePatchFnErr(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.CStorPoolCluster, error) {
+func fakePatchFnErr(
+	cli *clientset.Clientset,
+	namespace,
+	name string,
+	pt types.PatchType,
+	data []byte,
+	subresources ...string) (*apis.CStorPoolCluster, error) {
 	return nil, errors.New("fake error")
 }
 
@@ -118,9 +158,11 @@ func TestWithDefaultOptionsForCRUDOPS(t *testing.T) {
 		del           deleteFn
 		delCollection deleteCollectionFn
 	}{
-		"TestCase1":               {nil, nil, nil, nil, nil},
-		"When clientset is error": {fakeListFnErr, fakeGetFnErr, fakeCreateErr, fakeDeleteFnErr, nil},
-		"When clientset is ok":    {fakeListFnOk, fakeGetFnOk, fakeCreateFnOk, fakeDeleteFnOk, nil},
+		"TestCase1": {nil, nil, nil, nil, nil},
+		"When clientset is error": {fakeListFnErr, fakeGetFnErr, fakeCreateErr, fakeDeleteFnErr,
+			nil},
+		"When clientset is ok": {fakeListFnOk, fakeGetFnOk, fakeCreateFnOk, fakeDeleteFnOk,
+			nil},
 	}
 	for name, mock := range tests {
 		name := name // pin it
@@ -161,15 +203,22 @@ func TestGetClientsetForPathOrDirect(t *testing.T) {
 		isErr               bool
 	}{
 		// Positive tests
-		"Positive 1": {fakeGetClientsetOk, fakeGetClientsetForPathOk, "", false},
-		"Positive 2": {fakeGetClientsetErr, fakeGetClientsetForPathOk, "fake-path", false},
-		"Positive 3": {fakeGetClientsetOk, fakeGetClientsetForPathErr, "", false},
+		"Positive 1": {fakeGetClientsetOk, fakeGetClientsetForPathOk,
+			"", false},
+		"Positive 2": {fakeGetClientsetErr, fakeGetClientsetForPathOk,
+			"fake-path", false},
+		"Positive 3": {fakeGetClientsetOk, fakeGetClientsetForPathErr,
+			"", false},
 
 		// Negative tests
-		"Negative 1": {fakeGetClientsetErr, fakeGetClientsetForPathOk, "", true},
-		"Negative 2": {fakeGetClientsetOk, fakeGetClientsetForPathErr, "fake-path", true},
-		"Negative 3": {fakeGetClientsetErr, fakeGetClientsetForPathErr, "fake-path", true},
-		"Negative 4": {fakeGetClientsetErr, fakeGetClientsetForPathErr, "", true},
+		"Negative 1": {fakeGetClientsetErr, fakeGetClientsetForPathOk,
+			"", true},
+		"Negative 2": {fakeGetClientsetOk, fakeGetClientsetForPathErr,
+			"fake-path", true},
+		"Negative 3": {fakeGetClientsetErr, fakeGetClientsetForPathErr,
+			"fake-path", true},
+		"Negative 4": {fakeGetClientsetErr, fakeGetClientsetForPathErr,
+			"", true},
 	}
 
 	for name, mock := range tests {
@@ -224,15 +273,22 @@ func TestGetClientOrCached(t *testing.T) {
 		expectErr           bool
 	}{
 		// Positive tests
-		"Positive 1": {fakeGetClientsetOk, fakeGetClientsetForPathOk, "", false},
-		"Positive 2": {fakeGetClientsetErr, fakeGetClientsetForPathOk, "fake-path", false},
-		"Positive 3": {fakeGetClientsetOk, fakeGetClientsetForPathErr, "", false},
+		"Positive 1": {fakeGetClientsetOk, fakeGetClientsetForPathOk,
+			"", false},
+		"Positive 2": {fakeGetClientsetErr, fakeGetClientsetForPathOk,
+			"fake-path", false},
+		"Positive 3": {fakeGetClientsetOk, fakeGetClientsetForPathErr,
+			"", false},
 
 		// Negative tests
-		"Negative 1": {fakeGetClientsetErr, fakeGetClientsetForPathOk, "", true},
-		"Negative 2": {fakeGetClientsetOk, fakeGetClientsetForPathErr, "fake-path", true},
-		"Negative 3": {fakeGetClientsetErr, fakeGetClientsetForPathErr, "fake-path", true},
-		"Negative 4": {fakeGetClientsetErr, fakeGetClientsetForPathErr, "", true},
+		"Negative 1": {fakeGetClientsetErr, fakeGetClientsetForPathOk,
+			"", true},
+		"Negative 2": {fakeGetClientsetOk, fakeGetClientsetForPathErr,
+			"fake-path", true},
+		"Negative 3": {fakeGetClientsetErr, fakeGetClientsetForPathErr,
+			"fake-path", true},
+		"Negative 4": {fakeGetClientsetErr, fakeGetClientsetForPathErr,
+			"", true},
 	}
 
 	for name, mock := range tests {
@@ -264,16 +320,24 @@ func TestCStorPoolClusterList(t *testing.T) {
 		expectedErr         bool
 	}{
 		// Positive tests
-		"Positive 1": {nil, fakeGetClientsetForPathOk, "fake-path", fakeListFnOk, false},
-		"Positive 2": {fakeGetClientsetOk, fakeGetClientsetForPathOk, "", fakeListFnOk, false},
-		"Positive 3": {fakeGetClientsetErr, fakeGetClientsetForPathOk, "fake-path", fakeListFnOk, false},
-		"Positive 4": {fakeGetClientsetOk, fakeGetClientsetForPathErr, "", fakeListFnOk, false},
+		"Positive 1": {nil, fakeGetClientsetForPathOk, "fake-path",
+			fakeListFnOk, false},
+		"Positive 2": {fakeGetClientsetOk, fakeGetClientsetForPathOk, "",
+			fakeListFnOk, false},
+		"Positive 3": {fakeGetClientsetErr, fakeGetClientsetForPathOk,
+			"fake-path", fakeListFnOk, false},
+		"Positive 4": {fakeGetClientsetOk, fakeGetClientsetForPathErr, "",
+			fakeListFnOk, false},
 
 		// Negative tests
-		"Negative 1": {fakeGetClientsetErr, fakeGetClientsetForPathOk, "", fakeListFnOk, true},
-		"Negative 2": {fakeGetClientsetOk, fakeGetClientsetForPathErr, "fake-path", fakeListFnOk, true},
-		"Negative 3": {fakeGetClientsetErr, fakeGetClientsetForPathErr, "fake-path", fakeListFnOk, true},
-		"Negative 4": {fakeGetClientsetOk, fakeGetClientsetForPathOk, "", fakeListFnErr, true},
+		"Negative 1": {fakeGetClientsetErr, fakeGetClientsetForPathOk, "",
+			fakeListFnOk, true},
+		"Negative 2": {fakeGetClientsetOk, fakeGetClientsetForPathErr,
+			"fake-path", fakeListFnOk, true},
+		"Negative 3": {fakeGetClientsetErr, fakeGetClientsetForPathErr,
+			"fake-path", fakeListFnOk, true},
+		"Negative 4": {fakeGetClientsetOk, fakeGetClientsetForPathOk, "",
+			fakeListFnErr, true},
 	}
 
 	for name, mock := range tests {
@@ -306,11 +370,16 @@ func TestCStorPoolClusterGet(t *testing.T) {
 		bdName              string
 		expectErr           bool
 	}{
-		"Test 1": {fakeGetClientsetErr, fakeGetClientsetForPathOk, "", fakeGetFnOk, "bd-1", true},
-		"Test 2": {fakeGetClientsetOk, fakeGetClientsetForPathErr, "fake-path", fakeGetFnOk, "bd-1", true},
-		"Test 3": {fakeGetClientsetOk, fakeGetClientsetForPathOk, "", fakeGetFnOk, "bd-2", false},
-		"Test 4": {fakeGetClientsetOk, fakeGetClientsetForPathOk, "fp", fakeGetFnErr, "bd-3", true},
-		"Test 5": {fakeGetClientsetOk, fakeGetClientsetForPathOk, "fakepath", fakeGetFnOk, "", true},
+		"Test 1": {fakeGetClientsetErr, fakeGetClientsetForPathOk,
+			"", fakeGetFnOk, "bd-1", true},
+		"Test 2": {fakeGetClientsetOk, fakeGetClientsetForPathErr,
+			"fake-path", fakeGetFnOk, "bd-1", true},
+		"Test 3": {fakeGetClientsetOk, fakeGetClientsetForPathOk,
+			"", fakeGetFnOk, "bd-2", false},
+		"Test 4": {fakeGetClientsetOk, fakeGetClientsetForPathOk,
+			"fp", fakeGetFnErr, "bd-3", true},
+		"Test 5": {fakeGetClientsetOk, fakeGetClientsetForPathOk,
+			"fakepath", fakeGetFnOk, "", true},
 	}
 
 	for name, mock := range tests {
@@ -344,12 +413,18 @@ func TestCStorPoolClusterDelete(t *testing.T) {
 		delete              deleteFn
 		expectErr           bool
 	}{
-		"Test 1": {fakeGetClientsetErr, fakeGetClientsetForPathOk, "", "bd-1", fakeDeleteFnOk, true},
-		"Test 2": {fakeGetClientsetOk, fakeGetClientsetForPathOk, "fake-path2", "bd-2", fakeDeleteFnOk, false},
-		"Test 3": {fakeGetClientsetOk, fakeGetClientsetForPathOk, "", "bd-3", fakeDeleteFnErr, true},
-		"Test 4": {fakeGetClientsetOk, fakeGetClientsetForPathOk, "fakepath", "", fakeDeleteFnOk, true},
-		"Test 5": {fakeGetClientsetOk, fakeGetClientsetForPathErr, "fake-path2", "bd1", fakeDeleteFnOk, true},
-		"Test 6": {fakeGetClientsetOk, fakeGetClientsetForPathErr, "fake-path2", "bd1", fakeDeleteFnErr, true},
+		"Test 1": {fakeGetClientsetErr, fakeGetClientsetForPathOk,
+			"", "bd-1", fakeDeleteFnOk, true},
+		"Test 2": {fakeGetClientsetOk, fakeGetClientsetForPathOk,
+			"fake-path2", "bd-2", fakeDeleteFnOk, false},
+		"Test 3": {fakeGetClientsetOk, fakeGetClientsetForPathOk,
+			"", "bd-3", fakeDeleteFnErr, true},
+		"Test 4": {fakeGetClientsetOk, fakeGetClientsetForPathOk,
+			"fakepath", "", fakeDeleteFnOk, true},
+		"Test 5": {fakeGetClientsetOk, fakeGetClientsetForPathErr,
+			"fake-path2", "bd1", fakeDeleteFnOk, true},
+		"Test 6": {fakeGetClientsetOk, fakeGetClientsetForPathErr,
+			"fake-path2", "bd1", fakeDeleteFnErr, true},
 	}
 
 	for name, mock := range tests {
@@ -454,11 +529,16 @@ func TestCStorPoolClusterPatch(t *testing.T) {
 		bdName              string
 		expectErr           bool
 	}{
-		"Test 1": {fakeGetClientsetErr, fakeGetClientsetForPathOk, "", fakePatchFnOk, "vsd-1", true},
-		"Test 2": {fakeGetClientsetOk, fakeGetClientsetForPathErr, "fake-path", fakePatchFnOk, "vsd-1", true},
-		"Test 3": {fakeGetClientsetOk, fakeGetClientsetForPathOk, "", fakePatchFnOk, "vsd-2", false},
-		"Test 4": {fakeGetClientsetOk, fakeGetClientsetForPathOk, "fp", fakePatchFnErr, "vsd-3", true},
-		"Test 5": {fakeGetClientsetOk, fakeGetClientsetForPathOk, "fakepath", fakePatchFnOk, "", true},
+		"Test 1": {fakeGetClientsetErr, fakeGetClientsetForPathOk,
+			"", fakePatchFnOk, "vsd-1", true},
+		"Test 2": {fakeGetClientsetOk, fakeGetClientsetForPathErr,
+			"fake-path", fakePatchFnOk, "vsd-1", true},
+		"Test 3": {fakeGetClientsetOk, fakeGetClientsetForPathOk,
+			"", fakePatchFnOk, "vsd-2", false},
+		"Test 4": {fakeGetClientsetOk, fakeGetClientsetForPathOk,
+			"fp", fakePatchFnErr, "vsd-3", true},
+		"Test 5": {fakeGetClientsetOk, fakeGetClientsetForPathOk,
+			"fakepath", fakePatchFnOk, "", true},
 	}
 
 	for name, mock := range tests {

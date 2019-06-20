@@ -14,28 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package cstorpoolspecs
 
 import (
 	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
-// RG is a wrapper over raidgroup api
+// PS is a wrapper over poolspec api
 // object. It provides build, validations and other common
 // logic to be used by various feature specific callers.
-type RG struct {
-	object *apisv1alpha1.RaidGroup
+type PS struct {
+	object *apisv1alpha1.PoolSpec
 }
 
-// RGList is a wrapper over raidgroup api
+// PSList is a wrapper over poolspec api
 // object. It provides build, validations and other common
 // logic to be used by various feature specific callers.
-type RGList struct {
-	items []apisv1alpha1.RaidGroup
+type PSList struct {
+	items []apisv1alpha1.PoolSpec
 }
 
 // Len returns the number of items present
 // in the PSList
-func (c *RGList) Len() int {
+func (c *PSList) Len() int {
 	return len(c.items)
 }
