@@ -47,48 +47,6 @@ func IsDatasetSet() PredicateFunc {
 	}
 }
 
-// IsOpTypeSet method check if the OpType field of VolumeSnapshot object is set.
-func IsOpTypeSet() PredicateFunc {
-	return func(v *VolumeSnapshot) bool {
-		return len(v.OpType) != 0
-	}
-}
-
-// IsTargetSet method check if the Target field of VolumeSnapshot object is set.
-func IsTargetSet() PredicateFunc {
-	return func(v *VolumeSnapshot) bool {
-		return len(v.Target) != 0
-	}
-}
-
-// IsDedupSet method check if the Dedup field of VolumeSnapshot object is set.
-func IsDedupSet() PredicateFunc {
-	return func(v *VolumeSnapshot) bool {
-		return v.Dedup
-	}
-}
-
-// IsLastSnapshotSet method check if the LastSnapshot field of VolumeSnapshot object is set.
-func IsLastSnapshotSet() PredicateFunc {
-	return func(v *VolumeSnapshot) bool {
-		return len(v.LastSnapshot) != 0
-	}
-}
-
-// IsDryRunSet method check if the DryRun field of VolumeSnapshot object is set.
-func IsDryRunSet() PredicateFunc {
-	return func(v *VolumeSnapshot) bool {
-		return v.DryRun
-	}
-}
-
-// IsEnableCompressionSet method check if the EnableCompression field of VolumeSnapshot object is set.
-func IsEnableCompressionSet() PredicateFunc {
-	return func(v *VolumeSnapshot) bool {
-		return v.EnableCompression
-	}
-}
-
 // IsCommandSet method check if the Command field of VolumeSnapshot object is set.
 func IsCommandSet() PredicateFunc {
 	return func(v *VolumeSnapshot) bool {

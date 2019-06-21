@@ -27,18 +27,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// SnapOp defines snapshot operation type, this can be either snapshot, send or receive
-type SnapOp string
-
 const (
-	// SnapOperation defines zfs snapshot operation
-	SnapOperation = "snapshot"
-
-	// SendOperation defines zfs send operation
-	SendOperation = "send"
-
-	// RecvOperation defines zfs receive operation
-	RecvOperation = "receive"
+	// Operation defines type of zfs operation
+	Operation = "snapshot"
 )
 
 //VolumeSnapshot defines structure for volume 'Snapshot' operation
@@ -52,26 +43,8 @@ type VolumeSnapshot struct {
 	//name of dataset on which snapshot should be taken
 	Dataset string
 
-	//operation type
-	OpType SnapOp
-
-	//remote destination for snapshot send/recv using nc
-	Target string
-
-	// to send incremental snapshot
-	LastSnapshot string
-
 	//Recursively create snapshots of all descendent datasets
 	Recursive bool
-
-	// Generate a deduplicated stream
-	Dedup bool
-
-	// dry-run
-	DryRun bool
-
-	// use compression for zfs send
-	EnableCompression bool
 
 	// command string
 	Command string
@@ -118,42 +91,6 @@ func (v *VolumeSnapshot) WithDataset(Dataset string) *VolumeSnapshot {
 	return v
 }
 
-// WithOpType method fills the OpType field of VolumeSnapshot object.
-func (v *VolumeSnapshot) WithOpType(OpType SnapOp) *VolumeSnapshot {
-	v.OpType = OpType
-	return v
-}
-
-// WithTarget method fills the Target field of VolumeSnapshot object.
-func (v *VolumeSnapshot) WithTarget(Target string) *VolumeSnapshot {
-	v.Target = Target
-	return v
-}
-
-// WithDedup method fills the Dedup field of VolumeSnapshot object.
-func (v *VolumeSnapshot) WithDedup(Dedup bool) *VolumeSnapshot {
-	v.Dedup = Dedup
-	return v
-}
-
-// WithLastSnapshot method fills the LastSnapshot field of VolumeSnapshot object.
-func (v *VolumeSnapshot) WithLastSnapshot(LastSnapshot string) *VolumeSnapshot {
-	v.LastSnapshot = LastSnapshot
-	return v
-}
-
-// WithDryRun method fills the DryRun field of VolumeSnapshot object.
-func (v *VolumeSnapshot) WithDryRun(DryRun bool) *VolumeSnapshot {
-	v.DryRun = DryRun
-	return v
-}
-
-// WithEnableCompression method fills the EnableCompression field of VolumeSnapshot object.
-func (v *VolumeSnapshot) WithEnableCompression(EnableCompression bool) *VolumeSnapshot {
-	v.EnableCompression = EnableCompression
-	return v
-}
-
 // WithCommand method fills the Command field of VolumeSnapshot object.
 func (v *VolumeSnapshot) WithCommand(Command string) *VolumeSnapshot {
 	v.Command = Command
@@ -185,39 +122,18 @@ func (v *VolumeSnapshot) Build() (*VolumeSnapshot, error) {
 	var c strings.Builder
 	v = v.Validate()
 
-	switch v.GetOpType() {
-	case SendOperation:
-		v.appendCommand(c, fmt.Sprintf(" %s ", SendOperation))
-		if IsDedupSet()(v) {
-			v.appendCommand(c, fmt.Sprintf(" -D "))
-		}
-
-		if IsLastSnapshotSet()(v) {
-			v.appendCommand(c, fmt.Sprintf(" -i @%s ", v.LastSnapshot))
-		}
-
-		v.appendCommand(c, fmt.Sprintf(" %s@%s ", v.Dataset, v.Snapshot))
-		v.appendCommand(c, fmt.Sprintf(" | nc %s", v.Target))
-
-	case RecvOperation:
-		v.appendCommand(c, fmt.Sprintf(" %s ", RecvOperation))
-		v.appendCommand(c, fmt.Sprintf(" %s@%s ", v.Dataset, v.Snapshot))
-		v.appendCommand(c, fmt.Sprintf(" | nc %s", v.Target))
-
-	case SnapOperation:
-		v.appendCommand(c, fmt.Sprintf(" %s ", SnapOperation))
-		if IsRecursiveSet()(v) {
-			v.appendCommand(c, fmt.Sprintf(" -r "))
-		}
-
-		if IsPropertySet()(v) {
-			for _, p := range v.Property {
-				v.appendCommand(c, fmt.Sprintf(" -o %s", p))
-			}
-		}
-
-		v.appendCommand(c, fmt.Sprintf(" %s@%s ", v.Dataset, v.Snapshot))
+	v.appendCommand(c, fmt.Sprintf(" %s ", Operation))
+	if IsRecursiveSet()(v) {
+		v.appendCommand(c, fmt.Sprintf(" -r "))
 	}
+
+	if IsPropertySet()(v) {
+		for _, p := range v.Property {
+			v.appendCommand(c, fmt.Sprintf(" -o %s", p))
+		}
+	}
+
+	v.appendCommand(c, fmt.Sprintf(" %s@%s ", v.Dataset, v.Snapshot))
 
 	v.Command = c.String()
 	return v, v.err

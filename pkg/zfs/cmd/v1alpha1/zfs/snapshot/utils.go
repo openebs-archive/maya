@@ -38,36 +38,6 @@ func (v *VolumeSnapshot) SetDataset(Dataset string) {
 	v.Dataset = Dataset
 }
 
-// SetOpType method set the OpType field of VolumeSnapshot object.
-func (v *VolumeSnapshot) SetOpType(OpType SnapOp) {
-	v.OpType = OpType
-}
-
-// SetTarget method set the Target field of VolumeSnapshot object.
-func (v *VolumeSnapshot) SetTarget(Target string) {
-	v.Target = Target
-}
-
-// SetDedup method set the Dedup field of VolumeSnapshot object.
-func (v *VolumeSnapshot) SetDedup(Dedup bool) {
-	v.Dedup = Dedup
-}
-
-// SetLastSnapshot method set the LastSnapshot field of VolumeSnapshot object.
-func (v *VolumeSnapshot) SetLastSnapshot(LastSnapshot string) {
-	v.LastSnapshot = LastSnapshot
-}
-
-// SetDryRun method set the DryRun field of VolumeSnapshot object.
-func (v *VolumeSnapshot) SetDryRun(DryRun bool) {
-	v.DryRun = DryRun
-}
-
-// SetEnableCompression method set the EnableCompression field of VolumeSnapshot object.
-func (v *VolumeSnapshot) SetEnableCompression(EnableCompression bool) {
-	v.EnableCompression = EnableCompression
-}
-
 // SetCommand method set the Command field of VolumeSnapshot object.
 func (v *VolumeSnapshot) SetCommand(Command string) {
 	v.Command = Command
@@ -91,36 +61,6 @@ func (v *VolumeSnapshot) GetSnapshot() string {
 // GetDataset method get the Dataset field of VolumeSnapshot object.
 func (v *VolumeSnapshot) GetDataset() string {
 	return v.Dataset
-}
-
-// GetOpType method get the OpType field of VolumeSnapshot object.
-func (v *VolumeSnapshot) GetOpType() SnapOp {
-	return v.OpType
-}
-
-// GetTarget method get the Target field of VolumeSnapshot object.
-func (v *VolumeSnapshot) GetTarget() string {
-	return v.Target
-}
-
-// GetDedup method get the Dedup field of VolumeSnapshot object.
-func (v *VolumeSnapshot) GetDedup() bool {
-	return v.Dedup
-}
-
-// GetLastSnapshot method get the LastSnapshot field of VolumeSnapshot object.
-func (v *VolumeSnapshot) GetLastSnapshot() string {
-	return v.LastSnapshot
-}
-
-// GetDryRun method get the DryRun field of VolumeSnapshot object.
-func (v *VolumeSnapshot) GetDryRun() bool {
-	return v.DryRun
-}
-
-// GetEnableCompression method get the EnableCompression field of VolumeSnapshot object.
-func (v *VolumeSnapshot) GetEnableCompression() bool {
-	return v.EnableCompression
 }
 
 // GetCommand method get the Command field of VolumeSnapshot object.

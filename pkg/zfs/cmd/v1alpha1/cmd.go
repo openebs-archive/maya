@@ -21,8 +21,10 @@ import (
 	vcreate "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/create"
 	vdestroy "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/destroy"
 	vproperty "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/property"
+	vsnapshotrecv "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/receive"
 	vrename "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/rename"
 	vrollback "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/rollback"
+	vsnapshotsend "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/send"
 	vsnapshot "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/snapshot"
 	padd "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/add"
 	pattach "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/attach"
@@ -137,4 +139,14 @@ func NewVolumeSnapshot() *vsnapshot.VolumeSnapshot {
 // NewVolumeCreate returns new instance of object VolumeCreate
 func NewVolumeCreate() *vcreate.VolumeCreate {
 	return &vcreate.VolumeCreate{}
+}
+
+// NewVolumeSnapshotSend returns new instance of object VolumeSnapshotSend
+func NewVolumeSnapshotSend() *vsnapshotsend.VolumeSnapshotSend {
+	return &vsnapshotsend.VolumeSnapshotSend{}
+}
+
+// NewVolumeSnapshotRecv returns new instance of object VolumeSnapshotRecv
+func NewVolumeSnapshotRecv() *vsnapshotrecv.VolumeSnapshotRecv {
+	return &vsnapshotrecv.VolumeSnapshotRecv{}
 }
