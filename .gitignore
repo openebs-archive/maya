@@ -1,6 +1,6 @@
 .vagrant/
 demo/temp/*
-bin/
+/bin/
 nohup.out
 .DS_Store
 .testfiles/
