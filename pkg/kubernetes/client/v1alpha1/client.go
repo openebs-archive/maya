@@ -28,141 +28,192 @@ import (
 )
 
 const (
-	// K8sMasterIPEnvironmentKey is the environment variable key used to
-	// determine the kubernetes master IP address
+	// K8sMasterIPEnvironmentKey is the environment variable
+	// key to provide kubernetes master IP address
 	K8sMasterIPEnvironmentKey env.ENVKey = "OPENEBS_IO_K8S_MASTER"
 
-	// KubeConfigEnvironmentKey is the environment variable key used to
-	// determine the kubernetes config
+	// KubeConfigEnvironmentKey is the environment variable
+	// key to provide kubeconfig path
 	KubeConfigEnvironmentKey env.ENVKey = "OPENEBS_IO_KUBE_CONFIG"
 )
 
-// getInClusterConfigFunc abstracts the logic to get
-// kubernetes incluster config
+// getInClusterConfigFn is a typed function
+// to abstract getting kubernetes incluster config
 //
 // NOTE:
 //  typed function makes it simple to mock
-type getInClusterConfigFunc func() (*rest.Config, error)
+type getInClusterConfigFn func() (*rest.Config, error)
 
-// buildConfigFromFlagsFunc provides the abstraction to get
-// kubernetes config from provided flags
+// buildConfigFromFlagsFn is a typed function
+// to abstract getting a kubernetes config from
+// provided flags
 //
 // NOTE:
 //  typed function makes it simple to mock
-type buildConfigFromFlagsFunc func(string, string) (*rest.Config, error)
+type buildConfigFromFlagsFn func(string, string) (*rest.Config, error)
 
-// GetConfigFunc provides the abstraction to get
-// kubernetes config from provided client instance
+// getKubeMasterIPFromENVFn is a typed function
+// to abstract getting kubernetes master IP
+// address from environment variable
 //
 // NOTE:
 //  typed function makes it simple to mock
-type GetConfigFunc func(*Client) (*rest.Config, error)
+type getKubeMasterIPFromENVFn func(env.ENVKey) string
 
-// GetConfig returns kubernetes config instance
-//
-// NOTE:
-//  This is an implementation of GetConfigFunc
-func GetConfig(c *Client) (*rest.Config, error) {
-	if c == nil {
-		return nil, errors.New("failed to get kubernetes config: nil client was provided")
-	}
-	return c.GetConfigForPathOrDirect()
-}
-
-// getKubeMasterIPFunc provides the abstraction to get
-// kubernetes master IP address
+// getKubeConfigPathFromENVFn is a typed function to
+// abstract getting kubernetes config path from
+// environment variable
 //
 // NOTE:
 //  typed function makes it simple to mock
-type getKubeMasterIPFunc func(env.ENVKey) string
+type getKubeConfigPathFromENVFn func(env.ENVKey) string
 
-// getKubeConfigPathFunc provides the abstraction to get
-// kubernetes config path
+// getKubeDynamicClientFn is a typed function to
+// abstract getting dynamic kubernetes clientset
 //
 // NOTE:
 //  typed function makes it simple to mock
-type getKubeConfigPathFunc func(env.ENVKey) string
+type getKubeDynamicClientFn func(*rest.Config) (dynamic.Interface, error)
 
-// getKubernetesDynamicClientFunc provides the abstraction to get
-// dynamic kubernetes clientset
+// getKubeClientsetFn is a typed function
+// to abstract getting kubernetes clientset
 //
 // NOTE:
 //  typed function makes it simple to mock
-type getKubernetesDynamicClientFunc func(*rest.Config) (dynamic.Interface, error)
+type getKubeClientsetFn func(*rest.Config) (*kubernetes.Clientset, error)
 
-// getKubernetesClientsetFunc provides the abstraction to get
-// kubernetes clientset
-//
-// NOTE:
-//  typed function makes it simple to mock
-type getKubernetesClientsetFunc func(*rest.Config) (*kubernetes.Clientset, error)
-
-// Client provides common kuberenetes client operations
+// Client provides Kubernetes client operations
 type Client struct {
-	IsInCluster    bool   // flag to let client point to its own cluster
-	KubeConfigPath string // kubeconfig path to get kubernetes clientset
+	// IsInCluster flags if this client points
+	// to its own cluster
+	IsInCluster bool
 
-	// Below functions are useful during mock
+	// KubeConfigPath to get kubernetes clientset
+	KubeConfigPath string
 
-	// handle to get in cluster config
-	getInClusterConfig getInClusterConfigFunc
+	// handle to get in-cluster config
+	getInClusterConfig getInClusterConfigFn
 
-	// handle to get desired kubernetes config
-	buildConfigFromFlags buildConfigFromFlagsFunc
+	// handle to get kubernetes config
+	// from flags
+	buildConfigFromFlags buildConfigFromFlagsFn
 
 	// handle to get kubernetes clienset
-	getKubernetesClientset getKubernetesClientsetFunc
+	getKubeClientset getKubeClientsetFn
 
-	// handle to get dynamic kubernetes clientset
-	getKubernetesDynamicClient getKubernetesDynamicClientFunc
+	// handle to get kubernetes dynamic clientset
+	getKubeDynamicClient getKubeDynamicClientFn
 
-	// handle to get kubernetes master IP
-	getKubeMasterIP getKubeMasterIPFunc
+	// handle to get kubernetes master IP from
+	// environment variable
+	getKubeMasterIPFromENV getKubeMasterIPFromENVFn
 
 	// handle to get kubernetes config path
-	getKubeConfigPath getKubeConfigPathFunc
+	// from environment variable
+	getKubeConfigPathFromENV getKubeConfigPathFromENVFn
 }
 
-// OptionFunc is a typed function that abstracts any kind of operation
-// against the provided client instance
+// OptionFn is a typed function to abstract
+// any operation against the provided client
+// instance
 //
-// This is the basic building block to create functional operations
-// against the client instance
-type OptionFunc func(*Client)
+// NOTE:
+//  This is the basic building block to create
+// functional operations against the client
+// instance
+type OptionFn func(*Client)
 
 // New returns a new instance of client
-func New(opts ...OptionFunc) *Client {
+func New(opts ...OptionFn) *Client {
 	c := &Client{}
 	for _, o := range opts {
 		o(c)
 	}
+
 	withDefaults(c)
 	return c
 }
 
+// withDefaults sets the provided instance of
+// client with necessary defaults
 func withDefaults(c *Client) {
-	if c.getInClusterConfig == nil {
-		c.getInClusterConfig = rest.InClusterConfig
+	for _, def := range defaultFns {
+		def(c)
 	}
-	if c.buildConfigFromFlags == nil {
-		c.buildConfigFromFlags = clientcmd.BuildConfigFromFlags
+}
+
+var defaultFns = []OptionFn{
+	withDefaultGetInClusterConfigFn(),
+	withDefaultBuildConfigFromFlagsFn(),
+	withDefaultGetKubeClientsetFn(),
+	withDefaultGetKubeDynamicClientFn(),
+	withDefaultGetKubeMasterIPFromENVFn(),
+	withDefaultGetKubeConfigPathFromENVFn(),
+}
+
+// withDefaultGetInClusterConfigFn sets the default logic
+// to get in-cluster config
+func withDefaultGetInClusterConfigFn() OptionFn {
+	return func(c *Client) {
+		if c.getInClusterConfig == nil {
+			c.getInClusterConfig = rest.InClusterConfig
+		}
 	}
-	if c.getKubernetesClientset == nil {
-		c.getKubernetesClientset = kubernetes.NewForConfig
+}
+
+// withDefaultBuildConfigFromFlagsFn sets the default logic
+// to build config from flags
+func withDefaultBuildConfigFromFlagsFn() OptionFn {
+	return func(c *Client) {
+		if c.buildConfigFromFlags == nil {
+			c.buildConfigFromFlags = clientcmd.BuildConfigFromFlags
+		}
 	}
-	if c.getKubernetesDynamicClient == nil {
-		c.getKubernetesDynamicClient = dynamic.NewForConfig
+}
+
+// withDefaultGetKubeClientsetFn sets the default logic
+// to get kubernetes clientset
+func withDefaultGetKubeClientsetFn() OptionFn {
+	return func(c *Client) {
+		if c.getKubeClientset == nil {
+			c.getKubeClientset = kubernetes.NewForConfig
+		}
 	}
-	if c.getKubeMasterIP == nil {
-		c.getKubeMasterIP = env.Get
+}
+
+// withDefaultGetKubeDynamicClientFn sets the default logic
+// to get kubernetes dynamic client instance
+func withDefaultGetKubeDynamicClientFn() OptionFn {
+	return func(c *Client) {
+		if c.getKubeDynamicClient == nil {
+			c.getKubeDynamicClient = dynamic.NewForConfig
+		}
 	}
-	if c.getKubeConfigPath == nil {
-		c.getKubeConfigPath = env.Get
+}
+
+// withDefaultGetKubeMasterIPFromENVFn sets the default logic
+// to get kubernetes master IP address from environment
+// variable
+func withDefaultGetKubeMasterIPFromENVFn() OptionFn {
+	return func(c *Client) {
+		if c.getKubeMasterIPFromENV == nil {
+			c.getKubeMasterIPFromENV = env.Get
+		}
+	}
+}
+
+// withDefaultGetKubeConfigPathFromENVFn sets the default logic
+// to get kubeconfig path from environment variable
+func withDefaultGetKubeConfigPathFromENVFn() OptionFn {
+	return func(c *Client) {
+		if c.getKubeConfigPathFromENV == nil {
+			c.getKubeConfigPathFromENV = env.Get
+		}
 	}
 }
 
 // InCluster enables IsInCluster flag
-func InCluster() OptionFunc {
+func InCluster() OptionFn {
 	return func(c *Client) {
 		c.IsInCluster = true
 	}
@@ -170,26 +221,54 @@ func InCluster() OptionFunc {
 
 // WithKubeConfigPath sets kubeconfig path
 // against this client instance
-func WithKubeConfigPath(kubeConfigPath string) OptionFunc {
+func WithKubeConfigPath(kubeConfigPath string) OptionFn {
 	return func(c *Client) {
 		c.KubeConfigPath = kubeConfigPath
 	}
 }
 
-// Clientset returns a new instance of kubernetes clientset
+// Clientset returns a new instance of Kubernetes clientset
 func (c *Client) Clientset() (*kubernetes.Clientset, error) {
 	config, err := c.GetConfigForPathOrDirect()
 	if err != nil {
 		return nil, errors.Wrapf(err,
-			"failed to get kubernetes clientset: failed to get kubernetes config: IsInCluster {%t}: KubeConfigPath {%s}",
+			"failed to get kubernetes clientset: IsInCluster {%t}: KubeConfigPath {%s}",
 			c.IsInCluster,
 			c.KubeConfigPath,
 		)
 	}
-	return c.getKubernetesClientset(config)
+
+	return c.getKubeClientset(config)
 }
 
-// Config returns the kubernetes config instance based on available criteria
+// GetConfig returns Kubernetes config instance
+// from the provided client
+func GetConfig(c *Client) (*rest.Config, error) {
+	if c == nil {
+		return nil, errors.New("failed to get kubernetes config: nil client was provided")
+	}
+
+	return c.GetConfigForPathOrDirect()
+}
+
+// GetConfigForPathOrDirect returns Kubernetes config
+// instance from kubeconfig path or without it
+func (c *Client) GetConfigForPathOrDirect() (config *rest.Config, err error) {
+	if c.KubeConfigPath != "" {
+		return c.ConfigForPath(c.KubeConfigPath)
+	}
+
+	return c.Config()
+}
+
+// ConfigForPath returns Kubernetes config instance
+// based on KubeConfig path
+func (c *Client) ConfigForPath(kubeConfigPath string) (config *rest.Config, err error) {
+	return c.buildConfigFromFlags("", kubeConfigPath)
+}
+
+// Config returns Kubernetes config instance
+// based on set criteria
 func (c *Client) Config() (config *rest.Config, err error) {
 	// IsInCluster flag holds the top most priority
 	if c.IsInCluster {
@@ -197,8 +276,8 @@ func (c *Client) Config() (config *rest.Config, err error) {
 	}
 
 	// ENV holds second priority
-	if strings.TrimSpace(c.getKubeMasterIP(K8sMasterIPEnvironmentKey)) != "" ||
-		strings.TrimSpace(c.getKubeConfigPath(KubeConfigEnvironmentKey)) != "" {
+	if strings.TrimSpace(c.getKubeMasterIPFromENV(K8sMasterIPEnvironmentKey)) != "" ||
+		strings.TrimSpace(c.getKubeConfigPathFromENV(KubeConfigEnvironmentKey)) != "" {
 		return c.getConfigFromENV()
 	}
 
@@ -206,21 +285,10 @@ func (c *Client) Config() (config *rest.Config, err error) {
 	return c.getInClusterConfig()
 }
 
-// ConfigForPath returns the kuberentes config instance based on KubeConfig path
-func (c *Client) ConfigForPath(kubeConfigPath string) (config *rest.Config, err error) {
-	return c.buildConfigFromFlags("", kubeConfigPath)
-}
-
-func (c *Client) GetConfigForPathOrDirect() (config *rest.Config, err error) {
-	if c.KubeConfigPath != "" {
-		return c.ConfigForPath(c.KubeConfigPath)
-	}
-	return c.Config()
-}
-
 func (c *Client) getConfigFromENV() (config *rest.Config, err error) {
-	k8sMaster := c.getKubeMasterIP(K8sMasterIPEnvironmentKey)
-	kubeConfig := c.getKubeConfigPath(KubeConfigEnvironmentKey)
+	k8sMaster := c.getKubeMasterIPFromENV(K8sMasterIPEnvironmentKey)
+	kubeConfig := c.getKubeConfigPathFromENV(KubeConfigEnvironmentKey)
+
 	if strings.TrimSpace(k8sMaster) == "" &&
 		strings.TrimSpace(kubeConfig) == "" {
 		return nil, errors.Errorf(
@@ -229,15 +297,17 @@ func (c *Client) getConfigFromENV() (config *rest.Config, err error) {
 			KubeConfigEnvironmentKey,
 		)
 	}
+
 	return c.buildConfigFromFlags(k8sMaster, kubeConfig)
 }
 
-// Dynamic returns a kubernetes dynamic client capable of invoking operations
-// against kubernetes resources
+// Dynamic returns a kubernetes dynamic client capable
+// of invoking operations against kubernetes resources
 func (c *Client) Dynamic() (dynamic.Interface, error) {
 	config, err := c.GetConfigForPathOrDirect()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get dynamic client")
 	}
-	return c.getKubernetesDynamicClient(config)
+
+	return c.getKubeDynamicClient(config)
 }

@@ -89,10 +89,10 @@ func TestConfig(t *testing.T) {
 	tests := map[string]struct {
 		isInCluster        bool
 		kubeConfigPath     string
-		getInClusterConfig getInClusterConfigFunc
-		getKubeMasterIP    getKubeMasterIPFunc
-		getKubeConfigPath  getKubeConfigPathFunc
-		getConfigFromENV   buildConfigFromFlagsFunc
+		getInClusterConfig getInClusterConfigFn
+		getKubeMasterIP    getKubeMasterIPFromENVFn
+		getKubeConfigPath  getKubeConfigPathFromENVFn
+		getConfigFromENV   buildConfigFromFlagsFn
 		isErr              bool
 	}{
 		"t1": {true, "", fakeInClusterConfigOk, nil, nil, nil, false},
@@ -109,12 +109,12 @@ func TestConfig(t *testing.T) {
 		name, mock := name, mock // pin It
 		t.Run(name, func(t *testing.T) {
 			c := &Client{
-				IsInCluster:          mock.isInCluster,
-				KubeConfigPath:       mock.kubeConfigPath,
-				getInClusterConfig:   mock.getInClusterConfig,
-				getKubeMasterIP:      mock.getKubeMasterIP,
-				getKubeConfigPath:    mock.getKubeConfigPath,
-				buildConfigFromFlags: mock.getConfigFromENV,
+				IsInCluster:              mock.isInCluster,
+				KubeConfigPath:           mock.kubeConfigPath,
+				getInClusterConfig:       mock.getInClusterConfig,
+				getKubeMasterIPFromENV:   mock.getKubeMasterIP,
+				getKubeConfigPathFromENV: mock.getKubeConfigPath,
+				buildConfigFromFlags:     mock.getConfigFromENV,
 			}
 			_, err := c.Config()
 			if mock.isErr && err == nil {
@@ -126,9 +126,9 @@ func TestConfig(t *testing.T) {
 
 func TestGetConfigFromENV(t *testing.T) {
 	tests := map[string]struct {
-		getKubeMasterIP   getKubeMasterIPFunc
-		getKubeConfigPath getKubeConfigPathFunc
-		getConfigFromENV  buildConfigFromFlagsFunc
+		getKubeMasterIP   getKubeMasterIPFromENVFn
+		getKubeConfigPath getKubeConfigPathFromENVFn
+		getConfigFromENV  buildConfigFromFlagsFn
 		isErr             bool
 	}{
 		"t1": {fakeGetKubeMasterIPNil, fakeGetKubeConfigPathNil, nil, true},
@@ -143,9 +143,9 @@ func TestGetConfigFromENV(t *testing.T) {
 		name, mock := name, mock // pin It
 		t.Run(name, func(t *testing.T) {
 			c := &Client{
-				getKubeMasterIP:      mock.getKubeMasterIP,
-				getKubeConfigPath:    mock.getKubeConfigPath,
-				buildConfigFromFlags: mock.getConfigFromENV,
+				getKubeMasterIPFromENV:   mock.getKubeMasterIP,
+				getKubeConfigPathFromENV: mock.getKubeConfigPath,
+				buildConfigFromFlags:     mock.getConfigFromENV,
 			}
 			_, err := c.getConfigFromENV()
 			if mock.isErr && err == nil {
@@ -161,8 +161,8 @@ func TestGetConfigFromENV(t *testing.T) {
 func TestGetConfigFromPathOrDirect(t *testing.T) {
 	tests := map[string]struct {
 		kubeConfigPath     string
-		getConfigFromFlags buildConfigFromFlagsFunc
-		getInClusterConfig getInClusterConfigFunc
+		getConfigFromFlags buildConfigFromFlagsFn
+		getInClusterConfig getInClusterConfigFn
 		isErr              bool
 	}{
 		"T1": {"", fakeBuildConfigFromFlagsErr, fakeInClusterConfigOk, false},
@@ -175,11 +175,11 @@ func TestGetConfigFromPathOrDirect(t *testing.T) {
 		name, mock := name, mock // pin It
 		t.Run(name, func(t *testing.T) {
 			c := &Client{
-				KubeConfigPath:       mock.kubeConfigPath,
-				buildConfigFromFlags: mock.getConfigFromFlags,
-				getInClusterConfig:   mock.getInClusterConfig,
-				getKubeMasterIP:      fakeGetKubeMasterIPNil,
-				getKubeConfigPath:    fakeGetKubeConfigPathNil,
+				KubeConfigPath:           mock.kubeConfigPath,
+				buildConfigFromFlags:     mock.getConfigFromFlags,
+				getInClusterConfig:       mock.getInClusterConfig,
+				getKubeMasterIPFromENV:   fakeGetKubeMasterIPNil,
+				getKubeConfigPathFromENV: fakeGetKubeConfigPathNil,
 			}
 			_, err := c.GetConfigForPathOrDirect()
 			if mock.isErr && err == nil {
@@ -196,11 +196,11 @@ func TestClientset(t *testing.T) {
 	tests := map[string]struct {
 		isInCluster            bool
 		kubeConfigPath         string
-		getInClusterConfig     getInClusterConfigFunc
-		getKubeMasterIP        getKubeMasterIPFunc
-		getKubeConfigPath      getKubeConfigPathFunc
-		getConfigFromENV       buildConfigFromFlagsFunc
-		getKubernetesClientset getKubernetesClientsetFunc
+		getInClusterConfig     getInClusterConfigFn
+		getKubeMasterIP        getKubeMasterIPFromENVFn
+		getKubeConfigPath      getKubeConfigPathFromENVFn
+		getConfigFromENV       buildConfigFromFlagsFn
+		getKubernetesClientset getKubeClientsetFn
 		isErr                  bool
 	}{
 		"t10": {true, "", fakeInClusterConfigOk, nil, nil, nil, fakeGetClientsetOk, false},
@@ -223,13 +223,13 @@ func TestClientset(t *testing.T) {
 		name, mock := name, mock // pin It
 		t.Run(name, func(t *testing.T) {
 			c := &Client{
-				IsInCluster:            mock.isInCluster,
-				KubeConfigPath:         mock.kubeConfigPath,
-				getInClusterConfig:     mock.getInClusterConfig,
-				getKubeMasterIP:        mock.getKubeMasterIP,
-				getKubeConfigPath:      mock.getKubeConfigPath,
-				buildConfigFromFlags:   mock.getConfigFromENV,
-				getKubernetesClientset: mock.getKubernetesClientset,
+				IsInCluster:              mock.isInCluster,
+				KubeConfigPath:           mock.kubeConfigPath,
+				getInClusterConfig:       mock.getInClusterConfig,
+				getKubeMasterIPFromENV:   mock.getKubeMasterIP,
+				getKubeConfigPathFromENV: mock.getKubeConfigPath,
+				buildConfigFromFlags:     mock.getConfigFromENV,
+				getKubeClientset:         mock.getKubernetesClientset,
 			}
 			_, err := c.Clientset()
 			if mock.isErr && err == nil {
@@ -244,12 +244,12 @@ func TestClientset(t *testing.T) {
 
 func TestDynamic(t *testing.T) {
 	tests := map[string]struct {
-		getKubeMasterIP               getKubeMasterIPFunc
-		getInClusterConfig            getInClusterConfigFunc
-		getKubernetesDynamicClientSet getKubernetesDynamicClientFunc
+		getKubeMasterIP               getKubeMasterIPFromENVFn
+		getInClusterConfig            getInClusterConfigFn
+		getKubernetesDynamicClientSet getKubeDynamicClientFn
 		kubeConfigPath                string
-		getConfigFromENV              buildConfigFromFlagsFunc
-		getKubeConfigPath             getKubeConfigPathFunc
+		getConfigFromENV              buildConfigFromFlagsFn
+		getKubeConfigPath             getKubeConfigPathFromENVFn
 		isErr                         bool
 	}{
 		"t1": {fakeGetKubeMasterIPNil, fakeInClusterConfigErr, fakeGetDynamicClientSetOk, "fake-path", fakeBuildConfigFromFlagsOk, fakeGetKubeConfigPathNil, false},
@@ -265,12 +265,12 @@ func TestDynamic(t *testing.T) {
 		name, mock := name, mock // pin It
 		t.Run(name, func(t *testing.T) {
 			c := &Client{
-				getKubeMasterIP:            mock.getKubeMasterIP,
-				KubeConfigPath:             mock.kubeConfigPath,
-				getInClusterConfig:         mock.getInClusterConfig,
-				buildConfigFromFlags:       mock.getConfigFromENV,
-				getKubeConfigPath:          mock.getKubeConfigPath,
-				getKubernetesDynamicClient: mock.getKubernetesDynamicClientSet,
+				getKubeMasterIPFromENV:   mock.getKubeMasterIP,
+				KubeConfigPath:           mock.kubeConfigPath,
+				getInClusterConfig:       mock.getInClusterConfig,
+				buildConfigFromFlags:     mock.getConfigFromENV,
+				getKubeConfigPathFromENV: mock.getKubeConfigPath,
+				getKubeDynamicClient:     mock.getKubernetesDynamicClientSet,
 			}
 			_, err := c.Dynamic()
 			if mock.isErr && err == nil {
@@ -286,7 +286,7 @@ func TestDynamic(t *testing.T) {
 func TestConfigForPath(t *testing.T) {
 	tests := map[string]struct {
 		kubeConfigPath    string
-		getConfigFromPath buildConfigFromFlagsFunc
+		getConfigFromPath buildConfigFromFlagsFn
 		isErr             bool
 	}{
 		"T1": {"", fakeBuildConfigFromFlagsErr, true},

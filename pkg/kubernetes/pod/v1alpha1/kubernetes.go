@@ -30,19 +30,19 @@ import (
 
 // getClientsetFn is a typed function that
 // abstracts fetching of clientset
-type getClientsetFn func() (clientset *clientset.Clientset, err error)
+type getClientsetFn func() (*clientset.Clientset, error)
 
 // getClientsetFromPathFn is a typed function that
 // abstracts fetching of clientset from kubeConfigPath
-type getClientsetForPathFn func(kubeConfigPath string) (clientset *clientset.Clientset, err error)
+type getClientsetForPathFn func(kubeConfigPath string) (*clientset.Clientset, error)
 
-// getKubeConfigFn is a typed function that abstracts fetching
-// rest config
-type getKubeConfigFn func() (config *rest.Config, err error)
+// getKubeConfigFn is a typed function that
+// abstracts fetching of config
+type getKubeConfigFn func() (*rest.Config, error)
 
 // getKubeConfigForPathFn is a typed function that
 // abstracts fetching of config from kubeConfigPath
-type getKubeConfigForPathFn func(kubeConfigPath string) (config *rest.Config, err error)
+type getKubeConfigForPathFn func(kubeConfigPath string) (*rest.Config, error)
 
 // createFn is a typed function that abstracts
 // creation of pod
@@ -69,23 +69,36 @@ type getFn func(cli *clientset.Clientset, namespace, name string, opts metav1.Ge
 type execFn func(cli *clientset.Clientset, config *rest.Config, name, namespace string, opts *corev1.PodExecOptions) (*ExecOutput, error)
 
 // defaultExec is the default implementation of execFn
-func defaultExec(cli *clientset.Clientset, config *rest.Config, name, namespace string,
-	opts *corev1.PodExecOptions) (*ExecOutput, error) {
+func defaultExec(
+	cli *clientset.Clientset,
+	config *rest.Config,
+	name string,
+	namespace string,
+	opts *corev1.PodExecOptions,
+) (*ExecOutput, error) {
 	var stdout, stderr bytes.Buffer
+
 	req := cli.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(name).
 		Namespace(namespace).
 		SubResource("exec").
 		VersionedParams(opts, scheme.ParameterCodec)
-	// create exec executor which is an interface for transporting shell-style streams.
+
+	// create exec executor which is an interface
+	// for transporting shell-style streams
 	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
 	if err != nil {
-		return nil, errors.Wrapf(err,
-			"failed to exec into pod {%s}: failed to connect to the provided server", name)
+		return nil, errors.Wrapf(
+			err,
+			"failed to exec into pod {%s}: failed to connect to the provided server",
+			name,
+		)
 	}
-	// Stream initiates the transport of the standard shell streams. It will transport any
-	// non-nil stream to a remote system, and return an error if a problem occurs.
+
+	// Stream initiates transport of standard shell streams
+	// It will transport any non-nil stream to a remote system,
+	// and return an error if a problem occurs
 	err = exec.Stream(remotecommand.StreamOptions{
 		Stdin:  nil,
 		Stdout: &stdout,
@@ -93,8 +106,13 @@ func defaultExec(cli *clientset.Clientset, config *rest.Config, name, namespace 
 		Tty:    opts.TTY,
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to exec into pod {%s}: failed to stream", name)
+		return nil, errors.Wrapf(
+			err,
+			"failed to exec into pod {%s}: failed to stream",
+			name,
+		)
 	}
+
 	execOutput := &ExecOutput{
 		Stdout: stdout.String(),
 		Stderr: stderr.String(),
