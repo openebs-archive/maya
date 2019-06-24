@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -29,17 +30,39 @@ import (
 // abstracts fetching of internal clientset
 type getClientsetFn func() (clientset *kubernetes.Clientset, err error)
 
+// getClientsetFromPathFn is a typed function that
+// abstracts fetching of clientset from kubeConfigPath
+type getClientsetForPathFn func(
+	kubeConfigPath string,
+) (*kubernetes.Clientset, error)
+
 // getFn is a typed function that abstracts get of service instances
-type getFn func(cli *kubernetes.Clientset, name, namespace string,
-	opts metav1.GetOptions) (*corev1.Service, error)
+type getFn func(
+	cli *kubernetes.Clientset,
+	name, namespace string,
+	opts metav1.GetOptions,
+) (*corev1.Service, error)
 
 // listFn is a typed function that abstracts list of service instances
-type listFn func(cli *kubernetes.Clientset, namespace string,
-	opts metav1.ListOptions) (*corev1.ServiceList, error)
+type listFn func(
+	cli *kubernetes.Clientset,
+	namespace string,
+	opts metav1.ListOptions,
+) (*corev1.ServiceList, error)
 
 // delFn is a typed function that abstracts delete of service instances
-type delFn func(cli *kubernetes.Clientset, name, namespace string,
-	opts *metav1.DeleteOptions) error
+type delFn func(
+	cli *kubernetes.Clientset,
+	name, namespace string,
+	opts *metav1.DeleteOptions,
+) error
+
+// createFn is a typed function that abstracts delete of service instances
+type createFn func(
+	cli *kubernetes.Clientset,
+	service *corev1.Service,
+	namespace string,
+) (*corev1.Service, error)
 
 // Kubeclient enables kubernetes API operations on service instance
 type Kubeclient struct {
@@ -48,57 +71,113 @@ type Kubeclient struct {
 	clientset *kubernetes.Clientset
 	namespace string
 
+	// kubeconfig path to get kubernetes clientset
+	kubeConfigPath string
+
 	// functions useful during mocking
-	getClientset getClientsetFn
-	list         listFn
-	get          getFn
-	del          delFn
+	getClientset        getClientsetFn
+	getClientsetForPath getClientsetForPathFn
+	list                listFn
+	get                 getFn
+	del                 delFn
+	create              createFn
 }
 
 // KubeclientBuildOption defines the abstraction to build a kubeclient instance
 type KubeclientBuildOption func(*Kubeclient)
 
+// defaultGetClientset is the default implementation to
+// get kubernetes clientset instance
+func defaultGetClientset() (clients *kubernetes.Clientset, err error) {
+	config, err := client.New().Config()
+	if err != nil {
+		return nil, err
+	}
+	return kubernetes.NewForConfig(config)
+}
+
+// defaultGetClientsetForPath is the default implementation to
+// get kubernetes clientset instance based on the given
+// kubeconfig path
+func defaultGetClientsetForPath(
+	kubeConfigPath string,
+) (clients *kubernetes.Clientset, err error) {
+	return client.New(client.WithKubeConfigPath(kubeConfigPath)).
+		Clientset()
+}
+
+// defaultCreate is the default implementation to get
+// a service instance in kubernetes cluster
+func defaultGet(
+	cli *kubernetes.Clientset,
+	name, namespace string,
+	opts metav1.GetOptions,
+) (r *corev1.Service, err error) {
+	r, err = cli.CoreV1().
+		Services(namespace).
+		Get(name, opts)
+	return
+}
+
+// defaultCreate is the default implementation to list
+// service instances in kubernetes cluster
+func defaultList(
+	cli *kubernetes.Clientset,
+	namespace string,
+	opts metav1.ListOptions,
+) (rl *corev1.ServiceList, err error) {
+	rl, err = cli.CoreV1().
+		Services(namespace).
+		List(opts)
+	return
+}
+
+// defaultCreate is the default implementation to delete
+// a service instance in kubernetes cluster
+func defaultDel(
+	cli *kubernetes.Clientset,
+	name, namespace string,
+	opts *metav1.DeleteOptions,
+) (err error) {
+	deletePropagation := metav1.DeletePropagationForeground
+	opts.PropagationPolicy = &deletePropagation
+	err = cli.CoreV1().
+		Services(namespace).
+		Delete(name, opts)
+	return
+}
+
+// defaultCreate is the default implementation to create
+// a service instance in kubernetes cluster
+func defaultCreate(
+	cli *kubernetes.Clientset,
+	service *corev1.Service,
+	namespace string,
+) (*corev1.Service, error) {
+	return cli.CoreV1().
+		Services(namespace).
+		Create(service)
+}
+
 // withDefaults sets the default options of kubeclient instance
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
-		k.getClientset = func() (clients *kubernetes.Clientset, err error) {
-			config, err := client.New().Config()
-			if err != nil {
-				return nil, err
-			}
-			return kubernetes.NewForConfig(config)
-		}
+		k.getClientset = defaultGetClientset
+	}
+	if k.getClientsetForPath == nil {
+		k.getClientsetForPath = defaultGetClientsetForPath
 	}
 	if k.get == nil {
-		k.get = func(cli *kubernetes.Clientset, name,
-			namespace string, opts metav1.GetOptions) (
-			r *corev1.Service, err error) {
-			r, err = cli.CoreV1().
-				Services(namespace).
-				Get(name, opts)
-			return
-		}
+		k.get = defaultGet
 	}
 	if k.list == nil {
-		k.list = func(cli *kubernetes.Clientset,
-			namespace string, opts metav1.ListOptions) (
-			rl *corev1.ServiceList, err error) {
-			rl, err = cli.CoreV1().
-				Services(namespace).
-				List(opts)
-			return
-		}
+		k.list = defaultList
 	}
 	if k.del == nil {
-		k.del = func(cli *kubernetes.Clientset, name,
-			namespace string, opts *metav1.DeleteOptions) (err error) {
-			deletePropagation := metav1.DeletePropagationForeground
-			opts.PropagationPolicy = &deletePropagation
-			err = cli.CoreV1().
-				Services(namespace).
-				Delete(name, opts)
-			return
-		}
+		k.del = defaultDel
+	}
+	if k.create == nil {
+		k.create = defaultCreate
 	}
 }
 
@@ -116,9 +195,17 @@ func WithNamespace(namespace string) KubeclientBuildOption {
 	}
 }
 
-// KubeClient returns a new instance of kubeclient meant for service,
+// WithKubeConfigPath sets the kubeConfig path
+// against client instance
+func WithKubeConfigPath(path string) KubeclientBuildOption {
+	return func(k *Kubeclient) {
+		k.kubeConfigPath = path
+	}
+}
+
+// NewKubeClient returns a new instance of kubeclient meant for service,
 // caller can configure it with different kubeclientBuildOption
-func KubeClient(opts ...KubeclientBuildOption) *Kubeclient {
+func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
 	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
@@ -127,22 +214,32 @@ func KubeClient(opts ...KubeclientBuildOption) *Kubeclient {
 	return k
 }
 
+func (k *Kubeclient) getClientsetForPathOrDirect() (
+	*kubernetes.Clientset, error) {
+	if k.kubeConfigPath != "" {
+		return k.getClientsetForPath(k.kubeConfigPath)
+	}
+	return k.getClientset()
+}
+
 // getClientOrCached returns either a new
 // instance of kubernetes client or its cached copy
 func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	c, err := k.getClientset()
+
+	cs, err := k.getClientsetForPathOrDirect()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get clientset")
 	}
-	k.clientset = c
+	k.clientset = cs
 	return k.clientset, nil
 }
 
 // Get returns service object for given name
-func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*corev1.Service, error) {
+func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (
+	*corev1.Service, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -151,7 +248,8 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*corev1.Service, 
 }
 
 // GetRaw returns service object for given name in byte format
-func (k *Kubeclient) GetRaw(name string, opts metav1.GetOptions) ([]byte, error) {
+func (k *Kubeclient) GetRaw(name string, opts metav1.GetOptions) (
+	[]byte, error) {
 	svc, err := k.Get(name, opts)
 	if err != nil {
 		return nil, err
@@ -160,7 +258,8 @@ func (k *Kubeclient) GetRaw(name string, opts metav1.GetOptions) ([]byte, error)
 }
 
 // List returns list of services
-func (k *Kubeclient) List(opts metav1.ListOptions) (*corev1.ServiceList, error) {
+func (k *Kubeclient) List(opts metav1.ListOptions) (
+	*corev1.ServiceList, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -184,4 +283,21 @@ func (k *Kubeclient) Delete(name string, options *metav1.DeleteOptions) error {
 		return err
 	}
 	return k.del(cli, name, k.namespace, options)
+}
+
+// Create creates a service in specified namespace in kubernetes cluster
+func (k *Kubeclient) Create(service *corev1.Service) (*corev1.Service, error) {
+	if service == nil {
+		return nil, errors.New("failed to create service: nil service object")
+	}
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to create service {%s} in namespace {%s}",
+			service.Name,
+			service.Namespace,
+		)
+	}
+	return k.create(cli, service, k.namespace)
 }

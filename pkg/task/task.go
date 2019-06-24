@@ -1276,7 +1276,7 @@ func (m *executor) getOEV1alpha1CSV() error {
 
 // getCoreV1Service will get the Service as specified in the RunTask
 func (m *executor) getCoreV1Service() error {
-	svc, err := service.KubeClient(
+	svc, err := service.NewKubeClient(
 		service.WithNamespace(m.getTaskRunNamespace())).
 		GetRaw(m.getTaskObjectName(), metav1.GetOptions{})
 	if err != nil {
