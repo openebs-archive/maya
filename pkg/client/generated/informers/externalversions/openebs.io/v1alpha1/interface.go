@@ -38,6 +38,8 @@ type Interface interface {
 	CStorRestores() CStorRestoreInformer
 	// CStorVolumes returns a CStorVolumeInformer.
 	CStorVolumes() CStorVolumeInformer
+	// CStorVolumeClaims returns a CStorVolumeClaimInformer.
+	CStorVolumeClaims() CStorVolumeClaimInformer
 	// CStorVolumeReplicas returns a CStorVolumeReplicaInformer.
 	CStorVolumeReplicas() CStorVolumeReplicaInformer
 	// RunTasks returns a RunTaskInformer.
@@ -92,6 +94,11 @@ func (v *version) CStorRestores() CStorRestoreInformer {
 // CStorVolumes returns a CStorVolumeInformer.
 func (v *version) CStorVolumes() CStorVolumeInformer {
 	return &cStorVolumeInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// CStorVolumeClaims returns a CStorVolumeClaimInformer.
+func (v *version) CStorVolumeClaims() CStorVolumeClaimInformer {
+	return &cStorVolumeClaimInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // CStorVolumeReplicas returns a CStorVolumeReplicaInformer.
