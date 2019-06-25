@@ -31,18 +31,38 @@ type getClientsetFn func() (clientset *clientset.Clientset, err error)
 
 // getClientsetFromPathFn is a typed function that
 // abstracts fetching of clientset from kubeConfigPath
-type getClientsetForPathFn func(kubeConfigPath string) (clientset *clientset.Clientset, err error)
+type getClientsetForPathFn func(
+	kubeConfigPath string,
+) (*clientset.Clientset, error)
 
 // getFn is a typed function that abstracts get of cstorvolume instances
-type getFn func(cli *clientset.Clientset, name, namespace string,
-	opts metav1.GetOptions) (*apis.CStorVolume, error)
+type getFn func(
+	cli *clientset.Clientset,
+	name, namespace string,
+	opts metav1.GetOptions,
+) (*apis.CStorVolume, error)
 
 // listFn is a typed function that abstracts
 // listing of cstor volume instances
-type listFn func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.CStorVolumeList, error)
+type listFn func(
+	cli *clientset.Clientset,
+	namespace string,
+	opts metav1.ListOptions,
+) (*apis.CStorVolumeList, error)
 
 // delFn is a typed function that abstracts delete of cstorvolume instances
-type delFn func(cli *clientset.Clientset, name, namespace string, opts *metav1.DeleteOptions) error
+type delFn func(
+	cli *clientset.Clientset,
+	name, namespace string,
+	opts *metav1.DeleteOptions,
+) error
+
+// createFn is a typed function that abstracts create of cstorvolume instances
+type createFn func(
+	cli *clientset.Clientset,
+	vol *apis.CStorVolume,
+	namespace string,
+) (*apis.CStorVolume, error)
 
 // Kubeclient enables kubernetes API operations
 // on cstor volume replica instance
@@ -62,58 +82,119 @@ type Kubeclient struct {
 	get                 getFn
 	list                listFn
 	del                 delFn
+	create              createFn
 }
 
 // KubeclientBuildOption defines the abstraction
 // to build a kubeclient instance
 type KubeclientBuildOption func(*Kubeclient)
 
+// defaultGetClientset is the default implementation to
+// get kubernetes clientset instance
+func defaultGetClientset() (clients *clientset.Clientset, err error) {
+	config, err := client.GetConfig(client.New())
+	if err != nil {
+		return nil, err
+	}
+	return clientset.NewForConfig(config)
+}
+
+// defaultGetClientsetForPath is the default implementation to
+// get kubernetes clientset instance based on the given
+// kubeconfig path
+func defaultGetClientsetForPath(
+	kubeConfigPath string,
+) (clients *clientset.Clientset, err error) {
+	config, err := client.GetConfig(
+		client.New(client.WithKubeConfigPath(kubeConfigPath)),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return clientset.NewForConfig(config)
+}
+
+// defaultGet is the default implementation to get a
+// cstorvolume instance in kubernetes cluster
+func defaultGet(
+	cli *clientset.Clientset,
+	name, namespace string,
+	opts metav1.GetOptions,
+) (*apis.CStorVolume, error) {
+	return cli.OpenebsV1alpha1().
+		CStorVolumes(namespace).
+		Get(name, opts)
+}
+
+// defaultList is the default implementation to list
+// cstorvolume instances in kubernetes cluster
+func defaultList(
+	cli *clientset.Clientset,
+	namespace string,
+	opts metav1.ListOptions,
+) (*apis.CStorVolumeList, error) {
+	return cli.OpenebsV1alpha1().
+		CStorVolumes(namespace).
+		List(opts)
+}
+
+// defaultDel is the default implementation to delete a
+// cstorvolume instance in kubernetes cluster
+func defaultDel(
+	cli *clientset.Clientset,
+	name, namespace string,
+	opts *metav1.DeleteOptions,
+) error {
+	// The object exists in the key-value store until the garbage collector
+	// deletes all the dependents whose ownerReference.blockOwnerDeletion=true
+	// from the key-value store.  API sever will put the "foregroundDeletion"
+	// finalizer on the object, and sets its deletionTimestamp.  This policy is
+	// cascading, i.e., the dependents will be deleted with Foreground.
+	deletePropagation := metav1.DeletePropagationForeground
+	opts.PropagationPolicy = &deletePropagation
+	err := cli.OpenebsV1alpha1().
+		CStorVolumes(namespace).
+		Delete(name, opts)
+	return err
+}
+
+// defaultCreate is the default implementation to create a
+// cstorvolume instance in kubernetes cluster
+func defaultCreate(
+	cli *clientset.Clientset,
+	vol *apis.CStorVolume,
+	namespace string,
+) (*apis.CStorVolume, error) {
+	return cli.OpenebsV1alpha1().
+		CStorVolumes(namespace).
+		Create(vol)
+}
+
 // withDefaults sets the default options
 // of kubeclient instance
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
-		k.getClientset = func() (clients *clientset.Clientset, err error) {
-			config, err := client.GetConfig(client.New())
-			if err != nil {
-				return nil, err
-			}
-			return clientset.NewForConfig(config)
-		}
+		k.getClientset = defaultGetClientset
 	}
 
 	if k.getClientsetForPath == nil {
-		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.Clientset, err error) {
-			config, err := client.GetConfig(client.New(client.WithKubeConfigPath(kubeConfigPath)))
-			if err != nil {
-				return nil, err
-			}
-			return clientset.NewForConfig(config)
-		}
+		k.getClientsetForPath = defaultGetClientsetForPath
 	}
 
 	if k.get == nil {
-		k.get = func(cli *clientset.Clientset, name, namespace string, opts metav1.GetOptions) (*apis.CStorVolume, error) {
-			return cli.OpenebsV1alpha1().CStorVolumes(namespace).Get(name, opts)
-		}
+		k.get = defaultGet
 	}
 
 	if k.list == nil {
-		k.list = func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.CStorVolumeList, error) {
-			return cli.OpenebsV1alpha1().CStorVolumes(namespace).List(opts)
-		}
+		k.list = defaultList
 	}
+
 	if k.del == nil {
-		k.del = func(cli *clientset.Clientset, name, namespace string, opts *metav1.DeleteOptions) error {
-			// The object exists in the key-value store until the garbage collector
-			// deletes all the dependents whose ownerReference.blockOwnerDeletion=true
-			// from the key-value store.  API sever will put the "foregroundDeletion"
-			// finalizer on the object, and sets its deletionTimestamp.  This policy is
-			// cascading, i.e., the dependents will be deleted with Foreground.
-			deletePropagation := metav1.DeletePropagationForeground
-			opts.PropagationPolicy = &deletePropagation
-			err := cli.OpenebsV1alpha1().CStorVolumes(namespace).Delete(name, opts)
-			return err
-		}
+		k.del = defaultDel
+	}
+
+	if k.create == nil {
+		k.create = defaultCreate
 	}
 }
 
@@ -152,7 +233,8 @@ func NewKubeclient(opts ...KubeclientBuildOption) *Kubeclient {
 	return k
 }
 
-func (k *Kubeclient) getClientsetForPathOrDirect() (*clientset.Clientset, error) {
+func (k *Kubeclient) getClientsetForPathOrDirect() (
+	*clientset.Clientset, error) {
 	if k.kubeConfigPath != "" {
 		return k.getClientsetForPath(k.kubeConfigPath)
 	}
@@ -174,9 +256,13 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 }
 
 // Get returns deployment object for given name
-func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.CStorVolume, error) {
+func (k *Kubeclient) Get(
+	name string,
+	opts metav1.GetOptions,
+) (*apis.CStorVolume, error) {
 	if len(name) == 0 {
-		return nil, errors.New("failed to get cstorvolume: name can't be empty")
+		return nil,
+			errors.New("failed to get cstorvolume: name can't be empty")
 	}
 	cli, err := k.getClientOrCached()
 	if err != nil {
@@ -186,7 +272,10 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.CStorVolume
 }
 
 // GetRaw returns a raw CStor volume instance
-func (k *Kubeclient) GetRaw(name string, opts metav1.GetOptions) ([]byte, error) {
+func (k *Kubeclient) GetRaw(
+	name string,
+	opts metav1.GetOptions,
+) ([]byte, error) {
 	csv, err := k.Get(name, opts)
 	if err != nil {
 		return nil, err
@@ -196,7 +285,9 @@ func (k *Kubeclient) GetRaw(name string, opts metav1.GetOptions) ([]byte, error)
 
 // List returns a list of cstor volume replica
 // instances present in kubernetes cluster
-func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.CStorVolumeList, error) {
+func (k *Kubeclient) List(
+	opts metav1.ListOptions,
+) (*apis.CStorVolumeList, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -204,11 +295,24 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.CStorVolumeList, error
 	return k.list(cli, k.namespace, opts)
 }
 
-// Delete delete the cstorvolume resource
+// Delete deletes the cstorvolume resource
 func (k *Kubeclient) Delete(name string) error {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return err
 	}
 	return k.del(cli, name, k.namespace, &metav1.DeleteOptions{})
+}
+
+// Create creates the cstorvolume resource
+func (k *Kubeclient) Create(vol *apis.CStorVolume) (*apis.CStorVolume, error) {
+	if vol == nil {
+		return nil,
+			errors.New("failed to create cstorvolume: nil cstorvolume object")
+	}
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	return k.create(cli, vol, k.namespace)
 }
