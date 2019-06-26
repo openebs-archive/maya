@@ -20,6 +20,7 @@ import (
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
+	templatespec "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
 	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -56,7 +57,8 @@ type Builder struct {
 type PredicateName string
 
 const (
-	// PredicateProgressDeadlineExceeded refer to predicate IsProgressDeadlineExceeded.
+	// PredicateProgressDeadlineExceeded refer to
+	// predicate IsProgressDeadlineExceeded.
 	PredicateProgressDeadlineExceeded PredicateName = "ProgressDeadlineExceeded"
 	// PredicateNotSpecSynced refer to predicate IsNotSpecSynced
 	PredicateNotSpecSynced PredicateName = "NotSpecSynced"
@@ -90,7 +92,10 @@ func NewBuilder() *Builder {
 // WithName sets the Name field of deployment with provided value.
 func (b *Builder) WithName(name string) *Builder {
 	if len(name) == 0 {
-		b.errors = append(b.errors, errors.New("failed to build deployment: missing deployment name"))
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment: missing name"),
+		)
 		return b
 	}
 	b.deployment.Object.Name = name
@@ -100,25 +105,256 @@ func (b *Builder) WithName(name string) *Builder {
 // WithNamespace sets the Namespace field of deployment with provided value.
 func (b *Builder) WithNamespace(namespace string) *Builder {
 	if len(namespace) == 0 {
-		b.errors = append(b.errors, errors.New("failed to build deployment: missing namespace"))
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment: missing namespace"),
+		)
 		return b
 	}
 	b.deployment.Object.Namespace = namespace
 	return b
 }
 
-// WithContainer sets the container field of the deployment object with the given container object
-func (b *Builder) WithContainer(container *corev1.Container) *Builder {
-	b.deployment.Object.Spec.Template.Spec.Containers = append(b.deployment.Object.Spec.Template.Spec.Containers, *container)
+// WithAnnotations merges existing annotations if any
+// with the ones that are provided here
+func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
+	if len(annotations) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment object: missing annotations"),
+		)
+		return b
+	}
+
+	if b.deployment.Object.Annotations == nil {
+		return b.WithAnnotationsNew(annotations)
+	}
+
+	for key, value := range annotations {
+		b.deployment.Object.Annotations[key] = value
+	}
 	return b
 }
 
-// WithContainerBuilder builds the containerbuilder provided and
-// sets the container field of the deployment object with the given container object
-func (b *Builder) WithContainerBuilder(containerBuilder *container.Builder) *Builder {
+// WithAnnotationsNew resets existing annotaions if any with
+// ones that are provided here
+func (b *Builder) WithAnnotationsNew(annotations map[string]string) *Builder {
+	if len(annotations) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment object: no new annotations"),
+		)
+		return b
+	}
+
+	// copy of original map
+	newannotations := map[string]string{}
+	for key, value := range annotations {
+		newannotations[key] = value
+	}
+
+	// override
+	b.deployment.Object.Annotations = newannotations
+	return b
+}
+
+// WithLabels merges existing labels if any
+// with the ones that are provided here
+func (b *Builder) WithLabels(labels map[string]string) *Builder {
+	if len(labels) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment object: missing labels"),
+		)
+		return b
+	}
+
+	if b.deployment.Object.Labels == nil {
+		return b.WithLabelsNew(labels)
+	}
+
+	for key, value := range labels {
+		b.deployment.Object.Labels[key] = value
+	}
+	return b
+}
+
+// WithLabelsNew resets existing labels if any with
+// ones that are provided here
+func (b *Builder) WithLabelsNew(labels map[string]string) *Builder {
+	if len(labels) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment object: no new labels"),
+		)
+		return b
+	}
+
+	// copy of original map
+	newlbls := map[string]string{}
+	for key, value := range labels {
+		newlbls[key] = value
+	}
+
+	// override
+	b.deployment.Object.Labels = newlbls
+	return b
+}
+
+// WithMatchLabels merges existing matchlabels if any
+// with the ones that are provided here
+func (b *Builder) WithMatchLabels(matchlabels map[string]string) *Builder {
+	if len(matchlabels) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment object: missing matchlabels"),
+		)
+		return b
+	}
+
+	if b.deployment.Object.Spec.Selector.MatchLabels == nil {
+		return b.WithMatchLabelsNew(matchlabels)
+	}
+
+	for key, value := range matchlabels {
+		b.deployment.Object.Spec.Selector.MatchLabels[key] = value
+	}
+	return b
+}
+
+// WithMatchLabelsNew resets existing matchlabels if any with
+// ones that are provided here
+func (b *Builder) WithMatchLabelsNew(matchlabels map[string]string) *Builder {
+	if len(matchlabels) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment object: no new matchlabels"),
+		)
+		return b
+	}
+
+	// copy of original map
+	newmatchlabels := map[string]string{}
+	for key, value := range matchlabels {
+		newmatchlabels[key] = value
+	}
+
+	// override
+	b.deployment.Object.Spec.Selector.MatchLabels = newmatchlabels
+	return b
+}
+
+// WithReplicas sets the replica field of deployment
+func (b *Builder) WithReplicas(replicas *int32) *Builder {
+
+	if replicas == nil {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment object: nil replicas"),
+		)
+		return b
+	}
+
+	newreplicas := *replicas
+
+	if newreplicas <= 0 {
+		b.errors = append(
+			b.errors,
+			errors.Errorf(
+				"failed to build deployment object: invalid replicas {%d}",
+				newreplicas,
+			),
+		)
+		return b
+	}
+
+	b.deployment.Object.Spec.Replicas = &newreplicas
+	return b
+}
+
+//WithStrategyType sets the strategy field of the deployment
+func (b *Builder) WithStrategyType(
+	strategytype appsv1.DeploymentStrategyType,
+) *Builder {
+	if len(strategytype) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment object: missing strategytype"),
+		)
+		return b
+	}
+
+	b.deployment.Object.Spec.Strategy.Type = strategytype
+	return b
+}
+
+// WithTemplateSpecBuilder sets the template field of the deployment
+func (b *Builder) WithTemplateSpecBuilder(
+	tmplbuilder *templatespec.Builder,
+) *Builder {
+	if tmplbuilder == nil {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment: nil templatespecbuilder"),
+		)
+	}
+
+	templatespecObj, err := tmplbuilder.Build()
+
+	if err != nil {
+		b.errors = append(
+			b.errors,
+			errors.Wrap(
+				err,
+				"failed to build deployment: unable to build templatespecbuilder",
+			),
+		)
+	}
+
+	b.deployment.Object.Spec.Template = *templatespecObj.Object
+	return b
+}
+
+// WithContainer sets the container field of the deployment object
+// with the given container object
+func (b *Builder) WithContainer(container *corev1.Container) *Builder {
+	if container == nil {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment: nil container"),
+		)
+	}
+
+	// copy of original container
+	newcontainer := *container
+
+	b.deployment.Object.Spec.Template.Spec.Containers = append(
+		b.deployment.Object.Spec.Template.Spec.Containers,
+		newcontainer,
+	)
+	return b
+}
+
+// WithContainerBuilder builds the containerbuilder provided and sets the
+// container field of the deployment object with the given container object
+func (b *Builder) WithContainerBuilder(
+	containerBuilder *container.Builder,
+) *Builder {
+	if containerBuilder == nil {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment: nil containerbuilder"),
+		)
+	}
 	containerObj, err := containerBuilder.Build()
 	if err != nil {
-		b.errors = append(b.errors, errors.Wrap(err, "failed to build deployment"))
+		b.errors = append(
+			b.errors,
+			errors.Wrap(
+				err,
+				"failed to build deployment: unable to build container",
+			),
+		)
 		return b
 	}
 	b.deployment.Object.Spec.Template.Spec.Containers = append(
@@ -129,16 +365,37 @@ func (b *Builder) WithContainerBuilder(containerBuilder *container.Builder) *Bui
 }
 
 // WithVolumes sets Volumes field of deployment.
-func (b *Builder) WithVolumes(vol []corev1.Volume) *Builder {
-	b.deployment.Object.Spec.Template.Spec.Volumes = vol
+func (b *Builder) WithVolumes(vols []corev1.Volume) *Builder {
+	if len(vols) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment: missing volumes"),
+		)
+		return b
+	}
+
+	// copy of original slice
+	newvols := []corev1.Volume{}
+	newvols = append(newvols, vols...)
+
+	b.deployment.Object.Spec.Template.Spec.Volumes = newvols
 	return b
 }
 
 // WithVolumeBuilder sets Volumes field of deployment.
 func (b *Builder) WithVolumeBuilder(volumeBuilder *volume.Builder) *Builder {
+	if volumeBuilder == nil {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment: nil volumeBuilder"),
+		)
+	}
 	vol, err := volumeBuilder.Build()
 	if err != nil {
-		b.errors = append(b.errors, errors.Wrap(err, "failed to build deployment"))
+		b.errors = append(
+			b.errors,
+			errors.Wrap(err, "failed to build deployment"),
+		)
 		return b
 	}
 	b.deployment.Object.Spec.Template.Spec.Volumes = append(
@@ -148,16 +405,13 @@ func (b *Builder) WithVolumeBuilder(volumeBuilder *volume.Builder) *Builder {
 	return b
 }
 
-// WithLabels sets the label field of deployment
-func (b *Builder) WithLabels(labels map[string]string) *Builder {
-	b.deployment.Object.Labels = labels
-	return b
-}
-
 // WithLabelSelector sets label selector for template and deployment
 func (b *Builder) WithLabelSelector(labels map[string]string) *Builder {
 	if len(labels) == 0 {
-		b.errors = append(b.errors, errors.New("failed to build deployment: missing labels"))
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment: missing labels"),
+		)
 		return b
 	}
 	labelselector := metav1.LabelSelector{}
@@ -193,7 +447,10 @@ func (b *Builder) Build() (*Deploy, error) {
 
 func (b *Builder) validate() error {
 	if len(b.errors) != 0 {
-		return errors.Errorf("failed to validate: build errors were found: %v", b.errors)
+		return errors.Errorf(
+			"failed to validate: build errors were found: %v",
+			b.errors,
+		)
 	}
 	return nil
 }
