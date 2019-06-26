@@ -31,7 +31,7 @@ import (
 	"github.com/golang/glog"
 	poolselection "github.com/openebs/maya/pkg/algorithm/cstorpoolselect/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
-	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha2"
+	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha2"
 	v1alpha1 "github.com/openebs/maya/pkg/task/v1alpha1"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/pkg/util"

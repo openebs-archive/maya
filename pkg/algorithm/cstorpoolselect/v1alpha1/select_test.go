@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha2"
+	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

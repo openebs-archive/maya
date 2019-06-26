@@ -25,10 +25,8 @@ import (
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 
 	ndmFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/fake"
-	cstorpool "github.com/openebs/maya/pkg/cstorpool/v1alpha1"
+	cstorpool "github.com/openebs/maya/pkg/cstor/pool/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	//	"time"
 
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
 	sp "github.com/openebs/maya/pkg/sp/v1alpha1"

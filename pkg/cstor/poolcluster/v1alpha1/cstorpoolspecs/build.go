@@ -18,7 +18,7 @@ package cstorpoolspecs
 
 import (
 	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	raidgroup "github.com/openebs/maya/pkg/cstorpoolcluster/v1alpha1/raidgroups"
+	raidgroup "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/raidgroups"
 	"github.com/pkg/errors"
 )
 
