@@ -809,3 +809,122 @@ func TestFilterNonReleasedDevices(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckBlockDeviceDeviceID(t *testing.T) {
+	tests := map[string]struct {
+		blockDeviceList *BlockDeviceList
+		expectedErr     bool
+		deviceIDList    []string
+	}{
+		"EmptyBlockDeviceList1": {
+			blockDeviceList: &BlockDeviceList{
+				BlockDeviceList: &ndm.BlockDeviceList{},
+			},
+			expectedErr:  true,
+			deviceIDList: []string{"/dev/sda1"},
+		},
+		"blockDeviceList2": {
+			blockDeviceList: &BlockDeviceList{
+				BlockDeviceList: &ndm.BlockDeviceList{
+					TypeMeta: metav1.TypeMeta{},
+					ListMeta: metav1.ListMeta{},
+					Items: []ndm.BlockDevice{
+						{
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
+							Spec: ndm.DeviceSpec{
+								Path: "/dev/sda",
+								DevLinks: []ndm.DeviceDevLink{
+									ndm.DeviceDevLink{
+										Kind:  "by-ID",
+										Links: []string{"/dev/sda1"},
+									},
+								},
+							},
+						},
+						{
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
+							Spec: ndm.DeviceSpec{
+								Path: "/dev/sdb",
+								DevLinks: []ndm.DeviceDevLink{
+									ndm.DeviceDevLink{
+										Kind:  "by-ID",
+										Links: []string{"/dev/sda2"},
+									},
+								},
+							},
+						},
+						{
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
+							Spec: ndm.DeviceSpec{
+								Path: "/dev/sdb",
+								DevLinks: []ndm.DeviceDevLink{
+									ndm.DeviceDevLink{
+										Kind:  "by-ID",
+										Links: []string{"/dev/sda3"},
+									},
+								},
+							},
+						},
+						{
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
+							Spec: ndm.DeviceSpec{
+								Path: "/dev/sdb",
+								DevLinks: []ndm.DeviceDevLink{
+									ndm.DeviceDevLink{
+										Kind:  "by-ID",
+										Links: []string{"/dev/sda4"},
+									},
+								},
+							},
+						},
+					},
+				},
+				errs: nil,
+			},
+			expectedErr:  false,
+			deviceIDList: []string{"/dev/sda1", "/dev/sda2", "/dev/sda3", "/dev/sda4"},
+		},
+		"blockDeviceList3": {
+			blockDeviceList: &BlockDeviceList{
+				BlockDeviceList: &ndm.BlockDeviceList{
+					TypeMeta: metav1.TypeMeta{},
+					ListMeta: metav1.ListMeta{},
+					Items: []ndm.BlockDevice{
+						{
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
+							Spec: ndm.DeviceSpec{
+								Path: "/dev/sda",
+								DevLinks: []ndm.DeviceDevLink{
+									ndm.DeviceDevLink{
+										Kind:  "by-ID",
+										Links: []string{"/dev/sda1"},
+									},
+								},
+							},
+						},
+					},
+				},
+				errs: nil,
+			},
+			expectedErr:  true,
+			deviceIDList: []string{"/dev/sda3"},
+		},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			err := test.blockDeviceList.CheckBlockDeviceDeviceID(test.deviceIDList)
+			if test.expectedErr && err == nil {
+				t.Fatalf("Test case failed expected error not to be nil")
+			}
+			if !test.expectedErr && err != nil {
+				t.Fatalf("Test case failed expected error to be nil but %v", err)
+			}
+		})
+	}
+}

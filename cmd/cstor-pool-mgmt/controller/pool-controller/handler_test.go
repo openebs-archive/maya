@@ -17,13 +17,20 @@ package poolcontroller
 
 import (
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
+	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
+	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
+	ndmFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/fake"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kubeinformers "k8s.io/client-go/informers"
@@ -34,12 +41,13 @@ import (
 func TestGetPoolResource(t *testing.T) {
 	fakeKubeClient := fake.NewSimpleClientset()
 	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	fakeNDMClient := ndmFakeClientset.NewSimpleClientset()
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(fakeKubeClient, time.Second*30)
 	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
 
 	// Instantiate the cStor Pool controllers.
-	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
+	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, fakeNDMClient, kubeInformerFactory,
 		openebsInformerFactory)
 
 	testPoolResource := map[string]struct {
@@ -123,12 +131,13 @@ func TestGetPoolResource(t *testing.T) {
 func TestRemoveFinalizer(t *testing.T) {
 	fakeKubeClient := fake.NewSimpleClientset()
 	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	fakeNDMClient := ndmFakeClientset.NewSimpleClientset()
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(fakeKubeClient, time.Second*30)
 	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
 
 	// Instantiate the cStor Pool controllers.
-	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
+	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, fakeNDMClient, kubeInformerFactory,
 		openebsInformerFactory)
 
 	testPoolResource := map[string]struct {
@@ -503,5 +512,366 @@ func TestIsDeletionFailedBefore(t *testing.T) {
 			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedOutput,
 				obtainedOutput)
 		}
+	}
+}
+
+func createFakeBlockDevices(c *CStorPoolController) {
+	fakeNS := "openebs"
+	// bdObjectList will hold the list of blockdevice objects
+	for index := 0; index < 5; index++ {
+		bdIdentifier := strconv.Itoa(index)
+		makeBDObj := &ndmapis.BlockDevice{
+			TypeMeta: metav1.TypeMeta{},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "blockdevice" + bdIdentifier,
+				Labels: map[string]string{
+					"kubernetes.io/hostname":  "node1",
+					"ndm.io/blockdevice-type": "blockdevice",
+				},
+			},
+			Spec: ndmapis.DeviceSpec{
+				Details: ndmapis.DeviceDetails{
+					DeviceType: "disk",
+				},
+				DevLinks: []ndmapis.DeviceDevLink{
+					ndmapis.DeviceDevLink{
+						Kind:  "by-ID",
+						Links: []string{"/dev/sda" + bdIdentifier},
+					},
+				},
+			},
+			Status: ndmapis.DeviceStatus{
+				State:      "Active",
+				ClaimState: ndmapis.BlockDeviceClaimed,
+			},
+		}
+		_, err := c.ndmClientset.OpenebsV1alpha1().BlockDevices(fakeNS).Create(makeBDObj)
+		if err != nil {
+			glog.Error(err)
+		}
+	}
+}
+
+func TestGetBlockDeviceList(t *testing.T) {
+	fakeKubeClient := fake.NewSimpleClientset()
+	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	fakeNDMClient := ndmFakeClientset.NewSimpleClientset()
+
+	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(fakeKubeClient, time.Second*30)
+	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
+
+	// Instantiate the cStor Pool controllers.
+	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, fakeNDMClient, kubeInformerFactory,
+		openebsInformerFactory)
+
+	createFakeBlockDevices(poolController)
+	tests := map[string]struct {
+		expectedErr bool
+		pool        *apis.CStorPool
+	}{
+		"Pool1": {
+			expectedErr: false,
+			pool: &apis.CStorPool{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "pool1",
+					UID:        types.UID("abcd"),
+					Finalizers: []string{"cstorpool.openebs.io/finalizer"},
+				},
+				Spec: apis.CStorPoolSpec{
+					Group: []apis.BlockDeviceGroup{
+						apis.BlockDeviceGroup{
+							Item: []apis.CspBlockDevice{
+								apis.CspBlockDevice{
+									Name:        "blockdevice1",
+									InUseByPool: true,
+									DeviceID:    "/dev/sda1",
+								},
+								apis.CspBlockDevice{
+									Name:        "blockdevice2",
+									InUseByPool: true,
+									DeviceID:    "/dev/sda2",
+								},
+							},
+						},
+						apis.BlockDeviceGroup{
+							Item: []apis.CspBlockDevice{
+								apis.CspBlockDevice{
+									Name:        "blockdevice3",
+									InUseByPool: true,
+									DeviceID:    "/dev/sda3",
+								},
+								apis.CspBlockDevice{
+									Name:        "blockdevice4",
+									InUseByPool: true,
+									DeviceID:    "/dev/sda4",
+								},
+							},
+						},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool2.cache",
+						PoolType:         "striped",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
+		"Pool2": {
+			expectedErr: true,
+			pool: &apis.CStorPool{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "pool2",
+					UID:        types.UID("abcd"),
+					Finalizers: []string{"cstorpool.openebs.io/finalizer"},
+				},
+				Spec: apis.CStorPoolSpec{
+					Group: []apis.BlockDeviceGroup{
+						apis.BlockDeviceGroup{
+							Item: []apis.CspBlockDevice{
+								apis.CspBlockDevice{
+									Name:        "blockdevice7",
+									InUseByPool: true,
+									DeviceID:    "/dev/sda1",
+								},
+								apis.CspBlockDevice{
+									Name:        "blockdevice8",
+									InUseByPool: true,
+									DeviceID:    "/dev/sda2",
+								},
+							},
+						},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool2.cache",
+						PoolType:         "striped",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			fakeNs := "openebs"
+			_, err := poolController.getBlockDeviceList(test.pool, fakeNs)
+			if test.expectedErr && err == nil {
+				t.Fatalf("Test case failed expected error not to be nil")
+			}
+			if !test.expectedErr && err != nil {
+				t.Fatalf("Test case failed expected error to be nil but %v", err)
+			}
+		})
+	}
+}
+
+func TestValidateBlockDeviceClaimStatus(t *testing.T) {
+	tests := map[string]struct {
+		expectedErr   bool
+		bdList        *blockdevice.BlockDeviceList
+		customBDCList *bdc.ListBuilder
+	}{
+		"testcase1": {
+			expectedErr: false,
+			bdList: &blockdevice.BlockDeviceList{
+				BlockDeviceList: &ndmapis.BlockDeviceList{
+					TypeMeta: metav1.TypeMeta{},
+					ListMeta: metav1.ListMeta{},
+					Items: []ndmapis.BlockDevice{
+						{
+							TypeMeta: metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "blockdevice1",
+							},
+							Spec: ndmapis.DeviceSpec{
+								ClaimRef: &corev1.ObjectReference{
+									Name: "bdc-1",
+								},
+							},
+							Status: ndmapis.DeviceStatus{
+								State:      "Active",
+								ClaimState: ndmapis.BlockDeviceClaimed,
+							},
+						},
+						{
+							TypeMeta: metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "blockdevice2",
+							},
+							Spec: ndmapis.DeviceSpec{
+								ClaimRef: &corev1.ObjectReference{
+									Name: "bdc-2",
+								},
+							},
+							Status: ndmapis.DeviceStatus{
+								State:      "Active",
+								ClaimState: ndmapis.BlockDeviceClaimed,
+							},
+						},
+						{
+							TypeMeta: metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "blockdevice3",
+							},
+							Spec: ndmapis.DeviceSpec{
+								ClaimRef: &corev1.ObjectReference{
+									Name: "bdc-3",
+								},
+							},
+							Status: ndmapis.DeviceStatus{
+								State:      "Active",
+								ClaimState: ndmapis.BlockDeviceClaimed,
+							},
+						},
+					},
+				},
+			},
+			customBDCList: &bdc.ListBuilder{
+				BlockDeviceClaimList: &bdc.BlockDeviceClaimList{
+					ObjectList: &ndmapis.BlockDeviceClaimList{
+						TypeMeta: metav1.TypeMeta{},
+						ListMeta: metav1.ListMeta{},
+						Items: []ndmapis.BlockDeviceClaim{
+							{
+								TypeMeta: metav1.TypeMeta{},
+								ObjectMeta: metav1.ObjectMeta{
+									Name: "bdc-1",
+								},
+								Spec: ndmapis.DeviceClaimSpec{
+									HostName:        "openebs-1234",
+									BlockDeviceName: "blockdevice1",
+								},
+							},
+							{
+								TypeMeta: metav1.TypeMeta{},
+								ObjectMeta: metav1.ObjectMeta{
+									Name: "bdc-2",
+								},
+								Spec: ndmapis.DeviceClaimSpec{
+									HostName:        "openebs-1234",
+									BlockDeviceName: "blockdevice2",
+								},
+							},
+							{
+								TypeMeta: metav1.TypeMeta{},
+								ObjectMeta: metav1.ObjectMeta{
+									Name: "bdc-3",
+								},
+								Spec: ndmapis.DeviceClaimSpec{
+									HostName:        "openebs-1234",
+									BlockDeviceName: "blockdevice3",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"testcase2": {
+			expectedErr: true,
+			bdList: &blockdevice.BlockDeviceList{
+				BlockDeviceList: &ndmapis.BlockDeviceList{
+					TypeMeta: metav1.TypeMeta{},
+					ListMeta: metav1.ListMeta{},
+					Items: []ndmapis.BlockDevice{
+						{
+							TypeMeta: metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "blockdevice1",
+							},
+							Spec: ndmapis.DeviceSpec{
+								ClaimRef: &corev1.ObjectReference{},
+							},
+							Status: ndmapis.DeviceStatus{
+								State:      "Active",
+								ClaimState: ndmapis.BlockDeviceUnclaimed,
+							},
+						},
+					},
+				},
+			},
+			customBDCList: &bdc.ListBuilder{
+				BlockDeviceClaimList: &bdc.BlockDeviceClaimList{
+					ObjectList: &ndmapis.BlockDeviceClaimList{
+						TypeMeta: metav1.TypeMeta{},
+						ListMeta: metav1.ListMeta{},
+						Items: []ndmapis.BlockDeviceClaim{
+							{
+								TypeMeta: metav1.TypeMeta{},
+								ObjectMeta: metav1.ObjectMeta{
+									Name: "bdc-1",
+								},
+								Spec: ndmapis.DeviceClaimSpec{
+									HostName:        "openebs-1234",
+									BlockDeviceName: "blockdevice1",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"testcase3": {
+			expectedErr: true,
+			bdList: &blockdevice.BlockDeviceList{
+				BlockDeviceList: &ndmapis.BlockDeviceList{
+					TypeMeta: metav1.TypeMeta{},
+					ListMeta: metav1.ListMeta{},
+					Items: []ndmapis.BlockDevice{
+						{
+							TypeMeta: metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "blockdevice1",
+							},
+							Spec: ndmapis.DeviceSpec{
+								ClaimRef: &corev1.ObjectReference{
+									Name: "bdc-2",
+								},
+							},
+							Status: ndmapis.DeviceStatus{
+								State:      "Active",
+								ClaimState: ndmapis.BlockDeviceClaimed,
+							},
+						},
+					},
+				},
+			},
+			customBDCList: &bdc.ListBuilder{
+				BlockDeviceClaimList: &bdc.BlockDeviceClaimList{
+					ObjectList: &ndmapis.BlockDeviceClaimList{
+						TypeMeta: metav1.TypeMeta{},
+						ListMeta: metav1.ListMeta{},
+						Items: []ndmapis.BlockDeviceClaim{
+							{
+								TypeMeta: metav1.TypeMeta{},
+								ObjectMeta: metav1.ObjectMeta{
+									Name: "bdc-1",
+								},
+								Spec: ndmapis.DeviceClaimSpec{
+									HostName:        "openebs-1234",
+									BlockDeviceName: "blockdevice4",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			err := validateBlockDeviceClaimStatus(test.bdList, test.customBDCList)
+			if test.expectedErr && err == nil {
+				t.Fatalf("Test case failed expected error not to be nil")
+			}
+			if !test.expectedErr && err != nil {
+				t.Fatalf("Test case failed expected error to be nil but %v", err)
+			}
+		})
 	}
 }

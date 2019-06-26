@@ -16,12 +16,14 @@ limitations under the License.
 package poolcontroller
 
 import (
-	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
-	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
-	kubeinformers "k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes/fake"
 	"testing"
 	"time"
+
+	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
+	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
+	ndmFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/fake"
+	kubeinformers "k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 // TestNewCStorPoolController tests if the kubernetes and openebs configs
@@ -29,12 +31,13 @@ import (
 func TestNewCStorPoolController(t *testing.T) {
 	fakeKubeClient := fake.NewSimpleClientset()
 	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	fakeNDMClient := ndmFakeClientset.NewSimpleClientset()
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(fakeKubeClient, time.Second*30)
 	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
 
 	// Instantiate the cStor Pool controllers.
-	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
+	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, fakeNDMClient, kubeInformerFactory,
 		openebsInformerFactory)
 
 	if poolController.kubeclientset != fakeKubeClient {

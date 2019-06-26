@@ -23,6 +23,7 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
+	ndmFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/fake"
 
 	"github.com/openebs/maya/pkg/signals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,12 +36,13 @@ import (
 func TestRun(t *testing.T) {
 	fakeKubeClient := fake.NewSimpleClientset()
 	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	fakeNDMClient := ndmFakeClientset.NewSimpleClientset()
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(fakeKubeClient, time.Second*30)
 	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
 
 	// Instantiate the cStor Pool controllers.
-	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
+	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, fakeNDMClient, kubeInformerFactory,
 		openebsInformerFactory)
 
 	stopCh := signals.SetupSignalHandler()
@@ -63,12 +65,13 @@ func TestRun(t *testing.T) {
 func TestProcessNextWorkItemModify(t *testing.T) {
 	fakeKubeClient := fake.NewSimpleClientset()
 	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	fakeNDMClient := ndmFakeClientset.NewSimpleClientset()
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(fakeKubeClient, time.Second*30)
 	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
 
 	// Instantiate the cStor Pool controllers.
-	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
+	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, fakeNDMClient, kubeInformerFactory,
 		openebsInformerFactory)
 
 	testPoolResource := map[string]struct {
@@ -117,12 +120,13 @@ func TestProcessNextWorkItemModify(t *testing.T) {
 func TestProcessNextWorkItemDestroy(t *testing.T) {
 	fakeKubeClient := fake.NewSimpleClientset()
 	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	fakeNDMClient := ndmFakeClientset.NewSimpleClientset()
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(fakeKubeClient, time.Second*30)
 	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
 
 	// Instantiate the cStor Pool controllers.
-	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
+	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, fakeNDMClient, kubeInformerFactory,
 		openebsInformerFactory)
 
 	testPoolResource := map[string]struct {

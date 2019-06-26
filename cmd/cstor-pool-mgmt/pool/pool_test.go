@@ -418,6 +418,30 @@ func TestImportPool(t *testing.T) {
 	}
 }
 
+func TestCheckPoolExist(t *testing.T) {
+	tests := map[string]struct {
+		expectedErr bool
+		poolName    string
+	}{
+		"test-pool1": {
+			expectedErr: false,
+			poolName:    "cstor-1234",
+		},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			err := CheckPoolExist(test.poolName)
+			if test.expectedErr && err == nil {
+				t.Fatalf("Test case failed expected error not to be nil")
+			}
+			if !test.expectedErr && err != nil {
+				t.Fatalf("Test case failed expected error to be nil but %v", err)
+			}
+		})
+	}
+}
+
 // TestDeletePool is to test cStorPool delete.
 func TestDeletePool(t *testing.T) {
 	testPoolResource := map[string]struct {
