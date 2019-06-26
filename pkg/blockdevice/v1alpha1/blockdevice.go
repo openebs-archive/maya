@@ -356,3 +356,28 @@ func (bdl *BlockDeviceList) GetBlockDevice(bdcName string) *ndm.BlockDevice {
 	}
 	return nil
 }
+
+// CheckBlockDeviceDeviceID compare the device Ids present in block device
+// with provided list
+func (bdl *BlockDeviceList) CheckBlockDeviceDeviceID(bdDevIDList []string) error {
+	if len(bdl.Items) == 0 || len(bdDevIDList) == 0 {
+		return errors.Errorf("csp deviceIDList or csp blockdevice list is empty")
+	}
+	if len(bdl.Items) != len(bdDevIDList) {
+		return errors.Errorf("csp deviceIDList length is not matched with csp blockdevice list length")
+	}
+	for i, bdcObj := range bdl.Items {
+		customBD := &BlockDevice{
+			BlockDevice: &bdcObj,
+		}
+		bdID := customBD.GetDeviceID()
+		if bdID != bdDevIDList[i] {
+			return errors.Errorf(
+				"blockdevice %s device ID %s is not matched with csp device ID %s",
+				customBD.BlockDevice.Name,
+				bdID,
+				bdDevIDList[i])
+		}
+	}
+	return nil
+}

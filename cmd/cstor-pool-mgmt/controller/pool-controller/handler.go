@@ -28,7 +28,11 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
+	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
+	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	lease "github.com/openebs/maya/pkg/lease/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -193,9 +197,34 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 			isPoolExists = false
 		}
 	}
+
+	namespace := env.Get(env.OpenEBSNamespace)
+	// Get blockdeviceclaim list based on openebs.io/storage-pool-claim label
+	bdcObjList, err := c.ndmClientset.
+		OpenebsV1alpha1().
+		BlockDeviceClaims(namespace).
+		List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) +
+			"=" + cStorPoolGot.Labels[string(apis.StoragePoolClaimCPK)]})
+	if err != nil {
+		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get blockdeviceclaim for csp %s", cStorPoolGot.Name)
+	}
+
+	customBDCListBuilder := bdc.ListBuilderFromAPIList(bdcObjList)
+	// Get list of blockdevices which are in present in csp
+	customBDObjList, err := c.getBlockDeviceList(cStorPoolGot, namespace)
+	if err != nil {
+		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get blockdevices for csp %s", cStorPoolGot.Name)
+	}
+	// validateBlockDeviceClaimStatus verifies whether the blockdevice claimed
+	// by corresponding storage pool or not
+	err = validateBlockDeviceClaimStatus(customBDObjList, customBDCListBuilder)
+	if err != nil {
+		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "validation failed on csp %s", cStorPoolGot.Name)
+	}
+
 	var importPoolErr error
 	var status string
-	cachefileFlags := []bool{true, false}
+	cachefileFlags := []bool{true}
 	for _, cachefileFlag := range cachefileFlags {
 		status, importPoolErr = c.importPool(cStorPoolGot, cachefileFlag)
 		if status == string(apis.CStorPoolStatusOnline) {
@@ -221,13 +250,27 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 	// CheckValidPool is to check if pool attributes are correct.
 	devIDList, err := c.getDeviceIDs(cStorPoolGot)
 	if err != nil {
-		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
+		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get blockdevice device id for csp %s", cStorPoolGot.Name)
 	}
 	// ValidatePool is to check if pool attributes are correct.
 	err = pool.ValidatePool(cStorPoolGot, devIDList)
 	if err != nil {
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
 		return string(apis.CStorPoolStatusOffline), err
+	}
+
+	// CheckBlockDeviceDeviceID verifies device ID in csp is matched with
+	// blockdevice device ID
+	err = customBDObjList.CheckBlockDeviceDeviceID(devIDList)
+	if err != nil {
+		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "blockdevice validation failed on csp %s", cStorPoolGot.Name)
+	}
+
+	// Verifies whether pool is avaliable to import or not
+	poolNameUID := string(pool.PoolPrefix) + string(cStorPoolGot.ObjectMeta.UID)
+	err = pool.CheckPoolExist(poolNameUID)
+	if err != nil {
+		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "import pool %s check failed", cStorPoolGot.Name)
 	}
 
 	// IsInitStatus is to check if initial status of cstorpool object is `init`.
@@ -438,4 +481,40 @@ func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
 func (c *CStorPoolController) getDeviceIDs(csp *apis.CStorPool) ([]string, error) {
 	// TODO: Add error handling
 	return pool.GetDeviceIDs(csp)
+}
+
+func (c *CStorPoolController) getBlockDeviceList(csp *apis.CStorPool, namespace string) (*blockdevice.BlockDeviceList, error) {
+	bdNames, err := pool.GetBlockDeviceNames(csp)
+	if err != nil {
+		return nil, err
+	}
+	customBDList := &blockdevice.BlockDeviceList{
+		BlockDeviceList: &ndmapis.BlockDeviceList{},
+	}
+	for _, bdName := range bdNames {
+		bdObj, err := c.ndmClientset.OpenebsV1alpha1().BlockDevices(namespace).Get(bdName, metav1.GetOptions{})
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get blockdevice")
+		}
+		customBDList.BlockDeviceList.Items = append(customBDList.BlockDeviceList.Items, *bdObj)
+	}
+	return customBDList, nil
+}
+
+func validateBlockDeviceClaimStatus(customBDList *blockdevice.BlockDeviceList, bdcListBuilder *bdc.ListBuilder) error {
+	for _, bdObj := range customBDList.BlockDeviceList.Items {
+		customBDObj := &blockdevice.BlockDevice{
+			BlockDevice: &bdObj,
+		}
+		if customBDObj.IsClaimed() {
+			bdcName := bdObj.Spec.ClaimRef.Name
+			bdcObj := bdcListBuilder.GetBlockDeviceClaim(bdcName)
+			if bdcObj == nil {
+				return errors.Errorf("blockdevice {%s} is already in use", bdObj.Name)
+			}
+		} else {
+			return errors.Errorf("blockdevice {%s} is not claimed", bdObj.Name)
+		}
+	}
+	return nil
 }

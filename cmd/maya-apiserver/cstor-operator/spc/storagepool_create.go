@@ -71,6 +71,7 @@ func (pc *PoolCreateConfig) getCasPool(spc *apis.StoragePoolClaim) (*apis.CasPoo
 		withCasTemplateName(spc.Annotations[string(v1alpha1.CreatePoolCASTemplateKey)]).
 		withDiskType(spc.Spec.Type).
 		withPoolType(spc.Spec.PoolSpec.PoolType).
+		withPoolCacheFile(spc.Spec.PoolSpec.CacheFile).
 		withAnnotations(spc.Annotations).
 		withMaxPool(spc).
 		Build()
@@ -110,6 +111,11 @@ func (cb *CasPoolBuilder) withSpcName(name string) *CasPoolBuilder {
 
 func (cb *CasPoolBuilder) withPoolType(poolType string) *CasPoolBuilder {
 	cb.CasPool.PoolType = poolType
+	return cb
+}
+
+func (cb *CasPoolBuilder) withPoolCacheFile(poolCacheFile string) *CasPoolBuilder {
+	cb.CasPool.PoolCacheFile = poolCacheFile
 	return cb
 }
 

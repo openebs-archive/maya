@@ -90,6 +90,9 @@ type CasPool struct {
 	// PoolType is the type of pool to be provisioned e.g. striped or mirrored
 	PoolType string
 
+	// PoolCacheFile is cache file which used at the time of importing a pool
+	PoolCacheFile string
+
 	// MaxPool is the maximum number of pool that should be provisioned
 	MaxPools int
 

@@ -58,6 +58,36 @@ const (
 // RunnerVar the runner variable for executing binaries.
 var RunnerVar util.Runner
 
+// zpool import give below output if some pool present
+//   pool: cstor-9f26e8a6-9752-11e9-b6ff-42010a800090
+//     id: 2815202941458546965
+//  state: ONLINE
+// action: The pool can be imported using its name or numeric identifier.
+// config:
+//
+//	cstor-9f26e8a6-9752-11e9-b6ff-42010a800090  ONLINE
+//	  scsi-0Google_PersistentDisk_disk1         ONLINE
+
+// CheckPoolExist returns error if pool name is matched with output of
+// zpool import else return nil
+func CheckPoolExist(cstorPoolName string) error {
+	var importAttr []string
+	importAttr = append(importAttr, "import")
+	poolList, err := RunnerVar.RunCombinedOutput(PoolOperator, importAttr...)
+	if err != nil || len(string(poolList)) == 0 {
+		return err
+	}
+	noisyPoolList := string(poolList)
+	sepNoisyPoolList := strings.Split(noisyPoolList, "\n")
+	for _, poolInfo := range sepNoisyPoolList {
+		poolInfo = strings.TrimSpace(poolInfo)
+		if strings.Contains(poolInfo, cstorPoolName) {
+			return errors.Errorf("pool %s already exists", poolInfo)
+		}
+	}
+	return nil
+}
+
 // ImportPool imports cStor pool if already present.
 func ImportPool(cStorPool *apis.CStorPool, cachefileFlag bool) error {
 	importAttr := importPoolBuilder(cStorPool, cachefileFlag)
@@ -370,4 +400,18 @@ func GetDeviceIDs(csp *apis.CStorPool) ([]string, error) {
 		return nil, errors.Errorf("No device IDs found on the csp %s", csp.Name)
 	}
 	return bdDeviceID, nil
+}
+
+// GetBlockDeviceNames returns the list of blockdevice names for the csp.
+func GetBlockDeviceNames(csp *apis.CStorPool) ([]string, error) {
+	var bdNames []string
+	for _, group := range csp.Spec.Group {
+		for _, blockDevice := range group.Item {
+			bdNames = append(bdNames, blockDevice.Name)
+		}
+	}
+	if len(bdNames) == 0 {
+		return nil, errors.Errorf("No blockdevices found on the csp %s", csp.Name)
+	}
+	return bdNames, nil
 }

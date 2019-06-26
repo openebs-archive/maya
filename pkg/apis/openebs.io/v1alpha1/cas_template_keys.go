@@ -127,6 +127,8 @@ const (
 	NodeNameCTP StoragePoolTLPProperty = "nodeName"
 	// PoolTypeCTP is the type of cstorpool that will be ceated
 	PoolTypeCTP StoragePoolTLPProperty = "poolType"
+	// PoolCacheFileCTP is the cache file used in case of imporitng pool
+	PoolCacheFileCTP StoragePoolTLPProperty = "poolCacheFile"
 	// InitPhaseCTP is the init phase for the cstorpool CR that will be ceated
 	InitPhaseCTP StoragePoolTLPProperty = "phase"
 )

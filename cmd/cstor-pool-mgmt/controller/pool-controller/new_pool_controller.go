@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	kubeinformers "k8s.io/client-go/informers"
@@ -51,6 +52,9 @@ type CStorPoolController struct {
 	// clientset is a openebs custom resource package generated for custom API group.
 	clientset clientset.Interface
 
+	// ndmClientset is a node-disk-manager custom resource package generated for custom API group.
+	ndmClientset ndmclientset.Interface
+
 	// cStorPoolSynced is used for caches sync to get populated
 	cStorPoolSynced cache.InformerSynced
 
@@ -69,6 +73,7 @@ type CStorPoolController struct {
 func NewCStorPoolController(
 	kubeclientset kubernetes.Interface,
 	clientset clientset.Interface,
+	ndmclientset ndmclientset.Interface,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
 	cStorInformerFactory informers.SharedInformerFactory) *CStorPoolController {
 
@@ -95,6 +100,7 @@ func NewCStorPoolController(
 	controller := &CStorPoolController{
 		kubeclientset:   kubeclientset,
 		clientset:       clientset,
+		ndmClientset:    ndmclientset,
 		cStorPoolSynced: cStorPoolInformer.Informer().HasSynced,
 		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CStorPool"),
 		recorder:        recorder,

@@ -154,6 +154,7 @@ spec:
         {{- end }}
       poolSpec:
         poolType: {{$blockDeviceIdList.poolType}}
+        cacheFile: {{$blockDeviceIdList.poolCacheFile}}
         overProvisioning: false
     status:
       phase: Init
@@ -309,6 +310,9 @@ spec:
               # OPENEBS_IO_CSTOR_ID env has UID of cStorPool CR.
             - name: OPENEBS_IO_CSTOR_ID
               value: {{.TaskResult.putcstorpoolcr.objectUID}}
+              # OPENEBS_NAMESPACE env has namespace of.
+            - name: OPENEBS_NAMESPACE
+              value: {{.Config.RunNamespace.value}}
             - name: POD_NAME
               valueFrom:
                 fieldRef:

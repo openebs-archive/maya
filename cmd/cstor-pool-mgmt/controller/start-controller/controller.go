@@ -38,6 +38,7 @@ import (
 
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
+	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
 	"github.com/openebs/maya/pkg/signals"
 )
 
@@ -69,6 +70,11 @@ func StartControllers(kubeconfig string) {
 		glog.Fatalf("Error building openebs clientset: %s", err.Error())
 	}
 
+	ndmClient, err := ndmclientset.NewForConfig(cfg)
+	if err != nil {
+		glog.Fatalf("Error building openebs ndm clientset: %s", err.Error())
+	}
+
 	common.Init()
 
 	// Blocking call for checking status of zrepl running in cstor-pool container.
@@ -96,7 +102,7 @@ func StartControllers(kubeconfig string) {
 	openebsInformerFactory := informers.NewSharedInformerFactory(openebsClient, getSyncInterval())
 
 	// Instantiate the cStor Pool and VolumeReplica controllers.
-	cStorPoolController := poolcontroller.NewCStorPoolController(kubeClient, openebsClient, kubeInformerFactory,
+	cStorPoolController := poolcontroller.NewCStorPoolController(kubeClient, openebsClient, ndmClient, kubeInformerFactory,
 		openebsInformerFactory)
 
 	volumeReplicaController := replicacontroller.NewCStorVolumeReplicaController(kubeClient, openebsClient, kubeInformerFactory,
