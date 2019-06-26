@@ -503,6 +503,7 @@ func (c *CStorPoolController) getBlockDeviceList(csp *apis.CStorPool, namespace 
 
 func validateBlockDeviceClaimStatus(customBDList *blockdevice.BlockDeviceList, bdcListBuilder *bdc.ListBuilder) error {
 	for _, bdObj := range customBDList.BlockDeviceList.Items {
+		bdObj := bdObj
 		customBDObj := &blockdevice.BlockDevice{
 			BlockDevice: &bdObj,
 		}

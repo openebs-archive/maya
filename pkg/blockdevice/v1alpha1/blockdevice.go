@@ -367,6 +367,7 @@ func (bdl *BlockDeviceList) CheckBlockDeviceDeviceID(bdDevIDList []string) error
 		return errors.Errorf("csp deviceIDList length is not matched with csp blockdevice list length")
 	}
 	for i, bdcObj := range bdl.Items {
+		bdcObj := bdcObj
 		customBD := &BlockDevice{
 			BlockDevice: &bdcObj,
 		}
