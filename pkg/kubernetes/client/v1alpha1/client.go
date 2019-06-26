@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"strings"
+	"sync"
 
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
@@ -134,6 +135,21 @@ func New(opts ...OptionFn) *Client {
 	return c
 }
 
+var (
+	instance *Client
+	once     sync.Once
+)
+
+// Instance returns a singleton instance of
+// this client
+func Instance() *Client {
+	once.Do(func() {
+		instance = New()
+	})
+
+	return instance
+}
+
 // withDefaults sets the provided instance of
 // client with necessary defaults
 func withDefaults(c *Client) {
@@ -227,25 +243,11 @@ func WithKubeConfigPath(kubeConfigPath string) OptionFn {
 	}
 }
 
-// Clientset returns a new instance of Kubernetes clientset
-func (c *Client) Clientset() (*kubernetes.Clientset, error) {
-	config, err := c.GetConfigForPathOrDirect()
-	if err != nil {
-		return nil, errors.Wrapf(err,
-			"failed to get kubernetes clientset: IsInCluster {%t}: KubeConfigPath {%s}",
-			c.IsInCluster,
-			c.KubeConfigPath,
-		)
-	}
-
-	return c.getKubeClientset(config)
-}
-
 // GetConfig returns Kubernetes config instance
 // from the provided client
 func GetConfig(c *Client) (*rest.Config, error) {
 	if c == nil {
-		return nil, errors.New("failed to get kubernetes config: nil client was provided")
+		return nil, errors.New("failed to get kubernetes config: nil client provided")
 	}
 
 	return c.GetConfigForPathOrDirect()
@@ -299,6 +301,20 @@ func (c *Client) getConfigFromENV() (config *rest.Config, err error) {
 	}
 
 	return c.buildConfigFromFlags(k8sMaster, kubeConfig)
+}
+
+// Clientset returns a new instance of Kubernetes clientset
+func (c *Client) Clientset() (*kubernetes.Clientset, error) {
+	config, err := c.GetConfigForPathOrDirect()
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"failed to get kubernetes clientset: IsInCluster {%t}: KubeConfigPath {%s}",
+			c.IsInCluster,
+			c.KubeConfigPath,
+		)
+	}
+
+	return c.getKubeClientset(config)
 }
 
 // Dynamic returns a kubernetes dynamic client capable
