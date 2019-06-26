@@ -149,7 +149,7 @@ var _ = Describe("StatefulSet", func() {
 				List(metav1.ListOptions{LabelSelector: replicaAntiAffinityLabel})
 			Expect(err).ShouldNot(HaveOccurred())
 			return cvr.
-				ListBuilder().
+				NewListBuilder().
 				WithAPIList(cvrs).
 				WithFilter(cvr.IsHealthy()).
 				List().
@@ -275,7 +275,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(cvrs.Items).Should(HaveLen(3), "cvr count should be "+string(3))
 
 			poolNames := cvr.
-				ListBuilder().
+				NewListBuilder().
 				WithAPIList(cvrs).
 				List()
 			Expect(poolNames.GetUniquePoolNames()).

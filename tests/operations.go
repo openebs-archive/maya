@@ -295,7 +295,7 @@ func (ops *Operations) GetCstorVolumeReplicaCount(namespace, lselector string) i
 		List(metav1.ListOptions{LabelSelector: lselector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return cvr.
-		ListBuilder().
+		NewListBuilder().
 		WithAPIList(cvrs).
 		WithFilter(cvr.IsHealthy()).
 		List().
