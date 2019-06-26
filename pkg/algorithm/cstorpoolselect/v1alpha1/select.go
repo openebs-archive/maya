@@ -215,7 +215,7 @@ func (p antiAffinityLabel) filter(pools *csp.CSPList) (*csp.CSPList, error) {
 		return nil, err
 	}
 
-	exclude := cvr.ListBuilder().WithAPIList(cvrs).List().GetPoolUIDs()
+	exclude := cvr.NewListBuilder().WithAPIList(cvrs).List().GetPoolUIDs()
 	return pools.Filter(csp.IsNotUID(exclude...)), nil
 }
 

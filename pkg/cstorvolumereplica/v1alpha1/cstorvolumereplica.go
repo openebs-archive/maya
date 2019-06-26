@@ -25,21 +25,23 @@ const (
 	cstorpoolNameLabel labelKey = "cstorpool.openebs.io/name"
 )
 
-type cvr struct {
+// CVR is a wrapper for cstorvolume replica object
+type CVR struct {
 	// actual cstor volume replica
 	// object
-	object apis.CStorVolumeReplica
+	object *apis.CStorVolumeReplica
 }
 
-type cvrList struct {
+// CVRList is a list of cstorvolume replica objects
+type CVRList struct {
 	// list of cstor volume replicas
-	items []cvr
+	items []*CVR
 }
 
 // GetPoolUIDs returns a list of cstor pool
 // UIDs corresponding to cstor volume replica
 // instances
-func (l *cvrList) GetPoolUIDs() []string {
+func (l *CVRList) GetPoolUIDs() []string {
 	var uids []string
 	for _, cvr := range l.items {
 		uid := cvr.object.GetLabels()[string(cstorPoolUIDLabel)]
@@ -51,7 +53,7 @@ func (l *cvrList) GetPoolUIDs() []string {
 // GetPoolNames returns a list of cstor pool
 // name corresponding to cstor volume replica
 // instances
-func (l *cvrList) GetPoolNames() []string {
+func (l *CVRList) GetPoolNames() []string {
 	var pools []string
 	for _, cvr := range l.items {
 		pool := cvr.object.GetLabels()[string(cstorpoolNameLabel)]
@@ -65,7 +67,7 @@ func (l *cvrList) GetPoolNames() []string {
 // GetUniquePoolNames returns a list of cstor pool
 // name corresponding to cstor volume replica
 // instances
-func (l *cvrList) GetUniquePoolNames() []string {
+func (l *CVRList) GetUniquePoolNames() []string {
 	registerd := map[string]bool{}
 	var unique []string
 	for _, cvr := range l.items {
@@ -78,28 +80,31 @@ func (l *cvrList) GetUniquePoolNames() []string {
 	return unique
 }
 
-// listBuilder enables building
-// an instance of cvrList
-type listBuilder struct {
-	list    *cvrList
-	filters predicateList
+// ListBuilder enables building
+// an instance of CVRList
+type ListBuilder struct {
+	list    *CVRList
+	filters PredicateList
 }
 
-// ListBuilder returns a new instance
-// of listBuilder
-func ListBuilder() *listBuilder {
-	return &listBuilder{list: &cvrList{}}
+// NewListBuilder returns a new instance
+// of ListBuilder
+func NewListBuilder() *ListBuilder {
+	return &ListBuilder{list: &CVRList{}}
 }
 
 // WithAPIList builds the list of cvr
 // instances based on the provided
 // cvr api instances
-func (b *listBuilder) WithAPIList(list *apis.CStorVolumeReplicaList) *listBuilder {
+func (b *ListBuilder) WithAPIList(
+	list *apis.CStorVolumeReplicaList,
+) *ListBuilder {
 	if list == nil {
 		return b
 	}
 	for _, c := range list.Items {
-		b.list.items = append(b.list.items, cvr{object: c})
+		c := c // pin it
+		b.list.items = append(b.list.items, &CVR{object: &c})
 	}
 	return b
 }
@@ -107,14 +112,14 @@ func (b *listBuilder) WithAPIList(list *apis.CStorVolumeReplicaList) *listBuilde
 // List returns the list of cvr
 // instances that was built by this
 // builder
-func (b *listBuilder) List() *cvrList {
+func (b *ListBuilder) List() *CVRList {
 	if b.filters == nil || len(b.filters) == 0 {
 		return b.list
 	}
-	filtered := ListBuilder().List()
+	filtered := NewListBuilder().List()
 	for _, cvr := range b.list.items {
 		cvr := cvr // pin it
-		if b.filters.all(&cvr) {
+		if b.filters.all(cvr) {
 			filtered.items = append(filtered.items, cvr)
 		}
 	}
@@ -123,36 +128,36 @@ func (b *listBuilder) List() *cvrList {
 
 // Len returns the number of items present
 // in the CVRList
-func (l *cvrList) Len() int {
+func (l *CVRList) Len() int {
 	return len(l.items)
 }
 
-// predicate defines an abstraction
+// Predicate defines an abstraction
 // to determine conditional checks
 // against the provided cvr instance
-type predicate func(*cvr) bool
+type Predicate func(*CVR) bool
 
 // IsHealthy returns true if the CVR is in
 // healthy state
-func (p *cvr) IsHealthy() bool {
+func (p *CVR) IsHealthy() bool {
 	return p.object.Status.Phase == "Healthy"
 }
 
-// IsHealthy is a predicate to filter out cvrs
+// IsHealthy is a Predicate to filter out cvrs
 // which is healthy
-func IsHealthy() predicate {
-	return func(p *cvr) bool {
+func IsHealthy() Predicate {
+	return func(p *CVR) bool {
 		return p.IsHealthy()
 	}
 }
 
-// predicateList holds a list of predicate
-type predicateList []predicate
+// PredicateList holds a list of Predicate
+type PredicateList []Predicate
 
-// all returns true if all the predicates
+// all returns true if all the Predicates
 // succeed against the provided cvr
 // instance
-func (l predicateList) all(p *cvr) bool {
+func (l PredicateList) all(p *CVR) bool {
 	for _, pred := range l {
 		if !pred(p) {
 			return false
@@ -162,7 +167,7 @@ func (l predicateList) all(p *cvr) bool {
 }
 
 // WithFilter adds filters on which the cvr's has to be filtered
-func (b *listBuilder) WithFilter(pred ...predicate) *listBuilder {
+func (b *ListBuilder) WithFilter(pred ...Predicate) *ListBuilder {
 	b.filters = append(b.filters, pred...)
 	return b
 }
