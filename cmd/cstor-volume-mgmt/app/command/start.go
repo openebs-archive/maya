@@ -22,7 +22,7 @@ import (
 
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/start-controller"
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/volume"
-	"github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
+	serverclient "github.com/openebs/maya/pkg/cstor/volume/serverclient/v1alpha1"
 	"github.com/spf13/cobra"
 )
 
@@ -44,7 +44,7 @@ func NewCmdStart() *cobra.Command {
 			var wg sync.WaitGroup
 			wg.Add(1)
 			go func() {
-				v1alpha1.StartServer(volume.UnixSockVar, options.port)
+				serverclient.StartServer(volume.UnixSockVar, options.port)
 				wg.Done()
 			}()
 			wg.Add(1)

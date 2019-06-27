@@ -18,8 +18,6 @@ package task
 
 import (
 	"encoding/json"
-
-	//"fmt"
 	"strings"
 	"time"
 
@@ -27,8 +25,8 @@ import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
-	cstorpool "github.com/openebs/maya/pkg/cstorpool/v1alpha2"
-	cstorvolume "github.com/openebs/maya/pkg/cstorvolume/v1alpha1"
+	cstorpool "github.com/openebs/maya/pkg/cstor/pool/v1alpha2"
+	cstorvolume "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	m_k8s "github.com/openebs/maya/pkg/k8s"
 	deploy_appsv1 "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"

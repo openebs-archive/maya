@@ -20,8 +20,8 @@ import (
 	"text/template"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha2"
-	cvr "github.com/openebs/maya/pkg/cstorvolumereplica/v1alpha1"
+	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha2"
+	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
