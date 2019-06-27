@@ -303,8 +303,12 @@ func (b *Builder) WithPrivilegedSecurityContext(privilaged *bool) *Builder {
 		return b
 	}
 
-	newprivilaged := *privilaged
-	b.con.SecurityContext.Privileged = &newprivilaged
+	newprivileged := *privilaged
+	newsecuritycontext := &corev1.SecurityContext{
+		Privileged: &newprivileged,
+	}
+
+	b.con.SecurityContext = newsecuritycontext
 	return b
 }
 

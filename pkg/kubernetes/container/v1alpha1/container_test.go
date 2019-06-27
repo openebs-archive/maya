@@ -19,6 +19,8 @@ package v1alpha1
 import (
 	"reflect"
 	"testing"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 // fakeAlwaysTrue is a concrete implementation of container Predicate
@@ -210,6 +212,41 @@ func TestBuilderWithArguments(t *testing.T) {
 			c, _ := NewBuilder().WithArguments(mock.args).Build()
 			if !reflect.DeepEqual(c.Args, mock.expectedArgs) {
 				t.Fatalf("test '%s' failed: expected arguments '%q': actual '%q'", name, mock.expectedArgs, c.Args)
+			}
+		})
+	}
+}
+
+func TestBuilderWithPrivilegedSecurityContext(t *testing.T) {
+	tests := map[string]struct {
+		secCont   bool
+		builder   *Builder
+		expectErr bool
+	}{
+		"Test Builder with templateSpec": {
+			secCont: true,
+			builder: &Builder{con: &container{
+				corev1.Container{},
+			}},
+			expectErr: false,
+		},
+		"Test Builder without templateSpec": {
+			secCont: false,
+			builder: &Builder{con: &container{
+				corev1.Container{},
+			}},
+			expectErr: false,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithPrivilegedSecurityContext(&mock.secCont)
+			if mock.expectErr && len(b.errors) == 0 {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && len(b.errors) > 0 {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
 			}
 		})
 	}
