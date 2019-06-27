@@ -199,7 +199,10 @@ func (b *Builder) WithCommand(cmd []string) *Builder {
 		return b
 	}
 
-	WithCommand(cmd)(b.con)
+	newcmd := []string{}
+	newcmd = append(newcmd, cmd...)
+
+	WithCommand(newcmd)(b.con)
 	return b
 }
 
@@ -228,7 +231,10 @@ func (b *Builder) WithArguments(args []string) *Builder {
 		return b
 	}
 
-	WithArguments(args)(b.con)
+	newargs := []string{}
+	newargs = append(newargs, args...)
+
+	WithArguments(newargs)(b.con)
 	return b
 }
 
@@ -256,7 +262,8 @@ func (b *Builder) WithVolumeMounts(volumeMounts []corev1.VolumeMount) *Builder {
 		)
 		return b
 	}
-	newvolumeMounts := volumeMounts
+	newvolumeMounts := []corev1.VolumeMount{}
+	newvolumeMounts = append(newvolumeMounts, volumeMounts...)
 	WithVolumeMounts(newvolumeMounts)(b.con)
 	return b
 }
@@ -296,8 +303,8 @@ func (b *Builder) WithPrivilegedSecurityContext(privilaged *bool) *Builder {
 		return b
 	}
 
-	newprivilaged := privilaged
-	b.con.SecurityContext.Privileged = newprivilaged
+	newprivilaged := *privilaged
+	b.con.SecurityContext.Privileged = &newprivilaged
 	return b
 }
 
@@ -327,6 +334,7 @@ func (b *Builder) WithPorts(ports []corev1.ContainerPort) *Builder {
 		)
 		return b
 	}
+
 	if len(ports) == 0 {
 		b.errors = append(
 			b.errors,
@@ -334,7 +342,10 @@ func (b *Builder) WithPorts(ports []corev1.ContainerPort) *Builder {
 		)
 		return b
 	}
-	newports := ports
+
+	newports := []corev1.ContainerPort{}
+	newports = append(newports, ports...)
+
 	b.con.Ports = newports
 	return b
 }
@@ -348,6 +359,7 @@ func (b *Builder) WithEnvs(envs []corev1.EnvVar) *Builder {
 		)
 		return b
 	}
+
 	if len(envs) == 0 {
 		b.errors = append(
 			b.errors,
@@ -355,7 +367,10 @@ func (b *Builder) WithEnvs(envs []corev1.EnvVar) *Builder {
 		)
 		return b
 	}
-	newenvs := envs
+
+	newenvs := []corev1.EnvVar{}
+	newenvs = append(newenvs, envs...)
+
 	b.con.Env = newenvs
 	return b
 }
