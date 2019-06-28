@@ -22,6 +22,7 @@ import (
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
+	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
 	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,30 +80,34 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 			deployObj, err = deploy.NewBuilder().
 				WithName(deployName).
 				WithNamespace(namespaceObj.Name).
-				WithLabelSelector(labelselector).
-				WithContainerBuilder(
-					container.NewBuilder().
-						WithName("busybox").
-						WithImage("busybox").
-						WithCommandNew(
-							[]string{
-								"sleep",
-								"3600",
-							},
+				WithLabelsNew(labelselector).
+				WithSelectorMatchLabelsNew(labelselector).
+				WithPodTemplateSpecBuilder(
+					pts.NewBuilder().
+						WithContainerBuildersNew(
+							container.NewBuilder().
+								WithName("busybox").
+								WithImage("busybox").
+								WithCommandNew(
+									[]string{
+										"sleep",
+										"3600",
+									},
+								).
+								WithVolumeMountsNew(
+									[]corev1.VolumeMount{
+										corev1.VolumeMount{
+											Name:      "demo-vol1",
+											MountPath: "/mnt/store1",
+										},
+									},
+								),
 						).
-						WithVolumeMountsNew(
-							[]corev1.VolumeMount{
-								corev1.VolumeMount{
-									Name:      "demo-vol1",
-									MountPath: "/mnt/store1",
-								},
-							},
+						WithVolumeBuilders(
+							volume.NewBuilder().
+								WithName("demo-vol1").
+								WithPVCSource(pvcName),
 						),
-				).
-				WithVolumeBuilder(
-					volume.NewBuilder().
-						WithName("demo-vol1").
-						WithPVCSource(pvcName),
 				).
 				Build()
 			Expect(err).ShouldNot(

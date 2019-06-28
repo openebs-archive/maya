@@ -69,7 +69,29 @@ func (b *Builder) WithNamespace(namespace string) *Builder {
 	return b
 }
 
-// WithAnnotationsNew sets the annotation field of podtemplatespec
+// WithAnnotations merges existing annotations if any
+// with the ones that are provided here
+func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
+	if len(annotations) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build deployment object: missing annotations"),
+		)
+		return b
+	}
+
+	if b.podtemplatespec.Object.Annotations == nil {
+		return b.WithAnnotationsNew(annotations)
+	}
+
+	for key, value := range annotations {
+		b.podtemplatespec.Object.Annotations[key] = value
+	}
+	return b
+}
+
+// WithAnnotationsNew resets the annotation field of podtemplatespec
+// with provided arguments
 func (b *Builder) WithAnnotationsNew(annotations map[string]string) *Builder {
 	if len(annotations) == 0 {
 		b.errs = append(
@@ -92,7 +114,31 @@ func (b *Builder) WithAnnotationsNew(annotations map[string]string) *Builder {
 	return b
 }
 
-// WithLabelsNew sets the labels field of podtemplatespec
+// WithLabels merges existing labels if any
+// with the ones that are provided here
+func (b *Builder) WithLabels(labels map[string]string) *Builder {
+	if len(labels) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New(
+				"failed to build podtemplatespec object: missing labels",
+			),
+		)
+		return b
+	}
+
+	if b.podtemplatespec.Object.Labels == nil {
+		return b.WithLabelsNew(labels)
+	}
+
+	for key, value := range labels {
+		b.podtemplatespec.Object.Labels[key] = value
+	}
+	return b
+}
+
+// WithLabelsNew resets the labels field of podtemplatespec
+// with provided arguments
 func (b *Builder) WithLabelsNew(labels map[string]string) *Builder {
 	if len(labels) == 0 {
 		b.errs = append(
@@ -115,7 +161,31 @@ func (b *Builder) WithLabelsNew(labels map[string]string) *Builder {
 	return b
 }
 
-// WithNodeSelectorNew sets the nodeselector field of podtemplatespec
+// WithNodeSelector merges the nodeselectors if present
+// with the provided arguments
+func (b *Builder) WithNodeSelector(nodeselectors map[string]string) *Builder {
+	if len(nodeselectors) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New(
+				"failed to build podtemplatespec object: missing nodeselectors",
+			),
+		)
+		return b
+	}
+
+	if b.podtemplatespec.Object.Spec.NodeSelector == nil {
+		return b.WithNodeSelectorNew(nodeselectors)
+	}
+
+	for key, value := range nodeselectors {
+		b.podtemplatespec.Object.Spec.NodeSelector[key] = value
+	}
+	return b
+}
+
+// WithNodeSelectorNew resets the nodeselector field of podtemplatespec
+// with provided arguments
 func (b *Builder) WithNodeSelectorNew(nodeselectors map[string]string) *Builder {
 	if len(nodeselectors) == 0 {
 		b.errs = append(
@@ -173,8 +243,51 @@ func (b *Builder) WithAffinity(affinity *corev1.Affinity) *Builder {
 	return b
 }
 
+// WithTolerations merges the existing tolerations
+// with the provided arguments
+func (b *Builder) WithTolerations(tolerations ...corev1.Toleration) *Builder {
+	if tolerations == nil {
+		b.errs = append(
+			b.errs,
+			errors.New(
+				"failed to build podtemplatespec object: nil tolerations",
+			),
+		)
+		return b
+	}
+	if len(tolerations) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New(
+				"failed to build podtemplatespec object: missing tolerations",
+			),
+		)
+		return b
+	}
+
+	if len(b.podtemplatespec.Object.Spec.Tolerations) == 0 {
+		return b.WithTolerationsNew(tolerations...)
+	}
+
+	b.podtemplatespec.Object.Spec.Tolerations = append(
+		b.podtemplatespec.Object.Spec.Tolerations,
+		tolerations...,
+	)
+
+	return b
+}
+
 // WithTolerationsNew sets the tolerations field of podtemplatespec
 func (b *Builder) WithTolerationsNew(tolerations ...corev1.Toleration) *Builder {
+	if tolerations == nil {
+		b.errs = append(
+			b.errs,
+			errors.New(
+				"failed to build podtemplatespec object: nil tolerations",
+			),
+		)
+		return b
+	}
 	if len(tolerations) == 0 {
 		b.errs = append(
 			b.errs,
@@ -195,7 +308,7 @@ func (b *Builder) WithTolerationsNew(tolerations ...corev1.Toleration) *Builder 
 }
 
 // WithContainerBuilders builds the list of containerbuilder
-// provided and sets the containers field of the podtemplatespec
+// provided and merges it to the containers field of the podtemplatespec
 func (b *Builder) WithContainerBuilders(
 	containerBuilderList ...*container.Builder,
 ) *Builder {
@@ -204,6 +317,7 @@ func (b *Builder) WithContainerBuilders(
 			b.errs,
 			errors.New("failed to build podtemplatespec: nil containerbuilder"),
 		)
+		return b
 	}
 	for _, containerBuilder := range containerBuilderList {
 		containerObj, err := containerBuilder.Build()
@@ -212,7 +326,7 @@ func (b *Builder) WithContainerBuilders(
 				b.errs,
 				errors.Wrap(
 					err,
-					"failed to build podtemplatespec: unable to build container",
+					"failed to build podtemplatespec",
 				),
 			)
 			return b
@@ -226,7 +340,7 @@ func (b *Builder) WithContainerBuilders(
 }
 
 // WithVolumeBuilders builds the list of volumebuilders provided
-// and sets Volumes field of podtemplatespec.
+// and merges it to the volumes field of podtemplatespec.
 func (b *Builder) WithVolumeBuilders(
 	volumeBuilderList ...*volume.Builder,
 ) *Builder {
@@ -235,6 +349,7 @@ func (b *Builder) WithVolumeBuilders(
 			b.errs,
 			errors.New("failed to build podtemplatespec: nil volumeBuilderList"),
 		)
+		return b
 	}
 	for _, volumeBuilder := range volumeBuilderList {
 		vol, err := volumeBuilder.Build()
@@ -251,6 +366,86 @@ func (b *Builder) WithVolumeBuilders(
 			newvol,
 		)
 	}
+	return b
+}
+
+// WithContainerBuildersNew builds the list of containerbuilder
+// provided and sets the containers field of the podtemplatespec
+func (b *Builder) WithContainerBuildersNew(
+	containerBuilderList ...*container.Builder,
+) *Builder {
+	if containerBuilderList == nil {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build podtemplatespec: nil containerbuilder"),
+		)
+		return b
+	}
+	if len(containerBuilderList) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build podtemplatespec: missing containerbuilder"),
+		)
+		return b
+	}
+	containerList := []corev1.Container{}
+	for _, containerBuilder := range containerBuilderList {
+		containerObj, err := containerBuilder.Build()
+		if err != nil {
+			b.errs = append(
+				b.errs,
+				errors.Wrap(
+					err,
+					"failed to build podtemplatespec",
+				),
+			)
+			return b
+		}
+		containerList = append(
+			containerList,
+			containerObj,
+		)
+	}
+	b.podtemplatespec.Object.Spec.Containers = containerList
+	return b
+}
+
+// WithVolumeBuildersNew builds the list of volumebuilders provided
+// and sets Volumes field of podtemplatespec.
+func (b *Builder) WithVolumeBuildersNew(
+	volumeBuilderList ...*volume.Builder,
+) *Builder {
+	if volumeBuilderList == nil {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build podtemplatespec: nil volumeBuilderList"),
+		)
+		return b
+	}
+	if len(volumeBuilderList) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build podtemplatespec: missing volumeBuilderList"),
+		)
+		return b
+	}
+	volList := []corev1.Volume{}
+	for _, volumeBuilder := range volumeBuilderList {
+		vol, err := volumeBuilder.Build()
+		if err != nil {
+			b.errs = append(
+				b.errs,
+				errors.Wrap(err, "failed to build podtemplatespec"),
+			)
+			return b
+		}
+		newvol := *vol
+		volList = append(
+			volList,
+			newvol,
+		)
+	}
+	b.podtemplatespec.Object.Spec.Volumes = volList
 	return b
 }
 

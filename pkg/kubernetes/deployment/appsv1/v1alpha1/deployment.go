@@ -19,11 +19,8 @@ package v1alpha1
 import (
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
-	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	templatespec "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
-	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -201,9 +198,9 @@ func (b *Builder) WithLabelsNew(labels map[string]string) *Builder {
 	return b
 }
 
-// WithMatchLabels merges existing matchlabels if any
+// WithSelectorMatchLabels merges existing matchlabels if any
 // with the ones that are provided here
-func (b *Builder) WithMatchLabels(matchlabels map[string]string) *Builder {
+func (b *Builder) WithSelectorMatchLabels(matchlabels map[string]string) *Builder {
 	if len(matchlabels) == 0 {
 		b.errors = append(
 			b.errors,
@@ -212,8 +209,8 @@ func (b *Builder) WithMatchLabels(matchlabels map[string]string) *Builder {
 		return b
 	}
 
-	if b.deployment.Object.Spec.Selector.MatchLabels == nil {
-		return b.WithMatchLabelsNew(matchlabels)
+	if b.deployment.Object.Spec.Selector == nil {
+		return b.WithSelectorMatchLabelsNew(matchlabels)
 	}
 
 	for key, value := range matchlabels {
@@ -222,9 +219,9 @@ func (b *Builder) WithMatchLabels(matchlabels map[string]string) *Builder {
 	return b
 }
 
-// WithMatchLabelsNew resets existing matchlabels if any with
+// WithSelectorMatchLabelsNew resets existing matchlabels if any with
 // ones that are provided here
-func (b *Builder) WithMatchLabelsNew(matchlabels map[string]string) *Builder {
+func (b *Builder) WithSelectorMatchLabelsNew(matchlabels map[string]string) *Builder {
 	if len(matchlabels) == 0 {
 		b.errors = append(
 			b.errors,
@@ -239,8 +236,12 @@ func (b *Builder) WithMatchLabelsNew(matchlabels map[string]string) *Builder {
 		newmatchlabels[key] = value
 	}
 
+	newselector := &metav1.LabelSelector{
+		MatchLabels: newmatchlabels,
+	}
+
 	// override
-	b.deployment.Object.Spec.Selector.MatchLabels = newmatchlabels
+	b.deployment.Object.Spec.Selector = newselector
 	return b
 }
 
@@ -257,7 +258,7 @@ func (b *Builder) WithReplicas(replicas *int32) *Builder {
 
 	newreplicas := *replicas
 
-	if newreplicas <= 0 {
+	if newreplicas < 0 {
 		b.errors = append(
 			b.errors,
 			errors.Errorf(
@@ -288,8 +289,8 @@ func (b *Builder) WithStrategyType(
 	return b
 }
 
-// WithTemplateSpecBuilder sets the template field of the deployment
-func (b *Builder) WithTemplateSpecBuilder(
+// WithPodTemplateSpecBuilder sets the template field of the deployment
+func (b *Builder) WithPodTemplateSpecBuilder(
 	tmplbuilder *templatespec.Builder,
 ) *Builder {
 	if tmplbuilder == nil {
@@ -297,6 +298,7 @@ func (b *Builder) WithTemplateSpecBuilder(
 			b.errors,
 			errors.New("failed to build deployment: nil templatespecbuilder"),
 		)
+		return b
 	}
 
 	templatespecObj, err := tmplbuilder.Build()
@@ -306,118 +308,13 @@ func (b *Builder) WithTemplateSpecBuilder(
 			b.errors,
 			errors.Wrap(
 				err,
-				"failed to build deployment: unable to build templatespecbuilder",
+				"failed to build deployment",
 			),
 		)
+		return b
 	}
 
 	b.deployment.Object.Spec.Template = *templatespecObj.Object
-	return b
-}
-
-// WithContainer sets the container field of the deployment object
-// with the given container object
-func (b *Builder) WithContainer(container *corev1.Container) *Builder {
-	if container == nil {
-		b.errors = append(
-			b.errors,
-			errors.New("failed to build deployment: nil container"),
-		)
-	}
-
-	// copy of original container
-	newcontainer := *container
-
-	b.deployment.Object.Spec.Template.Spec.Containers = append(
-		b.deployment.Object.Spec.Template.Spec.Containers,
-		newcontainer,
-	)
-	return b
-}
-
-// WithContainerBuilder builds the containerbuilder provided and sets the
-// container field of the deployment object with the given container object
-func (b *Builder) WithContainerBuilder(
-	containerBuilder *container.Builder,
-) *Builder {
-	if containerBuilder == nil {
-		b.errors = append(
-			b.errors,
-			errors.New("failed to build deployment: nil containerbuilder"),
-		)
-	}
-	containerObj, err := containerBuilder.Build()
-	if err != nil {
-		b.errors = append(
-			b.errors,
-			errors.Wrap(
-				err,
-				"failed to build deployment: unable to build container",
-			),
-		)
-		return b
-	}
-	b.deployment.Object.Spec.Template.Spec.Containers = append(
-		b.deployment.Object.Spec.Template.Spec.Containers,
-		containerObj,
-	)
-	return b
-}
-
-// WithVolumes sets Volumes field of deployment.
-func (b *Builder) WithVolumes(vols []corev1.Volume) *Builder {
-	if len(vols) == 0 {
-		b.errors = append(
-			b.errors,
-			errors.New("failed to build deployment: missing volumes"),
-		)
-		return b
-	}
-
-	// copy of original slice
-	newvols := []corev1.Volume{}
-	newvols = append(newvols, vols...)
-
-	b.deployment.Object.Spec.Template.Spec.Volumes = newvols
-	return b
-}
-
-// WithVolumeBuilder sets Volumes field of deployment.
-func (b *Builder) WithVolumeBuilder(volumeBuilder *volume.Builder) *Builder {
-	if volumeBuilder == nil {
-		b.errors = append(
-			b.errors,
-			errors.New("failed to build deployment: nil volumeBuilder"),
-		)
-	}
-	vol, err := volumeBuilder.Build()
-	if err != nil {
-		b.errors = append(
-			b.errors,
-			errors.Wrap(err, "failed to build deployment"),
-		)
-		return b
-	}
-	b.deployment.Object.Spec.Template.Spec.Volumes = append(
-		b.deployment.Object.Spec.Template.Spec.Volumes,
-		*vol,
-	)
-	return b
-}
-
-// WithLabelSelector sets label selector for template and deployment
-func (b *Builder) WithLabelSelector(labels map[string]string) *Builder {
-	if len(labels) == 0 {
-		b.errors = append(
-			b.errors,
-			errors.New("failed to build deployment: missing labels"),
-		)
-		return b
-	}
-	labelselector := metav1.LabelSelector{}
-	labelselector.MatchLabels = labels
-	b.deployment.Object.Spec.Selector = &labelselector
-	b.deployment.Object.Spec.Template.Labels = labels
 	return b
 }
 

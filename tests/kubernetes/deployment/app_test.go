@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 	con "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
+	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -48,12 +49,16 @@ var _ = Describe("TEST DEPLOYMENT CREATION ", func() {
 			deployObj, err = deploy.NewBuilder().
 				WithName(deployName).
 				WithNamespace(namespaceObj.Name).
-				WithLabelSelector(labelselector).
-				WithContainerBuilder(
-					con.NewBuilder().
-						WithName("busybox").
-						WithImage("busybox").
-						WithCommandNew(command),
+				WithLabelsNew(labelselector).
+				WithSelectorMatchLabelsNew(labelselector).
+				WithPodTemplateSpecBuilder(
+					pts.NewBuilder().
+						WithContainerBuildersNew(
+							con.NewBuilder().
+								WithName("busybox").
+								WithImage("busybox").
+								WithCommandNew(command),
+						),
 				).
 				Build()
 			Expect(err).ShouldNot(
