@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	cvc "github.com/openebs/maya/cmd/cstorvolume-claim/cvc"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/server"
 	spc "github.com/openebs/maya/cmd/maya-apiserver/cstor-operator/spc"
@@ -178,6 +179,12 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 		err := spc.Start()
 		if err != nil {
 			glog.Errorf("Failed to start storage pool controller: %s", err.Error())
+		}
+	}()
+	go func() {
+		err := cvc.Start()
+		if err != nil {
+			glog.Errorf("Failed to start cstorvolume claim controller: %s", err.Error())
 		}
 	}()
 

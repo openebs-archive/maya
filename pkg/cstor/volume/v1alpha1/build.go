@@ -19,6 +19,11 @@ import (
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 )
 
+const (
+	// NodeBase ...
+	CstorNodeBase string = "iqn.2016-09.com.openebs.cstor"
+)
+
 // Builder is the builder object for CStorVolume
 type Builder struct {
 	cstorvolume *CStorVolume
@@ -194,6 +199,13 @@ func (b *Builder) WithNodeBase(nodebase string) *Builder {
 		return b
 	}
 	b.cstorvolume.object.Spec.NodeBase = nodebase
+	return b
+}
+
+// WithCstorIQN sets the iqn field of CStorVolume with provided arguments
+func (b *Builder) WithCstorIQN(name string) *Builder {
+	iqn := CstorNodeBase + ":" + name
+	b.cstorvolume.object.Spec.Iqn = iqn
 	return b
 }
 
