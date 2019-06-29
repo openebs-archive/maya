@@ -27,7 +27,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
+	ref "k8s.io/client-go/tools/reference"
 )
 
 const (
@@ -164,25 +166,32 @@ func (c *Controller) create(cvc *apis.CStorVolumeClaim) error {
 
 	// Finally, we update the status block of the CVC resource to reflect the
 	// current state of the world
-	glog.Infof("updating cvc status %+v", cvc)
-	err = c.updateCVCStatus(cvc)
+	//err = c.updateCVCStatus(cvc)
 	if err != nil {
 		return err
 	}
 
-	c.recorder.Event(cvc, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
+	c.recorder.Event(cvc, corev1.EventTypeNormal,
+		SuccessSynced,
+		MessageResourceSynced,
+	)
 	return nil
 }
 
 // UpdateCVCStatus updates the status block of the CVC resource to reflect the
 // current state of the world
-func (c *Controller) updateCVCStatus(cvc *apis.CStorVolumeClaim) error {
+func (c *Controller) updateCVCStatus(cvc *apis.CStorVolumeClaim,
+	cv *apis.CStorVolume,
+) error {
 	// NEVER modify objects from the store. It's a read-only, local cache.
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
 	cvcCopy := cvc.DeepCopy()
+	if cvc.Name != cv.Name {
+		return fmt.
+			Errorf("could not bind cstorvolumeclaim %s and cstorvolume %s, name does not match", cvc.Name, cv.Name)
+	}
 	cvcCopy.Status.Phase = "Bound"
-
 	_, err := c.clientset.Openebs().CStorVolumeClaims(cvc.Namespace).Update(cvcCopy)
 	return err
 }
@@ -192,7 +201,7 @@ func (c *Controller) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis.CS
 
 	glog.Infof("creating cstorvolume service resource")
 	scName := cvc.Annotations[string(apis.StorageConfigClassKey)]
-	svcObj, err := createTargetService(scName, cvc.Name)
+	svcObj, err := createTargetService(scName, cvc)
 	if err != nil {
 		return nil, err
 	}
@@ -216,6 +225,16 @@ func (c *Controller) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis.CS
 		return nil, err
 	}
 
+	volumeRef, err := ref.GetReference(scheme.Scheme, cvObj)
+	if err != nil {
+		return nil, err
+	}
+	cvc.Spec.CStorVolumeRef = volumeRef
+
+	err = c.updateCVCStatus(cvc, cvObj)
+	if err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 

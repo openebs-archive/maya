@@ -96,6 +96,13 @@ func getDeployTemplateAnnotations() map[string]string {
 	}
 }
 
+func getDeployOwnerReference(volume *apis.CStorVolume) []metav1.OwnerReference {
+	OwnerReference := []metav1.OwnerReference{
+		*metav1.NewControllerRef(volume, apis.SchemeGroupVersion.WithKind("CStorVolume")),
+	}
+	return OwnerReference
+}
+
 func getDeployTemplateAffinity() *corev1.Affinity {
 	return &corev1.Affinity{
 		PodAffinity: &corev1.PodAffinity{
@@ -239,6 +246,7 @@ func createCStorTargetDeployment(
 		WithName(vol.Name + "-target").
 		WithLabelsNew(getDeployLabels(vol.Name)).
 		WithAnnotationsNew(getDeployAnnotation()).
+		WithOwnerRefernceNew(getDeployOwnerReference(vol)).
 		WithReplicas(&deployreplicas).
 		WithStrategyType(
 			appsv1.RecreateDeploymentStrategyType,

@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Builder is the builder object for Service
@@ -116,6 +117,21 @@ func (b *Builder) WithAnnotationsNew(annotations map[string]string) *Builder {
 
 	// override
 	b.service.object.Annotations = newannotations
+	return b
+}
+
+// WithOwnerRefernceNew sets ownerrefernce if any with
+// ones that are provided here
+func (b *Builder) WithOwnerRefernceNew(ownerRefernce []metav1.OwnerReference) *Builder {
+	if len(ownerRefernce) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build service object: no new ownerRefernce"),
+		)
+		return b
+	}
+
+	b.service.object.OwnerReferences = ownerRefernce
 	return b
 }
 

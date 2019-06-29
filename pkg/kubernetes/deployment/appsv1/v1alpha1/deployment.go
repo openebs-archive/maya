@@ -152,6 +152,21 @@ func (b *Builder) WithAnnotationsNew(annotations map[string]string) *Builder {
 	return b
 }
 
+// WithOwnerRefernceNew sets ownerrefernce if any with
+// ones that are provided here
+func (b *Builder) WithOwnerRefernceNew(ownerRefernce []metav1.OwnerReference) *Builder {
+	if len(ownerRefernce) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment object: no new ownerRefernce"),
+		)
+		return b
+	}
+
+	b.deployment.Object.OwnerReferences = ownerRefernce
+	return b
+}
+
 // WithLabels merges existing labels if any
 // with the ones that are provided here
 func (b *Builder) WithLabels(labels map[string]string) *Builder {

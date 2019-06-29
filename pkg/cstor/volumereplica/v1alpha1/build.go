@@ -17,6 +17,7 @@ package v1alpha1
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Builder is the builder object for CStorVolume
@@ -112,6 +113,21 @@ func (b *Builder) WithAnnotationsNew(annotations map[string]string) *Builder {
 
 	// override
 	b.cvr.object.Annotations = newannotations
+	return b
+}
+
+// WithOwnerRefernceNew sets ownerrefernce if any with
+// ones that are provided here
+func (b *Builder) WithOwnerRefernceNew(ownerRefernce []metav1.OwnerReference) *Builder {
+	if len(ownerRefernce) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build cvr object: no new ownerRefernce"),
+		)
+		return b
+	}
+
+	b.cvr.object.OwnerReferences = ownerRefernce
 	return b
 }
 

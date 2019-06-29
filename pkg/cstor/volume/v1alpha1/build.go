@@ -17,10 +17,11 @@ package v1alpha1
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	// NodeBase ...
+	//CstorNodeBase NodeBase ...
 	CstorNodeBase string = "iqn.2016-09.com.openebs.cstor"
 )
 
@@ -116,6 +117,21 @@ func (b *Builder) WithAnnotationsNew(annotations map[string]string) *Builder {
 
 	// override
 	b.cstorvolume.object.Annotations = newannotations
+	return b
+}
+
+// WithOwnerRefernceNew sets ownerrefernce if any with
+// ones that are provided here
+func (b *Builder) WithOwnerRefernceNew(ownerRefernce []metav1.OwnerReference) *Builder {
+	if len(ownerRefernce) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build cstorvolume object: no new ownerRefernce"),
+		)
+		return b
+	}
+
+	b.cstorvolume.object.OwnerReferences = ownerRefernce
 	return b
 }
 
