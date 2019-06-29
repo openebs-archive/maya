@@ -158,14 +158,14 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 					container.NewBuilder().
 						WithName("busybox").
 						WithImage("busybox").
-						WithCommand(
+						WithCommandNew(
 							[]string{
 								"sh",
 								"-c",
 								"date > /mnt/cstore1/date.txt; sync; sleep 5; sync; tail -f /dev/null;",
 							},
 						).
-						WithVolumeMounts(
+						WithVolumeMountsNew(
 							[]corev1.VolumeMount{
 								corev1.VolumeMount{
 									Name:      "datavol1",
@@ -280,14 +280,14 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 					container.NewBuilder().
 						WithName("busybox").
 						WithImage("busybox").
-						WithCommand(
+						WithCommandNew(
 							[]string{
 								"sh",
 								"-c",
 								"tail -f /dev/null",
 							},
 						).
-						WithVolumeMounts(
+						WithVolumeMountsNew(
 							[]corev1.VolumeMount{
 								corev1.VolumeMount{
 									Name:      "datavol2",

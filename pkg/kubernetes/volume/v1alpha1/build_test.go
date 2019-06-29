@@ -140,3 +140,68 @@ func TestBuildHostPathVolume(t *testing.T) {
 		})
 	}
 }
+
+func TestBuilerWithdHostPathandType(t *testing.T) {
+	sampledirtype := corev1.HostPathDirectoryOrCreate
+	tests := map[string]struct {
+		path        string
+		dirtype     *corev1.HostPathType
+		expectedErr bool
+	}{
+		"Hostpath Volume with correct type": {
+			path:        "/var/openebs/local/PV1",
+			dirtype:     &sampledirtype,
+			expectedErr: false,
+		},
+		"Hostpath Volume without type": {
+			path:        "/var/openebs/local/PV1",
+			dirtype:     nil,
+			expectedErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := NewBuilder().
+				WithHostPathAndType(mock.path, mock.dirtype)
+			if mock.expectedErr && len(b.errs) == 0 {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectedErr && len(b.errs) > 0 {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestBuilerWithEmptyDir(t *testing.T) {
+	tests := map[string]struct {
+		path        string
+		emptydir    *corev1.EmptyDirVolumeSource
+		expectedErr bool
+	}{
+		"Volume with empty dir": {
+			path:        "/var/openebs/local/PV1",
+			emptydir:    &corev1.EmptyDirVolumeSource{},
+			expectedErr: false,
+		},
+		"Volume without empty dir": {
+			path:        "/var/openebs/local/PV1",
+			emptydir:    nil,
+			expectedErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := NewBuilder().
+				WithEmptyDir(mock.emptydir)
+			if mock.expectedErr && len(b.errs) == 0 {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectedErr && len(b.errs) > 0 {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}

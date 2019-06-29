@@ -181,8 +181,8 @@ func WithImage(img string) OptionFunc {
 	}
 }
 
-// WithCommand sets the command of the container
-func (b *Builder) WithCommand(cmd []string) *Builder {
+// WithCommandNew sets the command of the container
+func (b *Builder) WithCommandNew(cmd []string) *Builder {
 	if cmd == nil {
 		b.errors = append(
 			b.errors,
@@ -202,19 +202,12 @@ func (b *Builder) WithCommand(cmd []string) *Builder {
 	newcmd := []string{}
 	newcmd = append(newcmd, cmd...)
 
-	WithCommand(newcmd)(b.con)
+	b.con.Command = newcmd
 	return b
 }
 
-// WithCommand sets the command of the container
-func WithCommand(cmd []string) OptionFunc {
-	return func(c *container) {
-		c.Command = cmd
-	}
-}
-
-// WithArguments sets the command arguments of the container
-func (b *Builder) WithArguments(args []string) *Builder {
+// WithArgumentsNew sets the command arguments of the container
+func (b *Builder) WithArgumentsNew(args []string) *Builder {
 	if args == nil {
 		b.errors = append(
 			b.errors,
@@ -234,19 +227,12 @@ func (b *Builder) WithArguments(args []string) *Builder {
 	newargs := []string{}
 	newargs = append(newargs, args...)
 
-	WithArguments(newargs)(b.con)
+	b.con.Args = newargs
 	return b
 }
 
-// WithArguments sets the command arguments of the container
-func WithArguments(args []string) OptionFunc {
-	return func(c *container) {
-		c.Args = args
-	}
-}
-
-// WithVolumeMounts sets the command arguments of the container
-func (b *Builder) WithVolumeMounts(volumeMounts []corev1.VolumeMount) *Builder {
+// WithVolumeMountsNew sets the command arguments of the container
+func (b *Builder) WithVolumeMountsNew(volumeMounts []corev1.VolumeMount) *Builder {
 	if volumeMounts == nil {
 		b.errors = append(
 			b.errors,
@@ -264,15 +250,8 @@ func (b *Builder) WithVolumeMounts(volumeMounts []corev1.VolumeMount) *Builder {
 	}
 	newvolumeMounts := []corev1.VolumeMount{}
 	newvolumeMounts = append(newvolumeMounts, volumeMounts...)
-	WithVolumeMounts(newvolumeMounts)(b.con)
+	b.con.VolumeMounts = newvolumeMounts
 	return b
-}
-
-// WithVolumeMounts sets the volume mounts of the container
-func WithVolumeMounts(volumeMounts []corev1.VolumeMount) OptionFunc {
-	return func(c *container) {
-		c.VolumeMounts = volumeMounts
-	}
 }
 
 // WithImagePullPolicy sets the image pull policy of the container
@@ -292,8 +271,8 @@ func (b *Builder) WithImagePullPolicy(policy corev1.PullPolicy) *Builder {
 }
 
 // WithPrivilegedSecurityContext sets securitycontext of the container
-func (b *Builder) WithPrivilegedSecurityContext(privilaged *bool) *Builder {
-	if privilaged == nil {
+func (b *Builder) WithPrivilegedSecurityContext(privileged *bool) *Builder {
+	if privileged == nil {
 		b.errors = append(
 			b.errors,
 			errors.New(
@@ -303,7 +282,7 @@ func (b *Builder) WithPrivilegedSecurityContext(privilaged *bool) *Builder {
 		return b
 	}
 
-	newprivileged := *privilaged
+	newprivileged := *privileged
 	newsecuritycontext := &corev1.SecurityContext{
 		Privileged: &newprivileged,
 	}
@@ -329,8 +308,8 @@ func (b *Builder) WithResources(
 	return b
 }
 
-// WithPorts sets ports of the container
-func (b *Builder) WithPorts(ports []corev1.ContainerPort) *Builder {
+// WithPortsNew sets ports of the container
+func (b *Builder) WithPortsNew(ports []corev1.ContainerPort) *Builder {
 	if ports == nil {
 		b.errors = append(
 			b.errors,
@@ -354,8 +333,8 @@ func (b *Builder) WithPorts(ports []corev1.ContainerPort) *Builder {
 	return b
 }
 
-// WithEnvs sets the envs of the container
-func (b *Builder) WithEnvs(envs []corev1.EnvVar) *Builder {
+// WithEnvsNew sets the envs of the container
+func (b *Builder) WithEnvsNew(envs []corev1.EnvVar) *Builder {
 	if envs == nil {
 		b.errors = append(
 			b.errors,

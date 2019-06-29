@@ -53,7 +53,7 @@ var _ = Describe("TEST DEPLOYMENT CREATION ", func() {
 					con.NewBuilder().
 						WithName("busybox").
 						WithImage("busybox").
-						WithCommand(command),
+						WithCommandNew(command),
 				).
 				Build()
 			Expect(err).ShouldNot(

@@ -71,6 +71,13 @@ func (b *Builder) WithHostPathAndType(
 	dirpath string,
 	dirtype *corev1.HostPathType,
 ) *Builder {
+	if dirtype == nil {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build volume object: nil volume type"),
+		)
+		return b
+	}
 	if len(dirpath) == 0 {
 		b.errs = append(
 			b.errs,
