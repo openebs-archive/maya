@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The OpenEBS Authors
+Copyright 2019 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,209 +17,298 @@ limitations under the License.
 package cvc
 
 import (
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
-	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/versioned/scheme"
-	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
-	listers "github.com/openebs/maya/pkg/client/generated/listers/openebs.io/v1alpha1"
-	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
+
+	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/util/workqueue"
+	ref "k8s.io/client-go/tools/reference"
+	"k8s.io/kubernetes/pkg/util/slice"
 )
 
-const controllerAgentName = "cstorvolumeclaim-controller"
+const (
+	// SuccessSynced is used as part of the Event 'reason' when a
+	// cstorvolumeclaim is synced
+	SuccessSynced = "Synced"
+	// ErrResourceExists is used as part of the Event 'reason' when a
+	// cstorvolumeclaim fails to sync due to a cstorvolumeclaim of the same
+	// name already existing.
+	ErrResourceExists = "ErrResourceExists"
 
-// Controller is the controller implementation for SPC resources
-type Controller struct {
-	// kubeclientset is a standard kubernetes clientset
-	kubeclientset kubernetes.Interface
+	// MessageResourceExists is the message used for Events when a resource
+	// fails to sync due to a cstorvolumeclaim already existing
+	MessageResourceExists = "Resource %q already exists and is not managed by CVC"
+	// MessageResourceSynced is the message used for an Event fired when a
+	// cstorvolumeclaim is synced successfully
+	MessageResourceSynced = "cstorvolumeclaim synced successfully"
 
-	// clientset is a openebs custom resource package generated for custom API group.
-	clientset clientset.Interface
+	// Name of finalizer on CStorVolumeClaim that are bound by CStorVolume
+	CStorVolumeClaimFinalizer = "cvc.openebs.io/finalizer"
+)
 
-	// ndmclientset is a ndm custom resource package generated for custom API group.
-	ndmclientset ndmclientset.Interface
+// syncHandler compares the actual state with the desired, and attempts to
+// converge the two. It then updates the Status block of the spcPoolUpdated resource
+// with the current status of the resource.
+func (c *Controller) syncHandler(key string) error {
+	startTime := time.Now()
+	glog.V(4).Infof("Started syncing cstorvolumeclaim %q (%v)", key, startTime)
+	defer func() {
+		glog.V(4).Infof("Finished syncing cstorvolumeclaim %q (%v)", key, time.Since(startTime))
+	}()
 
-	cvcLister listers.CStorVolumeClaimLister
-	cvLister  listers.CStorVolumeLister
-	cspLister listers.CStorPoolLister
-	// cvcSynced is used for caches sync to get populated
-	cvcSynced cache.InformerSynced
-
-	// Store is a generic object storage interface. Reflector knows how to watch a server
-	// and update a store. A generic store is provided, which allows Reflector to be used
-	// as a local caching system, and an LRU store, which allows Reflector to work like a
-	// queue of items yet to be processed.
-	cvcStore cache.Store
-
-	// workqueue is a rate limited work queue. This is used to queue work to be
-	// processed instead of performing it as soon as a change happens. This
-	// means we can ensure we only process a fixed amount of resources at a
-	// time, and makes it easy to ensure we are never processing the same item
-	// simultaneously in two different workers.
-	workqueue workqueue.RateLimitingInterface
-
-	// recorder is an event recorder for recording Event resources to the
-	// Kubernetes API.
-	recorder record.EventRecorder
-}
-
-// ControllerBuilder is the builder object for controller.
-type ControllerBuilder struct {
-	Controller *Controller
-}
-
-// NewControllerBuilder returns an empty instance of controller builder.
-func NewControllerBuilder() *ControllerBuilder {
-	return &ControllerBuilder{
-		Controller: &Controller{},
+	// Convert the namespace/name string into a distinct namespace and name
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
+		return nil
 	}
+
+	// Get the cvc resource with this namespace/name
+	cvc, err := c.cvcLister.CStorVolumeClaims(namespace).Get(name)
+	if k8serror.IsNotFound(err) {
+		runtime.HandleError(fmt.Errorf("cstorvolumeclaim '%s' has been deleted", key))
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	cvcCopy := cvc.DeepCopy()
+	err = c.syncCVC(cvcCopy)
+	return err
 }
 
-// withKubeClient fills kube client to controller object.
-func (cb *ControllerBuilder) withKubeClient(ks kubernetes.Interface) *ControllerBuilder {
-	cb.Controller.kubeclientset = ks
-	return cb
+// enqueueCVC takes a CVC resource and converts it into a namespace/name
+// string which is then put onto the work queue. This method should *not* be
+// passed resources of any type other than CStorVolumeClaims.
+func (c *Controller) enqueueCVC(obj interface{}) {
+	var key string
+	var err error
+	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
+		runtime.HandleError(err)
+		return
+	}
+	c.workqueue.Add(key)
+
+	/*	if unknown, ok := obj.(cache.DeletedFinalStateUnknown); ok && unknown.Obj != nil {
+			obj = unknown.Obj
+		}
+		if cvc, ok := obj.(*apis.CStorVolumeClaim); ok {
+			objName, err := cache.DeletionHandlingMetaNamespaceKeyFunc(cvc)
+			if err != nil {
+				glog.Errorf("failed to get key from object: %v, %v", err, cvc)
+				return
+			}
+			glog.V(5).Infof("enqueued %q for sync", objName)
+			c.workqueue.Add(objName)
+		}
+	*/
 }
 
-// withKubeClient fills kube client to controller object.
-//func (cb *ControllerBuilder) withKubeConfig(config *rest.Config) *ControllerBuilder {
-//	cb.Controller.config = config
-//	return cb
-//}
-
-// withOpenEBSClient fills openebs client to controller object.
-func (cb *ControllerBuilder) withOpenEBSClient(cs clientset.Interface) *ControllerBuilder {
-	cb.Controller.clientset = cs
-	return cb
+// synCVC is the function which tries to converge to a desired state for the
+// CStorVolumeClaims
+func (c *Controller) syncCVC(cvc *apis.CStorVolumeClaim) error {
+	err := c.create(cvc)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-// withNDMClient fills ndm client to controller object.
-func (cb *ControllerBuilder) withNDMClient(ndmcs ndmclientset.Interface) *ControllerBuilder {
-	cb.Controller.ndmclientset = ndmcs
-	return cb
+// create is a wrapper function that calls the actual function to create pool as many time
+// as the number of pools need to be created.
+func (c *Controller) create(cvc *apis.CStorVolumeClaim) error {
+	//	var newCVCLease Leaser
+	//	newCVCLease = &Lease{cvc, cvcLeaseKey, c.clientset, c.kubeclientset}
+	//	err := newCVCLease.Hold()
+	//	if err != nil {
+	//		return errors.Wrapf(err, "Could not acquire lease on cvc object")
+	//	}
+	//	glog.V(4).Infof("Lease acquired successfully on CStorVolumeClaims %s ", spc.Name)
+	//	defer newCVCLease.Release()
+
+	volName := cvc.Name
+	if volName == "" {
+		// We choose to absorb the error here as the worker would requeue the
+		// resource otherwise. Instead, the next time the resource is updated
+		// the resource will be queued again.
+		runtime.HandleError(fmt.Errorf("%+v: cvc name must be specified", cvc))
+		return nil
+	}
+
+	nodeID := cvc.Publish.NodeId
+	if nodeID == "" {
+		// We choose to absorb the error here as the worker would requeue the
+		// resource otherwise. Instead, the next time the resource is updated
+		// the resource will be queued again.
+		runtime.HandleError(fmt.Errorf("%v: cvc must be publish/attached to Node", cvc))
+		return nil
+	}
+
+	// Get the cstorvolume with the name specified, if not found create all the
+	// required resources
+	_, err := c.cvLister.CStorVolumes(cvc.Namespace).Get(volName)
+	if k8serror.IsNotFound(err) {
+		glog.Infof("create cstor based volume using cvc %+v", cvc)
+		_, err = c.createVolumeOperation(cvc)
+	}
+
+	// If an error occurs during Get/Create, we'll requeue the item so we can
+	// attempt processing again later. This could have been caused by a
+	// temporary network failure, or any other transient reason.
+	if err != nil {
+		return err
+	}
+
+	// Finally, we update the status block of the CVC resource to reflect the
+	// current state of the world
+	//err = c.updateCVCStatus(cvc)
+
+	// CStor Volume Claim should be deleted. Check if deletion timestamp is set
+	// and remove finalizer.
+	if isClaimDeletionCandidate(cvc) {
+		glog.Infof("syncClaim: remove finalizer for CStorVolumeClaimVolume [%s]", cvc.Name)
+		return c.removeClaimFinalizer(cvc)
+	}
+	c.recorder.Event(cvc, corev1.EventTypeNormal,
+		SuccessSynced,
+		MessageResourceSynced,
+	)
+	return nil
 }
 
-// withCVCLister fills cvc lister to controller object.
-func (cb *ControllerBuilder) withCVCLister(sl informers.SharedInformerFactory) *ControllerBuilder {
-	cvcInformer := sl.Openebs().V1alpha1().CStorVolumeClaims()
-	cb.Controller.cvcLister = cvcInformer.Lister()
-	return cb
+// UpdateCVCStatus updates the status block of the CVC resource to reflect the
+// current state of the world
+func (c *Controller) updateCVCStatus(cvc *apis.CStorVolumeClaim,
+	cv *apis.CStorVolume,
+) error {
+	// NEVER modify objects from the store. It's a read-only, local cache.
+	// You can use DeepCopy() to make a deep copy of original object and modify this copy
+	// Or create a copy manually for better performance
+	cvcCopy := cvc.DeepCopy()
+	if cvc.Name != cv.Name {
+		return fmt.
+			Errorf("could not bind cstorvolumeclaim %s and cstorvolume %s, name does not match", cvc.Name, cv.Name)
+	}
+	cvcCopy.Status.Phase = "Bound"
+	_, err := c.clientset.OpenebsV1alpha1().CStorVolumeClaims(cvc.Namespace).Update(cvcCopy)
+	return err
 }
 
-// withCVRLister fills cvr lister to controller object.
-func (cb *ControllerBuilder) withCVLister(sl informers.SharedInformerFactory) *ControllerBuilder {
-	cvInformer := sl.Openebs().V1alpha1().CStorVolumes()
-	cb.Controller.cvLister = cvInformer.Lister()
-	return cb
-}
+// createVolumeOperation trigers the all required resource create operation.
+// 1. Create volume service.
+// 2. Create cstorvolume resource with required iscsi information.
+// 3. Create target deployment.
+// 4. Create cstorvolumeclaim resource.
+// 5. Update the cstorvolumeclaim with claimRef info and bound with cstorvolume.
+func (c *Controller) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeClaim, error) {
 
-// withCSPLister fills csp lister to controller object.
-func (cb *ControllerBuilder) withCSPLister(sl informers.SharedInformerFactory) *ControllerBuilder {
-	cspInformer := sl.Openebs().V1alpha1().CStorPools()
-	cb.Controller.cspLister = cspInformer.Lister()
-	return cb
-}
-
-// withCVCLister returns a Store implemented simply with a map and a lock.
-func (cb *ControllerBuilder) withCVCStore() *ControllerBuilder {
-	cb.Controller.cvcStore = cache.NewStore(cache.DeletionHandlingMetaNamespaceKeyFunc)
-	return cb
-}
-
-// withspcSynced adds object sync information in cache to controller object.
-func (cb *ControllerBuilder) withCVCSynced(sl informers.SharedInformerFactory) *ControllerBuilder {
-	cvcInformer := sl.Openebs().V1alpha1().CStorVolumeClaims()
-	cb.Controller.cvcSynced = cvcInformer.Informer().HasSynced
-	return cb
-}
-
-// withWorkqueue adds workqueue to controller object.
-func (cb *ControllerBuilder) withWorkqueueRateLimiting() *ControllerBuilder {
-	cb.Controller.workqueue = workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CVC")
-	return cb
-}
-
-// withRecorder adds recorder to controller object.
-func (cb *ControllerBuilder) withRecorder(ks kubernetes.Interface) *ControllerBuilder {
-	glog.V(4).Info("Creating event broadcaster")
-	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
-	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: ks.CoreV1().Events("")})
-	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
-	cb.Controller.recorder = recorder
-	return cb
-}
-
-// withEventHandler adds event handlers controller object.
-func (cb *ControllerBuilder) withEventHandler(spcInformerFactory informers.SharedInformerFactory) *ControllerBuilder {
-	cvcInformer := spcInformerFactory.Openebs().V1alpha1().CStorVolumeClaims()
-	// Set up an event handler for when CVC resources change
-	cvcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    cb.Controller.addCVC,
-		UpdateFunc: cb.Controller.updateCVC,
-		DeleteFunc: cb.Controller.deleteCVC,
-	})
-	return cb
-}
-
-// Build returns a controller instance.
-func (cb *ControllerBuilder) Build() (*Controller, error) {
-	err := openebsScheme.AddToScheme(scheme.Scheme)
+	glog.V(2).Infof("creating cstorvolume service resource")
+	scName := cvc.Annotations[string(apis.StorageConfigClassKey)]
+	svcObj, err := createTargetService(scName, cvc)
 	if err != nil {
 		return nil, err
 	}
-	return cb.Controller, nil
-}
 
-// addCVC is the add event handler for CstorVolumeClaim
-func (c *Controller) addCVC(obj interface{}) {
-	cvc, ok := obj.(*apis.CStorVolumeClaim)
-	if !ok {
-		runtime.HandleError(fmt.Errorf("Couldn't get cvc object %#v", obj))
-		return
+	glog.V(2).Infof("creating cstorvolume resource")
+	cvObj, err := createCStorVolumecr(svcObj, cvc, scName)
+	if err != nil {
+		glog.Infof("creating cstorvolume : %s", err)
+		return nil, err
 	}
 
-	glog.V(4).Infof("Queuing CVC %s for add event", cvc.Name)
-	c.enqueueCVC(cvc)
+	glog.V(2).Infof("creating cstorvolume target deployment")
+	_, err = createCStorTargetDeployment(cvObj)
+	if err != nil {
+		return nil, err
+	}
+
+	glog.V(2).Infof("creating cstorvolume replica resource")
+	_, err = createCStorVolumeReplica(svcObj, cvObj, scName)
+	if err != nil {
+		return nil, err
+	}
+
+	volumeRef, err := ref.GetReference(scheme.Scheme, cvObj)
+	if err != nil {
+		return nil, err
+	}
+	cvc.Spec.CStorVolumeRef = volumeRef
+
+	err = c.updateCVCStatus(cvc, cvObj)
+	if err != nil {
+		return nil, err
+	}
+	return cvc, nil
 }
 
-// updateCVC is the update event handler for CstorVolumeClaim
-func (c *Controller) updateCVC(oldCVC, newCVC interface{}) {
-	_, ok := newCVC.(*apis.CStorVolumeClaim)
-	if !ok {
-		runtime.HandleError(fmt.Errorf("Couldn't get cvc object %#v", newCVC))
-		return
-	}
-	//if c.isCVCPending(cvc) {
-	c.enqueueCVC(newCVC)
-	//}
+// isClaimDeletionCandidate checks if a cstorvolumeclaim is a deletion candidate.
+func isClaimDeletionCandidate(cvc *apis.CStorVolumeClaim) bool {
+	return cvc.ObjectMeta.DeletionTimestamp != nil &&
+		slice.ContainsString(cvc.ObjectMeta.Finalizers, CStorVolumeClaimFinalizer, nil)
 }
 
-// deleteCVC is the delete event handler for CstorVolumeClaim
-func (c *Controller) deleteCVC(obj interface{}) {
-	cvc, ok := obj.(*apis.CStorVolumeClaim)
-	if !ok {
-		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
-		if !ok {
-			runtime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
-			return
-		}
-		cvc, ok = tombstone.Obj.(*apis.CStorVolumeClaim)
-		if !ok {
-			runtime.HandleError(fmt.Errorf("Tombstone contained object that is not a cstorvolumeclaim %#v", obj))
-			return
-		}
+// removeFinalizer removes finalizers present in
+// CStorVolumeClaim resource
+func (c *Controller) removeClaimFinalizer(
+	cvc *apis.CStorVolumeClaim,
+) error {
+	cvcPatch := []Patch{
+		Patch{
+			Op:   "remove",
+			Path: "/metadata/finalizers",
+		},
 	}
-	glog.V(4).Infof("Deleting cstorvolumeclaim %s", cvc.Name)
-	c.enqueueCVC(cvc)
+
+	cvcPatchBytes, err := json.Marshal(cvcPatch)
+	if err != nil {
+		return merrors.Wrapf(
+			err,
+			"failed to remove finalizers from cstorvolumeclaim {%s}",
+			cvc.Name,
+		)
+	}
+
+	_, err = c.clientset.
+		OpenebsV1alpha1().
+		CStorVolumeClaims(cvc.Namespace).
+		Patch(cvc.Name, types.JSONPatchType, cvcPatchBytes)
+	if err != nil {
+		return merrors.Wrapf(
+			err,
+			"failed to remove finalizers from cstorvolumeclaim {%s}",
+			cvc.Name,
+		)
+	}
+
+	glog.Infof("finalizers removed successfully from cstorvolumeclaim {%s}", cvc.Name)
+	return nil
+}
+
+// Patch struct represent the struct used to patch
+// the cstorvolumeclaim object
+type Patch struct {
+	// Op defines the operation
+	Op string `json:"op"`
+	// Path defines the key path
+	// eg. for
+	// {
+	//  	"Name": "openebs"
+	//	    Category: {
+	//		  "Inclusive": "v1",
+	//		  "Rank": "A"
+	//	     }
+	// }
+	// The path of 'Inclusive' would be
+	// "/Name/Category/Inclusive"
+	Path  string `json:"path"`
+	Value string `json:"value"`
 }

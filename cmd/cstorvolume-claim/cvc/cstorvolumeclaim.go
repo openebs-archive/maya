@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The OpenEBS Authors
+Copyright 2019 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package cvc
 import (
 	"strconv"
 
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
@@ -35,7 +34,6 @@ import (
 )
 
 var (
-	//kubeConfigPath = "/home/user/.kube/config"
 	ports = []corev1.ServicePort{
 		corev1.ServicePort{
 			Name:     "cstor-iscsi",
@@ -109,7 +107,6 @@ func getReplicationFactor(scName string,
 			count,
 		)
 	}
-	glog.Infof("rfactor and confactor %d , %d", rfactor, rfactor/2+1)
 	return rfactor, (rfactor/2 + 1), nil
 
 }
@@ -139,6 +136,8 @@ func getFromParameters(scName string,
 	return rCount, spcName, nil
 }
 
+// listCStorPools get the list of available pool using the storagePoolClaim
+// as labelSelector.
 func listCStorPools(
 	spcName string,
 	replicaCount int,
@@ -255,7 +254,7 @@ func createCStorVolumecr(service *corev1.Service,
 			WithOwnerRefernceNew(OwnerReference).
 			WithTargetIP(service.Spec.ClusterIP).
 			WithCapacity(qCap.String()).
-			WithCstorIQN(claim.Name).
+			WithCStorIQN(claim.Name).
 			WithTargetPortal(service.Spec.ClusterIP + ":" + "3260").
 			WithTargetPort("3260").
 			WithReplicationFactor(rfactor).
@@ -274,6 +273,10 @@ func createCStorVolumecr(service *corev1.Service,
 	return cvObj, err
 }
 
+// createCStorVolumeReplica create cstorvolume replica based on the replicaCount
+// on the available cstor pools matched with storagepool claim given in
+// storageClass as parameter value.
+// if pools are less then replicaCount we return with error.
 func createCStorVolumeReplica(
 	service *corev1.Service,
 	volume *apis.CStorVolume,
@@ -310,6 +313,7 @@ func createCStorVolumeReplica(
 	return nil, err
 }
 
+// createCVR create cstorvolumereplica resource on a given cstor pool
 func creatCVR(
 	service *corev1.Service,
 	volume *apis.CStorVolume,

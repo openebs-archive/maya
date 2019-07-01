@@ -218,8 +218,8 @@ func (b *Builder) WithNodeBase(nodebase string) *Builder {
 	return b
 }
 
-// WithCstorIQN sets the iqn field of CStorVolume with provided arguments
-func (b *Builder) WithCstorIQN(name string) *Builder {
+// WithCStorIQN sets the iqn field of CStorVolume with provided arguments
+func (b *Builder) WithCStorIQN(name string) *Builder {
 	iqn := CstorNodeBase + ":" + name
 	b.cstorvolume.object.Spec.Iqn = iqn
 	return b

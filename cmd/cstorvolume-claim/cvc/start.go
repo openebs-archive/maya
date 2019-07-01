@@ -91,7 +91,6 @@ func Start() error {
 	return controller.Run(2, stopCh)
 }
 
-// Cannot be unit tested
 // GetClusterConfig return the config for k8s.
 func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 	var masterURL string
