@@ -93,7 +93,6 @@ func Start() error {
 
 // GetClusterConfig return the config for k8s.
 func getClusterConfig(kubeconfig string) (*rest.Config, error) {
-	var masterURL string
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
 		glog.Errorf("Failed to get k8s Incluster config. %+v", err)

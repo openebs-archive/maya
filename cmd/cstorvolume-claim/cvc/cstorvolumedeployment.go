@@ -31,16 +31,23 @@ import (
 )
 
 var (
-	tolerationSeconds = int64(30)
 
+	// tolerationSeconds represents the period of time the toleration
+	// tolerates the taint
+	tolerationSeconds = int64(30)
+	// deployreplicas is replica count for target deployment
 	deployreplicas int32 = 1
 
+	// run container in privileged mode configuration that will be
+	// applied to a container.
 	privileged = true
 
 	resyncInterval = "30"
-
+	// MountPropagationBidirectional means that the volume in a container will
+	// receive new mounts from the host or other containers, and its own mounts
+	// will be propagated from the container to the host or other containers.
 	mountPropagation = corev1.MountPropagationBidirectional
-
+	// hostpathType represents the hostpath type
 	hostpathType = corev1.HostPathDirectoryOrCreate
 
 	defaultMounts = []corev1.VolumeMount{
@@ -56,7 +63,6 @@ var (
 )
 
 func getDeployLabels(pvName string) map[string]string {
-
 	return map[string]string{
 		"app":                          "cstor-volume-manager",
 		"openebs.io/target":            "cstor-target",
@@ -103,6 +109,8 @@ func getDeployOwnerReference(volume *apis.CStorVolume) []metav1.OwnerReference {
 	return OwnerReference
 }
 
+// getDeployTemplateAffinity returns affinities
+// for target deployement
 func getDeployTemplateAffinity() *corev1.Affinity {
 	return &corev1.Affinity{
 		PodAffinity: &corev1.PodAffinity{
@@ -123,8 +131,9 @@ func getDeployTemplateAffinity() *corev1.Affinity {
 	}
 }
 
+// getDeployTemplateTolerations returns the array of toleration
+// for target deployement
 func getDeployTemplateTolerations() []corev1.Toleration {
-
 	return []corev1.Toleration{
 		corev1.Toleration{
 			Effect:            corev1.TaintEffectNoExecute,
@@ -168,8 +177,9 @@ func getTargetMgmtMounts() []corev1.VolumeMount {
 	)
 }
 
+// getDeployTemplateEnvs return the common env required for
+// cstorvolume target deployment
 func getDeployTemplateEnvs(cstorid string) []corev1.EnvVar {
-
 	return []corev1.EnvVar{
 		corev1.EnvVar{
 			Name:  "OPENEBS_IO_CSTOR_VOLUME_ID",
@@ -198,33 +208,45 @@ func getDeployTemplateEnvs(cstorid string) []corev1.EnvVar {
 	}
 }
 
+// getVolumeTargetImage returns Volume target image
+// retrieves the value of the environment variable named
+// by the key.
 func getVolumeTargetImage() string {
-	image, check := os.LookupEnv("OPENEBS_IO_CSTOR_TARGET_IMAGE")
-	if check == false {
+	image, present := os.LookupEnv("OPENEBS_IO_CSTOR_TARGET_IMAGE")
+	if !present {
 		image = "openebs/cstor-istgt:ci"
 	}
 	return image
 }
 
+// getVolumeMonitorImage returns monitor image
+// retrieves the value of the environment variable named
+// by the key.
 func getVolumeMonitorImage() string {
-	image, check := os.LookupEnv("OPENEBS_IO_VOLUME_MONITOR_IMAGE")
-	if check == false {
+	image, present := os.LookupEnv("OPENEBS_IO_VOLUME_MONITOR_IMAGE")
+	if !present {
 		image = "openebs/m-exporter:ci"
 	}
 	return image
 }
 
+// getVolumeMgmtImage returns volume mgmt side image
+// retrieves the value of the environment variable named
+// by the key.
 func getVolumeMgmtImage() string {
-	image, check := os.LookupEnv("OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE")
-	if check == false {
+	image, present := os.LookupEnv("OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE")
+	if !present {
 		image = "openebs/cstor-volume-mgmt:ci"
 	}
 	return image
 }
 
+// getTargetDirPath returns cstor target volume directory for a
+// given volume, retrieves the value of the environment variable named
+// by the key.
 func getTargetDirPath(pvName string) string {
-	dir, check := os.LookupEnv("OPENEBS_IO_CSTOR_TARGET_DIR")
-	if check == false {
+	dir, present := os.LookupEnv("OPENEBS_IO_CSTOR_TARGET_DIR")
+	if !present {
 		dir = "/var/openebs"
 	}
 	return dir + "/shared-" + pvName + "-target"
@@ -239,6 +261,7 @@ func getContainerPort(port int32) []corev1.ContainerPort {
 }
 
 // createCStorTargetDeployment creates the cstor target deployment
+// for a given cstorvolume
 func createCStorTargetDeployment(
 	vol *apis.CStorVolume,
 ) (*appsv1.Deployment, error) {
@@ -259,7 +282,7 @@ func createCStorTargetDeployment(
 				WithAnnotationsNew(getDeployTemplateAnnotations()).
 				WithServiceAccountName("openebs-maya-operator").
 				//WithAffinity(getDeployTemplateAffinity()).
-				// TODO
+				// TODO use of selector and affinity
 				//WithNodeSelectorNew().
 				WithTolerationsNew(getDeployTemplateTolerations()...).
 				WithContainerBuilders(

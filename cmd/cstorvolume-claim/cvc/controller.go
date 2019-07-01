@@ -51,7 +51,8 @@ const (
 	// cstorvolumeclaim is synced successfully
 	MessageResourceSynced = "cstorvolumeclaim synced successfully"
 
-	// Name of finalizer on CStorVolumeClaim that are bound by CStorVolume
+	// CStorVolumeClaimFinalizer name of finalizer on CStorVolumeClaim that
+	// are bound by CStorVolume
 	CStorVolumeClaimFinalizer = "cvc.openebs.io/finalizer"
 )
 
@@ -232,7 +233,7 @@ func (c *Controller) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis.CS
 	}
 
 	glog.V(2).Infof("creating cstorvolume replica resource")
-	_, err = createCStorVolumeReplica(svcObj, cvObj, scName)
+	err = createCStorVolumeReplica(svcObj, cvObj, scName)
 	if err != nil {
 		return nil, err
 	}

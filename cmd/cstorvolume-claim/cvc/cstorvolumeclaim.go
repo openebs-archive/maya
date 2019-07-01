@@ -70,6 +70,8 @@ var (
 	}
 )
 
+// getStorageClass return storageclass object for a given storageClass Name.
+// or error if any.
 func getStorageClass(storageClassName string,
 ) (*storagev1.StorageClass, error) {
 	if storageClassName == "" {
@@ -86,6 +88,8 @@ func getStorageClass(storageClassName string,
 	return scObj, nil
 }
 
+// getReplicationFactor gets the Replication and Consistency factor from the
+// storageclass
 func getReplicationFactor(scName string,
 ) (int, int, error) {
 
@@ -111,6 +115,8 @@ func getReplicationFactor(scName string,
 
 }
 
+// getFromParameters gets replicaCount and storagePoolClaim from
+// storageclass parameter
 func getFromParameters(scName string,
 ) (int, string, error) {
 
@@ -165,6 +171,7 @@ func listCStorPools(
 	return cstorPoolList, nil
 }
 
+// createTargetService creates cstor volume target service
 func createTargetService(storageClassName string,
 	claim *apis.CStorVolumeClaim,
 ) (*corev1.Service, error) {
@@ -184,10 +191,13 @@ func createTargetService(storageClassName string,
 	}
 
 	OwnerReference := []metav1.OwnerReference{
-		*metav1.NewControllerRef(claim, apis.SchemeGroupVersion.WithKind("CStorVolumeClaim")),
+		*metav1.NewControllerRef(claim,
+			apis.SchemeGroupVersion.WithKind("CStorVolumeClaim")),
 	}
 
-	svcObj, err := svc.NewKubeClient(svc.WithNamespace("openebs")).Get(claim.Name, metav1.GetOptions{})
+	svcObj, err := svc.NewKubeClient(svc.WithNamespace("openebs")).
+		Get(claim.Name, metav1.GetOptions{})
+
 	if err != nil && !k8serror.IsNotFound(err) {
 		return nil, errors.Wrapf(
 			err,
@@ -204,12 +214,20 @@ func createTargetService(storageClassName string,
 			WithSelectorsNew(selectors).
 			WithPorts(ports).
 			Build()
+		if err != nil {
+			return nil, errors.Wrapf(
+				err,
+				"failed to build target service {%v}",
+				svcObj,
+			)
+		}
 
 		svcObj, err = svc.NewKubeClient(svc.WithNamespace("openebs")).Create(svcObj)
 	}
 	return svcObj, err
 }
 
+// cstorvolumereplicacr creates CStorVolume resource for a cstor volume
 func createCStorVolumecr(service *corev1.Service,
 	claim *apis.CStorVolumeClaim,
 	scName string,
@@ -225,7 +243,8 @@ func createCStorVolumecr(service *corev1.Service,
 		"openebs.io/lun":     "0",
 	}
 	OwnerReference := []metav1.OwnerReference{
-		*metav1.NewControllerRef(claim, apis.SchemeGroupVersion.WithKind("CStorVolumeClaim")),
+		*metav1.NewControllerRef(claim,
+			apis.SchemeGroupVersion.WithKind("CStorVolumeClaim")),
 	}
 
 	qCap := claim.Spec.Capacity[corev1.ResourceStorage]
@@ -238,7 +257,8 @@ func createCStorVolumecr(service *corev1.Service,
 		)
 	}
 
-	cvObj, err := cv.NewKubeclient(cv.WithNamespace("openebs")).Get(claim.Name, metav1.GetOptions{})
+	cvObj, err := cv.NewKubeclient(cv.WithNamespace("openebs")).
+		Get(claim.Name, metav1.GetOptions{})
 	if err != nil && !k8serror.IsNotFound(err) {
 		return nil, errors.Wrapf(
 			err,
@@ -247,7 +267,7 @@ func createCStorVolumecr(service *corev1.Service,
 		)
 	}
 	if k8serror.IsNotFound(err) {
-		cvObj, err := cv.NewBuilder().
+		cvObj, err = cv.NewBuilder().
 			WithName(claim.Name).
 			WithLabelsNew(labels).
 			WithAnnotationsNew(annotations).
@@ -281,20 +301,20 @@ func createCStorVolumeReplica(
 	service *corev1.Service,
 	volume *apis.CStorVolume,
 	scName string,
-) (*apis.CStorVolumeReplica, error) {
+) error {
 
 	replicaCount, spcName, err := getFromParameters(scName)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	poolList, err := listCStorPools(spcName, replicaCount)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if len(poolList.Items) < replicaCount {
-		return nil, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"not enough pools to provision expected count {%d} actual count {%d}",
 			replicaCount,
@@ -303,14 +323,15 @@ func createCStorVolumeReplica(
 	}
 
 	for i, pool := range poolList.Items {
+		pool := pool
 		if i < replicaCount {
-			_, err := creatCVR(service, volume, &pool)
+			_, err = creatCVR(service, volume, &pool)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 	}
-	return nil, err
+	return err
 }
 
 // createCVR create cstorvolumereplica resource on a given cstor pool
@@ -333,7 +354,8 @@ func creatCVR(
 		"cstorvolumereplica.openebs.io/finalizer",
 	}
 	OwnerReference := []metav1.OwnerReference{
-		*metav1.NewControllerRef(volume, apis.SchemeGroupVersion.WithKind("CStorVolume")),
+		*metav1.NewControllerRef(volume,
+			apis.SchemeGroupVersion.WithKind("CStorVolume")),
 	}
 
 	cvrObj, err := cvr.NewKubeclient(cvr.WithNamespace("openebs")).
@@ -347,7 +369,7 @@ func creatCVR(
 		)
 	}
 	if k8serror.IsNotFound(err) {
-		cvrObj, err := cvr.NewBuilder().
+		cvrObj, err = cvr.NewBuilder().
 			WithName(volume.Name + "-" + pool.Name).
 			WithLabelsNew(labels).
 			WithAnnotationsNew(annotations).
