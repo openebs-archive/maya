@@ -38,7 +38,7 @@ type Predicate func(*Deploy) bool
 // Deploy is the wrapper over k8s deployment Object
 type Deploy struct {
 	// kubernetes deployment instance
-	Object *appsv1.Deployment
+	object *appsv1.Deployment
 }
 
 // Builder enables building an instance of
@@ -69,7 +69,7 @@ const (
 
 // String implements the stringer interface
 func (d *Deploy) String() string {
-	return stringer.Yaml("deployment", d.Object)
+	return stringer.Yaml("deployment", d.object)
 }
 
 // GoString implements the goStringer interface
@@ -81,7 +81,7 @@ func (d *Deploy) GoString() string {
 func NewBuilder() *Builder {
 	return &Builder{
 		deployment: &Deploy{
-			Object: &appsv1.Deployment{},
+			object: &appsv1.Deployment{},
 		},
 	}
 }
@@ -95,7 +95,7 @@ func (b *Builder) WithName(name string) *Builder {
 		)
 		return b
 	}
-	b.deployment.Object.Name = name
+	b.deployment.object.Name = name
 	return b
 }
 
@@ -108,7 +108,7 @@ func (b *Builder) WithNamespace(namespace string) *Builder {
 		)
 		return b
 	}
-	b.deployment.Object.Namespace = namespace
+	b.deployment.object.Namespace = namespace
 	return b
 }
 
@@ -123,12 +123,12 @@ func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 		return b
 	}
 
-	if b.deployment.Object.Annotations == nil {
+	if b.deployment.object.Annotations == nil {
 		return b.WithAnnotationsNew(annotations)
 	}
 
 	for key, value := range annotations {
-		b.deployment.Object.Annotations[key] = value
+		b.deployment.object.Annotations[key] = value
 	}
 	return b
 }
@@ -151,7 +151,7 @@ func (b *Builder) WithAnnotationsNew(annotations map[string]string) *Builder {
 	}
 
 	// override
-	b.deployment.Object.Annotations = newannotations
+	b.deployment.object.Annotations = newannotations
 	return b
 }
 
@@ -166,12 +166,12 @@ func (b *Builder) WithLabels(labels map[string]string) *Builder {
 		return b
 	}
 
-	if b.deployment.Object.Labels == nil {
+	if b.deployment.object.Labels == nil {
 		return b.WithLabelsNew(labels)
 	}
 
 	for key, value := range labels {
-		b.deployment.Object.Labels[key] = value
+		b.deployment.object.Labels[key] = value
 	}
 	return b
 }
@@ -194,7 +194,7 @@ func (b *Builder) WithLabelsNew(labels map[string]string) *Builder {
 	}
 
 	// override
-	b.deployment.Object.Labels = newlbls
+	b.deployment.object.Labels = newlbls
 	return b
 }
 
@@ -209,12 +209,12 @@ func (b *Builder) WithSelectorMatchLabels(matchlabels map[string]string) *Builde
 		return b
 	}
 
-	if b.deployment.Object.Spec.Selector == nil {
+	if b.deployment.object.Spec.Selector == nil {
 		return b.WithSelectorMatchLabelsNew(matchlabels)
 	}
 
 	for key, value := range matchlabels {
-		b.deployment.Object.Spec.Selector.MatchLabels[key] = value
+		b.deployment.object.Spec.Selector.MatchLabels[key] = value
 	}
 	return b
 }
@@ -241,7 +241,7 @@ func (b *Builder) WithSelectorMatchLabelsNew(matchlabels map[string]string) *Bui
 	}
 
 	// override
-	b.deployment.Object.Spec.Selector = newselector
+	b.deployment.object.Spec.Selector = newselector
 	return b
 }
 
@@ -269,7 +269,7 @@ func (b *Builder) WithReplicas(replicas *int32) *Builder {
 		return b
 	}
 
-	b.deployment.Object.Spec.Replicas = &newreplicas
+	b.deployment.object.Spec.Replicas = &newreplicas
 	return b
 }
 
@@ -285,7 +285,7 @@ func (b *Builder) WithStrategyType(
 		return b
 	}
 
-	b.deployment.Object.Spec.Strategy.Type = strategytype
+	b.deployment.object.Spec.Strategy.Type = strategytype
 	return b
 }
 
@@ -314,32 +314,34 @@ func (b *Builder) WithPodTemplateSpecBuilder(
 		return b
 	}
 
-	b.deployment.Object.Spec.Template = *templatespecObj.Object
+	b.deployment.object.Spec.Template = *templatespecObj.Object
 	return b
 }
 
-// NewBuilderForAPIObject returns a new instance of builder
+type deployBuildOption func(*Deploy)
+
+// NewForAPIObject returns a new instance of builder
 // for a given deployment Object
-func NewBuilderForAPIObject(deployment *appsv1.Deployment) *Builder {
-	b := NewBuilder()
-	if deployment != nil {
-		b.deployment.Object = deployment
-	} else {
-		b.errors = append(b.errors,
-			errors.New("nil deployment given to get builder instance"))
+func NewForAPIObject(
+	obj *appsv1.Deployment,
+	opts ...deployBuildOption,
+) *Deploy {
+	d := &Deploy{object: obj}
+	for _, o := range opts {
+		o(d)
 	}
-	return b
+	return d
 }
 
 // Build returns a deployment instance
-func (b *Builder) Build() (*Deploy, error) {
+func (b *Builder) Build() (*appsv1.Deployment, error) {
 	err := b.validate()
 	if err != nil {
 		return nil, errors.Wrapf(err,
 			"failed to build a deployment: %s",
-			b.deployment.Object)
+			b.deployment.object)
 	}
-	return b.deployment, nil
+	return b.deployment.object, nil
 }
 
 func (b *Builder) validate() error {
@@ -429,7 +431,7 @@ func IsProgressDeadlineExceeded() Predicate {
 // If `Progressing` condition's reason is `ProgressDeadlineExceeded` then
 // it is not rolled out.
 func (d *Deploy) IsProgressDeadlineExceeded() bool {
-	for _, cond := range d.Object.Status.Conditions {
+	for _, cond := range d.object.Status.Conditions {
 		if cond.Type == appsv1.DeploymentProgressing &&
 			cond.Reason == "ProgressDeadlineExceeded" {
 			return true
@@ -451,8 +453,8 @@ func IsOlderReplicaActive() Predicate {
 // Status.UpdatedReplicas < *Spec.Replicas then some of the replicas are
 // updated and some of them are not.
 func (d *Deploy) IsOlderReplicaActive() bool {
-	return d.Object.Spec.Replicas != nil &&
-		d.Object.Status.UpdatedReplicas < *d.Object.Spec.Replicas
+	return d.object.Spec.Replicas != nil &&
+		d.object.Status.UpdatedReplicas < *d.object.Spec.Replicas
 }
 
 // IsTerminationInProgress checks for older replicas are waiting to
@@ -472,7 +474,7 @@ func IsTerminationInProgress() Predicate {
 // replicas are not in running state. It waits for newer replica to
 // come into running state then terminate.
 func (d *Deploy) IsTerminationInProgress() bool {
-	return d.Object.Status.Replicas > d.Object.Status.UpdatedReplicas
+	return d.object.Status.Replicas > d.object.Status.UpdatedReplicas
 }
 
 // IsUpdateInProgress Checks if all the replicas are updated or not.
@@ -488,7 +490,7 @@ func IsUpdateInProgress() Predicate {
 // If Status.AvailableReplicas < Status.UpdatedReplicas then all the
 // older replicas are not there but there are less number of availableReplicas
 func (d *Deploy) IsUpdateInProgress() bool {
-	return d.Object.Status.AvailableReplicas < d.Object.Status.UpdatedReplicas
+	return d.object.Status.AvailableReplicas < d.object.Status.UpdatedReplicas
 }
 
 // IsNotSyncSpec compare generation in status and spec and check if
@@ -504,5 +506,5 @@ func IsNotSyncSpec() Predicate {
 // deployment spec is synced or not. If Generation <= Status.ObservedGeneration
 // then deployment spec is not updated yet.
 func (d *Deploy) IsNotSyncSpec() bool {
-	return d.Object.Generation > d.Object.Status.ObservedGeneration
+	return d.object.Generation > d.object.Status.ObservedGeneration
 }

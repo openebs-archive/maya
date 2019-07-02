@@ -24,6 +24,7 @@ import (
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
 	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -36,7 +37,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 		deployName    = "busybox-hostpath"
 		label         = "demo=hostpath-deployment"
 		pvcName       = "pvc-hp"
-		deployObj     *deploy.Deploy
+		deployObj     *appsv1.Deployment
 		labelselector = map[string]string{
 			"demo": "hostpath-deployment",
 		}
@@ -118,7 +119,8 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 			)
 
 			By("creating above deployment")
-			_, err = ops.DeployClient.WithNamespace(namespaceObj.Name).Create(deployObj.Object)
+			_, err = ops.DeployClient.WithNamespace(namespaceObj.Name).
+				Create(deployObj)
 			Expect(err).To(
 				BeNil(),
 				"while creating deployment {%s} in namespace {%s}",
