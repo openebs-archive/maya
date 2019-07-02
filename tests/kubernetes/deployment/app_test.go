@@ -22,6 +22,7 @@ import (
 	con "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -29,7 +30,7 @@ import (
 var (
 	deployName    = "busybox-deploy"
 	label         = "demo=deployment"
-	deployObj     *deploy.Deploy
+	deployObj     *appsv1.Deployment
 	conObj        corev1.Container
 	err           error
 	command       []string
@@ -69,7 +70,8 @@ var _ = Describe("TEST DEPLOYMENT CREATION ", func() {
 			)
 
 			By("creating above deployment")
-			_, err = ops.DeployClient.WithNamespace(namespaceObj.Name).Create(deployObj.Object)
+			_, err = ops.DeployClient.WithNamespace(namespaceObj.Name).
+				Create(deployObj)
 			Expect(err).To(
 				BeNil(),
 				"while creating deployment {%s} in namespace {%s}",
@@ -87,7 +89,8 @@ var _ = Describe("TEST DEPLOYMENT CREATION ", func() {
 		It("should not have any deployment or running pod", func() {
 
 			By("deleting above deployment")
-			err := ops.DeployClient.WithNamespace(namespaceObj.Name).Delete(deployName, &metav1.DeleteOptions{})
+			err := ops.DeployClient.WithNamespace(namespaceObj.Name).
+				Delete(deployName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting deployment {%s} in namespace {%s}",

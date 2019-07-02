@@ -122,22 +122,14 @@ func defaultDel(
 // fetch rollout status of a deployment instance from kubernetes
 // cluster
 func defaultRolloutStatus(d *appsv1.Deployment) (*RolloutOutput, error) {
-	b, err := NewBuilderForAPIObject(d).Build()
-	if err != nil {
-		return nil, err
-	}
-
+	b := NewForAPIObject(d)
 	return b.RolloutStatus()
 }
 
 // defaultRolloutStatusf is the default implementation to fetch
 // rollout status of a deployment instance from kubernetes cluster
 func defaultRolloutStatusf(d *appsv1.Deployment) ([]byte, error) {
-	b, err := NewBuilderForAPIObject(d).Build()
-	if err != nil {
-		return nil, err
-	}
-
+	b := NewForAPIObject(d)
 	return b.RolloutStatusRaw()
 }
 

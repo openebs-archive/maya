@@ -32,14 +32,14 @@ func TestBuilderWithName(t *testing.T) {
 		"Test Builder with name": {
 			name: "PVC1",
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: false,
 		},
 		"Test Builder without name": {
 			name: "",
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: true,
 		},
@@ -67,14 +67,14 @@ func TestBuilderWithNamespace(t *testing.T) {
 		"Test Builder with namespace": {
 			namespace: "PVC1",
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: false,
 		},
 		"Test Builder without namespace": {
 			namespace: "",
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: true,
 		},
@@ -103,14 +103,14 @@ func TestBuildWithAnnotations(t *testing.T) {
 			annotations: map[string]string{"persistent-volume": "PV",
 				"application": "percona"},
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout annotations": {
 			annotations: map[string]string{},
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: true,
 		},
@@ -139,14 +139,14 @@ func TestBuildWithAnnotationsNew(t *testing.T) {
 			annotations: map[string]string{"persistent-volume": "PV",
 				"application": "percona"},
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout annotations": {
 			annotations: map[string]string{},
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: true,
 		},
@@ -175,14 +175,14 @@ func TestBuildWithLabels(t *testing.T) {
 			labels: map[string]string{"persistent-volume": "PV",
 				"application": "percona"},
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout labels": {
 			labels: map[string]string{},
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: true,
 		},
@@ -211,14 +211,14 @@ func TestBuildWithLabelsNew(t *testing.T) {
 			labels: map[string]string{"persistent-volume": "PV",
 				"application": "percona"},
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout labels": {
 			labels: map[string]string{},
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: true,
 		},
@@ -247,14 +247,14 @@ func TestBuildWithSelectorMatchLabels(t *testing.T) {
 			matchLabels: map[string]string{"persistent-volume": "PV",
 				"application": "percona"},
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout matchLabels": {
 			matchLabels: map[string]string{},
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: true,
 		},
@@ -283,14 +283,14 @@ func TestBuildWithSelectorMatchLabelsNew(t *testing.T) {
 			matchLabels: map[string]string{"persistent-volume": "PV",
 				"application": "percona"},
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout matchLabels": {
 			matchLabels: map[string]string{},
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: true,
 		},
@@ -320,21 +320,21 @@ func TestBuilderWithReplicas(t *testing.T) {
 		"Test Builder with replicas": {
 			replicas: &samplereplicas,
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: false,
 		},
 		"Test Builder without replicas": {
 			replicas: nil,
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: true,
 		},
 		"Test Builder with invalid replicas": {
 			replicas: &invalidreplicas,
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: true,
 		},
@@ -362,14 +362,14 @@ func TestBuilderWithStrategyType(t *testing.T) {
 		"Test Builder with strategyType": {
 			strategyType: appsv1.RecreateDeploymentStrategyType,
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: false,
 		},
 		"Test Builder without strategyType": {
 			strategyType: appsv1.DeploymentStrategyType(""),
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: true,
 		},
@@ -397,14 +397,14 @@ func TestBuilderWithPodTemplateSpec(t *testing.T) {
 		"Test Builder with templateSpec": {
 			templateSpec: pts.NewBuilder(),
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: false,
 		},
 		"Test Builder without templateSpec": {
 			templateSpec: nil,
 			builder: &Builder{deployment: &Deploy{
-				Object: &appsv1.Deployment{},
+				object: &appsv1.Deployment{},
 			}},
 			expectErr: true,
 		},
