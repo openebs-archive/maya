@@ -174,7 +174,7 @@ func (b *Builder) WithSelectors(selectors map[string]string) *Builder {
 	}
 
 	if b.service.object.Spec.Selector == nil {
-		return b.WithLabelsNew(selectors)
+		return b.WithSelectorsNew(selectors)
 	}
 
 	for key, value := range selectors {
