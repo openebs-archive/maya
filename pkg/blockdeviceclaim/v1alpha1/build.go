@@ -28,6 +28,9 @@ import (
 const (
 	// StoragePoolKind holds the value of StoragePoolClaim
 	StoragePoolKind = "StoragePoolClaim"
+
+	// StoragePoolKindCSPC holds the value of CStorPoolCluster
+	StoragePoolKindCSPC = "CStorPoolCluster"
 	// APIVersion holds the value of OpenEBS version
 	APIVersion = "openebs.io/v1alpha1"
 )
@@ -243,6 +246,29 @@ func (b *Builder) WithOwnerReference(spc *apis.StoragePoolClaim) *Builder {
 		Kind:               StoragePoolKind,
 		UID:                spc.ObjectMeta.UID,
 		Name:               spc.ObjectMeta.Name,
+		BlockOwnerDeletion: &trueVal,
+		Controller:         &trueVal,
+	}
+	b.BDC.Object.OwnerReferences = append(b.BDC.Object.OwnerReferences, reference)
+	return b
+}
+
+// WithOwnerReference sets the OwnerReference field in BDC with required
+//fields
+func (b *Builder) WithCSPCOwnerReference(cspc *apis.CStorPoolCluster) *Builder {
+	if cspc == nil {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: cspc object is nil"),
+		)
+		return b
+	}
+	trueVal := true
+	reference := metav1.OwnerReference{
+		APIVersion:         APIVersion,
+		Kind:               StoragePoolKindCSPC,
+		UID:                cspc.ObjectMeta.UID,
+		Name:               cspc.ObjectMeta.Name,
 		BlockOwnerDeletion: &trueVal,
 		Controller:         &trueVal,
 	}

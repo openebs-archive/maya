@@ -21,13 +21,20 @@ import (
 	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
 )
 
+// TODO : Improve following function
 func (ac *Config) GetCSPSpec() *apis.NewTestCStorPool {
 	poolSpec := ac.SelectNode()
+
 	cspObj := apiscsp.NewBuilder().
 		WithName(ac.CSPC.Name).
 		WithNodeSelector(poolSpec.NodeSelector["kubernetes.io/hostName"]).
 		WithPoolConfig(poolSpec.PoolConfig).
 		WithRaidGroups(poolSpec.RaidGroups).
 		Build().Object
+
+	err := ac.ClaimBDsForNode(ac.GetBDListForNode(poolSpec))
+	if err != nil {
+		return nil
+	}
 	return cspObj
 }

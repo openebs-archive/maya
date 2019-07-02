@@ -21,15 +21,20 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
 	"github.com/pkg/errors"
+	"k8s.io/api/apps/v1"
 )
 
 func (c *Controller) CreateStoragePool(cspcGot *apis.CStorPoolCluster) error {
 	newAlgorithmConfig := nodeselect.NewConfig(cspcGot, "openebs")
 	cspObj := newAlgorithmConfig.GetCSPSpec()
 	err := c.createCSP(cspObj)
+
 	if err != nil {
 		return errors.Wrapf(err, "failed to create csp for cspc {%s}", cspcGot.Name)
 	}
+
+	poolDeployObj := c.GetPoolDeploySpec(cspObj)
+	c.createPoolDeployment(poolDeployObj)
 	return nil
 }
 
@@ -39,4 +44,12 @@ func (c *Controller) createCSP(csp *apis.NewTestCStorPool) error {
 		return err
 	}
 	return nil
+}
+
+// TODO: Fix following function -- ( currently only mocked)
+func (c *Controller) GetPoolDeploySpec(csp *apis.NewTestCStorPool) *v1.Deployment {
+	return &v1.Deployment{}
+}
+func (c *Controller) createPoolDeployment(poolDeployObj *v1.Deployment) {
+
 }

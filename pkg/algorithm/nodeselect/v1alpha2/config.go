@@ -20,23 +20,6 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
-const (
-	// DiskStateActive is the active state of the disks.
-	DiskStateActive = "Active"
-	// ProvisioningTypeManual is the manual provisioned SPC.
-	ProvisioningTypeManual = "manual"
-	// ProvisioningTypeAuto is the auto provisioned SPC.
-	ProvisioningTypeAuto = "auto"
-)
-
-type blockDeviceList struct {
-	Items []string
-}
-
-type nodeBlockDevice struct {
-	NodeName string
-}
-
 // Config embeds clients for disk,csp and sp and contains, SPC object and ProvisioningType field which should tell
 // provisioning type manual or auto.
 type Config struct {
