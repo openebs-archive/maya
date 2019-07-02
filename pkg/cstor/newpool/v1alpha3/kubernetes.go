@@ -35,11 +35,15 @@ type getClientsetFn func() (clientset *clientset.Clientset, err error)
 
 // listFn is a typed function that abstracts
 // listing of cstor pool
-type listFn func(cli *clientset.Clientset, opts metav1.ListOptions) (*apis.CStorPoolList, error)
+type listFn func(cli *clientset.Clientset, opts metav1.ListOptions) (*apis.NewTestCStorPoolList, error)
 
 // deleteFn is a typed function that abstracts
 // deletion of cstor pool
-type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.CStorPool, error)
+type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.NewTestCStorPool, error)
+
+// createFn is a typed function that abstracts
+// creation of cstor pool
+type createFn func(cli *clientset.Clientset, csp *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error)
 
 // Kubeclient enables kubernetes API operations
 // on cstor storage pool instance
@@ -53,6 +57,7 @@ type Kubeclient struct {
 	getClientset getClientsetFn
 	list         listFn
 	del          deleteFn
+	create       createFn
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -72,13 +77,19 @@ func (k *Kubeclient) withDefaults() {
 		}
 	}
 	if k.list == nil {
-		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*apis.CStorPoolList, error) {
-			return cli.OpenebsV1alpha1().CStorPools().List(opts)
+		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*apis.NewTestCStorPoolList, error) {
+			return cli.OpenebsV1alpha1().NewTestCStorPools("openebs").List(opts)
 		}
 	}
 	if k.del == nil {
-		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.CStorPool, error) {
-			return nil, cli.OpenebsV1alpha1().CStorPools().Delete(name, opts)
+		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.NewTestCStorPool, error) {
+			return nil, cli.OpenebsV1alpha1().NewTestCStorPools("openebs").Delete(name, opts)
+		}
+	}
+
+	if k.create == nil {
+		k.create = func(cli *clientset.Clientset, csp *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error) {
+			return cli.OpenebsV1alpha1().NewTestCStorPools("openebs").Create(csp)
 		}
 	}
 }
@@ -142,7 +153,7 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 
 // List returns a list of cstor pool
 // instances present in kubernetes cluster
-func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.CStorPoolList, error) {
+func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.NewTestCStorPoolList, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -150,9 +161,19 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.CStorPoolList, error) 
 	return k.list(cli, opts)
 }
 
+// List returns a list of cstor pool
+// instances present in kubernetes cluster
+func (k *Kubeclient) Create(csp *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error) {
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	return k.create(cli, csp)
+}
+
 // Delete deletes a cstor pool
 // instances present in kubernetes cluster
-func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) (*apis.CStorPool, error) {
+func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) (*apis.NewTestCStorPool, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
