@@ -14,12 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cvc
+package cstorvolumeclaim
 
 import (
 	"strconv"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/version"
+
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
@@ -33,8 +35,18 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+const (
+	cvcKind       = "CStorVolumeClaim"
+	cvKind        = "CStorVolume"
+	spcAnnotation = "openebs.io/storage-pool-claim="
+	// ReplicaCount represents replica count value
+	ReplicaCount = "replicaCount"
+	// CStorVolumeReplicaFinalizer is the name of finalizer on CStorVolumeClaim
+	CStorVolumeReplicaFinalizer = "cstorvolumereplica.openebs.io/finalizer"
+)
+
 var (
-	ports = []corev1.ServicePort{
+	cvPorts = []corev1.ServicePort{
 		corev1.ServicePort{
 			Name:     "cstor-iscsi",
 			Port:     3260,
@@ -70,76 +82,126 @@ var (
 	}
 )
 
+// getTargetServiceLabels get the labels for cstor volume service
+func getTargetServiceLabels(claim *apis.CStorVolumeClaim) map[string]string {
+	return map[string]string{
+		"openebs.io/target-service":      "cstor-target-svc",
+		"openebs.io/storage-engine-type": "cstor",
+		"openebs.io/cas-type":            "cstor",
+		"openebs.io/persistent-volume":   claim.Name,
+		"openebs.io/version":             version.GetVersion(),
+	}
+}
+
+// getTargetServiceSelectors get the selectors for cstor volume service
+func getTargetServiceSelectors(claim *apis.CStorVolumeClaim) map[string]string {
+	return map[string]string{
+		"app":                          "cstor-volume-manager",
+		"openebs.io/target":            "cstor-target",
+		"openebs.io/persistent-volume": claim.Name,
+	}
+}
+
+// getTargetServiceOwnerReference get the ownerReference for cstorvolume service
+func getTargetServiceOwnerReference(claim *apis.CStorVolumeClaim) []metav1.OwnerReference {
+	return []metav1.OwnerReference{
+		*metav1.NewControllerRef(claim,
+			apis.SchemeGroupVersion.WithKind(cvcKind)),
+	}
+}
+
+// getCVRLabels get the labels for cstorvolumereplica
+func getCVRLabels(pool *apis.CStorPool, volumeName string) map[string]string {
+	return map[string]string{
+		"cstorpool.openebs.io/name":    pool.Name,
+		"cstorpool.openebs.io/uid":     string(pool.UID),
+		"cstorvolume.openebs.io/name":  volumeName,
+		"openebs.io/persistent-volume": volumeName,
+		"openebs.io/version":           version.GetVersion(),
+	}
+}
+
+// getCVRAnnotations get the annotations for cstorvolumereplica
+func getCVRAnnotations(pool *apis.CStorPool) map[string]string {
+	return map[string]string{
+		"cstorpool.openebs.io/hostname": pool.Labels["kubernetes.io/hostname"],
+	}
+}
+
+// getCVRFinalizer get the finalizer for cstorvolumereplica
+func getCVRFinalizer() []string {
+	return []string{
+		CStorVolumeReplicaFinalizer,
+	}
+}
+
+// getCVROwnerReference get the ownerReference for cstorvolumereplica
+func getCVROwnerReference(cv *apis.CStorVolume) []metav1.OwnerReference {
+	return []metav1.OwnerReference{
+		*metav1.NewControllerRef(cv,
+			apis.SchemeGroupVersion.WithKind(cvKind)),
+	}
+}
+
+// getCVLabels get the labels for cstorvolume
+func getCVLabels(claim *apis.CStorVolumeClaim) map[string]string {
+	return map[string]string{
+		"openebs.io/persistent-volume": claim.Name,
+		"openebs.io/version":           version.GetVersion(),
+	}
+}
+
+// getCVOwnerReference get the ownerReference for cstorvolume
+func getCVOwnerReference(cvc *apis.CStorVolumeClaim) []metav1.OwnerReference {
+	return []metav1.OwnerReference{
+		*metav1.NewControllerRef(cvc,
+			apis.SchemeGroupVersion.WithKind(cvcKind)),
+	}
+}
+
 // getStorageClass return storageclass object for a given storageClass Name.
 // or error if any.
-func getStorageClass(storageClassName string,
+func getStorageClass(
+	scName string,
 ) (*storagev1.StorageClass, error) {
-	if storageClassName == "" {
-		return nil, errors.New("failed to get storageclass: storageclass missing")
+	if scName == "" {
+		return nil, errors.New("failed to get storageclass: name missing")
 	}
-	scObj, err := sc.NewKubeClient().Get(storageClassName, metav1.GetOptions{})
+	scObj, err := sc.NewKubeClient().Get(scName, metav1.GetOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
 			"failed to get storageclass {%s}",
-			storageClassName,
+			scName,
 		)
 	}
 	return scObj, nil
 }
 
-// getReplicationFactor gets the Replication and Consistency factor from the
-// storageclass
-func getReplicationFactor(scName string,
-) (int, int, error) {
+// getReplicationFactor gets the ReplicationFactor from the from given storageclass
+func getReplicationFactor(
+	class *storagev1.StorageClass,
+) (int, error) {
 
-	scObj, err := getStorageClass(scName)
-	if err != nil {
-		return 0, 0, errors.Wrapf(
-			err,
-			"failed to get storageclass obj {%s}",
-			scName,
-		)
-	}
-	count := scObj.Parameters["replicaCount"]
+	count := class.Parameters[ReplicaCount]
 
 	rfactor, err := strconv.Atoi(count)
 	if err != nil {
-		return 0, 0, errors.Wrapf(
-			err,
-			"failed to convert to int {%s}",
-			count,
-		)
+		return 0, err
 	}
-	return rfactor, (rfactor/2 + 1), nil
+	return rfactor, nil
+	//return rfactor, (rfactor/2 + 1), nil
 
 }
 
-// getFromParameters gets replicaCount and storagePoolClaim from
+// getSPC gets storagePoolClaim from
 // storageclass parameter
-func getFromParameters(scName string,
-) (int, string, error) {
+func getSPC(
+	sc *storagev1.StorageClass,
+) string {
 
-	scObj, err := getStorageClass(scName)
-	if err != nil {
-		return 0, "", errors.Wrapf(
-			err,
-			"failed to get storageclass obj {%s}",
-			scName,
-		)
-	}
-	count := scObj.Parameters["replicaCount"]
-	rCount, err := strconv.Atoi(count)
-	if err != nil {
-		return 0, "", errors.Wrapf(
-			err,
-			"failed to convert to int {%s}",
-			count,
-		)
-	}
-
-	spcName := scObj.Parameters["storagePoolClaim"]
-	return rCount, spcName, nil
+	spcName := sc.Parameters["storagePoolClaim"]
+	return spcName
 }
 
 // listCStorPools get the list of available pool using the storagePoolClaim
@@ -150,10 +212,10 @@ func listCStorPools(
 ) (*apis.CStorPoolList, error) {
 
 	if spcName == "" {
-		return nil, errors.New("failed to list cstorpool: spc missing")
+		return nil, errors.New("failed to list cstorpool: spc name missing")
 	}
 
-	labelSelector := "openebs.io/storage-pool-claim=" + spcName
+	labelSelector := spcAnnotation + spcName
 
 	cstorPoolList, err := csp.KubeClient().List(metav1.ListOptions{
 		LabelSelector: labelSelector,
@@ -171,29 +233,10 @@ func listCStorPools(
 	return cstorPoolList, nil
 }
 
-// createTargetService creates cstor volume target service
-func createTargetService(storageClassName string,
+// getOrCreateTargetService creates cstor volume target service
+func getOrCreateTargetService(storageClassName string,
 	claim *apis.CStorVolumeClaim,
 ) (*corev1.Service, error) {
-
-	labels := map[string]string{
-		"openebs.io/target-service":      "cstor-target-svc",
-		"openebs.io/storage-engine-type": "cstor",
-		"openebs.io/persistent-volume":   claim.Name,
-	}
-	selectors := map[string]string{
-		"app":                          "cstor-volume-manager",
-		"openebs.io/target":            "cstor-target",
-		"openebs.io/persistent-volume": claim.Name,
-	}
-	annotations := map[string]string{
-		"openebs.io/storage-class-ref": "name: " + storageClassName,
-	}
-
-	OwnerReference := []metav1.OwnerReference{
-		*metav1.NewControllerRef(claim,
-			apis.SchemeGroupVersion.WithKind("CStorVolumeClaim")),
-	}
 
 	svcObj, err := svc.NewKubeClient(svc.WithNamespace("openebs")).
 		Get(claim.Name, metav1.GetOptions{})
@@ -208,11 +251,10 @@ func createTargetService(storageClassName string,
 	if k8serror.IsNotFound(err) {
 		svcObj, err = svc.NewBuilder().
 			WithName(claim.Name).
-			WithLabelsNew(labels).
-			WithAnnotations(annotations).
-			WithOwnerRefernceNew(OwnerReference).
-			WithSelectorsNew(selectors).
-			WithPorts(ports).
+			WithLabelsNew(getTargetServiceLabels(claim)).
+			WithOwnerReferenceNew(getTargetServiceOwnerReference(claim)).
+			WithSelectorsNew(getTargetServiceSelectors(claim)).
+			WithPorts(cvPorts).
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(
@@ -227,35 +269,24 @@ func createTargetService(storageClassName string,
 	return svcObj, err
 }
 
-// cstorvolumereplicacr creates CStorVolume resource for a cstor volume
-func createCStorVolumecr(service *corev1.Service,
+// getOrCreateCStorVolumeResource creates CStorVolume resource for a cstor volume
+func getOrCreateCStorVolumeResource(
+	service *corev1.Service,
 	claim *apis.CStorVolumeClaim,
-	scName string,
+	class *storagev1.StorageClass,
 ) (*apis.CStorVolume, error) {
 
-	labels := map[string]string{
-		"openebs.io/target-service":    "cstor-target-svc",
-		"openebs.io/persistent-volume": claim.Name,
-	}
-	annotations := map[string]string{
-		//"openebs.io/storage-class-ref": "name: " + storageClassName,
-		"openebs.io/fs-type": "ext4",
-		"openebs.io/lun":     "0",
-	}
-	OwnerReference := []metav1.OwnerReference{
-		*metav1.NewControllerRef(claim,
-			apis.SchemeGroupVersion.WithKind("CStorVolumeClaim")),
-	}
-
 	qCap := claim.Spec.Capacity[corev1.ResourceStorage]
-	rfactor, cfactor, err := getReplicationFactor(scName)
+	rfactor, err := getReplicationFactor(class)
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
-			"failed to get replica-count and factor {%s}",
-			scName,
+			"failed to get replica-count and factor from sc {%s}",
+			class.Name,
 		)
 	}
+
+	cfactor := rfactor/2 + 1
 
 	cvObj, err := cv.NewKubeclient(cv.WithNamespace("openebs")).
 		Get(claim.Name, metav1.GetOptions{})
@@ -269,14 +300,13 @@ func createCStorVolumecr(service *corev1.Service,
 	if k8serror.IsNotFound(err) {
 		cvObj, err = cv.NewBuilder().
 			WithName(claim.Name).
-			WithLabelsNew(labels).
-			WithAnnotationsNew(annotations).
-			WithOwnerRefernceNew(OwnerReference).
+			WithLabelsNew(getCVLabels(claim)).
+			WithOwnerRefernceNew(getCVOwnerReference(claim)).
 			WithTargetIP(service.Spec.ClusterIP).
 			WithCapacity(qCap.String()).
 			WithCStorIQN(claim.Name).
-			WithTargetPortal(service.Spec.ClusterIP + ":" + "3260").
-			WithTargetPort("3260").
+			WithTargetPortal(service.Spec.ClusterIP + ":" + cv.TargetPort).
+			WithTargetPort(cv.TargetPort).
 			WithReplicationFactor(rfactor).
 			WithConsistencyFactor(cfactor).
 			Build()
@@ -287,7 +317,6 @@ func createCStorVolumecr(service *corev1.Service,
 				cvObj,
 			)
 		}
-
 		return cv.NewKubeclient(cv.WithNamespace("openebs")).Create(cvObj)
 	}
 	return cvObj, err
@@ -300,10 +329,15 @@ func createCStorVolumecr(service *corev1.Service,
 func createCStorVolumeReplica(
 	service *corev1.Service,
 	volume *apis.CStorVolume,
-	scName string,
+	class *storagev1.StorageClass,
 ) error {
 
-	replicaCount, spcName, err := getFromParameters(scName)
+	spcName := getSPC(class)
+	if len(spcName) == 0 {
+		return errors.New("failed to get spc name from storageClass")
+	}
+
+	replicaCount, err := getReplicationFactor(class)
 	if err != nil {
 		return err
 	}
@@ -311,15 +345,6 @@ func createCStorVolumeReplica(
 	poolList, err := listCStorPools(spcName, replicaCount)
 	if err != nil {
 		return err
-	}
-
-	if len(poolList.Items) < replicaCount {
-		return errors.Wrapf(
-			err,
-			"not enough pools to provision expected count {%d} actual count {%d}",
-			replicaCount,
-			len(poolList.Items),
-		)
 	}
 
 	for i, pool := range poolList.Items {
@@ -341,23 +366,6 @@ func creatCVR(
 	pool *apis.CStorPool,
 ) (*apis.CStorVolumeReplica, error) {
 
-	labels := map[string]string{
-		"cstorpool.openebs.io/name":    pool.Name,
-		"cstorpool.openebs.io/uid":     string(pool.UID),
-		"cstorvolume.openebs.io/name":  volume.Name,
-		"openebs.io/persistent-volume": volume.Name,
-	}
-	annotations := map[string]string{
-		"cstorpool.openebs.io/hostname": pool.Labels["kubernetes.io/hostname"],
-	}
-	finalizer := []string{
-		"cstorvolumereplica.openebs.io/finalizer",
-	}
-	OwnerReference := []metav1.OwnerReference{
-		*metav1.NewControllerRef(volume,
-			apis.SchemeGroupVersion.WithKind("CStorVolume")),
-	}
-
 	cvrObj, err := cvr.NewKubeclient(cvr.WithNamespace("openebs")).
 		Get(volume.Name+"-"+pool.Name, metav1.GetOptions{})
 
@@ -371,10 +379,10 @@ func creatCVR(
 	if k8serror.IsNotFound(err) {
 		cvrObj, err = cvr.NewBuilder().
 			WithName(volume.Name + "-" + pool.Name).
-			WithLabelsNew(labels).
-			WithAnnotationsNew(annotations).
-			WithOwnerRefernceNew(OwnerReference).
-			WithFinalizers(finalizer).
+			WithLabelsNew(getCVRLabels(pool, volume.Name)).
+			WithAnnotationsNew(getCVRAnnotations(pool)).
+			WithOwnerRefernceNew(getCVROwnerReference(volume)).
+			WithFinalizers(getCVRFinalizer()).
 			WithTargetIP(service.Spec.ClusterIP).
 			WithCapacity(volume.Spec.Capacity).
 			Build()

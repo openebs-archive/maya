@@ -21,8 +21,10 @@ import (
 )
 
 const (
-	//CstorNodeBase NodeBase ...
+	//CstorNodeBase nodeBase for cstor volume
 	CstorNodeBase string = "iqn.2016-09.com.openebs.cstor"
+	// TargetPort is port for cstor volume
+	TargetPort string = "3260"
 )
 
 // Builder is the builder object for CStorVolume

@@ -28,7 +28,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	cvc "github.com/openebs/maya/cmd/cstorvolume-claim/cvc"
+	cvc "github.com/openebs/maya/cmd/cstorvolumeclaim"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/server"
 	spc "github.com/openebs/maya/cmd/maya-apiserver/cstor-operator/spc"

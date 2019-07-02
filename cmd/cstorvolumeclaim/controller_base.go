@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cvc
+package cstorvolumeclaim
 
 import (
 	"fmt"
@@ -40,8 +40,8 @@ import (
 
 const controllerAgentName = "cstorvolumeclaim-controller"
 
-// Controller is the controller implementation for SPC resources
-type Controller struct {
+// CVCController is the controller implementation for CVC resources
+type CVCController struct {
 	// kubeclientset is a standard kubernetes clientset
 	kubeclientset kubernetes.Interface
 
@@ -75,110 +75,110 @@ type Controller struct {
 	recorder record.EventRecorder
 }
 
-// ControllerBuilder is the builder object for controller.
-type ControllerBuilder struct {
-	Controller *Controller
+// CVCControllerBuilder is the builder object for controller.
+type CVCControllerBuilder struct {
+	CVCController *CVCController
 }
 
-// NewControllerBuilder returns an empty instance of controller builder.
-func NewControllerBuilder() *ControllerBuilder {
-	return &ControllerBuilder{
-		Controller: &Controller{},
+// NewCVCControllerBuilder returns an empty instance of controller builder.
+func NewCVCControllerBuilder() *CVCControllerBuilder {
+	return &CVCControllerBuilder{
+		CVCController: &CVCController{},
 	}
 }
 
 // withKubeClient fills kube client to controller object.
-func (cb *ControllerBuilder) withKubeClient(ks kubernetes.Interface) *ControllerBuilder {
-	cb.Controller.kubeclientset = ks
+func (cb *CVCControllerBuilder) withKubeClient(ks kubernetes.Interface) *CVCControllerBuilder {
+	cb.CVCController.kubeclientset = ks
 	return cb
 }
 
 // withOpenEBSClient fills openebs client to controller object.
-func (cb *ControllerBuilder) withOpenEBSClient(cs clientset.Interface) *ControllerBuilder {
-	cb.Controller.clientset = cs
+func (cb *CVCControllerBuilder) withOpenEBSClient(cs clientset.Interface) *CVCControllerBuilder {
+	cb.CVCController.clientset = cs
 	return cb
 }
 
 // withNDMClient fills ndm client to controller object.
-func (cb *ControllerBuilder) withNDMClient(ndmcs ndmclientset.Interface) *ControllerBuilder {
-	cb.Controller.ndmclientset = ndmcs
+func (cb *CVCControllerBuilder) withNDMClient(ndmcs ndmclientset.Interface) *CVCControllerBuilder {
+	cb.CVCController.ndmclientset = ndmcs
 	return cb
 }
 
 // withCVCLister fills cvc lister to controller object.
-func (cb *ControllerBuilder) withCVCLister(sl informers.SharedInformerFactory) *ControllerBuilder {
+func (cb *CVCControllerBuilder) withCVCLister(sl informers.SharedInformerFactory) *CVCControllerBuilder {
 	cvcInformer := sl.Openebs().V1alpha1().CStorVolumeClaims()
-	cb.Controller.cvcLister = cvcInformer.Lister()
+	cb.CVCController.cvcLister = cvcInformer.Lister()
 	return cb
 }
 
 // withCVRLister fills cvr lister to controller object.
-func (cb *ControllerBuilder) withCVLister(sl informers.SharedInformerFactory) *ControllerBuilder {
+func (cb *CVCControllerBuilder) withCVLister(sl informers.SharedInformerFactory) *CVCControllerBuilder {
 	cvInformer := sl.Openebs().V1alpha1().CStorVolumes()
-	cb.Controller.cvLister = cvInformer.Lister()
+	cb.CVCController.cvLister = cvInformer.Lister()
 	return cb
 }
 
 // withCSPLister fills csp lister to controller object.
-func (cb *ControllerBuilder) withCSPLister(sl informers.SharedInformerFactory) *ControllerBuilder {
+func (cb *CVCControllerBuilder) withCSPLister(sl informers.SharedInformerFactory) *CVCControllerBuilder {
 	cspInformer := sl.Openebs().V1alpha1().CStorPools()
-	cb.Controller.cspLister = cspInformer.Lister()
+	cb.CVCController.cspLister = cspInformer.Lister()
 	return cb
 }
 
 // withCVCLister returns a Store implemented simply with a map and a lock.
-func (cb *ControllerBuilder) withCVCStore() *ControllerBuilder {
-	cb.Controller.cvcStore = cache.NewStore(cache.DeletionHandlingMetaNamespaceKeyFunc)
+func (cb *CVCControllerBuilder) withCVCStore() *CVCControllerBuilder {
+	cb.CVCController.cvcStore = cache.NewStore(cache.DeletionHandlingMetaNamespaceKeyFunc)
 	return cb
 }
 
-// withspcSynced adds object sync information in cache to controller object.
-func (cb *ControllerBuilder) withCVCSynced(sl informers.SharedInformerFactory) *ControllerBuilder {
+// withCVCSynced adds object sync information in cache to controller object.
+func (cb *CVCControllerBuilder) withCVCSynced(sl informers.SharedInformerFactory) *CVCControllerBuilder {
 	cvcInformer := sl.Openebs().V1alpha1().CStorVolumeClaims()
-	cb.Controller.cvcSynced = cvcInformer.Informer().HasSynced
+	cb.CVCController.cvcSynced = cvcInformer.Informer().HasSynced
 	return cb
 }
 
 // withWorkqueue adds workqueue to controller object.
-func (cb *ControllerBuilder) withWorkqueueRateLimiting() *ControllerBuilder {
-	cb.Controller.workqueue = workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CVC")
+func (cb *CVCControllerBuilder) withWorkqueueRateLimiting() *CVCControllerBuilder {
+	cb.CVCController.workqueue = workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CVC")
 	return cb
 }
 
 // withRecorder adds recorder to controller object.
-func (cb *ControllerBuilder) withRecorder(ks kubernetes.Interface) *ControllerBuilder {
+func (cb *CVCControllerBuilder) withRecorder(ks kubernetes.Interface) *CVCControllerBuilder {
 	glog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: ks.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
-	cb.Controller.recorder = recorder
+	cb.CVCController.recorder = recorder
 	return cb
 }
 
 // withEventHandler adds event handlers controller object.
-func (cb *ControllerBuilder) withEventHandler(spcInformerFactory informers.SharedInformerFactory) *ControllerBuilder {
-	cvcInformer := spcInformerFactory.Openebs().V1alpha1().CStorVolumeClaims()
+func (cb *CVCControllerBuilder) withEventHandler(cvcInformerFactory informers.SharedInformerFactory) *CVCControllerBuilder {
+	cvcInformer := cvcInformerFactory.Openebs().V1alpha1().CStorVolumeClaims()
 	// Set up an event handler for when CVC resources change
 	cvcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    cb.Controller.addCVC,
-		UpdateFunc: cb.Controller.updateCVC,
-		DeleteFunc: cb.Controller.deleteCVC,
+		AddFunc:    cb.CVCController.addCVC,
+		UpdateFunc: cb.CVCController.updateCVC,
+		DeleteFunc: cb.CVCController.deleteCVC,
 	})
 	return cb
 }
 
 // Build returns a controller instance.
-func (cb *ControllerBuilder) Build() (*Controller, error) {
+func (cb *CVCControllerBuilder) Build() (*CVCController, error) {
 	err := openebsScheme.AddToScheme(scheme.Scheme)
 	if err != nil {
 		return nil, err
 	}
-	return cb.Controller, nil
+	return cb.CVCController, nil
 }
 
 // addCVC is the add event handler for CstorVolumeClaim
-func (c *Controller) addCVC(obj interface{}) {
+func (c *CVCController) addCVC(obj interface{}) {
 	cvc, ok := obj.(*apis.CStorVolumeClaim)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Couldn't get cvc object %#v", obj))
@@ -190,19 +190,17 @@ func (c *Controller) addCVC(obj interface{}) {
 }
 
 // updateCVC is the update event handler for CstorVolumeClaim
-func (c *Controller) updateCVC(oldCVC, newCVC interface{}) {
-	_, ok := newCVC.(*apis.CStorVolumeClaim)
+func (c *CVCController) updateCVC(oldCVC, newCVC interface{}) {
+	newCVC, ok := newCVC.(*apis.CStorVolumeClaim)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Couldn't get cvc object %#v", newCVC))
 		return
 	}
-	//if c.isCVCPending(cvc) {
 	c.enqueueCVC(newCVC)
-	//}
 }
 
 // deleteCVC is the delete event handler for CstorVolumeClaim
-func (c *Controller) deleteCVC(obj interface{}) {
+func (c *CVCController) deleteCVC(obj interface{}) {
 	cvc, ok := obj.(*apis.CStorVolumeClaim)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -224,7 +222,7 @@ func (c *Controller) deleteCVC(obj interface{}) {
 // as syncing informer caches and starting workers. It will block until stopCh
 // is closed, at which point it will shutdown the workqueue and wait for
 // workers to finish processing their current work items.
-func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
+func (c *CVCController) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer runtime.HandleCrash()
 	defer c.workqueue.ShutDown()
 
@@ -253,14 +251,14 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 // runWorker is a long-running function that will continually call the
 // processNextWorkItem function in order to read and process a message on the
 // workqueue.
-func (c *Controller) runWorker() {
+func (c *CVCController) runWorker() {
 	for c.processNextWorkItem() {
 	}
 }
 
 // processNextWorkItem will read a single work item off the workqueue and
 // attempt to process it, by calling the syncHandler.
-func (c *Controller) processNextWorkItem() bool {
+func (c *CVCController) processNextWorkItem() bool {
 	obj, shutdown := c.workqueue.Get()
 
 	if shutdown {
@@ -292,7 +290,7 @@ func (c *Controller) processNextWorkItem() bool {
 			return nil
 		}
 		// Run the syncHandler, passing it the namespace/name string of the
-		// Foo resource to be synced.
+		// CVC resource to be synced.
 		if err := c.syncHandler(key); err != nil {
 			// Put the item back on the workqueue to handle any transient errors.
 			c.workqueue.AddRateLimited(key)
@@ -301,7 +299,7 @@ func (c *Controller) processNextWorkItem() bool {
 		// Finally, if no error occurs we Forget this item so it does not
 		// get queued again until another change happens.
 		c.workqueue.Forget(obj)
-		glog.V(1).Infof("Successfully synced '%s'", key)
+		glog.V(4).Infof("Successfully synced '%s'", key)
 		return nil
 	}(obj)
 

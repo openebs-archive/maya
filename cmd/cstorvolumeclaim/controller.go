@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cvc
+package cstorvolumeclaim
 
 import (
 	"encoding/json"
@@ -59,7 +59,7 @@ const (
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the spcPoolUpdated resource
 // with the current status of the resource.
-func (c *Controller) syncHandler(key string) error {
+func (c *CVCController) syncHandler(key string) error {
 	startTime := time.Now()
 	glog.V(4).Infof("Started syncing cstorvolumeclaim %q (%v)", key, startTime)
 	defer func() {
@@ -90,7 +90,7 @@ func (c *Controller) syncHandler(key string) error {
 // enqueueCVC takes a CVC resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
 // passed resources of any type other than CStorVolumeClaims.
-func (c *Controller) enqueueCVC(obj interface{}) {
+func (c *CVCController) enqueueCVC(obj interface{}) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
@@ -116,17 +116,9 @@ func (c *Controller) enqueueCVC(obj interface{}) {
 
 // synCVC is the function which tries to converge to a desired state for the
 // CStorVolumeClaims
-func (c *Controller) syncCVC(cvc *apis.CStorVolumeClaim) error {
-	err := c.create(cvc)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// create is a wrapper function that calls the actual function to create pool as many time
-// as the number of pools need to be created.
-func (c *Controller) create(cvc *apis.CStorVolumeClaim) error {
+func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
+	// create is a wrapper function that calls the actual function to create pool as many time
+	// as the number of pools need to be created.
 	//	var newCVCLease Leaser
 	//	newCVCLease = &Lease{cvc, cvcLeaseKey, c.clientset, c.kubeclientset}
 	//	err := newCVCLease.Hold()
@@ -186,9 +178,10 @@ func (c *Controller) create(cvc *apis.CStorVolumeClaim) error {
 	return nil
 }
 
-// UpdateCVCStatus updates the status block of the CVC resource to reflect the
+// UpdateCVC updates the status block of the CVC resource to reflect the
 // current state of the world
-func (c *Controller) updateCVCStatus(cvc *apis.CStorVolumeClaim,
+func (c *CVCController) updateCVCStatus(
+	cvc *apis.CStorVolumeClaim,
 	cv *apis.CStorVolume,
 ) error {
 	// NEVER modify objects from the store. It's a read-only, local cache.
@@ -197,9 +190,11 @@ func (c *Controller) updateCVCStatus(cvc *apis.CStorVolumeClaim,
 	cvcCopy := cvc.DeepCopy()
 	if cvc.Name != cv.Name {
 		return fmt.
-			Errorf("could not bind cstorvolumeclaim %s and cstorvolume %s, name does not match", cvc.Name, cv.Name)
+			Errorf("could not bind cstorvolumeclaim %s and cstorvolume %s, name does not match",
+				cvc.Name,
+				cv.Name)
 	}
-	cvcCopy.Status.Phase = "Bound"
+
 	_, err := c.clientset.OpenebsV1alpha1().CStorVolumeClaims(cvc.Namespace).Update(cvcCopy)
 	return err
 }
@@ -210,30 +205,36 @@ func (c *Controller) updateCVCStatus(cvc *apis.CStorVolumeClaim,
 // 3. Create target deployment.
 // 4. Create cstorvolumeclaim resource.
 // 5. Update the cstorvolumeclaim with claimRef info and bound with cstorvolume.
-func (c *Controller) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeClaim, error) {
+func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeClaim, error) {
 
 	glog.V(2).Infof("creating cstorvolume service resource")
 	scName := cvc.Annotations[string(apis.StorageConfigClassKey)]
-	svcObj, err := createTargetService(scName, cvc)
+
+	scObj, err := getStorageClass(scName)
+	if err != nil {
+		return nil, err
+	}
+
+	svcObj, err := getOrCreateTargetService(scName, cvc)
 	if err != nil {
 		return nil, err
 	}
 
 	glog.V(2).Infof("creating cstorvolume resource")
-	cvObj, err := createCStorVolumecr(svcObj, cvc, scName)
+	cvObj, err := getOrCreateCStorVolumeResource(svcObj, cvc, scObj)
 	if err != nil {
 		glog.Infof("creating cstorvolume : %s", err)
 		return nil, err
 	}
 
 	glog.V(2).Infof("creating cstorvolume target deployment")
-	_, err = createCStorTargetDeployment(cvObj)
+	_, err = getOrCreateCStorTargetDeployment(cvObj)
 	if err != nil {
 		return nil, err
 	}
 
 	glog.V(2).Infof("creating cstorvolume replica resource")
-	err = createCStorVolumeReplica(svcObj, cvObj, scName)
+	err = createCStorVolumeReplica(svcObj, cvObj, scObj)
 	if err != nil {
 		return nil, err
 	}
@@ -243,6 +244,7 @@ func (c *Controller) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis.CS
 		return nil, err
 	}
 	cvc.Spec.CStorVolumeRef = volumeRef
+	cvc.Status.Phase = "Bound"
 
 	err = c.updateCVCStatus(cvc, cvObj)
 	if err != nil {
@@ -259,7 +261,7 @@ func isClaimDeletionCandidate(cvc *apis.CStorVolumeClaim) bool {
 
 // removeFinalizer removes finalizers present in
 // CStorVolumeClaim resource
-func (c *Controller) removeClaimFinalizer(
+func (c *CVCController) removeClaimFinalizer(
 	cvc *apis.CStorVolumeClaim,
 ) error {
 	cvcPatch := []Patch{

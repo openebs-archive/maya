@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cvc
+package cstorvolumeclaim
 
 import (
 	"os"
@@ -25,8 +25,10 @@ import (
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
 	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
+	"github.com/openebs/maya/pkg/version"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -60,13 +62,26 @@ var (
 			MountPath: "/usr/local/etc/istgt",
 		},
 	}
+	// OpenEBSServiceAccount name of the openebs service accout with required
+	// permissions
+	OpenEBSServiceAccount = "openebs-maya-operator"
+	// TargetContainerName is the name of cstor target container name
+	TargetContainerName = "cstor-istgt"
+	// MonitorContainerName is the name of monitor container name
+	MonitorContainerName = "maya-volume-exporter"
+	// MgmtContainerName is the container name of cstor volume mgmt side car
+	MgmtContainerName = "cstor-volume-mgmt"
 )
 
 func getDeployLabels(pvName string) map[string]string {
 	return map[string]string{
-		"app":                          "cstor-volume-manager",
-		"openebs.io/target":            "cstor-target",
-		"openebs.io/persistent-volume": pvName,
+		"app":                            "cstor-volume-manager",
+		"openebs.io/target":              "cstor-target",
+		"openebs.io/storage-engine-type": "cstor",
+		"openebs.io/cas-type":            "cstor",
+		"openebs.io/persistent-volume":   pvName,
+		"openebs.io/version":             version.GetVersion(),
+		"openebs.io/storage-pool-claim":  "",
 	}
 }
 
@@ -260,81 +275,93 @@ func getContainerPort(port int32) []corev1.ContainerPort {
 	}
 }
 
-// createCStorTargetDeployment creates the cstor target deployment
-// for a given cstorvolume
-func createCStorTargetDeployment(
+// getOrCreateCStorTargetDeployment get or create the cstor target deployment
+// for a given cstorvolume.
+func getOrCreateCStorTargetDeployment(
 	vol *apis.CStorVolume,
 ) (*appsv1.Deployment, error) {
 
-	deployObj, err := deploy.NewBuilder().
-		WithName(vol.Name + "-target").
-		WithLabelsNew(getDeployLabels(vol.Name)).
-		WithAnnotationsNew(getDeployAnnotation()).
-		WithOwnerRefernceNew(getDeployOwnerReference(vol)).
-		WithReplicas(&deployreplicas).
-		WithStrategyType(
-			appsv1.RecreateDeploymentStrategyType,
-		).
-		WithSelectorMatchLabelsNew(getDeployMatchLabels(vol.Name)).
-		WithTemplateSpecBuilder(
-			pts.NewBuilder().
-				WithLabelsNew(getDeployTemplateLabels(vol.Name)).
-				WithAnnotationsNew(getDeployTemplateAnnotations()).
-				WithServiceAccountName("openebs-maya-operator").
-				//WithAffinity(getDeployTemplateAffinity()).
-				// TODO use of selector and affinity
-				//WithNodeSelectorNew().
-				WithTolerationsNew(getDeployTemplateTolerations()...).
-				WithContainerBuilders(
-					container.NewBuilder().
-						WithImage(getVolumeTargetImage()).
-						WithName("cstor-istgt").
-						WithImagePullPolicy(corev1.PullIfNotPresent).
-						WithPorts(getContainerPort(3260)).
-						WithPrivilegedSecurityContext(&privileged).
-						WithVolumeMounts(getTargetMgmtMounts()),
-					container.NewBuilder().
-						WithImage(getVolumeMonitorImage()).
-						WithName("maya-volume-exporter").
-						WithCommand([]string{"maya-exporter"}).
-						WithArguments([]string{"-e=cstor"}).
-						WithPorts(getContainerPort(9500)).
-						WithVolumeMounts(getMonitorMounts()),
-					container.NewBuilder().
-						WithImage(getVolumeMgmtImage()).
-						WithName("cstor-volume-mgmt").
-						WithImagePullPolicy(corev1.PullIfNotPresent).
-						WithPorts(getContainerPort(80)).
-						WithEnvs(getDeployTemplateEnvs(string(vol.UID))).
-						WithPrivilegedSecurityContext(&privileged).
-						WithVolumeMounts(getTargetMgmtMounts()),
-				).
-				WithVolumeBuilders(
-					volume.NewBuilder().
-						WithName("sockfile").
-						WithEmptyDir(&corev1.EmptyDirVolumeSource{}),
-					volume.NewBuilder().
-						WithName("conf").
-						WithEmptyDir(&corev1.EmptyDirVolumeSource{}),
-					volume.NewBuilder().
-						WithName("tmp").
-						WithHostPathAndType(
-							getTargetDirPath(vol.Name),
-							&hostpathType,
-						),
-				),
-		).
-		Build()
+	deployObj, err := deploy.NewKubeClient(deploy.WithNamespace("openebs")).
+		Get(vol.Name + "-target")
 
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to build deployment object")
+	if err != nil && !k8serror.IsNotFound(err) {
+		return nil, errors.Wrapf(
+			err,
+			"failed to get cstorvolume target {%v}",
+			deployObj.Name,
+		)
 	}
 
-	deploymentObj, err := deploy.NewKubeClient(deploy.WithNamespace("openebs")).Create(deployObj.Object)
+	if k8serror.IsNotFound(err) {
+		deployObj, err = deploy.NewBuilder().
+			WithName(vol.Name + "-target").
+			WithLabelsNew(getDeployLabels(vol.Name)).
+			WithAnnotationsNew(getDeployAnnotation()).
+			WithOwnerReferenceNew(getDeployOwnerReference(vol)).
+			WithReplicas(&deployreplicas).
+			WithStrategyType(
+				appsv1.RecreateDeploymentStrategyType,
+			).
+			WithSelectorMatchLabelsNew(getDeployMatchLabels(vol.Name)).
+			WithPodTemplateSpecBuilder(
+				pts.NewBuilder().
+					WithLabelsNew(getDeployTemplateLabels(vol.Name)).
+					WithAnnotationsNew(getDeployTemplateAnnotations()).
+					WithServiceAccountName(OpenEBSServiceAccount).
+					//WithAffinity(getDeployTemplateAffinity()).
+					// TODO use of selector and affinity
+					//WithNodeSelectorNew().
+					WithTolerationsNew(getDeployTemplateTolerations()...).
+					WithContainerBuilders(
+						container.NewBuilder().
+							WithImage(getVolumeTargetImage()).
+							WithName(TargetContainerName).
+							WithImagePullPolicy(corev1.PullIfNotPresent).
+							WithPortsNew(getContainerPort(3260)).
+							WithPrivilegedSecurityContext(&privileged).
+							WithVolumeMountsNew(getTargetMgmtMounts()),
+						container.NewBuilder().
+							WithImage(getVolumeMonitorImage()).
+							WithName(MonitorContainerName).
+							WithCommandNew([]string{"maya-exporter"}).
+							WithArgumentsNew([]string{"-e=cstor"}).
+							WithPortsNew(getContainerPort(9500)).
+							WithVolumeMountsNew(getMonitorMounts()),
+						container.NewBuilder().
+							WithImage(getVolumeMgmtImage()).
+							WithName(MgmtContainerName).
+							WithImagePullPolicy(corev1.PullIfNotPresent).
+							WithPortsNew(getContainerPort(80)).
+							WithEnvsNew(getDeployTemplateEnvs(string(vol.UID))).
+							WithPrivilegedSecurityContext(&privileged).
+							WithVolumeMountsNew(getTargetMgmtMounts()),
+					).
+					WithVolumeBuilders(
+						volume.NewBuilder().
+							WithName("sockfile").
+							WithEmptyDir(&corev1.EmptyDirVolumeSource{}),
+						volume.NewBuilder().
+							WithName("conf").
+							WithEmptyDir(&corev1.EmptyDirVolumeSource{}),
+						volume.NewBuilder().
+							WithName("tmp").
+							WithHostPathAndType(
+								getTargetDirPath(vol.Name),
+								&hostpathType,
+							),
+					),
+			).
+			Build()
 
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create deployment object")
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to build deployment object")
+		}
+
+		deployObj, err = deploy.NewKubeClient(deploy.WithNamespace("openebs")).Create(deployObj)
+
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to create deployment object")
+		}
 	}
-
-	return deploymentObj, nil
+	return deployObj, nil
 }

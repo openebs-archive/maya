@@ -152,9 +152,9 @@ func (b *Builder) WithAnnotationsNew(annotations map[string]string) *Builder {
 	return b
 }
 
-// WithOwnerRefernceNew sets ownerrefernce if any with
+// WithOwnerReferenceNew sets ownerreference if any with
 // ones that are provided here
-func (b *Builder) WithOwnerRefernceNew(ownerRefernce []metav1.OwnerReference) *Builder {
+func (b *Builder) WithOwnerReferenceNew(ownerRefernce []metav1.OwnerReference) *Builder {
 	if len(ownerRefernce) == 0 {
 		b.errors = append(
 			b.errors,
@@ -163,7 +163,7 @@ func (b *Builder) WithOwnerRefernceNew(ownerRefernce []metav1.OwnerReference) *B
 		return b
 	}
 
-	b.deployment.Object.OwnerReferences = ownerRefernce
+	b.deployment.object.OwnerReferences = ownerRefernce
 	return b
 }
 
