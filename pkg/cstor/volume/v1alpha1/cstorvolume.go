@@ -86,16 +86,29 @@ type Predicate func(*CStorVolume) bool
 
 // IsHealthy returns true if the CVR is in
 // healthy state
-func (p *CStorVolume) IsHealthy() bool {
-	return p.object.Status.Phase == "Healthy"
+func (c *CStorVolume) IsHealthy() bool {
+	return c.object.Status.Phase == "Healthy"
 }
 
 // IsHealthy is a predicate to filter out cstorvolumes
 // which is healthy
 func IsHealthy() Predicate {
-	return func(p *CStorVolume) bool {
-		return p.IsHealthy()
+	return func(c *CStorVolume) bool {
+		return c.IsHealthy()
 	}
+}
+
+// IsResizePending return true if resize is in progress
+func (c *CStorVolume) IsResizePending() bool {
+	for _, cond := range c.object.Status.Conditions {
+		if cond.Type == apis.CStorVolumeResizing {
+			if cond.Status == apis.ConditionInProgress {
+				return true
+			}
+			return false
+		}
+	}
+	return false
 }
 
 // PredicateList holds a list of cstor volume

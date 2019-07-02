@@ -31,11 +31,16 @@ import (
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/volume"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/k8s"
+	cstorvolume "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+)
+
+var (
+	cStorVolumeKey = "cstorvolume.openebs.io/name"
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -93,7 +98,6 @@ func (c *CStorVolumeController) syncHandler(
 	glog.V(4).Infof("cStorVolume:%v, %v; Status: %v", cStorVolumeGot.Name,
 		string(cStorVolumeGot.GetUID()), cStorVolumeGot.Status.Phase)
 	return nil
-
 }
 
 // cStorVolumeEventHandler is to handle cstor volume related events.
@@ -129,10 +133,25 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		if err != nil {
 			return common.CVStatusInvalid, err
 		}
-
-		err = volume.CreateVolumeTarget(cStorVolumeGot)
-		if err != nil {
-			return common.CVStatusError, err
+		// blocking call for doing resize operation
+		if isResizePending(cStorVolumeGot) {
+			// return same as previous state
+			statusPhase := common.CStorVolumeStatus(cStorVolumeGot.Status.Phase)
+			err = c.resizeVolume(cStorVolumeGot)
+			if err != nil {
+				eventMessage := fmt.Sprintf(
+					"failed to resize cstorvolume %s with capacity %s",
+					cStorVolumeGot.Name,
+					cStorVolumeGot.Spec.Capacity)
+				c.recorder.Event(cStorVolumeGot, corev1.EventTypeWarning, string(common.FailureUpdate), eventMessage)
+				return statusPhase, pkg_errors.Wrapf(
+					err,
+					"failed to resize cstorvolume %s",
+					cStorVolumeGot.Name,
+				)
+			}
+			err := c.updateCVSubResource(cStorVolumeGot, apis.CStorVolumeResizing, apis.ConditionSuccess)
+			return statusPhase, err
 		}
 		// update the status capacity of cstorvolume caller of this code
 		// will update in etcd
@@ -144,6 +163,26 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 
 	case common.QOpPeriodicSync:
 		lastKnownPhase := cStorVolumeGot.Status.Phase
+		//TODO: need to update resource
+		// blocking call for doing resize operation
+		if isResizePending(cStorVolumeGot) {
+			// return same as previous state
+			err := c.resizeVolume(cStorVolumeGot)
+			if err != nil {
+				eventMessage := fmt.Sprintf(
+					"failed to resize cstorvolume %s with capacity %s",
+					cStorVolumeGot.Name,
+					cStorVolumeGot.Spec.Capacity)
+				c.recorder.Event(cStorVolumeGot, corev1.EventTypeWarning, string(common.FailureUpdate), eventMessage)
+			}
+			err = c.updateCVSubResource(cStorVolumeGot, apis.CStorVolumeResizing, apis.ConditionSuccess)
+			if err != nil {
+				glog.Errorf(
+					"failed to update cstorvolume %s",
+					cStorVolumeGot.Name,
+				)
+			}
+		}
 		volStatus, err := volume.GetVolumeStatus(cStorVolumeGot)
 		if err != nil {
 			glog.Errorf("Error in getting volume status: %s", err.Error())
@@ -322,6 +361,86 @@ func (c *CStorVolumeController) getVolumeResource(
 		return nil, err
 	}
 	return cStorVolumeGot, nil
+}
+
+func (c *CStorVolumeController) resizeVolume(cStorVolume *apis.CStorVolume) error {
+	err := volume.ResizeVolume(cStorVolume)
+	if err != nil {
+		return err
+	}
+	err = c.updateCVRCapacity(cStorVolume)
+	if err != nil {
+		return pkg_errors.Wrapf(err, "failed to update cstorvolumereplica capacity")
+	}
+	return nil
+}
+
+func (c *CStorVolumeController) updateCVSubResource(cStorVolume *apis.CStorVolume, condType apis.CStorVolumeConditionType, condStatus apis.ConditionStatus) error {
+	cvBuilder := cstorvolume.
+		BuilderFromAPI(cStorVolume).
+		WithConditionStatus(condType, condStatus)
+	obj, err := cvBuilder.Build()
+	if err != nil {
+		return err
+	}
+
+	_, err = c.clientset.
+		OpenebsV1alpha1().
+		CStorVolumes(cStorVolume.Namespace).
+		UpdateStatus(obj)
+	return nil
+}
+
+func (c *CStorVolumeController) updateCVRCapacity(cStorVolume *apis.CStorVolume) error {
+	// get list of cvr corresponding to this cstorvolume
+	cvrList, err := c.clientset.
+		OpenebsV1alpha1().
+		CStorVolumeReplicas(cStorVolume.Namespace).
+		List(metav1.ListOptions{LabelSelector: cStorVolumeKey + "=" + cStorVolume.Name})
+	if len(cvrList.Items) == 0 {
+		return pkg_errors.Errorf(
+			"not found cstorvolumereplicas for cstorvolume %s",
+			cStorVolume.Name,
+		)
+	}
+	if err != nil {
+		return pkg_errors.Wrapf(err,
+			"failed to get cstorvolumereplicas for cstorvolume %s",
+			cStorVolume.Name,
+		)
+	}
+
+	capacity := cStorVolume.Spec.Capacity
+	namespace := cStorVolume.Namespace
+
+	//Update CVR with latest cacpacity
+	for _, cvrObj := range cvrList.Items {
+		if cvrObj.Spec.Capacity != capacity {
+			cvrObj.Spec.Capacity = capacity
+			_, err := c.clientset.
+				OpenebsV1alpha1().
+				CStorVolumeReplicas(namespace).
+				Update(&cvrObj)
+			if err != nil {
+				eventMessage := fmt.Sprintf(
+					"failed to update cstorvolumereplica %s with capacity %s",
+					cvrObj.Name,
+					cvrObj.Spec.Capacity)
+				c.recorder.Event(cStorVolume, corev1.EventTypeWarning, string(common.FailureUpdate), eventMessage)
+				return pkg_errors.Wrapf(err,
+					"failed to update cvr %s with cpacity %s",
+					cvrObj.Name,
+					capacity,
+				)
+			}
+		}
+	}
+	return nil
+}
+
+func isResizePending(cStorVolume *apis.CStorVolume) bool {
+	customCVObj := cstorvolume.NewForAPIObject(cStorVolume)
+	return customCVObj.IsResizePending()
 }
 
 // IsValidCStorVolumeMgmt is to check if the volume request

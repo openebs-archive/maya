@@ -196,6 +196,43 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) ([]byte, error) {
 	return dataBytes, nil
 }
 
+// ResizeVolume sends resize volume command to istgt and get the response
+func ResizeVolume(cStorVolume *apis.CStorVolume) error {
+	index, _, err := FileOperatorVar.GetLineDetails(util.IstgtConfPath, "LUN0 Storage")
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to get the details of storage from %s file",
+			util.IstgtConfPath)
+	} else if index == -1 {
+		return errors.Errorf("storage details not found on file %s", util.IstgtConfPath)
+	}
+	//TODO: Size comparision is required between CV and istgt.conf to avoid less
+	// capacity changes
+
+	// send resize command to istgt and read the response
+	resp, err := UnixSockVar.SendCommand(util.IstgtResizeCmd)
+	glog.Infof("[Debug] Response from resize {%s}", resp)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to execute istgt %s command on cstorvolume %s",
+			util.IstgtResizeCmd,
+			cStorVolume.Name)
+	}
+	glog.Info("[Debug] Resized Iscsi Volume Successful")
+
+	updateStorageVal := fmt.Sprintf("  LUN0 Storage %s 32K", cStorVolume.Spec.Capacity)
+	err = FileOperatorVar.Updatefile(util.IstgtConfPath, updateStorageVal, index, 0644)
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to update %v file with %s storage details",
+			util.IstgtConfPath,
+			updateStorageVal)
+	}
+	glog.Infof("[Debug] Updated the '%s' file with capacity '%s'", util.IstgtConfPath, updateStorageVal)
+	return nil
+}
+
 // CheckValidVolume checks for validity of CStorVolume resource.
 func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 	if len(string(cStorVolume.ObjectMeta.UID)) == 0 {

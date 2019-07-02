@@ -39,6 +39,11 @@ func NewBuilder() *Builder {
 	return &Builder{cstorvolume: &CStorVolume{object: &apis.CStorVolume{}}}
 }
 
+// BuilderFromAPI returns builder instance from core API
+func BuilderFromAPI(cStorVolume *apis.CStorVolume) *Builder {
+	return &Builder{cstorvolume: &CStorVolume{object: cStorVolume}}
+}
+
 // WithName sets the Name field of CStorVolume with provided value.
 func (b *Builder) WithName(name string) *Builder {
 	if len(name) == 0 {
@@ -293,6 +298,18 @@ func (b *Builder) WithReplicationFactor(replicationfactor int) *Builder {
 		return b
 	}
 	b.cstorvolume.object.Spec.ReplicationFactor = replicationfactor
+	return b
+}
+
+// WithConditionStatus sets the corresponding state
+func (b *Builder) WithConditionStatus(condType apis.CStorVolumeConditionType, condStatus apis.ConditionStatus) *Builder {
+	// Update the resizecondition
+	for i, cond := range b.cstorvolume.object.Status.Conditions {
+		if cond.Type == condType {
+			cond.Status = condStatus
+			b.cstorvolume.object.Status.Conditions[i] = cond
+		}
+	}
 	return b
 }
 

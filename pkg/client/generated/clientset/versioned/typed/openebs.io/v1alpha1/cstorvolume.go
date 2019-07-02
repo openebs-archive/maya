@@ -37,6 +37,7 @@ type CStorVolumesGetter interface {
 type CStorVolumeInterface interface {
 	Create(*v1alpha1.CStorVolume) (*v1alpha1.CStorVolume, error)
 	Update(*v1alpha1.CStorVolume) (*v1alpha1.CStorVolume, error)
+	UpdateStatus(*v1alpha1.CStorVolume) (*v1alpha1.CStorVolume, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
 	Get(name string, options v1.GetOptions) (*v1alpha1.CStorVolume, error)
@@ -114,6 +115,22 @@ func (c *cStorVolumes) Update(cStorVolume *v1alpha1.CStorVolume) (result *v1alph
 		Namespace(c.ns).
 		Resource("cstorvolumes").
 		Name(cStorVolume.Name).
+		Body(cStorVolume).
+		Do().
+		Into(result)
+	return
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+
+func (c *cStorVolumes) UpdateStatus(cStorVolume *v1alpha1.CStorVolume) (result *v1alpha1.CStorVolume, err error) {
+	result = &v1alpha1.CStorVolume{}
+	err = c.client.Put().
+		Namespace(c.ns).
+		Resource("cstorvolumes").
+		Name(cStorVolume.Name).
+		SubResource("status").
 		Body(cStorVolume).
 		Do().
 		Into(result)
