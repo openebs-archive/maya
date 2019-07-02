@@ -143,6 +143,13 @@ func (b *Builder) AddChecks(p []Predicate) *Builder {
 
 // WithName sets the name of the container
 func (b *Builder) WithName(name string) *Builder {
+	if len(name) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: missing name"),
+		)
+		return b
+	}
 	WithName(name)(b.con)
 	return b
 }
@@ -156,6 +163,13 @@ func WithName(name string) OptionFunc {
 
 // WithImage sets the image of the container
 func (b *Builder) WithImage(img string) *Builder {
+	if len(img) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: missing image"),
+		)
+		return b
+	}
 	WithImage(img)(b.con)
 	return b
 }
@@ -167,41 +181,179 @@ func WithImage(img string) OptionFunc {
 	}
 }
 
-// WithCommand sets the command of the container
-func (b *Builder) WithCommand(cmd []string) *Builder {
-	WithCommand(cmd)(b.con)
+// WithCommandNew sets the command of the container
+func (b *Builder) WithCommandNew(cmd []string) *Builder {
+	if cmd == nil {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: nil command"),
+		)
+		return b
+	}
+
+	if len(cmd) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: missing command"),
+		)
+		return b
+	}
+
+	newcmd := []string{}
+	newcmd = append(newcmd, cmd...)
+
+	b.con.Command = newcmd
 	return b
 }
 
-// WithCommand sets the command of the container
-func WithCommand(cmd []string) OptionFunc {
-	return func(c *container) {
-		c.Command = cmd
+// WithArgumentsNew sets the command arguments of the container
+func (b *Builder) WithArgumentsNew(args []string) *Builder {
+	if args == nil {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: nil arguments"),
+		)
+		return b
 	}
-}
 
-// WithArguments sets the command arguments of the container
-func (b *Builder) WithArguments(args []string) *Builder {
-	WithArguments(args)(b.con)
+	if len(args) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: missing arguments"),
+		)
+		return b
+	}
+
+	newargs := []string{}
+	newargs = append(newargs, args...)
+
+	b.con.Args = newargs
 	return b
 }
 
-// WithArguments sets the command arguments of the container
-func WithArguments(args []string) OptionFunc {
-	return func(c *container) {
-		c.Args = args
+// WithVolumeMountsNew sets the command arguments of the container
+func (b *Builder) WithVolumeMountsNew(volumeMounts []corev1.VolumeMount) *Builder {
+	if volumeMounts == nil {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: nil volumemounts"),
+		)
+		return b
 	}
-}
 
-// WithArguments sets the command arguments of the container
-func (b *Builder) WithVolumeMounts(args []corev1.VolumeMount) *Builder {
-	WithVolumeMounts(args)(b.con)
+	if len(volumeMounts) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: missing volumemounts"),
+		)
+		return b
+	}
+	newvolumeMounts := []corev1.VolumeMount{}
+	newvolumeMounts = append(newvolumeMounts, volumeMounts...)
+	b.con.VolumeMounts = newvolumeMounts
 	return b
 }
 
-// WithVolumeMounts sets the volume mounts of the container
-func WithVolumeMounts(volumeMounts []corev1.VolumeMount) OptionFunc {
-	return func(c *container) {
-		c.VolumeMounts = volumeMounts
+// WithImagePullPolicy sets the image pull policy of the container
+func (b *Builder) WithImagePullPolicy(policy corev1.PullPolicy) *Builder {
+	if len(policy) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New(
+				"failed to build container object: missing imagepullpolicy",
+			),
+		)
+		return b
 	}
+
+	b.con.ImagePullPolicy = policy
+	return b
+}
+
+// WithPrivilegedSecurityContext sets securitycontext of the container
+func (b *Builder) WithPrivilegedSecurityContext(privileged *bool) *Builder {
+	if privileged == nil {
+		b.errors = append(
+			b.errors,
+			errors.New(
+				"failed to build container object: missing securitycontext",
+			),
+		)
+		return b
+	}
+
+	newprivileged := *privileged
+	newsecuritycontext := &corev1.SecurityContext{
+		Privileged: &newprivileged,
+	}
+
+	b.con.SecurityContext = newsecuritycontext
+	return b
+}
+
+// WithResources sets resources of the container
+func (b *Builder) WithResources(
+	resources *corev1.ResourceRequirements,
+) *Builder {
+	if resources == nil {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: missing resources"),
+		)
+		return b
+	}
+
+	newresources := *resources
+	b.con.Resources = newresources
+	return b
+}
+
+// WithPortsNew sets ports of the container
+func (b *Builder) WithPortsNew(ports []corev1.ContainerPort) *Builder {
+	if ports == nil {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: nil ports"),
+		)
+		return b
+	}
+
+	if len(ports) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: missing ports"),
+		)
+		return b
+	}
+
+	newports := []corev1.ContainerPort{}
+	newports = append(newports, ports...)
+
+	b.con.Ports = newports
+	return b
+}
+
+// WithEnvsNew sets the envs of the container
+func (b *Builder) WithEnvsNew(envs []corev1.EnvVar) *Builder {
+	if envs == nil {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: nil envs"),
+		)
+		return b
+	}
+
+	if len(envs) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: missing envs"),
+		)
+		return b
+	}
+
+	newenvs := []corev1.EnvVar{}
+	newenvs = append(newenvs, envs...)
+
+	b.con.Env = newenvs
+	return b
 }

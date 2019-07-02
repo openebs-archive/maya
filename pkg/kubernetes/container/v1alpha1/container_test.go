@@ -19,6 +19,8 @@ package v1alpha1
 import (
 	"reflect"
 	"testing"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 // fakeAlwaysTrue is a concrete implementation of container Predicate
@@ -45,7 +47,12 @@ func TestPredicateFailedError(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			e := predicateFailedError(mock.predicateMessage)
 			if e.Error() != mock.expectedErr {
-				t.Fatalf("test '%s' failed: expected '%s': actual '%s'", name, mock.expectedErr, e.Error())
+				t.Fatalf(
+					"test '%s' failed: expected '%s': actual '%s'",
+					name,
+					mock.expectedErr,
+					e.Error(),
+				)
 			}
 		})
 	}
@@ -64,22 +71,6 @@ func TestNewWithImage(t *testing.T) {
 	c := New(WithImage(i))
 	if c.Image != i {
 		t.Fatalf("test failed: expected image '%s': actual '%s'", i, c.Image)
-	}
-}
-
-func TestNewWithCommand(t *testing.T) {
-	cmd := []string{"kubectl", "get", "po"}
-	c := New(WithCommand(cmd))
-	if !reflect.DeepEqual(c.Command, cmd) {
-		t.Fatalf("test failed: expected command '%q': actual '%q'", cmd, c.Command)
-	}
-}
-
-func TestNewWithArguments(t *testing.T) {
-	args := []string{"-o", "yaml"}
-	c := New(WithArguments(args))
-	if !reflect.DeepEqual(c.Args, args) {
-		t.Fatalf("test failed: expected arguments '%q': actual '%q'", args, c.Args)
 	}
 }
 
@@ -105,10 +96,17 @@ func TestBuilderValidation(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			_, err := NewBuilder().AddChecks(mock.checks).Build()
 			if mock.isError && err == nil {
-				t.Fatalf("test '%s' failed: expected error: actual no error", name)
+				t.Fatalf(
+					"test '%s' failed: expected error: actual no error",
+					name,
+				)
 			}
 			if !mock.isError && err != nil {
-				t.Fatalf("test '%s' failed: expected no error: actual error '%+v'", name, err)
+				t.Fatalf(
+					"test '%s' failed: expected no error: actual error '%+v'",
+					name,
+					err,
+				)
 			}
 		})
 	}
@@ -129,7 +127,12 @@ func TestBuilderAddChecks(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			b := NewBuilder().AddChecks(mock.checks)
 			if len(b.checks) != mock.expectedCount {
-				t.Fatalf("test '%s' failed: expected no of checks '%d': actual '%d'", name, mock.expectedCount, len(b.checks))
+				t.Fatalf(
+					"test '%s' failed: expected no of checks '%d': actual '%d'",
+					name,
+					mock.expectedCount,
+					len(b.checks),
+				)
 			}
 		})
 	}
@@ -150,7 +153,12 @@ func TestBuilderWithName(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			c, _ := NewBuilder().WithName(mock.name).Build()
 			if c.Name != mock.expectedName {
-				t.Fatalf("test '%s' failed: expected name '%s': actual '%s'", name, mock.expectedName, c.Name)
+				t.Fatalf(
+					"test '%s' failed: expected name '%s': actual '%s'",
+					name,
+					mock.expectedName,
+					c.Name,
+				)
 			}
 		})
 	}
@@ -171,45 +179,247 @@ func TestBuilderWithImage(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			c, _ := NewBuilder().WithImage(mock.image).Build()
 			if c.Image != mock.expectedImage {
-				t.Fatalf("test '%s' failed: expected image '%s': actual '%s'", name, mock.expectedImage, c.Image)
+				t.Fatalf(
+					"test '%s' failed: expected image '%s': actual '%s'",
+					name,
+					mock.expectedImage,
+					c.Image,
+				)
 			}
 		})
 	}
 }
 
-func TestBuilderWithCommand(t *testing.T) {
+func TestBuilderWithCommandNew(t *testing.T) {
 	tests := map[string]struct {
 		cmd         []string
 		expectedCmd []string
 	}{
-		"t1": {[]string{"kubectl", "get", "po"}, []string{"kubectl", "get", "po"}},
+		"t1": {
+			[]string{"kubectl", "get", "po"},
+			[]string{"kubectl", "get", "po"},
+		},
 	}
 	for name, mock := range tests {
 		name := name // pin it
 		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			c, _ := NewBuilder().WithCommand(mock.cmd).Build()
+			c, _ := NewBuilder().WithCommandNew(mock.cmd).Build()
 			if !reflect.DeepEqual(c.Command, mock.expectedCmd) {
-				t.Fatalf("test '%s' failed: expected command '%q': actual '%q'", name, mock.expectedCmd, c.Command)
+				t.Fatalf(
+					"test '%s' failed: expected command '%q': actual '%q'",
+					name,
+					mock.expectedCmd,
+					c.Command,
+				)
 			}
 		})
 	}
 }
 
-func TestBuilderWithArguments(t *testing.T) {
+func TestBuilderWithArgumentsNew(t *testing.T) {
 	tests := map[string]struct {
 		args         []string
 		expectedArgs []string
 	}{
-		"t1": {[]string{"-jsonpath", "metadata.name"}, []string{"-jsonpath", "metadata.name"}},
+		"t1": {
+			[]string{"-jsonpath", "metadata.name"},
+			[]string{"-jsonpath", "metadata.name"},
+		},
 	}
 	for name, mock := range tests {
 		name := name // pin it
 		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			c, _ := NewBuilder().WithArguments(mock.args).Build()
+			c, _ := NewBuilder().WithArgumentsNew(mock.args).Build()
 			if !reflect.DeepEqual(c.Args, mock.expectedArgs) {
-				t.Fatalf("test '%s' failed: expected arguments '%q': actual '%q'", name, mock.expectedArgs, c.Args)
+				t.Fatalf(
+					"test '%s' failed: expected arguments '%q': actual '%q'",
+					name,
+					mock.expectedArgs,
+					c.Args,
+				)
+			}
+		})
+	}
+}
+
+func TestBuilderWithPrivilegedSecurityContext(t *testing.T) {
+	tests := map[string]struct {
+		secCont   bool
+		builder   *Builder
+		expectErr bool
+	}{
+		"Test Builder with templateSpec": {
+			secCont: true,
+			builder: &Builder{con: &container{
+				corev1.Container{},
+			}},
+			expectErr: false,
+		},
+		"Test Builder without templateSpec": {
+			secCont: false,
+			builder: &Builder{con: &container{
+				corev1.Container{},
+			}},
+			expectErr: false,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithPrivilegedSecurityContext(&mock.secCont)
+			if mock.expectErr && len(b.errors) == 0 {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && len(b.errors) > 0 {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestBuilderWithEnvsNew(t *testing.T) {
+	tests := map[string]struct {
+		envList   []corev1.EnvVar
+		builder   *Builder
+		expectErr bool
+	}{
+		"Test Builder with envList": {
+			envList: []corev1.EnvVar{
+				corev1.EnvVar{},
+			},
+			builder: &Builder{con: &container{
+				corev1.Container{},
+			}},
+			expectErr: false,
+		},
+		"Test Builder without envList": {
+			envList: nil,
+			builder: &Builder{con: &container{
+				corev1.Container{},
+			}},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithEnvsNew(mock.envList)
+			if mock.expectErr && len(b.errors) == 0 {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && len(b.errors) > 0 {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestBuilderWithPortsNew(t *testing.T) {
+	tests := map[string]struct {
+		portList  []corev1.ContainerPort
+		builder   *Builder
+		expectErr bool
+	}{
+		"Test Builder with portList": {
+			portList: []corev1.ContainerPort{
+				corev1.ContainerPort{},
+			},
+			builder: &Builder{con: &container{
+				corev1.Container{},
+			}},
+			expectErr: false,
+		},
+		"Test Builder without portList": {
+			portList: nil,
+			builder: &Builder{con: &container{
+				corev1.Container{},
+			}},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithPortsNew(mock.portList)
+			if mock.expectErr && len(b.errors) == 0 {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && len(b.errors) > 0 {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestBuilderWithResources(t *testing.T) {
+	tests := map[string]struct {
+		requirements *corev1.ResourceRequirements
+		builder      *Builder
+		expectErr    bool
+	}{
+		"Test Builder with resource requirements": {
+			requirements: &corev1.ResourceRequirements{},
+			builder: &Builder{con: &container{
+				corev1.Container{},
+			}},
+			expectErr: false,
+		},
+		"Test Builder without resource requirements": {
+			requirements: nil,
+			builder: &Builder{con: &container{
+				corev1.Container{},
+			}},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithResources(mock.requirements)
+			if mock.expectErr && len(b.errors) == 0 {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && len(b.errors) > 0 {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestBuilderWithVolumeMountsNew(t *testing.T) {
+	tests := map[string]struct {
+		mounts    []corev1.VolumeMount
+		builder   *Builder
+		expectErr bool
+	}{
+		"Test Builder with volume mounts": {
+			mounts: []corev1.VolumeMount{
+				corev1.VolumeMount{},
+			},
+			builder: &Builder{con: &container{
+				corev1.Container{},
+			}},
+			expectErr: false,
+		},
+		"Test Builder without volume mounts": {
+			mounts: nil,
+			builder: &Builder{con: &container{
+				corev1.Container{},
+			}},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithVolumeMountsNew(mock.mounts)
+			if mock.expectErr && len(b.errors) == 0 {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && len(b.errors) > 0 {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
 			}
 		})
 	}

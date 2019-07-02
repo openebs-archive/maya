@@ -84,13 +84,13 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 					container.NewBuilder().
 						WithName("busybox").
 						WithImage("busybox").
-						WithCommand(
+						WithCommandNew(
 							[]string{
 								"sleep",
 								"3600",
 							},
 						).
-						WithVolumeMounts(
+						WithVolumeMountsNew(
 							[]corev1.VolumeMount{
 								corev1.VolumeMount{
 									Name:      "demo-vol1",

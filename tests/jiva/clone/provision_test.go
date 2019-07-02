@@ -113,14 +113,14 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 					container.NewBuilder().
 						WithName("busybox").
 						WithImage("busybox").
-						WithCommand(
+						WithCommandNew(
 							[]string{
 								"sh",
 								"-c",
 								"date > /mnt/store1/date.txt; sync; sleep 5; sync; tail -f /dev/null;",
 							},
 						).
-						WithVolumeMounts(
+						WithVolumeMountsNew(
 							[]corev1.VolumeMount{
 								corev1.VolumeMount{
 									Name:      "demo-vol1",
@@ -244,14 +244,14 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 					container.NewBuilder().
 						WithName("busybox").
 						WithImage("busybox").
-						WithCommand(
+						WithCommandNew(
 							[]string{
 								"sh",
 								"-c",
 								"tail -f /dev/null",
 							},
 						).
-						WithVolumeMounts(
+						WithVolumeMountsNew(
 							[]corev1.VolumeMount{
 								corev1.VolumeMount{
 									Name:      "demo-vol2",

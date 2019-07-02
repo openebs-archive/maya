@@ -84,13 +84,13 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 					container.NewBuilder().
 						WithName("busybox").
 						WithImage("busybox").
-						WithCommand(
+						WithCommandNew(
 							[]string{
 								"sleep",
 								"3600",
 							},
 						).
-						WithVolumeMounts(
+						WithVolumeMountsNew(
 							[]corev1.VolumeMount{
 								corev1.VolumeMount{
 									Name:      "demo-vol2",
@@ -226,13 +226,13 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 					container.NewBuilder().
 						WithName("busybox").
 						WithImage("busybox").
-						WithCommand(
+						WithCommandNew(
 							[]string{
 								"sleep",
 								"3600",
 							},
 						).
-						WithVolumeMounts(
+						WithVolumeMountsNew(
 							[]corev1.VolumeMount{
 								corev1.VolumeMount{
 									Name:      "demo-vol3",
@@ -310,13 +310,13 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 					container.NewBuilder().
 						WithName("busybox").
 						WithImage("busybox").
-						WithCommand(
+						WithCommandNew(
 							[]string{
 								"sleep",
 								"3600",
 							},
 						).
-						WithVolumeMounts(
+						WithVolumeMountsNew(
 							[]corev1.VolumeMount{
 								corev1.VolumeMount{
 									Name:      "demo-vol2",
