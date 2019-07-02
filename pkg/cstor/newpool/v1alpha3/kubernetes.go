@@ -17,56 +17,80 @@ limitations under the License.
 package v1alpha3
 
 import (
-	"fmt"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	"k8s.io/apimachinery/pkg/types"
 )
+
+//TODO: While using these packages UnitTest must be written to corresponding function
 
 // getClientsetFn is a typed function that
 // abstracts fetching of internal clientset
 type getClientsetFn func() (clientset *clientset.Clientset, err error)
 
-// listFn is a typed function that abstracts
-// listing of cstor pool
-type listFn func(cli *clientset.Clientset, opts metav1.ListOptions) (*apis.NewTestCStorPoolList, error)
+// getClientsetFromPathFn is a typed function that
+// abstracts fetching of clientset from kubeConfigPath
+type getClientsetForPathFn func(kubeConfigPath string) (clientset *clientset.Clientset, err error)
 
-// deleteFn is a typed function that abstracts
-// deletion of cstor pool
-type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.NewTestCStorPool, error)
+// listFn is a typed function that abstracts
+// listing of csp
+type listFn func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.NewTestCStorPoolList, error)
+
+// getFn is a typed function that
+// abstracts fetching of csp
+type getFn func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*apis.NewTestCStorPool, error)
 
 // createFn is a typed function that abstracts
-// creation of cstor pool
-type createFn func(cli *clientset.Clientset, csp *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error)
+// creation of csp
+type createFn func(cli *clientset.Clientset, namespace string, csp *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error)
+
+// deleteFn is a typed function that abstracts
+// deletion of csps
+type deleteFn func(cli *clientset.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error
+
+// deleteFn is a typed function that abstracts
+// deletion of csp's collection
+type deleteCollectionFn func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
+
+// patchFn is a typed function that abstracts
+// to patch csp claim
+type patchFn func(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.NewTestCStorPool, error)
 
 // Kubeclient enables kubernetes API operations
-// on cstor storage pool instance
+// on csp instance
 type Kubeclient struct {
-	// clientset refers to cstor storage pool's
+	// clientset refers to csp
 	// clientset that will be responsible to
 	// make kubernetes API calls
 	clientset *clientset.Clientset
-
+	// kubeconfig path to get kubernetes clientset
+	kubeConfigPath string
+	namespace      string
 	// functions useful during mocking
-	getClientset getClientsetFn
-	list         listFn
-	del          deleteFn
-	create       createFn
+	getClientset        getClientsetFn
+	getClientsetForPath getClientsetForPathFn
+	list                listFn
+	get                 getFn
+	create              createFn
+	del                 deleteFn
+	delCollection       deleteCollectionFn
+	patch               patchFn
 }
 
 // KubeclientBuildOption defines the abstraction
 // to build a kubeclient instance
 type KubeclientBuildOption func(*Kubeclient)
 
-// withDefaults sets the default options
+// WithDefaults sets the default options
 // of kubeclient instance
-func (k *Kubeclient) withDefaults() {
+func (k *Kubeclient) WithDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *clientset.Clientset, err error) {
 			config, err := kclient.New().Config()
@@ -76,24 +100,44 @@ func (k *Kubeclient) withDefaults() {
 			return clientset.NewForConfig(config)
 		}
 	}
+	if k.getClientsetForPath == nil {
+		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.Clientset, err error) {
+			config, err := kclient.New(kclient.WithKubeConfigPath(kubeConfigPath)).Config()
+			if err != nil {
+				return nil, err
+			}
+			return clientset.NewForConfig(config)
+		}
+	}
 	if k.list == nil {
-		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*apis.NewTestCStorPoolList, error) {
-			return cli.OpenebsV1alpha1().NewTestCStorPools("openebs").List(opts)
+		k.list = func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.NewTestCStorPoolList, error) {
+			return cli.OpenebsV1alpha1().NewTestCStorPools(namespace).List(opts)
+		}
+	}
+
+	if k.get == nil {
+		k.get = func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*apis.NewTestCStorPool, error) {
+			return cli.OpenebsV1alpha1().NewTestCStorPools(namespace).Get(name, opts)
+		}
+	}
+	if k.create == nil {
+		k.create = func(cli *clientset.Clientset, namespace string, csp *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error) {
+			return cli.OpenebsV1alpha1().NewTestCStorPools(namespace).Create(csp)
 		}
 	}
 	if k.del == nil {
-		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.NewTestCStorPool, error) {
-			return nil, cli.OpenebsV1alpha1().NewTestCStorPools("openebs").Delete(name, opts)
+		k.del = func(cli *clientset.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error {
+			return cli.OpenebsV1alpha1().NewTestCStorPools(namespace).Delete(name, deleteOpts)
 		}
 	}
-
-	if k.create == nil {
-		k.create = func(cli *clientset.Clientset, csp *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error) {
-			return cli.OpenebsV1alpha1().NewTestCStorPools("openebs").Create(csp)
-<<<<<<< a9f2e1d5a0aedcb335ff4279fa1568c957d81f1a
-
-=======
->>>>>>> fix newcstorpool kubernetes client
+	if k.delCollection == nil {
+		k.delCollection = func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+			return cli.OpenebsV1alpha1().NewTestCStorPools(namespace).DeleteCollection(deleteOpts, listOpts)
+		}
+	}
+	if k.patch == nil {
+		k.patch = func(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.NewTestCStorPool, error) {
+			return cli.OpenebsV1alpha1().NewTestCStorPools(namespace).Patch(name, pt, data, subresources...)
 		}
 	}
 }
@@ -106,48 +150,46 @@ func WithKubeClient(c *clientset.Clientset) KubeclientBuildOption {
 	}
 }
 
-// WithKubeConfigPath sets the client using the kubeconfig path
-func (k *Kubeclient) WithKubeConfigPath(kubeconfig string) (*Kubeclient, error) {
-	cfg, err := getClusterConfig(kubeconfig)
-	if err != nil {
-		return nil, fmt.Errorf("Error building kubeconfig: %s", err.Error())
+// WithKubeConfigPath sets the kubeConfig path
+// against client instance
+func WithKubeConfigPath(kubeConfigPath string) KubeclientBuildOption {
+	return func(k *Kubeclient) {
+		k.kubeConfigPath = kubeConfigPath
 	}
-
-	// Building OpenEBS Clientset
-	openebsClient, err := clientset.NewForConfig(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("Error building openebs clientset: %s", err.Error())
-	}
-	k.clientset = openebsClient
-	return k, nil
 }
 
-func getClusterConfig(kubeconfig string) (*rest.Config, error) {
-	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, fmt.Errorf("Error building kubeconfig: %s", err.Error())
-	}
-	return cfg, err
-}
-
-// KubeClient returns a new instance of kubeclient meant for
-// cstor volume replica operations
-func KubeClient(opts ...KubeclientBuildOption) *Kubeclient {
+// NewKubeClient returns a new instance of kubeclient meant for
+// csp operations
+func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
 	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
 	}
-	k.withDefaults()
+	k.WithDefaults()
+	return k
+}
+
+func (k *Kubeclient) getClientsetForPathOrDirect() (*clientset.Clientset, error) {
+	if k.kubeConfigPath != "" {
+		return k.getClientsetForPath(k.kubeConfigPath)
+	}
+	return k.getClientset()
+}
+
+// WithNamespace sets the kubernetes namespace against
+// the provided namespace
+func (k *Kubeclient) WithNamespace(namespace string) *Kubeclient {
+	k.namespace = namespace
 	return k
 }
 
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
+func (k *Kubeclient) getClientsetOrCached() (*clientset.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	c, err := k.getClientset()
+	c, err := k.getClientsetForPathOrDirect()
 	if err != nil {
 		return nil, err
 	}
@@ -155,36 +197,70 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 	return k.clientset, nil
 }
 
-// List returns a list of cstor pool
+// List returns a list of disk
 // instances present in kubernetes cluster
 func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.NewTestCStorPoolList, error) {
-<<<<<<< a9f2e1d5a0aedcb335ff4279fa1568c957d81f1a
-
-=======
->>>>>>> fix newcstorpool kubernetes client
-	cli, err := k.getClientOrCached()
+	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to list csp in namespace {%s}", k.namespace)
 	}
-	return k.list(cli, opts)
+	return k.list(cli, k.namespace, opts)
 }
 
-// List returns a list of cstor pool
-// instances present in kubernetes cluster
+// Get returns a disk object
+func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.NewTestCStorPool, error) {
+	if strings.TrimSpace(name) == "" {
+		return nil, errors.New("failed to get csp: missing csp name")
+	}
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get csp {%s} in namespace {%s}", name, k.namespace)
+	}
+	return k.get(cli, k.namespace, name, opts)
+}
+
+// Create creates a csp in specified namespace in kubernetes cluster
 func (k *Kubeclient) Create(csp *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error) {
-	cli, err := k.getClientOrCached()
-	if err != nil {
-		return nil, err
+	if csp == nil {
+		return nil, errors.New("failed to create csp: nil csp object")
 	}
-	return k.create(cli, csp)
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create csp {%s} in namespace {%s}", csp.Name, csp.Namespace)
+	}
+	return k.create(cli, k.namespace, csp)
 }
 
-// Delete deletes a cstor pool
-// instances present in kubernetes cluster
-func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) (*apis.NewTestCStorPool, error) {
-	cli, err := k.getClientOrCached()
+// DeleteCollection deletes a collection of csp objects.
+func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, err
+		return errors.Wrapf(err, "failed to delete the collection of csps")
 	}
-	return k.del(cli, name, opts)
+	return k.delCollection(cli, k.namespace, listOpts, deleteOpts)
+}
+
+// Delete deletes a csp instance from the
+// kubecrnetes cluster
+func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error {
+	if strings.TrimSpace(name) == "" {
+		return errors.New("failed to delete csp: missing csp name")
+	}
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete csp {%s} in namespace {%s}", name, k.namespace)
+	}
+	return k.del(cli, k.namespace, name, deleteOpts)
+}
+
+// Patch patches the csp claim if present in kubernetes cluster
+func (k *Kubeclient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*apis.NewTestCStorPool, error) {
+	if len(name) == 0 {
+		return nil, errors.New("failed to patch csp : missing csp name")
+	}
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to patch csp: {%s}", name)
+	}
+	return k.patch(cli, k.namespace, name, pt, data, subresources...)
 }

@@ -213,6 +213,30 @@ func NewBuilder() *Builder {
 	}
 }
 
+func (b *Builder) WithName(name string) *Builder {
+	b.Csp.Object.Name = name
+	return b
+}
+
+func (b *Builder) WithNodeSelector(nodeName string) *Builder {
+	b.Csp.Object.Spec.HostName = nodeName
+	return b
+}
+
+func (b *Builder) WithPoolConfig(poolConfig apis.PoolConfig) *Builder {
+	b.Csp.Object.Spec.PoolConfig = poolConfig
+	return b
+}
+
+func (b *Builder) WithRaidGroups(raidGroup []apis.RaidGroup) *Builder {
+	b.Csp.Object.Spec.RaidGroup = raidGroup
+	return b
+}
+
+func (b *Builder) Build() *CSP {
+	return b.Csp
+}
+
 // BuilderForObject returns an instance of the Builder object based on csp object.
 func BuilderForObject(csp *CSP) *Builder {
 	return &Builder{
