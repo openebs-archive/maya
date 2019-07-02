@@ -90,6 +90,7 @@ func (k *Kubeclient) withDefaults() {
 	if k.create == nil {
 		k.create = func(cli *clientset.Clientset, csp *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error) {
 			return cli.OpenebsV1alpha1().NewTestCStorPools("openebs").Create(csp)
+
 		}
 	}
 }
@@ -154,6 +155,7 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 // List returns a list of cstor pool
 // instances present in kubernetes cluster
 func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.NewTestCStorPoolList, error) {
+
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
