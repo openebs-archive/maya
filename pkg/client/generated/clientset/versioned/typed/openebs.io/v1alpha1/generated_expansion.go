@@ -36,6 +36,8 @@ type CStorVolumeClaimExpansion interface{}
 
 type CStorVolumeReplicaExpansion interface{}
 
+type NewTestCStorPoolExpansion interface{}
+
 type RunTaskExpansion interface{}
 
 type StoragePoolExpansion interface{}

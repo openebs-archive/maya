@@ -140,6 +140,37 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: newtestcstorpools.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1alpha1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: newtestcstorpools
+    # singular name to be used as an alias on the CLI and for display
+    singular: newtestcstorpool
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: NewTestCStorPool
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - ncsp
+  additionalPrinterColumns:
+  - JSONPath: .status.phase
+    name: Status
+    description: Identifies the current health of the pool
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
   name: cstorpools.openebs.io
 spec:
   # group name to use for REST API: /apis/<group>/<version>

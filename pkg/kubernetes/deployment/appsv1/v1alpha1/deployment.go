@@ -152,6 +152,39 @@ func (b *Builder) WithAnnotationsNew(annotations map[string]string) *Builder {
 	return b
 }
 
+// WithNodeSelector Sets the node selector with the provided argument.
+func (b *Builder) WithNodeSelector(selector map[string]string) *Builder {
+	if len(selector) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment object: no node selector"),
+		)
+		return b
+	}
+	if b.deployment.object.Spec.Template.Spec.NodeSelector == nil {
+		return b.WithNodeSelectorNew(selector)
+	}
+
+	for key, value := range selector {
+		b.deployment.object.Spec.Template.Spec.NodeSelector[key] = value
+	}
+	return b
+}
+
+// WithNodeSelector Sets the node selector with the provided argument.
+func (b *Builder) WithNodeSelectorNew(selector map[string]string) *Builder {
+	if len(selector) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment object: no new node selector"),
+		)
+		return b
+	}
+
+	b.deployment.object.Spec.Template.Spec.NodeSelector = selector
+	return b
+}
+
 // WithOwnerReferenceNew sets ownerreference if any with
 // ones that are provided here
 func (b *Builder) WithOwnerReferenceNew(ownerRefernce []metav1.OwnerReference) *Builder {
