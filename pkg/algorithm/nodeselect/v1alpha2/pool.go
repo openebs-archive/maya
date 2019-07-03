@@ -38,7 +38,7 @@ func (c *Config) GetPendingPoolCount() (int, error) {
 
 // GetCurrentPoolCount give the current pool count for the given CStorPoolCluster
 func (c *Config) GetCurrentPoolCount() (int, error) {
-	cspList, err := apiscsp.NewKubeClient().WithNamespace("openebs").List(metav1.ListOptions{LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + c.CSPC.Name})
+	cspList, err := apiscsp.NewKubeClient().WithNamespace(c.Namespace).List(metav1.ListOptions{LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + c.CSPC.Name})
 	if err != nil {
 		return 0, errors.Errorf("unable to get current pool count:unable to list cstor pools: %v", err)
 	}

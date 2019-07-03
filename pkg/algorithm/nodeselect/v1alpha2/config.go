@@ -20,16 +20,20 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
-// Config embeds clients for disk,csp and sp and contains, SPC object and ProvisioningType field which should tell
-// provisioning type manual or auto.
+const (
+	// HostName holds the hostname key for kubernetes node.
+	HostName = "kubernetes.io/hostname"
+)
+
+// Config embeds CSPC object and namespace where openebs is installed.
 type Config struct {
 	// CSPC is the CStorPoolCluster object.
 	CSPC *apis.CStorPoolCluster
-	// Namespace is the namespace where openebs is installed
+	// Namespace is the namespace where openebs is installed.
 	Namespace string
 }
 
-// NewConfig returns an instance of Config based on SPC object.
+// NewConfig returns an instance of Config based on CSPC object.
 func NewConfig(cspc *apis.CStorPoolCluster, ns string) *Config {
 	return &Config{CSPC: cspc, Namespace: ns}
 }

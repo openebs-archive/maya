@@ -22,15 +22,22 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TODO : Improve following function
-func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
-	poolSpec := ac.SelectNode()
+// GetCSPSpec returns a CSP spec that should be created and claims all the
+// block device present in the CSP spec
 
+func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
+	poolSpec, err := ac.SelectNode()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to select a node")
+	}
+	csplabels := ac.buildLabelsForCSP(poolSpec)
 	cspObj, err := apiscsp.NewBuilder().
 		WithName(ac.CSPC.Name).
 		WithNodeSelector(poolSpec.NodeSelector).
 		WithPoolConfig(&poolSpec.PoolConfig).
 		WithRaidGroups(poolSpec.RaidGroups).
+		WithCSPCOwnerReference(ac.CSPC).
+		WithLabelsNew(csplabels).
 		Build()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to build CSP object for node selector {%v}", poolSpec.NodeSelector)
@@ -41,4 +48,15 @@ func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 		return nil, errors.Wrapf(err, "failed to claim block devices for node selector {%v}", poolSpec.NodeSelector)
 	}
 	return cspObj.Object, nil
+}
+
+func (ac *Config) buildLabelsForCSP(poolSpec *apis.PoolSpec) map[string]string {
+	labels := make(map[string]string)
+	labels[HostName] = poolSpec.NodeSelector[HostName]
+	labels[string(apis.CStorPoolClusterCPK)] = ac.CSPC.Name
+	// TODO: Put version
+	// TODO: Remove hardcoding
+	labels["openebs.io/version"] = ""
+	labels["openebs.io/cas-type"] = "cstor"
+	return labels
 }
