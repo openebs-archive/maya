@@ -26,8 +26,11 @@ import (
 
 func (c *Controller) CreateStoragePool(cspcGot *apis.CStorPoolCluster) error {
 	newAlgorithmConfig := nodeselect.NewConfig(cspcGot, "openebs")
-	cspObj := newAlgorithmConfig.GetCSPSpec()
-	err := c.createCSP(cspObj)
+	cspObj, err := newAlgorithmConfig.GetCSPSpec()
+	if err != nil {
+		return errors.Wrap(err, "failed to get CSP spec")
+	}
+	err = c.createCSP(cspObj)
 
 	if err != nil {
 		return errors.Wrapf(err, "failed to create csp for cspc {%s}", cspcGot.Name)

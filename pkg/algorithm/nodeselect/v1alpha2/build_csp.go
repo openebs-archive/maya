@@ -19,22 +19,26 @@ package v1alpha2
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
+	"github.com/pkg/errors"
 )
 
 // TODO : Improve following function
-func (ac *Config) GetCSPSpec() *apis.NewTestCStorPool {
+func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 	poolSpec := ac.SelectNode()
 
-	cspObj := apiscsp.NewBuilder().
+	cspObj, err := apiscsp.NewBuilder().
 		WithName(ac.CSPC.Name).
-		WithNodeSelector(poolSpec.NodeSelector["kubernetes.io/hostName"]).
-		WithPoolConfig(poolSpec.PoolConfig).
+		WithNodeSelector(poolSpec.NodeSelector).
+		WithPoolConfig(&poolSpec.PoolConfig).
 		WithRaidGroups(poolSpec.RaidGroups).
-		Build().Object
-
-	err := ac.ClaimBDsForNode(ac.GetBDListForNode(poolSpec))
+		Build()
 	if err != nil {
-		return nil
+		return nil, errors.Wrapf(err, "failed to build CSP object for node selector {%v}", poolSpec.NodeSelector)
 	}
-	return cspObj
+
+	err = ac.ClaimBDsForNode(ac.GetBDListForNode(poolSpec))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to claim block devices for node selector {%v}", poolSpec.NodeSelector)
+	}
+	return cspObj.Object, nil
 }
