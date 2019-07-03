@@ -54,10 +54,10 @@ func (c *CStorVolumeController) syncHandler(
 	if status == common.CVStatusIgnore {
 		return nil
 	}
-	if cStorVolumeGot.Status.Phase != apis.CStorVolumePhase(status) {
-		cStorVolumeGot.Status.LastTransitionTime = metav1.Now()
-	}
 	cStorVolumeGot.Status.LastUpdateTime = metav1.Now()
+	if cStorVolumeGot.Status.Phase != apis.CStorVolumePhase(status) {
+		cStorVolumeGot.Status.LastTransitionTime = cStorVolumeGot.Status.LastUpdateTime
+	}
 	cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(status)
 	if err != nil {
 		glog.Errorf(err.Error())
@@ -151,10 +151,11 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 				)
 			}
 		}
-		if cStorVolumeGot.Status.Phase != lastKnownPhase {
-			cStorVolumeGot.Status.LastTransitionTime = metav1.Now()
-		}
 		cStorVolumeGot.Status.LastUpdateTime = metav1.Now()
+		if cStorVolumeGot.Status.Phase != lastKnownPhase {
+			cStorVolumeGot.Status.LastTransitionTime = cStorVolumeGot.Status.LastUpdateTime
+		}
+
 		cStorVolumeGot.Status.ReplicaStatuses = volStatus.ReplicaStatuses
 		updatedCstorVolume, err := c.clientset.OpenebsV1alpha1().
 			CStorVolumes(cStorVolumeGot.Namespace).

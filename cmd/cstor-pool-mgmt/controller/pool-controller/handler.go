@@ -70,10 +70,10 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		glog.Warning("Empty status recieved for csp status in sync handler")
 		return nil
 	}
-	if cspObject.Status.Phase != apis.CStorPoolPhase(status) {
-		cspObject.Status.LastTransitionTime = metav1.Now()
-	}
 	cspObject.Status.LastUpdateTime = metav1.Now()
+	if cspObject.Status.Phase != apis.CStorPoolPhase(status) {
+		cspObject.Status.LastTransitionTime = cspObject.Status.LastUpdateTime
+	}
 	cspObject.Status.Phase = apis.CStorPoolPhase(status)
 	if err != nil {
 		glog.Errorf(err.Error())
