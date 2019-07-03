@@ -109,10 +109,14 @@ const (
 
 // CStorPoolStatus is for handling status of pool.
 type CStorPoolStatus struct {
-	Phase    CStorPoolPhase        `json:"phase"`
-	Capacity CStorPoolCapacityAttr `json:"capacity"`
+	Phase              CStorPoolPhase        `json:"phase"`
+	Capacity           CStorPoolCapacityAttr `json:"capacity"`
+	LastTransitionTime metav1.Time           `json:"lastTransitionTime,omitempty"`
+	LastUpdateTime     metav1.Time           `json:"lastUpdateTime,omitempty"`
+	Message            string                `json:"message,omitempty"`
 }
 
+// CStorPoolCapacityAttr stores the pool capacity related attributes.
 type CStorPoolCapacityAttr struct {
 	Total string `json:"total"`
 	Free  string `json:"free"`

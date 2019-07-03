@@ -87,8 +87,11 @@ const (
 
 // CStorVolumeReplicaStatus is for handling status of cvr.
 type CStorVolumeReplicaStatus struct {
-	Phase    CStorVolumeReplicaPhase `json:"phase"`
-	Capacity CStorVolumeCapacityAttr `json:"capacity"`
+	Phase              CStorVolumeReplicaPhase `json:"phase"`
+	Capacity           CStorVolumeCapacityAttr `json:"capacity"`
+	LastTransitionTime metav1.Time             `json:"lastTransitionTime,omitempty"`
+	LastUpdateTime     metav1.Time             `json:"lastUpdateTime,omitempty"`
+	Message            string                  `json:"message,omitempty"`
 }
 
 // CStorVolumeCapacityAttr is for storing the volume capacity.

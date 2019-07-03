@@ -415,7 +415,7 @@ func (in *CStorPool) DeepCopyInto(out *CStorPool) {
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	in.Spec.DeepCopyInto(&out.Spec)
-	out.Status = in.Status
+	in.Status.DeepCopyInto(&out.Status)
 	return
 }
 
@@ -646,6 +646,8 @@ func (in *CStorPoolSpec) DeepCopy() *CStorPoolSpec {
 func (in *CStorPoolStatus) DeepCopyInto(out *CStorPoolStatus) {
 	*out = *in
 	out.Capacity = in.Capacity
+	in.LastTransitionTime.DeepCopyInto(&out.LastTransitionTime)
+	in.LastUpdateTime.DeepCopyInto(&out.LastUpdateTime)
 	return
 }
 
@@ -961,7 +963,7 @@ func (in *CStorVolumeReplica) DeepCopyInto(out *CStorVolumeReplica) {
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	out.Spec = in.Spec
-	out.Status = in.Status
+	in.Status.DeepCopyInto(&out.Status)
 	return
 }
 
@@ -1036,6 +1038,8 @@ func (in *CStorVolumeReplicaSpec) DeepCopy() *CStorVolumeReplicaSpec {
 func (in *CStorVolumeReplicaStatus) DeepCopyInto(out *CStorVolumeReplicaStatus) {
 	*out = *in
 	out.Capacity = in.Capacity
+	in.LastTransitionTime.DeepCopyInto(&out.LastTransitionTime)
+	in.LastUpdateTime.DeepCopyInto(&out.LastUpdateTime)
 	return
 }
 
@@ -1073,6 +1077,8 @@ func (in *CStorVolumeStatus) DeepCopyInto(out *CStorVolumeStatus) {
 		*out = make([]ReplicaStatus, len(*in))
 		copy(*out, *in)
 	}
+	in.LastTransitionTime.DeepCopyInto(&out.LastTransitionTime)
+	in.LastUpdateTime.DeepCopyInto(&out.LastUpdateTime)
 	return
 }
 

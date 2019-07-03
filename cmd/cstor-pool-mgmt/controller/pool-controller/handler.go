@@ -57,7 +57,7 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	csp, err := newCspLease.Hold()
 	cspObject, ok := csp.(*apis.CStorPool)
 	if !ok {
-		fmt.Errorf("expected csp object but got %#v", cspObject)
+		return fmt.Errorf("expected csp object but got %#v", cspObject)
 	}
 	if err != nil {
 		glog.Errorf("Could not acquire lease on csp object:%v", err)
@@ -70,6 +70,10 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		glog.Warning("Empty status recieved for csp status in sync handler")
 		return nil
 	}
+	if cspObject.Status.Phase != apis.CStorPoolPhase(status) {
+		cspObject.Status.LastTransitionTime = metav1.Now()
+	}
+	cspObject.Status.LastUpdateTime = metav1.Now()
 	cspObject.Status.Phase = apis.CStorPoolPhase(status)
 	if err != nil {
 		glog.Errorf(err.Error())
