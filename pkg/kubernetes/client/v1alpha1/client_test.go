@@ -309,3 +309,10 @@ func TestConfigForPath(t *testing.T) {
 		})
 	}
 }
+
+func TestInstance(t *testing.T) {
+	c := Instance()
+	if c == nil {
+		t.Fatalf("test failed: expected non nil client instance got nil")
+	}
+}
