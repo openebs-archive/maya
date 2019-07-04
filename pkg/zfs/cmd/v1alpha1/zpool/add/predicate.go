@@ -40,6 +40,27 @@ func IsPoolSet() PredicateFunc {
 	}
 }
 
+// IsDeviceTypeSet method check if the DeviceType field of PoolExpansion object is set.
+func IsDeviceTypeSet() PredicateFunc {
+	return func(p *PoolExpansion) bool {
+		return len(p.DeviceType) != 0
+	}
+}
+
+// IsTypeSet method check if the Type field of PoolExpansion object is set.
+func IsTypeSet() PredicateFunc {
+	return func(p *PoolExpansion) bool {
+		return len(p.Type) != 0
+	}
+}
+
+// IsForcefullySet method check if the Forcefully field of PoolExpansion object is set.
+func IsForcefullySet() PredicateFunc {
+	return func(p *PoolExpansion) bool {
+		return p.Forcefully
+	}
+}
+
 // IsCommandSet method check if the Command field of PoolExpansion object is set.
 func IsCommandSet() PredicateFunc {
 	return func(p *PoolExpansion) bool {

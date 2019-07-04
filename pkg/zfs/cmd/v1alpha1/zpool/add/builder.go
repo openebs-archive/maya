@@ -43,8 +43,17 @@ type PoolExpansion struct {
 	// name of pool
 	Pool string
 
+	// Forcefully .. with -f
+	Forcefully bool
+
 	// command string
 	Command string
+
+	// DeviceType
+	DeviceType string
+
+	// Type of config.. like mirror
+	Type string
 
 	// checks is list of predicate function used for validating object
 	checks []PredicateFunc
@@ -65,8 +74,8 @@ func (p *PoolExpansion) WithCheck(check ...PredicateFunc) *PoolExpansion {
 }
 
 // WithVdevList method fills the VdevList field of PoolExpansion object.
-func (p *PoolExpansion) WithVdevList(vdev string) *PoolExpansion {
-	p.VdevList = append(p.VdevList, vdev)
+func (p *PoolExpansion) WithVdevList(vdevlist []string) *PoolExpansion {
+	p.VdevList = append(p.VdevList, vdevlist...)
 	return p
 }
 
@@ -76,9 +85,27 @@ func (p *PoolExpansion) WithProperty(key, value string) *PoolExpansion {
 	return p
 }
 
+// WithForcefully method fills the Forcefully field of PoolExpansion object.
+func (p *PoolExpansion) WithForcefully(Forcefully bool) *PoolExpansion {
+	p.Forcefully = Forcefully
+	return p
+}
+
 // WithPool method fills the Pool field of PoolExpansion object.
 func (p *PoolExpansion) WithPool(Pool string) *PoolExpansion {
 	p.Pool = Pool
+	return p
+}
+
+// WithDeviceType method fills the DeviceType field of PoolExpansion object.
+func (p *PoolExpansion) WithDeviceType(DeviceType string) *PoolExpansion {
+	p.DeviceType = DeviceType
+	return p
+}
+
+// WithType method fills the Type field of PoolExpansion object.
+func (p *PoolExpansion) WithType(Type string) *PoolExpansion {
+	p.Type = Type
 	return p
 }
 
@@ -114,6 +141,10 @@ func (p *PoolExpansion) Build() (*PoolExpansion, error) {
 	p = p.Validate()
 	p.appendCommand(c, fmt.Sprintf(" %s ", Operation))
 
+	if IsForcefullySet()(p) {
+		p.appendCommand(c, fmt.Sprintf(" -f "))
+	}
+
 	if IsPropertySet()(p) {
 		for _, v := range p.Property {
 			p.appendCommand(c, fmt.Sprintf(" -o %s ", v))
@@ -121,6 +152,14 @@ func (p *PoolExpansion) Build() (*PoolExpansion, error) {
 	}
 
 	p.appendCommand(c, p.Pool)
+
+	if IsDeviceTypeSet()(p) {
+		p.appendCommand(c, fmt.Sprintf(" %s ", p.Type))
+	}
+
+	if IsTypeSet()(p) {
+		p.appendCommand(c, fmt.Sprintf(" %s ", p.Type))
+	}
 
 	for _, v := range p.VdevList {
 		p.appendCommand(c, fmt.Sprintf(" %s ", v))
