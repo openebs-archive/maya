@@ -53,6 +53,10 @@ type CStorVolumePhase string
 type CStorVolumeStatus struct {
 	Phase           CStorVolumePhase `json:"phase"`
 	ReplicaStatuses []ReplicaStatus  `json:"replicaStatuses,omitempty"`
+	// LastTransitionTime refers to the time when the phase changes
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	LastUpdateTime     metav1.Time `json:"lastUpdateTime,omitempty"`
+	Message            string      `json:"message,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

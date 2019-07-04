@@ -111,8 +111,13 @@ const (
 type CStorPoolStatus struct {
 	Phase    CStorPoolPhase        `json:"phase"`
 	Capacity CStorPoolCapacityAttr `json:"capacity"`
+	// LastTransitionTime refers to the time when the phase changes
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	LastUpdateTime     metav1.Time `json:"lastUpdateTime,omitempty"`
+	Message            string      `json:"message,omitempty"`
 }
 
+// CStorPoolCapacityAttr stores the pool capacity related attributes.
 type CStorPoolCapacityAttr struct {
 	Total string `json:"total"`
 	Free  string `json:"free"`
