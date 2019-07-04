@@ -47,6 +47,13 @@ func IsForcefullySet() PredicateFunc {
 	}
 }
 
+// IsTypeSet method check if the Type field of PoolCreate object is set.
+func IsTypeSet() PredicateFunc {
+	return func(p *PoolCreate) bool {
+		return len(p.Type) != 0
+	}
+}
+
 // IsCommandSet method check if the Command field of PoolCreate object is set.
 func IsCommandSet() PredicateFunc {
 	return func(p *PoolCreate) bool {
