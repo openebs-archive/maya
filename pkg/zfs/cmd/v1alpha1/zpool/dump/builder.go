@@ -104,16 +104,17 @@ func (p *PoolDump) Execute() (vdump.Topology, error) {
 func (p *PoolDump) Build() (*PoolDump, error) {
 	var c strings.Builder
 	p = p.Validate()
-	p.appendCommand(c, fmt.Sprintf(" %s ", Operation))
+	p.appendCommand(&c, bin.ZPOOL)
+	p.appendCommand(&c, fmt.Sprintf(" %s ", Operation))
 
-	p.appendCommand(c, p.Pool)
+	p.appendCommand(&c, p.Pool)
 
 	p.Command = c.String()
 	return p, p.err
 }
 
 // appendCommand append string to given string builder
-func (p *PoolDump) appendCommand(c strings.Builder, cmd string) {
+func (p *PoolDump) appendCommand(c *strings.Builder, cmd string) {
 	_, err := c.WriteString(cmd)
 	if err != nil {
 		p.err = errors.Wrapf(p.err, "Failed to append cmd{%s} : %s", cmd, err.Error())

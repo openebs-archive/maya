@@ -18,7 +18,10 @@ package bin
 
 const (
 	// ZPOOL is zpool command name
-	ZPOOL = "zpool"
+	ZPOOL = "/usr/local/bin/zpool"
+
+	// BASH is bash command name
+	BASH = "bash"
 
 	// ZFS is zfs command name
 	ZFS = "zfs"
