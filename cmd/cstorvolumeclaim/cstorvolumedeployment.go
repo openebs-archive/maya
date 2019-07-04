@@ -81,7 +81,6 @@ func getDeployLabels(pvName string) map[string]string {
 		"openebs.io/cas-type":            "cstor",
 		"openebs.io/persistent-volume":   pvName,
 		"openebs.io/version":             version.GetVersion(),
-		"openebs.io/storage-pool-claim":  "",
 	}
 }
 
@@ -106,6 +105,7 @@ func getDeployTemplateLabels(pvName string) map[string]string {
 		"app":                          "cstor-volume-manager",
 		"openebs.io/target":            "cstor-target",
 		"openebs.io/persistent-volume": pvName,
+		"openebs.io/version":           version.GetVersion(),
 	}
 }
 

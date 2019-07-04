@@ -36,8 +36,13 @@ import (
 )
 
 const (
-	cvcKind       = "CStorVolumeClaim"
-	cvKind        = "CStorVolume"
+	cvcKind = "CStorVolumeClaim"
+	cvKind  = "CStorVolume"
+
+	cstorpoolNameLabel = "cstorpool.openebs.io/name"
+	pvAnnotaion        = "openebs.io/persistent-volume="
+	// spcAnnotation annotation for spc for listing cstor pools created for
+	// a StoragePool Claim
 	spcAnnotation = "openebs.io/storage-pool-claim="
 	// ReplicaCount represents replica count value
 	ReplicaCount = "replicaCount"
@@ -190,8 +195,6 @@ func getReplicationFactor(
 		return 0, err
 	}
 	return rfactor, nil
-	//return rfactor, (rfactor/2 + 1), nil
-
 }
 
 // getSPC gets storagePoolClaim from
@@ -241,31 +244,36 @@ func getOrCreateTargetService(storageClassName string,
 	svcObj, err := svc.NewKubeClient(svc.WithNamespace("openebs")).
 		Get(claim.Name, metav1.GetOptions{})
 
-	if err != nil && !k8serror.IsNotFound(err) {
+	if err == nil {
+		return svcObj, nil
+	}
+
+	// error other than 'not found', return err
+	if !k8serror.IsNotFound(err) {
 		return nil, errors.Wrapf(
 			err,
 			"failed to get cstorvolume service {%v}",
 			svcObj.Name,
 		)
 	}
-	if k8serror.IsNotFound(err) {
-		svcObj, err = svc.NewBuilder().
-			WithName(claim.Name).
-			WithLabelsNew(getTargetServiceLabels(claim)).
-			WithOwnerReferenceNew(getTargetServiceOwnerReference(claim)).
-			WithSelectorsNew(getTargetServiceSelectors(claim)).
-			WithPorts(cvPorts).
-			Build()
-		if err != nil {
-			return nil, errors.Wrapf(
-				err,
-				"failed to build target service {%v}",
-				svcObj,
-			)
-		}
 
-		svcObj, err = svc.NewKubeClient(svc.WithNamespace("openebs")).Create(svcObj)
+	// Not found case, so need to create
+	svcObj, err = svc.NewBuilder().
+		WithName(claim.Name).
+		WithLabelsNew(getTargetServiceLabels(claim)).
+		WithOwnerReferenceNew(getTargetServiceOwnerReference(claim)).
+		WithSelectorsNew(getTargetServiceSelectors(claim)).
+		WithPorts(cvPorts).
+		Build()
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to build target service {%v}",
+			svcObj,
+		)
 	}
+
+	svcObj, err = svc.NewKubeClient(svc.WithNamespace("openebs")).Create(svcObj)
 	return svcObj, err
 }
 
@@ -305,6 +313,7 @@ func getOrCreateCStorVolumeResource(
 			WithTargetIP(service.Spec.ClusterIP).
 			WithCapacity(qCap.String()).
 			WithCStorIQN(claim.Name).
+			WithNodeBase(cv.CStorNodeBase).
 			WithTargetPortal(service.Spec.ClusterIP + ":" + cv.TargetPort).
 			WithTargetPort(cv.TargetPort).
 			WithReplicationFactor(rfactor).
@@ -322,11 +331,11 @@ func getOrCreateCStorVolumeResource(
 	return cvObj, err
 }
 
-// createCStorVolumeReplica create cstorvolume replica based on the replicaCount
-// on the available cstor pools matched with storagepool claim given in
-// storageClass as parameter value.
-// if pools are less then replicaCount we return with error.
-func createCStorVolumeReplica(
+// distributeCVRs create cstorvolume replica based on the replicaCount
+// on the available cstor pools created for storagepoolclaim.
+// if pools are less then desired replicaCount its return an error.
+func distributeCVRs(
+	replicaCount int,
 	service *corev1.Service,
 	volume *apis.CStorVolume,
 	class *storagev1.StorageClass,
@@ -337,17 +346,13 @@ func createCStorVolumeReplica(
 		return errors.New("failed to get spc name from storageClass")
 	}
 
-	replicaCount, err := getReplicationFactor(class)
-	if err != nil {
-		return err
-	}
-
 	poolList, err := listCStorPools(spcName, replicaCount)
 	if err != nil {
 		return err
 	}
 
-	for i, pool := range poolList.Items {
+	uniquePoolList := getUniquePoolList(volume.Name, poolList)
+	for i, pool := range uniquePoolList.Items {
 		pool := pool
 		if i < replicaCount {
 			_, err = creatCVR(service, volume, &pool)
@@ -359,7 +364,8 @@ func createCStorVolumeReplica(
 	return err
 }
 
-// createCVR create cstorvolumereplica resource on a given cstor pool
+// createCVR is actual method to create cstorvolumereplica resource on a given
+// cstor pool
 func creatCVR(
 	service *corev1.Service,
 	volume *apis.CStorVolume,
@@ -404,4 +410,41 @@ func creatCVR(
 		return cvrObj, nil
 	}
 	return cvrObj, nil
+}
+
+// GetUniqueUsedPoolNames returns a list of cstor pool
+// name corresponding to cstor volume replica
+// instances
+func getUniqueUsedPoolNames(cvrList *apis.CStorVolumeReplicaList) map[string]bool {
+	var usedPoolMap = make(map[string]bool)
+	for _, cvr := range cvrList.Items {
+		poolName := cvr.GetLabels()[string(cstorpoolNameLabel)]
+		if poolName != "" {
+			usedPoolMap[poolName] = true
+		}
+	}
+	return usedPoolMap
+}
+
+// GetUniquePoolList returns a list of unique cstorpools
+// which hasn't been used to create cstor volume replica
+// instances
+func getUniquePoolList(pvName string, poolList *apis.CStorPoolList) *apis.CStorPoolList {
+	uniquePool := &apis.CStorPoolList{}
+
+	pvLabel := pvAnnotaion + pvName
+	cvrList, err := cvr.NewKubeclient(cvr.WithNamespace("openebs")).List(metav1.ListOptions{
+		LabelSelector: pvLabel,
+	})
+	if err != nil {
+		return nil
+	}
+
+	usedPoolMap := getUniqueUsedPoolNames(cvrList)
+	for _, pool := range poolList.Items {
+		if !usedPoolMap[pool.Name] {
+			uniquePool.Items = append(uniquePool.Items, pool)
+		}
+	}
+	return uniquePool
 }

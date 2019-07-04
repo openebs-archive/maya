@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	//CstorNodeBase nodeBase for cstor volume
-	CstorNodeBase string = "iqn.2016-09.com.openebs.cstor"
+	//CStorNodeBase nodeBase for cstor volume
+	CStorNodeBase string = "iqn.2016-09.com.openebs.cstor"
 	// TargetPort is port for cstor volume
 	TargetPort string = "3260"
 )
@@ -222,7 +222,7 @@ func (b *Builder) WithNodeBase(nodebase string) *Builder {
 
 // WithCStorIQN sets the iqn field of CStorVolume with provided arguments
 func (b *Builder) WithCStorIQN(name string) *Builder {
-	iqn := CstorNodeBase + ":" + name
+	iqn := CStorNodeBase + ":" + name
 	b.cstorvolume.object.Spec.Iqn = iqn
 	return b
 }

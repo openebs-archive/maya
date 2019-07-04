@@ -19,6 +19,7 @@ package cstorvolumeclaim
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/golang/glog"
@@ -26,7 +27,10 @@ import (
 
 	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -55,6 +59,14 @@ const (
 	// are bound by CStorVolume
 	CStorVolumeClaimFinalizer = "cvc.openebs.io/finalizer"
 )
+
+// Patch struct represent the struct used to patch
+// the cstorvolumeclaim object
+type Patch struct {
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value string `json:"value"`
+}
 
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the spcPoolUpdated resource
@@ -128,6 +140,13 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 	//	glog.V(4).Infof("Lease acquired successfully on CStorVolumeClaims %s ", spc.Name)
 	//	defer newCVCLease.Release()
 
+	// CStor Volume Claim should be deleted. Check if deletion timestamp is set
+	// and remove finalizer.
+	if isClaimDeletionCandidate(cvc) {
+		glog.Infof("syncClaim: remove finalizer for CStorVolumeClaimVolume [%s]", cvc.Name)
+		return c.removeClaimFinalizer(cvc)
+	}
+
 	volName := cvc.Name
 	if volName == "" {
 		// We choose to absorb the error here as the worker would requeue the
@@ -153,7 +172,6 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 		glog.Infof("create cstor based volume using cvc %+v", cvc)
 		_, err = c.createVolumeOperation(cvc)
 	}
-
 	// If an error occurs during Get/Create, we'll requeue the item so we can
 	// attempt processing again later. This could have been caused by a
 	// temporary network failure, or any other transient reason.
@@ -161,16 +179,23 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 		return err
 	}
 
+	// IsCVRPending checks for the pending cstorvolume replica and requeue the
+	// create operation if count doesn't matches the desired count
+	pending, err := c.IsCVRPending(cvc)
+	if err != nil {
+		return err
+	}
+	if pending {
+		glog.Infof("create remaining volume replica %+v", cvc)
+		_, err = c.createVolumeOperation(cvc)
+	}
+
+	if err != nil {
+		return err
+	}
+
 	// Finally, we update the status block of the CVC resource to reflect the
 	// current state of the world
-	//err = c.updateCVCStatus(cvc)
-
-	// CStor Volume Claim should be deleted. Check if deletion timestamp is set
-	// and remove finalizer.
-	if isClaimDeletionCandidate(cvc) {
-		glog.Infof("syncClaim: remove finalizer for CStorVolumeClaimVolume [%s]", cvc.Name)
-		return c.removeClaimFinalizer(cvc)
-	}
 	c.recorder.Event(cvc, corev1.EventTypeNormal,
 		SuccessSynced,
 		MessageResourceSynced,
@@ -178,9 +203,9 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 	return nil
 }
 
-// UpdateCVC updates the status block of the CVC resource to reflect the
+// UpdateCVCObj updates the cstorvolumeclaim object resource to reflect the
 // current state of the world
-func (c *CVCController) updateCVCStatus(
+func (c *CVCController) updateCVCObj(
 	cvc *apis.CStorVolumeClaim,
 	cv *apis.CStorVolume,
 ) error {
@@ -207,14 +232,13 @@ func (c *CVCController) updateCVCStatus(
 // 5. Update the cstorvolumeclaim with claimRef info and bound with cstorvolume.
 func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeClaim, error) {
 
-	glog.V(2).Infof("creating cstorvolume service resource")
 	scName := cvc.Annotations[string(apis.StorageConfigClassKey)]
-
 	scObj, err := getStorageClass(scName)
 	if err != nil {
 		return nil, err
 	}
 
+	glog.V(2).Infof("creating cstorvolume service resource")
 	svcObj, err := getOrCreateTargetService(scName, cvc)
 	if err != nil {
 		return nil, err
@@ -223,7 +247,6 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 	glog.V(2).Infof("creating cstorvolume resource")
 	cvObj, err := getOrCreateCStorVolumeResource(svcObj, cvc, scObj)
 	if err != nil {
-		glog.Infof("creating cstorvolume : %s", err)
 		return nil, err
 	}
 
@@ -234,7 +257,7 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 	}
 
 	glog.V(2).Infof("creating cstorvolume replica resource")
-	err = createCStorVolumeReplica(svcObj, cvObj, scObj)
+	err = c.distributePendingCVRs(cvc, cvObj, svcObj, scObj)
 	if err != nil {
 		return nil, err
 	}
@@ -246,11 +269,31 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 	cvc.Spec.CStorVolumeRef = volumeRef
 	cvc.Status.Phase = "Bound"
 
-	err = c.updateCVCStatus(cvc, cvObj)
+	err = c.updateCVCObj(cvc, cvObj)
 	if err != nil {
 		return nil, err
 	}
 	return cvc, nil
+}
+
+// distributePendingCVRs trigers create and distribute pending cstorvolumereplica
+// resource among the available cstor pools
+func (c *CVCController) distributePendingCVRs(
+	cvc *apis.CStorVolumeClaim,
+	cv *apis.CStorVolume,
+	service *corev1.Service,
+	class *storagev1.StorageClass,
+) error {
+
+	desiredReplicaCount, err := c.getPendingCVRCount(cvc, class)
+	if err != nil {
+		return err
+	}
+	err = distributeCVRs(desiredReplicaCount, service, cv, class)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // isClaimDeletionCandidate checks if a cstorvolumeclaim is a deletion candidate.
@@ -259,8 +302,7 @@ func isClaimDeletionCandidate(cvc *apis.CStorVolumeClaim) bool {
 		slice.ContainsString(cvc.ObjectMeta.Finalizers, CStorVolumeClaimFinalizer, nil)
 }
 
-// removeFinalizer removes finalizers present in
-// CStorVolumeClaim resource
+// removeFinalizer removes finalizers present in CStorVolumeClaim resource
 func (c *CVCController) removeClaimFinalizer(
 	cvc *apis.CStorVolumeClaim,
 ) error {
@@ -291,27 +333,72 @@ func (c *CVCController) removeClaimFinalizer(
 			cvc.Name,
 		)
 	}
-
 	glog.Infof("finalizers removed successfully from cstorvolumeclaim {%s}", cvc.Name)
 	return nil
 }
 
-// Patch struct represent the struct used to patch
-// the cstorvolumeclaim object
-type Patch struct {
-	// Op defines the operation
-	Op string `json:"op"`
-	// Path defines the key path
-	// eg. for
-	// {
-	//  	"Name": "openebs"
-	//	    Category: {
-	//		  "Inclusive": "v1",
-	//		  "Rank": "A"
-	//	     }
-	// }
-	// The path of 'Inclusive' would be
-	// "/Name/Category/Inclusive"
-	Path  string `json:"path"`
-	Value string `json:"value"`
+// getPendingCVRCount gets the pending replica count to be created
+// in case of any failures
+func (c *CVCController) getPendingCVRCount(
+	cvc *apis.CStorVolumeClaim,
+	class *storagev1.StorageClass,
+) (int, error) {
+
+	desiredReplicaCount, err := getReplicationFactor(class)
+	if err != nil {
+		return 0, err
+	}
+
+	currentReplicaCount, err := c.getCurrentReplicaCount(cvc)
+	if err != nil {
+		runtime.HandleError(err)
+		return 0, err
+	}
+	return desiredReplicaCount - currentReplicaCount, nil
+}
+
+// getCurrentReplicaCount give the current cstorvolumereplicas count for the
+// given volume.
+func (c *CVCController) getCurrentReplicaCount(cvc *apis.CStorVolumeClaim) (int, error) {
+	// TODO use lister
+	//	CVRs, err := c.cvrLister.CStorVolumeReplicas(cvc.Namespace).
+	//		List(klabels.Set(pvLabel).AsSelector())
+
+	pvLabel := pvAnnotaion + cvc.Name
+
+	cvrList, err := c.clientset.
+		OpenebsV1alpha1().
+		CStorVolumeReplicas(cvc.Namespace).
+		List(metav1.ListOptions{LabelSelector: pvLabel})
+
+	if err != nil {
+		return 0, merrors.Errorf("unable to get current replica count: %v", err)
+	}
+	return len(cvrList.Items), nil
+}
+
+// IsCVRPending look for pending cstorvolume replicas compared to desired
+// replica count. returns true if count doesn't matches.
+func (c *CVCController) IsCVRPending(cvc *apis.CStorVolumeClaim) (bool, error) {
+	rCount := cvc.Annotations["openebs.io/replicaCount"]
+	desiredReplicaCount, err := strconv.Atoi(rCount)
+	if err != nil {
+		return false, err
+	}
+	selector := klabels.SelectorFromSet(BaseLabels(cvc))
+	CVRs, err := c.cvrLister.CStorVolumeReplicas(cvc.Namespace).
+		List(selector)
+	if err != nil {
+		return false, merrors.Errorf("failed to list cvr : %v", err)
+	}
+	// TODO: check for greater values
+	return desiredReplicaCount != len(CVRs), nil
+}
+
+// BaseLabels returns the base labels we apply to cstorvolumereplicas created
+func BaseLabels(cvc *apis.CStorVolumeClaim) map[string]string {
+	base := map[string]string{
+		pvAnnotaion: cvc.Name,
+	}
+	return base
 }

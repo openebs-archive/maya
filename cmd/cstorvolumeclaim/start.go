@@ -75,6 +75,8 @@ func Start() error {
 		withCVCSynced(cvcInformerFactory).
 		withCVCLister(cvcInformerFactory).
 		withCVLister(cvcInformerFactory).
+		withCVRLister(cvcInformerFactory).
+		withCVRInformerSync(cvcInformerFactory).
 		withCVCStore().
 		withRecorder(kubeClient).
 		withEventHandler(cvcInformerFactory).
