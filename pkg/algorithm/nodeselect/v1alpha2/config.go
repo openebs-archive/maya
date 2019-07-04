@@ -18,6 +18,7 @@ package v1alpha2
 
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -33,7 +34,46 @@ type Config struct {
 	Namespace string
 }
 
-// NewConfig returns an instance of Config based on CSPC object.
-func NewConfig(cspc *apis.CStorPoolCluster, ns string) *Config {
-	return &Config{CSPC: cspc, Namespace: ns}
+// Builder embeds the Config object.
+type Builder struct {
+	ConfigObj *Config
+	errs      []error
+}
+
+// NewBuilder returns an empty instance of Builder object
+func NewBuilder() *Builder {
+	return &Builder{
+		ConfigObj: &Config{
+			CSPC:      &apis.CStorPoolCluster{},
+			Namespace: "",
+		},
+	}
+}
+
+// WithNameSpace sets the Namespace field of config object with provided value.
+func (b *Builder) WithNameSpace(ns string) *Builder {
+	if len(ns) == 0 {
+		b.errs = append(b.errs, errors.New("failed to build algorithm config object: missing namespace"))
+		return b
+	}
+	b.ConfigObj.Namespace = ns
+	return b
+}
+
+// WithCSPC sets the CSPC field of the config object with the provided value.
+func (b *Builder) WithCSPC(cspc *apis.CStorPoolCluster) *Builder {
+	if cspc == nil {
+		b.errs = append(b.errs, errors.New("failed to build algorithm config object: nil cspc object"))
+		return b
+	}
+	b.ConfigObj.CSPC = cspc
+	return b
+}
+
+// Build returns the Config  instance
+func (b *Builder) Build() (*Config, error) {
+	if len(b.errs) > 0 {
+		return nil, errors.Errorf("%+v", b.errs)
+	}
+	return b.ConfigObj, nil
 }

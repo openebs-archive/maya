@@ -183,11 +183,11 @@ func (ac *Config) IsClaimedBDUsable(BD string) (bool, error) {
 		bdcObj := bdc.BuilderForAPIObject(bdcAPIObject)
 		if bdcObj.BDC.HasLabel(string(apis.CStorPoolClusterCPK), ac.CSPC.Name) {
 			return true, nil
-		} else {
-			return false, nil
 		}
+	} else {
+		return false, errors.Wrapf(err, "block device {%s} is not claimed", BD)
 	}
-	return false, errors.Wrapf(err, "block device {%s} is not claimed", BD)
+	return false, nil
 }
 
 // IsBDClaimed returns true if the passed BD is already claimed

@@ -25,7 +25,7 @@ import (
 )
 
 // GetPendingPoolCount returns the pending pool count that should be created for the
-// given CStorPoolCluster
+// given CStorPoolCluster.
 func (c *Config) GetPendingPoolCount() (int, error) {
 	currentPoolCount, err := c.GetCurrentPoolCount()
 	if err != nil {
@@ -36,7 +36,7 @@ func (c *Config) GetPendingPoolCount() (int, error) {
 	return (desiredPoolCount - currentPoolCount), nil
 }
 
-// GetCurrentPoolCount give the current pool count for the given CStorPoolCluster
+// GetCurrentPoolCount give the current pool count for the given CStorPoolCluster.
 func (c *Config) GetCurrentPoolCount() (int, error) {
 	cspList, err := apiscsp.NewKubeClient().WithNamespace(c.Namespace).List(metav1.ListOptions{LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + c.CSPC.Name})
 	if err != nil {
@@ -45,6 +45,7 @@ func (c *Config) GetCurrentPoolCount() (int, error) {
 	return len(cspList.Items), nil
 }
 
+// IsPoolPending returns true if pool is pending for creation.
 func (c *Config) IsPoolPending() bool {
 	pc, err := c.GetPendingPoolCount()
 	if err != nil {

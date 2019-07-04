@@ -19,12 +19,17 @@ package v1alpha2
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
+	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
+)
+
+const (
+	// CasTypeCStor is the key for cas type cStor
+	CasTypeCStor = "cstor"
 )
 
 // GetCSPSpec returns a CSP spec that should be created and claims all the
 // block device present in the CSP spec
-
 func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 	poolSpec, err := ac.SelectNode()
 	if err != nil {
@@ -51,13 +56,12 @@ func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 }
 
 // buildLabelsForCSP builds labels for CSP
+// TODO : Improve following using builders
 func (ac *Config) buildLabelsForCSP(poolSpec *apis.PoolSpec) map[string]string {
 	labels := make(map[string]string)
 	labels[HostName] = poolSpec.NodeSelector[HostName]
 	labels[string(apis.CStorPoolClusterCPK)] = ac.CSPC.Name
-	// TODO: Put version
-	// TODO: Remove hardcoding
-	labels[string(apis.OpenEBSVersionKey)] = ""
-	labels[string(apis.CASTypeKey)] = "cstor"
+	labels[string(apis.OpenEBSVersionKey)] = version.GetVersion()
+	labels[string(apis.CASTypeKey)] = CasTypeCStor
 	return labels
 }

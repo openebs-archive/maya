@@ -18,7 +18,6 @@ package cspc
 
 import (
 	"fmt"
-
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
@@ -26,6 +25,7 @@ import (
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	listers "github.com/openebs/maya/pkg/client/generated/listers/openebs.io/v1alpha1"
 	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -177,10 +177,12 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 		c.recorder.Event(cspc, corev1.EventTypeWarning, "Update", message)
 		return
 	}
-	// Enqueue cspc only when there is a pending pool to be created.
+	// Enqueue cspc when there is a pending pool to be created.
 	if c.isPoolPending(cspc) {
 		c.enqueueSpc(newSpc)
 	}
+
+	// TODO : Enqueue cspc when any day 2 ops needs to be handled
 }
 
 // deleteSpc is the delete event handler for cspc.
@@ -205,4 +207,19 @@ func (c *Controller) deleteSpc(obj interface{}) {
 	}
 	glog.V(4).Infof("Deleting storagepoolclaim %s", cspc.Name)
 	c.enqueueSpc(cspc)
+}
+
+func (c *Controller) isPoolPending(cspc *apis.CStorPoolCluster) bool {
+	openebsNameSpace := env.Get(env.OpenEBSNamespace)
+	if openebsNameSpace == "" {
+		glog.Errorf("Could not enqueue CSPC {%s}: got empty namespace for openebs from env variable", cspc.Name)
+		return false
+	}
+	pc, err := c.NewPoolConfig(cspc, openebsNameSpace)
+	if err != nil {
+		glog.Errorf("Could not enquue CSPC {%s}: {%v}", cspc.Name, err)
+		return false
+	}
+	return pc.AlgorithConfig.IsPoolPending()
+
 }

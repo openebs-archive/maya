@@ -21,11 +21,12 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 )
@@ -42,6 +43,26 @@ var (
 
 type clientSet struct {
 	oecs openebs.Interface
+}
+
+// PoolConfig embeds nodeselect config from algorithm package and Controller object.
+type PoolConfig struct {
+	AlgorithConfig *nodeselect.Config
+	Controller     *Controller
+}
+
+// NewPoolConfig returns a poolconfig object
+func (c *Controller) NewPoolConfig(cspc *apis.CStorPoolCluster, namespace string) (*PoolConfig, error) {
+	pc, err := nodeselect.
+		NewBuilder().
+		WithCSPC(cspc).
+		WithNameSpace(namespace).
+		Build()
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get algorithm config for provisioning")
+	}
+	return &PoolConfig{AlgorithConfig: pc, Controller: c}, nil
+
 }
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -98,12 +119,20 @@ func (c *Controller) syncSpc(cspc *apis.CStorPoolCluster) error {
 	//	glog.Errorf("Validation of cspc failed:%s", err)
 	//	return nil
 	//}
-	pendingPoolCount, err := c.getPendingPoolCount(cspc)
+	openebsNameSpace := env.Get(env.OpenEBSNamespace)
+	if openebsNameSpace == "" {
+		return errors.Errorf("Could not sync CSPC {%s}: got empty namespace for openebs from env variable", cspc.Name)
+	}
+	pc, err := c.NewPoolConfig(cspc, openebsNameSpace)
+	if err != nil {
+		return errors.Wrapf(err, "Could not sync CSPC {%s}: failed to get pool config", cspc.Name)
+	}
+	pendingPoolCount, err := pc.AlgorithConfig.GetPendingPoolCount()
 	if err != nil {
 		return err
 	}
 	if pendingPoolCount > 0 {
-		err = c.create(pendingPoolCount, cspc)
+		err = pc.create(pendingPoolCount, cspc)
 		if err != nil {
 			return err
 		}
@@ -113,9 +142,9 @@ func (c *Controller) syncSpc(cspc *apis.CStorPoolCluster) error {
 
 // create is a wrapper function that calls the actual function to create pool as many time
 // as the number of pools need to be created.
-func (c *Controller) create(pendingPoolCount int, cspc *apis.CStorPoolCluster) error {
+func (pc *PoolConfig) create(pendingPoolCount int, cspc *apis.CStorPoolCluster) error {
 	var newSpcLease Leaser
-	newSpcLease = &Lease{cspc, SpcLeaseKey, c.clientset, c.kubeclientset}
+	newSpcLease = &Lease{cspc, SpcLeaseKey, pc.Controller.clientset, pc.Controller.kubeclientset}
 	err := newSpcLease.Hold()
 	if err != nil {
 		return errors.Wrapf(err, "Could not acquire lease on cspc object")
@@ -124,44 +153,10 @@ func (c *Controller) create(pendingPoolCount int, cspc *apis.CStorPoolCluster) e
 	defer newSpcLease.Release()
 	for poolCount := 1; poolCount <= pendingPoolCount; poolCount++ {
 		glog.Infof("Provisioning pool %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, cspc.Name)
-		err = c.CreateStoragePool(cspc)
+		err = pc.CreateStoragePool(cspc)
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Pool provisioning failed for %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, cspc.Name))
 		}
 	}
 	return nil
-}
-
-// TODO : Move following function to algorithm package
-
-func (c *Controller) getPendingPoolCount(cspc *apis.CStorPoolCluster) (int, error) {
-	currentPoolCount, err := c.getCurrentPoolCount(cspc)
-	if err != nil {
-		return 0, errors.Wrapf(err, "unable to get pending pool count for cspc %s", cspc.Name)
-	}
-	desiredPoolCount := len(cspc.Spec.Pools)
-
-	return (desiredPoolCount - currentPoolCount), nil
-}
-
-// getCurrentPoolCount give the current pool count for the given auto provisioned spc.
-func (c *Controller) getCurrentPoolCount(cspc *apis.CStorPoolCluster) (int, error) {
-	// Get the current count of provisioned pool for the storagepool claim
-	cspList, err := c.clientset.OpenebsV1alpha1().NewTestCStorPools("openebs").List(metav1.ListOptions{LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + cspc.Name})
-	if err != nil {
-		return 0, errors.Errorf("unable to get current pool count:unable to list cstor pools: %v", err)
-	}
-	return len(cspList.Items), nil
-}
-
-func (c *Controller) isPoolPending(cspc *apis.CStorPoolCluster) bool {
-	pc, err := c.getPendingPoolCount(cspc)
-	if err != nil {
-		glog.Errorf("unable to get pending pool count : %v", err)
-		return false
-	}
-	if pc > 0 {
-		return true
-	}
-	return false
 }

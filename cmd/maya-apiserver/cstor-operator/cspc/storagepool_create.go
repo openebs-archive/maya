@@ -17,32 +17,31 @@ limitations under the License.
 package cspc
 
 import (
-	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
 	"github.com/pkg/errors"
 	"k8s.io/api/apps/v1"
 )
 
-func (c *Controller) CreateStoragePool(cspcGot *apis.CStorPoolCluster) error {
-	newAlgorithmConfig := nodeselect.NewConfig(cspcGot, "openebs")
-	cspObj, err := newAlgorithmConfig.GetCSPSpec()
+// CreateStoragePool creates the required resource to provision a cStor pool
+func (pc *PoolConfig) CreateStoragePool(cspcGot *apis.CStorPoolCluster) error {
+	cspObj, err := pc.AlgorithConfig.GetCSPSpec()
 	if err != nil {
 		return errors.Wrap(err, "failed to get CSP spec")
 	}
-	err = c.createCSP(cspObj)
+	err = pc.createCSP(cspObj)
 
 	if err != nil {
 		return errors.Wrapf(err, "failed to create csp for cspc {%s}", cspcGot.Name)
 	}
 
-	poolDeployObj := c.GetPoolDeploySpec(cspObj)
-	c.createPoolDeployment(poolDeployObj)
+	poolDeployObj := pc.GetPoolDeploySpec(cspObj)
+	pc.createPoolDeployment(poolDeployObj)
 	return nil
 }
 
-func (c *Controller) createCSP(csp *apis.NewTestCStorPool) error {
-	_, err := apiscsp.NewKubeClient().WithNamespace("openebs").Create(csp)
+func (pc *PoolConfig) createCSP(csp *apis.NewTestCStorPool) error {
+	_, err := apiscsp.NewKubeClient().WithNamespace(pc.AlgorithConfig.Namespace).Create(csp)
 	if err != nil {
 		return err
 	}
@@ -50,9 +49,9 @@ func (c *Controller) createCSP(csp *apis.NewTestCStorPool) error {
 }
 
 // TODO: Fix following function -- ( currently only mocked)
-func (c *Controller) GetPoolDeploySpec(csp *apis.NewTestCStorPool) *v1.Deployment {
+func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.NewTestCStorPool) *v1.Deployment {
 	return &v1.Deployment{}
 }
-func (c *Controller) createPoolDeployment(poolDeployObj *v1.Deployment) {
+func (pc *PoolConfig) createPoolDeployment(poolDeployObj *v1.Deployment) {
 
 }
