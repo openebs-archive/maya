@@ -23,7 +23,7 @@ import (
 // +genclient
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=cstorpool
+// +resource:path=newtestcstorpool
 
 // NewTestCStorPool describes a cstor pool resource created as custom resource.
 type NewTestCStorPool struct {
@@ -48,7 +48,7 @@ type NewCStorPoolSpec struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=cstorpools
+// +resource:path=newtestcstorpool
 
 // NewTestCStorPoolList is a list of CStorPoolList resources
 type NewTestCStorPoolList struct {

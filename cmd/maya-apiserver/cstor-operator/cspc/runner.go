@@ -35,23 +35,23 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer c.workqueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches
-	glog.Info("Starting SPC controller")
+	glog.Info("Starting CSPC controller")
 
 	// Wait for the k8s caches to be synced before starting workers
 	glog.Info("Waiting for informer caches to sync")
 	if ok := cache.WaitForCacheSync(stopCh, c.cspcSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
-	glog.Info("Starting SPC workers")
-	// Launch worker to process SPC resources
+	glog.Info("Starting CSPC workers")
+	// Launch worker to process CSPC resources
 	// Threadiness will decide the number of workers you want to launch to process work items from queue
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
 
-	glog.Info("Started SPC workers")
+	glog.Info("Started CSPC workers")
 	<-stopCh
-	glog.Info("Shutting down SPC workers")
+	glog.Info("Shutting down CSPC workers")
 
 	return nil
 }

@@ -50,13 +50,14 @@ func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 	return cspObj.Object, nil
 }
 
+// buildLabelsForCSP builds labels for CSP
 func (ac *Config) buildLabelsForCSP(poolSpec *apis.PoolSpec) map[string]string {
 	labels := make(map[string]string)
 	labels[HostName] = poolSpec.NodeSelector[HostName]
 	labels[string(apis.CStorPoolClusterCPK)] = ac.CSPC.Name
 	// TODO: Put version
 	// TODO: Remove hardcoding
-	labels["openebs.io/version"] = ""
-	labels["openebs.io/cas-type"] = "cstor"
+	labels[string(apis.OpenEBSVersionKey)] = ""
+	labels[string(apis.CASTypeKey)] = "cstor"
 	return labels
 }
