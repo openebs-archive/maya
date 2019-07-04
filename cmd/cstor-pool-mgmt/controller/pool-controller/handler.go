@@ -73,8 +73,9 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	cspObject.Status.LastUpdateTime = metav1.Now()
 	if cspObject.Status.Phase != apis.CStorPoolPhase(status) {
 		cspObject.Status.LastTransitionTime = cspObject.Status.LastUpdateTime
+		cspObject.Status.Phase = apis.CStorPoolPhase(status)
 	}
-	cspObject.Status.Phase = apis.CStorPoolPhase(status)
+
 	if err != nil {
 		glog.Errorf(err.Error())
 		_, err := c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObject)

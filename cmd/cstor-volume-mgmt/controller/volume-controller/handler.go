@@ -31,7 +31,7 @@ import (
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/volume"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/k8s"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -57,8 +57,8 @@ func (c *CStorVolumeController) syncHandler(
 	cStorVolumeGot.Status.LastUpdateTime = metav1.Now()
 	if cStorVolumeGot.Status.Phase != apis.CStorVolumePhase(status) {
 		cStorVolumeGot.Status.LastTransitionTime = cStorVolumeGot.Status.LastUpdateTime
+		cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(status)
 	}
-	cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(status)
 	if err != nil {
 		glog.Errorf(err.Error())
 		glog.Infof("cStorVolume:%v, %v; Status: %v", cStorVolumeGot.Name,
@@ -193,21 +193,21 @@ func getEventType(phase common.CStorVolumeStatus) string {
 	if phase == common.CVStatusInit ||
 		phase == common.CVStatusHealthy ||
 		phase == common.CVStatusDegraded {
-		return v1.EventTypeNormal
+		return corev1.EventTypeNormal
 	}
-	return v1.EventTypeWarning
+	return corev1.EventTypeWarning
 }
 
-// createEventObj creates an object of v1.Event based on the CstorVolume
+// createEventObj creates an object of corev1.Event based on the CstorVolume
 func (c *CStorVolumeController) createEventObj(
 	cstorVolume *apis.CStorVolume,
-) *v1.Event {
-	return &v1.Event{
+) *corev1.Event {
+	return &corev1.Event{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cstorVolume.Name + "." + string(cstorVolume.Status.Phase),
 			Namespace: cstorVolume.Namespace,
 		},
-		InvolvedObject: v1.ObjectReference{
+		InvolvedObject: corev1.ObjectReference{
 			Kind:            string(k8s.CStorVolumeCRKK),
 			APIVersion:      string(k8s.OEV1alpha1KA),
 			Name:            cstorVolume.Name,
@@ -221,7 +221,7 @@ func (c *CStorVolumeController) createEventObj(
 		Message:        fmt.Sprintf(common.EventMsgFormatter, cstorVolume.Status.Phase),
 		Reason:         string(cstorVolume.Status.Phase),
 		Type:           getEventType(common.CStorVolumeStatus(cstorVolume.Status.Phase)),
-		Source: v1.EventSource{
+		Source: corev1.EventSource{
 			Component: os.Getenv("POD_NAME"),
 			Host:      os.Getenv("NODE_NAME"),
 		},
@@ -232,7 +232,7 @@ func (c *CStorVolumeController) createEventObj(
 // the lastTimestamp to current time and increases count by one,
 // if absent, creates the given eventGot
 func (c *CStorVolumeController) createSyncUpdateEvent(
-	eventGot *v1.Event,
+	eventGot *corev1.Event,
 ) (err error) {
 	client := c.kubeclientset
 	event, err := client.CoreV1().

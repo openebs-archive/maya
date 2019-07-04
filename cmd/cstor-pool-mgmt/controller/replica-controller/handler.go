@@ -86,9 +86,9 @@ func (c *CStorVolumeReplicaController) syncHandler(
 	cvrGot.Status.LastUpdateTime = metav1.Now()
 	if cvrGot.Status.Phase != apis.CStorVolumeReplicaPhase(status) {
 		cvrGot.Status.LastTransitionTime = cvrGot.Status.LastUpdateTime
+		// set phase based on received status
+		cvrGot.Status.Phase = apis.CStorVolumeReplicaPhase(status)
 	}
-	// set phase based on received status
-	cvrGot.Status.Phase = apis.CStorVolumeReplicaPhase(status)
 
 	// need to update cvr before returning this error
 	if err != nil {
