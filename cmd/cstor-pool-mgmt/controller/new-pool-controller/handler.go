@@ -78,7 +78,7 @@ func (c *CStorPoolController) addEventHandler(csp *apis2.CStorNPool) error {
 			corev1.EventTypeWarning,
 			string(common.AlreadyPresent),
 			string(common.MessageResourceAlreadyPresent))
-		glog.Warningf("Object is already present", string(csp.ObjectMeta.Name))
+		return nil
 	}
 
 	// take a lock for common
@@ -134,10 +134,10 @@ func (c *CStorPoolController) addEventHandler(csp *apis2.CStorNPool) error {
 		status = string(apis.CStorPoolStatusOnline)
 		goto updatestatus
 	}
-	glog.Infof("Not init status %v: %v, %v", string(csp.Status.Phase), csp.ObjectMeta.Name, string(csp.GetUID()))
-	common.SyncResources.Mux.Unlock()
+	//TODO else set errored status
 
 updatestatus:
+	common.SyncResources.Mux.Unlock()
 	glog.Infof("TODO update status here  %s", status)
 	return err
 }

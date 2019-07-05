@@ -79,6 +79,7 @@ func NewCStorPoolController(
 
 	pool.KubeClient = kubeclientset
 	pool.OpenEbsClient2 = clientset
+	pool.ImportedCStorPools = map[string]*apis2.CStorNPool{}
 
 	err := openebsScheme.AddToScheme(scheme.Scheme)
 	if err != nil {
@@ -107,7 +108,7 @@ func NewCStorPoolController(
 		recorder:        recorder,
 	}
 
-	glog.Info("Setting up event handlers")
+	glog.Info("Setting up event handlers for CSP")
 
 	// Set up an event handler for when CstorPool resources change.
 	cStorPoolInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{

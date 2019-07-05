@@ -65,7 +65,7 @@ const (
 
 // PoolName return pool name for given CSP object
 func PoolName(csp *api.CStorNPool) string {
-	return string(PoolPrefix) + string(csp.ObjectMeta.UID)
+	return PoolPrefix + string(csp.ObjectMeta.UID)
 }
 
 // Delete will destroy the pool for given csp.
@@ -81,6 +81,9 @@ func Delete(csp *api.CStorNPool) error {
 		glog.Errorf("Failed to destroy a pool : %s : %s", ret, err.Error())
 		return err
 	}
+
+	// Remove entry from imported pool list
+	delete(ImportedCStorPools, string(csp.GetUID()))
 
 	// We successfully deleted the pool.
 	// We also need to clear the label for attached disk
@@ -107,6 +110,7 @@ func Delete(csp *api.CStorNPool) error {
 func Import(csp *api.CStorNPool) (string, bool, error) {
 	ret, err := zfs.NewPoolImport().
 		WithCachefile(csp.Spec.PoolConfig.CacheFile).
+		WithPool(PoolName(csp)).
 		Execute()
 	if err != nil {
 		glog.Errorf("Failed to import pool : %s : %s", ret, err.Error())
@@ -158,9 +162,9 @@ func Import(csp *api.CStorNPool) (string, bool, error) {
 // Create will create the pool for given csp object
 func Create(csp *api.CStorNPool) error {
 	var err error
-	var poolCreated bool
+	raidGroups := csp.Spec.RaidGroups
 
-	glog.Infof("Creating a pool for %+v", csp)
+	glog.Infof("Creating a pool for %s %s", csp.Name, PoolName(csp))
 
 	// First create a pool
 	// TODO, IsWriteCache, IsSpare, IsReadCache should be disable for actual pool?
@@ -171,26 +175,23 @@ func Create(csp *api.CStorNPool) error {
 	// 1. zpool create newpool mirror v0 v1
 	// 2. zpool add newpool log mirror v4 v5
 	// 3. zpool add newpool mirror v2 v3
-	for _, r := range csp.Spec.RaidGroups {
+	for i, r := range raidGroups {
 		if !r.IsReadCache && !r.IsSpare && !r.IsWriteCache {
-			if poolCreated {
-				// uhh.. We already created the pool..
-				// buggy config!
-				return errors.New("invalid config")
-			}
 			// we found the main raidgroup. let's create the pool
 			err := createPool(csp, &r)
 			if err != nil {
 				glog.Errorf("Failed to create pool {%s} : %s", PoolName(csp), err.Error())
 				return err
 			}
-			poolCreated = true
+			// Remove this raidGroup
+			raidGroups = append(raidGroups[:i], raidGroups[i+1:]...)
+			break
 		}
 	}
 
 	// We created the pool
 	// Lets update it with extra config, if provided
-	for _, r := range csp.Spec.RaidGroups {
+	for _, r := range raidGroups {
 		if e := addRaidGroup(csp, &r); e != nil {
 			err = ErrorWrapf(err, "Failed to add raidGroup{%s}.. %s", r.Name, e.Error())
 		}
@@ -206,9 +207,10 @@ func Create(csp *api.CStorNPool) error {
 
 	// We created the pool successfully
 	// Let's set cachefile for this pool, if it is provided in csp object
-	if len(csp.Spec.PoolConfig.CacheFile) != 0 && err != nil {
-		if _, err := zfs.NewPoolSProperty().
+	if len(csp.Spec.PoolConfig.CacheFile) != 0 && err == nil {
+		if ret, err := zfs.NewPoolSProperty().
 			WithProperty("cachefile", csp.Spec.PoolConfig.CacheFile).
+			WithPool(PoolName(csp)).
 			Execute(); err != nil {
 			//TODO, If cachefile set failed, do we need to delete the pool?
 			glog.Errorf("Failed to set cachefile for pool {%s} : %s", PoolName(csp), err.Error())
@@ -277,10 +279,9 @@ func getPathForCSPBdevList(bdevs []api.CStorPoolClusterBlockDevice) ([]string, e
 	var err error
 
 	for _, b := range bdevs {
-		glog.Infof("bdev is %+v", b)
 		path, er := getPathForBDev(b.BlockDeviceName)
 		if er != nil {
-			er = ErrorWrapf(err, "Failed to fetch path for bdev {%s} {%s}", b.BlockDeviceName, err.Error())
+			err = ErrorWrapf(err, "Failed to fetch path for bdev {%s} {%s}", b.BlockDeviceName, er.Error())
 			continue
 		}
 		vdev = append(vdev, path)
@@ -290,7 +291,7 @@ func getPathForCSPBdevList(bdevs []api.CStorPoolClusterBlockDevice) ([]string, e
 
 func getPathForBDev(bdev string) (string, error) {
 	bd, err := blockdevice.NewKubeClient().
-		WithNamespace(env.Get(env.OpenEBSNamespace)).
+		WithNamespace(env.Get("NAMESPACE")).
 		Get(bdev, metav1.GetOptions{})
 	if err != nil {
 		return "", err
@@ -374,6 +375,11 @@ func addSpareVdev(csp *api.CStorNPool, r *api.RaidGroup) error {
 }
 
 func addWriteCacheVdev(csp *api.CStorNPool, r *api.RaidGroup) error {
+	ptype := r.Type
+	if len(ptype) == 0 {
+		return errors.Errorf("No type mentioned in writeCache-raidGroup for pool {%s}", PoolName(csp))
+	}
+
 	vlist, err := getPathForCSPBdevList(r.BlockDevices)
 	if err != nil {
 		glog.Errorf("Failed to get list of disk-path : %s", err.Error())
@@ -381,7 +387,8 @@ func addWriteCacheVdev(csp *api.CStorNPool, r *api.RaidGroup) error {
 	}
 
 	_, err = zfs.NewPoolExpansion().
-		WithDeviceType("cache").
+		WithDeviceType("log").
+		WithType(ptype).
 		WithPool(PoolName(csp)).
 		WithVdevList(vlist).
 		Execute()
@@ -453,8 +460,8 @@ func GetStatus(csp *api.CStorNPool) (string, error) {
 func parsePoolStatus(output string) string {
 	var outputStr []string
 	var poolStatus string
-	if strings.TrimSpace(string(output)) != "" {
-		outputStr = strings.Split(string(output), "\n")
+	if !IsEmpty(strings.TrimSpace(output)) {
+		outputStr = strings.Split(output, "\n")
 		if !(len(outputStr) < 2) {
 			poolStatusArr := strings.Split(outputStr[1], ":")
 			if !(len(outputStr) < 2) {
@@ -581,7 +588,7 @@ func addNewVdevFromCSP(csp *api.CStorNPool) error {
 				WithVdevList(devlist).
 				WithPool(PoolName(csp)).
 				Execute(); er != nil {
-				err = ErrorWrapf(err, "Failed to add devlist %v.. err {%s}", devlist, err.Error())
+				err = ErrorWrapf(err, "Failed to add devlist %v.. err {%s}", devlist, er.Error())
 			}
 		}
 	}
