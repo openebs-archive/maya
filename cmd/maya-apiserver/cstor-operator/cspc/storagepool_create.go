@@ -19,8 +19,11 @@ package cspc
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
+	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/extnv1beta1/v1alpha1"
 	"github.com/pkg/errors"
-	"k8s.io/api/apps/v1"
+	"k8s.io/api/core/v1"
+	extnv1beta1 "k8s.io/api/extensions/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // CreateStoragePool creates the required resource to provision a cStor pool
@@ -42,16 +45,40 @@ func (pc *PoolConfig) CreateStoragePool(cspcGot *apis.CStorPoolCluster) error {
 
 func (pc *PoolConfig) createCSP(csp *apis.NewTestCStorPool) error {
 	_, err := apiscsp.NewKubeClient().WithNamespace(pc.AlgorithConfig.Namespace).Create(csp)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
+}
+
+func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.NewTestCStorPool) *extnv1beta1.Deployment {
+
+	deployObj, _ := deploy.NewBuilder().
+		WithName(csp.Name).
+		WithNameSpace(csp.Namespace).
+		WithAnnotations(map[string]string{}).
+		WithLabels(map[string]string{}).
+		WithOwnerReferences(csp).
+		WithReplicaCount(getReplicaCount()).
+		WithSelector(getSelector()).
+		WithDeploymentStrategy(extnv1beta1.RecreateDeploymentStrategyType).
+		WithPodTemplateSpec(getPodTemplateSpec()).Build()
+	return deployObj.Object
+}
+
+func getReplicaCount() *int32 {
+	var count int32 = 1
+	return &count
 }
 
 // TODO: Fix following function -- ( currently only mocked)
-func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.NewTestCStorPool) *v1.Deployment {
-	return &v1.Deployment{}
+func getSelector() *metav1.LabelSelector {
+	return &metav1.LabelSelector{}
 }
-func (pc *PoolConfig) createPoolDeployment(poolDeployObj *v1.Deployment) {
 
+// TODO: Fix following function -- ( currently only mocked)
+func getPodTemplateSpec() *v1.PodTemplateSpec {
+	return &v1.PodTemplateSpec{}
+}
+
+func (pc *PoolConfig) createPoolDeployment(poolDeployObj *extnv1beta1.Deployment) error {
+	_, err := deploy.KubeClient(deploy.WithNamespace(poolDeployObj.Namespace)).Create(poolDeployObj)
+	return err
 }

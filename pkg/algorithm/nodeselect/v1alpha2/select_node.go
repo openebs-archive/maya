@@ -148,7 +148,7 @@ func (ac *Config) ClaimBD(BD string) error {
 	newBDCObj, err := bdc.NewBuilder().
 		WithName("bdc-" + string(bdObj.UID)).
 		WithNamespace(ac.Namespace).
-		WithLabels(map[string]string{string(apis.StoragePoolClaimCPK): ac.CSPC.Name}).
+		WithLabels(map[string]string{string(apis.CStorPoolClusterCPK): ac.CSPC.Name}).
 		WithBlockDeviceName(bdObj.Name).
 		WithHostName(bdObj.Labels[string(apis.HostNameCPK)]).
 		WithCapacity(volume.ByteCount(bdObj.Spec.Capacity.Storage)).
