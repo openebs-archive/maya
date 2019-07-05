@@ -18,6 +18,7 @@ package raidgroups
 
 import (
 	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	cspcbd "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolblockdevice"
 	"github.com/pkg/errors"
 )
 
@@ -67,6 +68,28 @@ func (b *Builder) WithSpare() *Builder {
 // WithReadCache flags the IsReadCache field of raid group.
 func (b *Builder) WithReadCache() *Builder {
 	b.rg.object.IsReadCache = true
+	return b
+}
+
+func (b *Builder) WithCSPCBlockDeviceList(listBuilderCSPCBD *cspcbd.ListBuilder) *Builder {
+	if listBuilderCSPCBD == nil {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build raid group object: nil cspc blockdevice lisr"),
+		)
+		return b
+	}
+	cspcBDList, err := listBuilderCSPCBD.ToObjectList()
+	if err != nil {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build raid group object: failed to get blockdevice custom object list"),
+		)
+	}
+	for _, obj := range cspcBDList {
+		obj := obj.ToAPI()
+		b.rg.object.BlockDevices = append(b.rg.object.BlockDevices, *obj)
+	}
 	return b
 }
 

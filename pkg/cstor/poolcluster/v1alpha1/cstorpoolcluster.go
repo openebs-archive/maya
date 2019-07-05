@@ -100,3 +100,7 @@ func (b *ListBuilder) WithFilter(pred ...Predicate) *ListBuilder {
 	b.filters = append(b.filters, pred...)
 	return b
 }
+
+func (c *CSPC) ToAPI() *apisv1alpha1.CStorPoolCluster {
+	return c.object
+}

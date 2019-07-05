@@ -58,8 +58,8 @@ type Config struct {
 	ProvisioningType string
 }
 
-// getDiskK8sClient returns an instance of kubernetes client for Disk.
-func getBlockDeviceK8sClient() *blockdevice.KubernetesClient {
+// getNDMK8sClient returns an instance of kubernetes client for NDM.
+func getNDMK8sClient() *blockdevice.KubernetesClient {
 	namespace := env.Get(env.OpenEBSNamespace)
 	newClient, _ := k8s.NewK8sClient("")
 	K8sClient := &blockdevice.KubernetesClient{
@@ -75,7 +75,7 @@ func getBlockDeviceK8sClient() *blockdevice.KubernetesClient {
 // This client is used in manual provisioning of SPC.
 func getBlockDeviceSpcClient(spc *apis.StoragePoolClaim) *blockdevice.SpcObjectClient {
 	K8sClient := &blockdevice.SpcObjectClient{
-		KubernetesClient: getBlockDeviceK8sClient(),
+		KubernetesClient: getNDMK8sClient(),
 		Spc:              spc,
 	}
 	return K8sClient
@@ -106,14 +106,8 @@ func getCspK8sClient() *cstorpool.KubernetesClient {
 func NewConfig(spc *apis.StoragePoolClaim) *Config {
 	var bdClient blockdevice.BlockDeviceInterface
 
-	// If provisioning type is manual blockdeviceClient is assigned SPC
-	// blockdevice client
-	// else it is assigned kubernetes blockdevice client.
-	if ProvisioningType(spc) == ProvisioningTypeManual {
-		bdClient = getBlockDeviceSpcClient(spc)
-	} else {
-		bdClient = getBlockDeviceK8sClient()
-	}
+	// Since provisioning type is auto kubernetes blockdevice client
+	bdClient = getNDMK8sClient()
 
 	cspK8sClient := getCspK8sClient()
 	spK8sClient := getSpK8sClient()

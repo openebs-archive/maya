@@ -177,10 +177,8 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 		c.recorder.Event(spc, corev1.EventTypeWarning, "Update", message)
 		return
 	}
-	// Enqueue spc only when there is a pending pool to be created.
-	if c.isPoolPending(spc) {
-		c.enqueueSpc(newSpc)
-	}
+	// Don't reconcile on spc
+	return
 }
 
 // deleteSpc is the delete event handler for spc.

@@ -313,7 +313,7 @@ func TestValidateSpc(t *testing.T) {
 					Type: string(apis.TypeDiskCPV),
 				},
 			},
-			expectedError: false,
+			expectedError: true,
 		},
 		"InValid Auto SPC with invalid spc type": {
 			spc: &apis.StoragePoolClaim{
@@ -347,7 +347,7 @@ func TestValidateSpc(t *testing.T) {
 					Type: string(apis.TypeDiskCPV),
 				},
 			},
-			expectedError: false,
+			expectedError: true,
 		},
 		"Invalid SPC with invalid Disk type": {
 			spc: &apis.StoragePoolClaim{
@@ -380,7 +380,7 @@ func TestValidateSpc(t *testing.T) {
 				gotError = true
 			}
 			if gotError != test.expectedError {
-				t.Errorf("Test case failed as expected error %v but got error %v", test.expectedError, gotError)
+				t.Errorf("Test case failed as expected error %v but got error %v--%v", test.expectedError, gotError, err)
 			}
 		})
 	}
@@ -460,6 +460,7 @@ func TestPendingPoolCount(t *testing.T) {
 	tests := map[string]struct {
 		spc               *apis.StoragePoolClaim
 		expectedPoolCount int
+		expectedErr       bool
 	}{
 		"Auto SPC": {
 			spc: &apis.StoragePoolClaim{
@@ -468,10 +469,11 @@ func TestPendingPoolCount(t *testing.T) {
 				},
 				Spec: apis.StoragePoolClaimSpec{
 					Type:     string(apis.TypeSparseCPV),
-					MaxPools: newInt(3),
+					MaxPools: newInt(1),
 				},
 			},
-			expectedPoolCount: 3,
+			expectedPoolCount: 1,
+			expectedErr:       false,
 		},
 		"Manual SPC": {
 			spc: &apis.StoragePoolClaim{
@@ -486,6 +488,7 @@ func TestPendingPoolCount(t *testing.T) {
 				},
 			},
 			expectedPoolCount: 0,
+			expectedErr:       true,
 		},
 	}
 
@@ -494,13 +497,15 @@ func TestPendingPoolCount(t *testing.T) {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			pc, err := controller.getPendingPoolCount(test.spc)
-			if err != nil {
-				t.Fatalf("Test case failed duue to error %s", err)
+			if test.expectedErr && err == nil {
+				t.Fatalf("%q test case failed expected error but got nil", name)
 			}
-			if pc != test.expectedPoolCount {
+			if !test.expectedErr && err != nil {
+				t.Fatalf("%q test case failed expected not to error but got error %v", name, err)
+			}
+			if err == nil && pc != test.expectedPoolCount {
 				t.Errorf("Test case failed as expected current pool count %d but got %d", test.expectedPoolCount, pc)
 			}
-
 		})
 	}
 }
@@ -562,9 +567,8 @@ func TestIsPoolPending(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			gotBool := controller.isPoolPending(test.spc)
 			if gotBool != test.expectedIsPending {
-				t.Errorf("Test case failed as expected %v but got %v", test.expectedIsPending, gotBool)
+				t.Errorf("%q test case failed as expected %v but got %v", name, test.expectedIsPending, gotBool)
 			}
-
 		})
 	}
 }

@@ -74,7 +74,16 @@ func FakeDiskCreator(bd *blockdevice.KubernetesClient) {
 				Details: ndmapis.DeviceDetails{
 					DeviceType: deviceType,
 				},
+				Capacity: ndmapis.DeviceCapacity{
+					Storage: 10737418240,
+				},
 				Partitioned: "NO",
+				DevLinks: []ndmapis.DeviceDevLink{
+					ndmapis.DeviceDevLink{
+						Kind:  "by-ID",
+						Links: []string{"/dev/sda"},
+					},
+				},
 			},
 			Status: ndmapis.DeviceStatus{
 				State: DiskStateActive,
@@ -195,10 +204,14 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 					PoolSpec: v1alpha1.CStorPoolAttr{
 						PoolType: "striped",
 					},
+					MaxPools: func() *int {
+						count := 1
+						return &count
+					}(),
 				},
 			},
 			expectedDiskListLength: 1,
-			expectedErr:            true,
+			expectedErr:            false,
 		},
 		// Test Case #2
 		"autoSPC2": {
@@ -208,10 +221,14 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 					PoolSpec: v1alpha1.CStorPoolAttr{
 						PoolType: "mirrored",
 					},
+					MaxPools: func() *int {
+						count := 3
+						return &count
+					}(),
 				},
 			},
-			expectedDiskListLength: 2,
-			expectedErr:            true,
+			expectedDiskListLength: 6,
+			expectedErr:            false,
 		},
 		// Test Case #3
 		"autoSPC3": {
@@ -221,23 +238,31 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 					PoolSpec: v1alpha1.CStorPoolAttr{
 						PoolType: "striped",
 					},
+					MaxPools: func() *int {
+						count := 4
+						return &count
+					}(),
 				},
 			},
-			expectedDiskListLength: 1,
-			expectedErr:            true,
+			expectedDiskListLength: 4,
+			expectedErr:            false,
 		},
 		// Test Case #4
 		"autoSPC4": {
 			fakeCasPool: &v1alpha1.StoragePoolClaim{
 				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "sparse",
+					Type: "disk",
 					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "mirrored",
+						PoolType: "raidz2",
 					},
+					MaxPools: func() *int {
+						count := 3
+						return &count
+					}(),
 				},
 			},
-			expectedDiskListLength: 2,
-			expectedErr:            true,
+			expectedDiskListLength: 18,
+			expectedErr:            false,
 		},
 		//Test Case #5
 		// blockdevice0, blockdevice1 are of sparse type
@@ -254,7 +279,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 1,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #6
 		"manualSPC6": {
@@ -270,7 +295,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 2,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #7
 		"manualSPC7": {
@@ -286,7 +311,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 0,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #8
 		"manualSPC8": {
@@ -302,7 +327,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 4,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #8
 		"manualSPC9": {
@@ -318,7 +343,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 2,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #10
 		"manualSPC10Raidz": {
@@ -334,7 +359,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 3,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #11
 		"manualSPC11Raidz": {
@@ -350,7 +375,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 0,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #12
 		"manualSPC12Raidz": {
@@ -366,7 +391,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 3,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #13
 		"manualSPC13Raidz": {
@@ -382,7 +407,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 3,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #14
 		"manualSPC14Raidz": {
@@ -398,7 +423,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 0,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #15
 		"manualSPC15Raidz2": {
@@ -414,7 +439,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 0,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #16
 		"manualSPC16Raidz2": {
@@ -430,7 +455,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 0,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #17
 		"manualSPC17Raidz2": {
@@ -446,7 +471,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 0,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #18
 		"manualSPC18Raidz2": {
@@ -462,7 +487,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 6,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #19
 		"manualSPC19Raidz2": {
@@ -478,7 +503,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 12,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #20
 		"manualSPC20Raidz2": {
@@ -494,7 +519,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 6,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #21
 		"manualSPC21Raidz2": {
@@ -510,7 +535,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 				},
 			},
 			expectedDiskListLength: 0,
-			expectedErr:            false,
+			expectedErr:            true,
 		},
 		// Test Case #22
 		"manualSPC22Raidz2": {
@@ -533,16 +558,28 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 	for name, test := range tests {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
+			//hostName := "gke-ashu-cstor-default-pool-a4065fd6-vxsh0"
 			ac := fakeAlgorithmConfig(test.fakeCasPool)
-			blockdeviceList, err := ac.NodeBlockDeviceSelector()
+			//blockdeviceList, err := ac.NodeBlockDeviceSelector()
+			selectedNodeBDs, err := ac.NodeBlockDeviceSelector()
 			if test.expectedErr && err == nil {
 				t.Fatalf("Test case failed expected error not to be nil")
 			}
 			if !test.expectedErr && err != nil {
-				t.Fatalf("Test case failed expected error to be nil")
+				t.Fatalf(
+					"Test case failed expected error to be nil but got error %v",
+					err,
+				)
 			}
-			if err == nil && len(blockdeviceList.BlockDevices.Items) != test.expectedDiskListLength {
-				t.Errorf("Test case failed as the expected blockdevice list length is %d but got %d", test.expectedDiskListLength, len(blockdeviceList.BlockDevices.Items))
+			if err == nil {
+				gotLen := 0
+				for _, val := range selectedNodeBDs {
+					val, _ := val.ToObjectList()
+					gotLen += len(val)
+				}
+				if gotLen != test.expectedDiskListLength {
+					t.Errorf("%q test case failed as the expected blockdevice list length is %d but got %d", name, test.expectedDiskListLength, gotLen)
+				}
 			}
 		})
 	}

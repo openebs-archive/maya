@@ -39,6 +39,7 @@ const (
 	FilterNonSparseDevices  = "filterNonSparseDevices"
 	InActiveStatus          = "Inactive"
 	FilterNonRelesedDevices = "filterNonRelesedDevices"
+	FilterUnclaimedDevices  = "filterUnclaimedDevices"
 )
 
 // DefaultDiskCount is a map containing the default block device count of various raid types.
@@ -118,6 +119,7 @@ var filterOptionFuncMap = map[string]filterOptionFunc{
 	FilterSparseDevices:     filterSparseDevices,
 	FilterNonSparseDevices:  filterNonSparseDevices,
 	FilterNonRelesedDevices: filterNonRelesedDevices,
+	FilterUnclaimedDevices:  filterUnclaimedDevices,
 }
 
 // predicateFailedError returns the predicate error which is provided to this function as an argument
@@ -298,6 +300,19 @@ func filterNonRelesedDevices(originalList *BlockDeviceList) *BlockDeviceList {
 	}
 	for _, device := range originalList.Items {
 		if !(device.Status.ClaimState == ndm.BlockDeviceReleased) {
+			filteredList.Items = append(filteredList.Items, device)
+		}
+	}
+	return filteredList
+}
+
+func filterUnclaimedDevices(originalList *BlockDeviceList) *BlockDeviceList {
+	filteredList := &BlockDeviceList{
+		BlockDeviceList: &ndm.BlockDeviceList{},
+		errs:            nil,
+	}
+	for _, device := range originalList.Items {
+		if device.Status.ClaimState == ndm.BlockDeviceUnclaimed {
 			filteredList.Items = append(filteredList.Items, device)
 		}
 	}

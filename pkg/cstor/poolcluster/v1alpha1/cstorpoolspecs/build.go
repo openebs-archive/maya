@@ -39,13 +39,31 @@ func (b *Builder) AppendErrorToBuilder(err error) *Builder {
 	return b
 }
 
+// WithNodeSelectorNew sets the node selector with provided value
+func (b *Builder) WithNodeSelectorNew(nodeSelector map[string]string) *Builder {
+	if len(nodeSelector) == 0 {
+		b.errs = append(b.errs, errors.New("failed to build pool spec object: missing node selector"))
+		return b
+	}
+	b.ps.object.NodeSelector = map[string]string{}
+	for key, value := range nodeSelector {
+		b.ps.object.NodeSelector[key] = value
+	}
+	return b
+}
+
 // WithNodeSelector sets the node selector with provided value.
 func (b *Builder) WithNodeSelector(nodeSelector map[string]string) *Builder {
 	if len(nodeSelector) == 0 {
 		b.errs = append(b.errs, errors.New("failed to build pool spec object: missing node selector"))
 		return b
 	}
-	b.ps.object.NodeSelector = nodeSelector
+	if b.ps.object.NodeSelector == nil {
+		return b.WithNodeSelector(nodeSelector)
+	}
+	for key, value := range nodeSelector {
+		b.ps.object.NodeSelector[key] = value
+	}
 	return b
 }
 
@@ -60,12 +78,12 @@ func (b *Builder) WithCacheFilePath(cacheFile string) *Builder {
 }
 
 // WithDefaultRaidGroupType sets the cacheFile field of pool spec with provided value.
-func (b *Builder) WithDefaultRaidGroupType(cacheFile string) *Builder {
-	if len(cacheFile) == 0 {
-		b.errs = append(b.errs, errors.New("failed to build pool spec object: missing cache file path"))
+func (b *Builder) WithDefaultRaidGroupType(raidType string) *Builder {
+	if len(raidType) == 0 {
+		b.errs = append(b.errs, errors.New("failed to build pool spec object: missing raidType name"))
 		return b
 	}
-	b.ps.object.PoolConfig.CacheFile = cacheFile
+	b.ps.object.PoolConfig.DefaultRaidGroupType = raidType
 	return b
 }
 

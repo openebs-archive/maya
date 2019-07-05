@@ -22,6 +22,7 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
+	cspcbd "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolblockdevice"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	volume "github.com/openebs/maya/pkg/volume"
@@ -42,32 +43,34 @@ type ClaimedBDDetails struct {
 	BlockDeviceList []BDDetails
 }
 
-// NodeBlockDeviceSelector selects a node and block devices attached to it.
-func (ac *Config) NodeBlockDeviceSelector() (*nodeBlockDevice, error) {
-	var filteredNodeBDs map[string]*blockDeviceList
+type bdCapacityRepetition struct {
+	sizeRepetitions map[uint64]int
+}
+
+// NodeBlockDeviceSelector selects required node and block devices attached to
+// the node
+func (ac *Config) NodeBlockDeviceSelector() (map[string]*cspcbd.ListBuilder, error) {
 	listBD, err := ac.getBlockDevice()
 	if err != nil {
 		return nil, err
 	}
 	if listBD == nil || len(listBD.Items) == 0 {
-		return nil, errors.New("no block device object found")
+		return nil, errors.New("no blockdevices available to create cstorpoolcluster")
 	}
-	nodeBlockDeviceMap, err := ac.getCandidateNode(listBD)
+	selectedCapacity, err := ac.getCommonBDCapacity(listBD)
+	if err != nil {
+		return nil, err
+	}
+	nodeBlockDeviceList, err := ac.getCandidateNodeBlockDevices(listBD, selectedCapacity)
 	if err != nil {
 		return nil, err
 	}
 
-	filteredNodeBDs = nodeBlockDeviceMap
-	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
-		filteredNodeBDs, err = ac.getFilteredNodeBlockDevices(nodeBlockDeviceMap)
-		if err != nil {
-			return nil, err
-		}
+	selectNodeBDs, err := ac.selectQualifiedNodes(nodeBlockDeviceList)
+	if err != nil {
+		return nil, err
 	}
-
-	selectedBD := ac.selectNode(filteredNodeBDs)
-
-	return selectedBD, nil
+	return selectNodeBDs, nil
 }
 
 // getFilteredNodeBlockDevices returns the map of node name and block device
@@ -137,39 +140,128 @@ func (ac *Config) getUsedNodeMap() (map[string]int, error) {
 	return usedNodeMap, nil
 }
 
-func (ac *Config) getCandidateNode(listBlockDevice *ndmapis.BlockDeviceList) (map[string]*blockDeviceList, error) {
-	usedDiskMap, err := ac.getUsedBlockDeviceMap()
-	if err != nil {
-		return nil, err
-	}
-	usedNodeMap, err := ac.getUsedNodeMap()
-	if err != nil {
-		return nil, err
-	}
+// getCandidateNode make the map of node and blockdevices topology
+// For example it forms map of
+// N1 -> bd1, bd2, bd3
+// N2 -> bd4, bd5
+func (ac *Config) getCandidateNodeBlockDevices(
+	listBlockDevice *ndmapis.BlockDeviceList,
+	selectedCapacity uint64,
+) (map[string]*cspcbd.ListBuilder, error) {
+	minBDCount := blockdevice.DefaultDiskCount[ac.poolType()]
 	// nodeBlockDeviceMap is the data structure holding host name as key
-	// and nodeBlockDevice struct as value.
-	nodeBlockDeviceMap := make(map[string]*blockDeviceList)
-	for _, value := range listBlockDevice.Items {
-		// If the disk is already being used, do not consider this as a part for provisioning pool.
-		if usedDiskMap[value.Name] == 1 {
-			continue
+	// and cstorpoolcluster blockdevicelist as a value
+	nodeBlockDeviceMap := make(map[string]*cspcbd.ListBuilder)
+	for _, blockDevice := range listBlockDevice.Items {
+		bd := blockdevice.BlockDevice{
+			BlockDevice: &blockDevice,
 		}
-		// If the node is already being used for a given spc, do not consider this as a part for provisioning pool.
-		if usedNodeMap[value.Labels[string(apis.HostNameCPK)]] == 1 {
-			continue
-		}
-		if nodeBlockDeviceMap[value.Labels[string(apis.HostNameCPK)]] == nil {
-			// Entry to this block means first time the hostname will be mapped for the first time.
-			// Obviously, this entry of hostname(node) is for a usable disk and initialize diskCount to 1.
-			nodeBlockDeviceMap[value.Labels[string(apis.HostNameCPK)]] = &blockDeviceList{Items: []string{value.Name}}
-		} else {
-			// Entry to this block means the hostname was already mapped and it has more than one disk and at least two disks.
-			nodeDisk := nodeBlockDeviceMap[value.Labels[string(apis.HostNameCPK)]]
-			// Add the current disk to the diskList for this node.
-			nodeDisk.Items = append(nodeDisk.Items, value.Name)
+		hostName := blockDevice.Labels[string(apis.HostNameCPK)]
+		listBuilder := nodeBlockDeviceMap[hostName]
+		capacity := blockDevice.Spec.Capacity.Storage
+		if capacity == selectedCapacity &&
+			(listBuilder == nil || listBuilder.Len() < minBDCount) {
+			capacityStr := volume.ByteCount(capacity)
+			devID := bd.GetDeviceID()
+			cspcBDObj, err := cspcbd.NewBuilder().
+				WithBlockDeviceName(blockDevice.Name).
+				WithCapacity(capacityStr).
+				WithDevLink(devID).Build()
+			if err != nil {
+				glog.Errorf(
+					"failed to build cspc blockdevice %s error: %v",
+					blockDevice.Name,
+					err,
+				)
+				continue
+			}
+
+			if listBuilder == nil {
+				// Entry to this block means first time the hostname will be mapped for the first time.
+				// Obviously, this entry of hostname(node) is for a usable
+				// blockdevices
+				nodeBlockDeviceMap[hostName] = cspcbd.ListBuilderForObjectNew(cspcBDObj)
+			} else {
+				// Add the current blockdevice to the existing listbuilder of
+				// blockdevice
+				listBuilder = listBuilder.ListBuilderForObject(cspcBDObj)
+			}
 		}
 	}
 	return nodeBlockDeviceMap, nil
+}
+
+// getCommonBDCapacity returns common blockdevice capacity accross the nodes in
+// cluster
+func (ac *Config) getCommonBDCapacity(listBlockDevice *ndmapis.BlockDeviceList) (uint64, error) {
+	nodeBDsCapacities := make(map[string]*bdCapacityRepetition)
+	minBDCount := blockdevice.DefaultDiskCount[ac.poolType()]
+	mapCapacityRepetitions := map[uint64]int{}
+	if ac.Spc.Spec.MaxPools == nil {
+		return 0, errors.Errorf(
+			"failed to get common capacity accross the nodes: maxPool field in spc is nil",
+		)
+	}
+	minReqNodeCount := *ac.Spc.Spec.MaxPools
+	totalRequiredBD := minBDCount * minReqNodeCount
+
+	for _, bd := range listBlockDevice.Items {
+		hostName := bd.Labels[string(apis.HostNameCPK)]
+		capacity := bd.Spec.Capacity.Storage
+		if nodeBDsCapacities[hostName] == nil {
+			tmpSizeRep := &bdCapacityRepetition{map[uint64]int{}}
+			tmpSizeRep.sizeRepetitions[capacity]++
+			nodeBDsCapacities[hostName] = tmpSizeRep
+		} else {
+			tmpSizeRep := nodeBDsCapacities[hostName]
+			tmpSizeRep.sizeRepetitions[capacity]++
+		}
+		mapCapacityRepetitions[capacity]++
+	}
+	for capacity, count := range mapCapacityRepetitions {
+		qualifiedNodes := 0
+		if count >= totalRequiredBD {
+			for _, bdCapacityRep := range nodeBDsCapacities {
+				if bdCapacityRep.sizeRepetitions[capacity] >= minBDCount {
+					qualifiedNodes++
+				}
+				if qualifiedNodes == minReqNodeCount {
+					return capacity, nil
+				}
+			}
+		}
+	}
+	return 0, errors.Errorf(
+		"no common blockdevice capacity is available accross the nodes to create cstorpoolcluster",
+	)
+}
+
+// selectQualifiedNodes returns map of qualified nodes and required count of
+// blockdevices attached to that node
+func (ac *Config) selectQualifiedNodes(nodeCSPCBlockDeviceList map[string]*cspcbd.ListBuilder) (map[string]*cspcbd.ListBuilder, error) {
+	qualifiedNodes := map[string]*cspcbd.ListBuilder{}
+	minBDCount := blockdevice.DefaultDiskCount[ac.poolType()]
+	minReqNodeCount := *ac.Spc.Spec.MaxPools
+	qualifiedNodeCount := 0
+
+	for key, cspcbdList := range nodeCSPCBlockDeviceList {
+		cspcbdList := cspcbdList
+		if cspcbdList.Len() >= minBDCount {
+			qualifiedNodes[key] = cspcbdList
+			qualifiedNodeCount++
+		}
+		if qualifiedNodeCount == minReqNodeCount {
+			return qualifiedNodes, nil
+		}
+	}
+	if len(qualifiedNodes) == 0 {
+		return nil, errors.Errorf("nodes doesn't have enough blockdevices to create cstorpoolcluster")
+	}
+	return nil, errors.Errorf(
+		"cluster doesn't have %d nodes with %d blockdevices to create cstorpoolcluster",
+		minReqNodeCount,
+		minBDCount,
+	)
 }
 
 func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) *nodeBlockDevice {
@@ -247,7 +339,8 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	if err != nil {
 		return nil, err
 	}
-	filterList := []string{blockdevice.FilterNonInactive}
+	glog.Infof("Length of blockdevice %d", len(bdList.Items))
+	filterList := []string{blockdevice.FilterNonInactive, blockdevice.FilterUnclaimedDevices}
 
 	if diskType == string(apis.TypeSparseCPV) {
 		filterList = append(filterList, blockdevice.FilterSparseDevices)
@@ -256,12 +349,22 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	}
 
 	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
-		filterList = append(filterList, blockdevice.FilterNonFSType, blockdevice.FilterNonRelesedDevices)
+		filterList = append(filterList, blockdevice.FilterNonFSType)
+	} else {
+		// Only auto spc pool provision is supported
+		return nil, errors.Errorf(
+			"creation of cstorpoolcluster via manual spc %s is not supported",
+			ac.Spc.Name,
+		)
 	}
 
 	bdl = bdList.Filter(filterList...)
 	if len(bdl.Items) == 0 {
-		return nil, errors.Errorf("type {%s} devices are not available to provision pools in %s mode", diskType, ProvisioningType(ac.Spc))
+		return nil, errors.Errorf(
+			"type {%s} blockdevices are not available to create cstorpoolcluster in %s mode",
+			diskType,
+			ProvisioningType(ac.Spc),
+		)
 	}
 	return bdl.BlockDeviceList, nil
 }

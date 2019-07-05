@@ -43,6 +43,16 @@ func (b *Builder) WithName(name string) *Builder {
 	return b
 }
 
+// WithNamespace sets the Namespace field of CSPC with provided value
+func (b *Builder) WithNamespace(namespace string) *Builder {
+	if len(namespace) == 0 {
+		b.errs = append(b.errs, errors.New("failed to build CSPC object: missing CSPC namespace"))
+		return b
+	}
+	b.cspc.object.Namespace = namespace
+	return b
+}
+
 // WithPoolSpecBuilder adds a pool to this cspc object.
 //
 // NOTE:

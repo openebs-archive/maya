@@ -22,6 +22,10 @@ import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
+	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	poolspec "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
+	raidgroup "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/raidgroups"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/openebs/maya/pkg/storagepool"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,21 +51,62 @@ type CasPoolBuilder struct {
 // 1. It receives storagepoolclaim object from the spc watcher event handler.
 // 2. After successful validation, it will call a worker function for actual storage creation
 //    via the cas template specified in storagepoolclaim.
-func (c *Controller) CreateStoragePool(spcGot *apis.StoragePoolClaim) error {
+func (c *Controller) CreateCStorPoolCluster(spcGot *apis.StoragePoolClaim) error {
 	poolconfig := c.NewPoolCreateConfig(spcGot)
-	newCasPool, err := poolconfig.getCasPool(spcGot)
+	newCStorPoolClusterObj, err := poolconfig.getCstorPoolCluster(spcGot)
 
 	if err != nil {
-		return errors.Wrapf(err, "failed to build cas pool for spc %s", spcGot.Name)
+		return errors.Wrapf(err, "failed to build cstorpoolcluster from spc %s", spcGot.Name)
 	}
 
-	// Calling worker function to create storagepool
-	err = poolCreateWorker(newCasPool)
+	_, err = c.clientset.
+		OpenebsV1alpha1().
+		CStorPoolClusters(newCStorPoolClusterObj.Namespace).
+		Create(newCStorPoolClusterObj)
 	if err != nil {
 		return err
 	}
-
+	glog.Infof("Successfully create cstorpoolcluster from spc %s", spcGot.Name)
 	return nil
+}
+
+func (pc *PoolCreateConfig) getCstorPoolCluster(spc *apis.StoragePoolClaim) (*apis.CStorPoolCluster, error) {
+	// get namespace where OpenEBS is installed
+	namespace := env.Get(env.OpenEBSNamespace)
+	cspcBuildObj := cspc.NewBuilder().
+		WithName(spc.Name).
+		WithNamespace(namespace)
+	mapNodeBlockDeviceList, err := pc.NodeBlockDeviceSelector()
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to get nodes and corresponding blockdevices",
+		)
+	}
+	for nodeName, customCSPCBDList := range mapNodeBlockDeviceList {
+		//TODO: Get key and value from node resource
+		nodeSelector := map[string]string{string(apis.HostNameCPK): nodeName}
+		cacheFile := pc.Spc.Spec.PoolSpec.CacheFile
+		poolType := pc.Spc.Spec.PoolSpec.PoolType
+		raidGroupBuilder := raidgroup.NewBuilder().
+			WithType(poolType).
+			WithName("group-1").
+			WithCSPCBlockDeviceList(customCSPCBDList)
+		poolSpecBuilder := poolspec.NewBuilder().
+			WithNodeSelectorNew(nodeSelector).
+			WithCompression("off").
+			WithDefaultRaidGroupType(poolType).
+			WithRaidGroupBuilder(raidGroupBuilder)
+		if cacheFile != "" {
+			poolSpecBuilder = poolSpecBuilder.WithCacheFilePath(cacheFile)
+		}
+		cspcBuildObj = cspcBuildObj.WithPoolSpecBuilder(poolSpecBuilder)
+	}
+	customCSPCObj, err := cspcBuildObj.Build()
+	if err != nil {
+		return nil, err
+	}
+	return customCSPCObj.ToAPI(), nil
 }
 
 // getCasPool returns a configured cas pool object.
@@ -159,12 +204,12 @@ func poolCreateWorker(pool *apis.CasPool) error {
 // CasPool object(type) is the contract on which CAS engine is instantiated for cStor pool creation.
 func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePoolClaim) (*apis.CasPool, error) {
 	// getDiskList will hold node and block devices attached to it to be used for storagepool provisioning.
-	nodeBDs, err := pc.NodeBlockDeviceSelector()
+	_, err := pc.NodeBlockDeviceSelector()
 	if err != nil {
 		return nil, errors.Wrapf(err, "aborting storagepool create operation as no node qualified")
 	}
 
-	claimedNodeBDs, err := pc.ClaimBlockDevice(nodeBDs, spc)
+	claimedNodeBDs, err := pc.ClaimBlockDevice(nil, spc)
 	if err != nil {
 		return nil, errors.Wrapf(err, "aborting storagepool create operation as no claimed block devices available")
 	}
