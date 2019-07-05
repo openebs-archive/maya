@@ -24,8 +24,8 @@ import (
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-
 	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
+
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -129,8 +129,6 @@ func (c *CVCController) enqueueCVC(obj interface{}) {
 // synCVC is the function which tries to converge to a desired state for the
 // CStorVolumeClaims
 func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
-	// create is a wrapper function that calls the actual function to create pool as many time
-	// as the number of pools need to be created.
 	//	var newCVCLease Leaser
 	//	newCVCLease = &Lease{cvc, cvcLeaseKey, c.clientset, c.kubeclientset}
 	//	err := newCVCLease.Hold()
@@ -142,7 +140,7 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 
 	// CStor Volume Claim should be deleted. Check if deletion timestamp is set
 	// and remove finalizer.
-	if isClaimDeletionCandidate(cvc) {
+	if c.isClaimDeletionCandidate(cvc) {
 		glog.Infof("syncClaim: remove finalizer for CStorVolumeClaimVolume [%s]", cvc.Name)
 		return c.removeClaimFinalizer(cvc)
 	}
@@ -156,6 +154,8 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 		return nil
 	}
 
+	//NodeId indicates where the volume is needed to be mounted, i.e the node
+	// where the app has been scheduled.
 	nodeID := cvc.Publish.NodeId
 	if nodeID == "" {
 		// We choose to absorb the error here as the worker would requeue the
@@ -297,7 +297,7 @@ func (c *CVCController) distributePendingCVRs(
 }
 
 // isClaimDeletionCandidate checks if a cstorvolumeclaim is a deletion candidate.
-func isClaimDeletionCandidate(cvc *apis.CStorVolumeClaim) bool {
+func (c *CVCController) isClaimDeletionCandidate(cvc *apis.CStorVolumeClaim) bool {
 	return cvc.ObjectMeta.DeletionTimestamp != nil &&
 		slice.ContainsString(cvc.ObjectMeta.Finalizers, CStorVolumeClaimFinalizer, nil)
 }

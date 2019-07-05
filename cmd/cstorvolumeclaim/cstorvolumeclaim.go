@@ -20,6 +20,7 @@ import (
 	"strconv"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/openebs/maya/pkg/version"
 
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
@@ -164,6 +165,12 @@ func getCVOwnerReference(cvc *apis.CStorVolumeClaim) []metav1.OwnerReference {
 	}
 }
 
+// getNamespace gets the namespace OPENEBS_NAMESPACE env value which is set by the
+// downward API where maya-apiserver has been deployed
+func getNamespace() string {
+	return menv.Get(menv.OpenEBSNamespace)
+}
+
 // getStorageClass return storageclass object for a given storageClass Name.
 // or error if any.
 func getStorageClass(
@@ -241,7 +248,7 @@ func getOrCreateTargetService(storageClassName string,
 	claim *apis.CStorVolumeClaim,
 ) (*corev1.Service, error) {
 
-	svcObj, err := svc.NewKubeClient(svc.WithNamespace("openebs")).
+	svcObj, err := svc.NewKubeClient(svc.WithNamespace(getNamespace())).
 		Get(claim.Name, metav1.GetOptions{})
 
 	if err == nil {
@@ -273,7 +280,7 @@ func getOrCreateTargetService(storageClassName string,
 		)
 	}
 
-	svcObj, err = svc.NewKubeClient(svc.WithNamespace("openebs")).Create(svcObj)
+	svcObj, err = svc.NewKubeClient(svc.WithNamespace(getNamespace())).Create(svcObj)
 	return svcObj, err
 }
 
@@ -296,7 +303,7 @@ func getOrCreateCStorVolumeResource(
 
 	cfactor := rfactor/2 + 1
 
-	cvObj, err := cv.NewKubeclient(cv.WithNamespace("openebs")).
+	cvObj, err := cv.NewKubeclient(cv.WithNamespace(getNamespace())).
 		Get(claim.Name, metav1.GetOptions{})
 	if err != nil && !k8serror.IsNotFound(err) {
 		return nil, errors.Wrapf(
@@ -326,7 +333,7 @@ func getOrCreateCStorVolumeResource(
 				cvObj,
 			)
 		}
-		return cv.NewKubeclient(cv.WithNamespace("openebs")).Create(cvObj)
+		return cv.NewKubeclient(cv.WithNamespace(getNamespace())).Create(cvObj)
 	}
 	return cvObj, err
 }
@@ -372,7 +379,7 @@ func creatCVR(
 	pool *apis.CStorPool,
 ) (*apis.CStorVolumeReplica, error) {
 
-	cvrObj, err := cvr.NewKubeclient(cvr.WithNamespace("openebs")).
+	cvrObj, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).
 		Get(volume.Name+"-"+pool.Name, metav1.GetOptions{})
 
 	if err != nil && !k8serror.IsNotFound(err) {
@@ -399,7 +406,7 @@ func creatCVR(
 				cvrObj.Name,
 			)
 		}
-		cvrObj, err = cvr.NewKubeclient(cvr.WithNamespace("openebs")).Create(cvrObj)
+		cvrObj, err = cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).Create(cvrObj)
 		if err != nil {
 			return nil, errors.Wrapf(
 				err,
@@ -433,7 +440,7 @@ func getUniquePoolList(pvName string, poolList *apis.CStorPoolList) *apis.CStorP
 	uniquePool := &apis.CStorPoolList{}
 
 	pvLabel := pvAnnotaion + pvName
-	cvrList, err := cvr.NewKubeclient(cvr.WithNamespace("openebs")).List(metav1.ListOptions{
+	cvrList, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).List(metav1.ListOptions{
 		LabelSelector: pvLabel,
 	})
 	if err != nil {
