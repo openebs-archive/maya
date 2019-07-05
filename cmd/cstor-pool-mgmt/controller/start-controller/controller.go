@@ -132,6 +132,7 @@ func StartControllers(kubeconfig string) {
 
 	go kubeInformerFactory.Start(stopCh)
 	go openebsInformerFactory.Start(stopCh)
+	go openebsInformerFactory2.Start(stopCh)
 
 	// Waitgroup for starting pool and VolumeReplica controller goroutines.
 	var wg sync.WaitGroup
