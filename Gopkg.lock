@@ -713,7 +713,7 @@
   version = "kubernetes-1.12.3"
 
 [[projects]]
-  digest = "1:14f8604409a2fe151e87f7ee6f6c954043393eb0813e3cc8bb7d309465cf7a4f"
+  digest = "1:28ac00ba3885f427a995e5af377ecf8a4ede60d0903cc0357377519c2ecced1e"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -749,6 +749,7 @@
     "pkg/util/mergepatch",
     "pkg/util/naming",
     "pkg/util/net",
+    "pkg/util/rand",
     "pkg/util/remotecommand",
     "pkg/util/runtime",
     "pkg/util/sets",
@@ -1007,9 +1008,12 @@
   revision = "9dfdf9be683f61f82cda12362c44c784e0778b56"
 
 [[projects]]
-  digest = "1:90dee264ac3a6110108bf208eee8caf064a70c8eecb96316e1fe2ba29fba225f"
+  digest = "1:0e0a52f12177a12c52909a66662a38c37db46ebfe948ceae1fee32f680e91740"
   name = "k8s.io/kubernetes"
-  packages = ["pkg/util/version"]
+  packages = [
+    "pkg/util/slice",
+    "pkg/util/version",
+  ]
   pruneopts = "UT"
   revision = "a89f8c11a5f4f132503edbc4918c98518fd504e3"
   version = "v1.12.8"
@@ -1071,6 +1075,7 @@
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/runtime/serializer",
     "k8s.io/apimachinery/pkg/types",
+    "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/apimachinery/pkg/util/json",
     "k8s.io/apimachinery/pkg/util/runtime",
     "k8s.io/apimachinery/pkg/util/strategicpatch",
@@ -1097,6 +1102,7 @@
     "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/record",
+    "k8s.io/client-go/tools/reference",
     "k8s.io/client-go/tools/remotecommand",
     "k8s.io/client-go/util/flowcontrol",
     "k8s.io/client-go/util/jsonpath",
@@ -1107,6 +1113,7 @@
     "k8s.io/code-generator/cmd/defaulter-gen",
     "k8s.io/code-generator/cmd/informer-gen",
     "k8s.io/code-generator/cmd/lister-gen",
+    "k8s.io/kubernetes/pkg/util/slice",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/runtime/scheme",
   ]

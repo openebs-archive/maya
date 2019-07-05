@@ -17,6 +17,14 @@ package v1alpha1
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	//CStorNodeBase nodeBase for cstor volume
+	CStorNodeBase string = "iqn.2016-09.com.openebs.cstor"
+	// TargetPort is port for cstor volume
+	TargetPort string = "3260"
 )
 
 // Builder is the builder object for CStorVolume
@@ -114,6 +122,21 @@ func (b *Builder) WithAnnotationsNew(annotations map[string]string) *Builder {
 	return b
 }
 
+// WithOwnerRefernceNew sets ownerrefernce if any with
+// ones that are provided here
+func (b *Builder) WithOwnerRefernceNew(ownerRefernce []metav1.OwnerReference) *Builder {
+	if len(ownerRefernce) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build cstorvolume object: no new ownerRefernce"),
+		)
+		return b
+	}
+
+	b.cstorvolume.object.OwnerReferences = ownerRefernce
+	return b
+}
+
 // WithLabels merges existing labels if any
 // with the ones that are provided here
 func (b *Builder) WithLabels(labels map[string]string) *Builder {
@@ -194,6 +217,13 @@ func (b *Builder) WithNodeBase(nodebase string) *Builder {
 		return b
 	}
 	b.cstorvolume.object.Spec.NodeBase = nodebase
+	return b
+}
+
+// WithCStorIQN sets the iqn field of CStorVolume with provided arguments
+func (b *Builder) WithCStorIQN(name string) *Builder {
+	iqn := CStorNodeBase + ":" + name
+	b.cstorvolume.object.Spec.Iqn = iqn
 	return b
 }
 
