@@ -114,7 +114,6 @@ func NewCStorPoolController(
 	cStorPoolInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			csp := obj.(*apis2.CStorNPool)
-
 			if !pool.IsRightCStorPoolMgmt(csp) ||
 				pool.IsDeletionFailedBefore(csp) ||
 				pool.IsErrorDuplicate(csp) {
@@ -132,11 +131,11 @@ func NewCStorPoolController(
 			controller.enqueueCStorPool(csp, common.QOpAdd)
 		},
 
-		UpdateFunc: func(old, new interface{}) {
+		UpdateFunc: func(oldVar, newVar interface{}) {
 			var op common.QueueOperation
 
-			ncsp := new.(*api.CStorNPool)
-			ocsp := old.(*api.CStorNPool)
+			ncsp := newVar.(*api.CStorNPool)
+			ocsp := oldVar.(*api.CStorNPool)
 
 			if !pool.IsRightCStorPoolMgmt(ncsp) ||
 				pool.IsDeletionFailedBefore(ncsp) ||

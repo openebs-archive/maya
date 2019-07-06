@@ -47,7 +47,10 @@ var PoolAddEventHandled = false
 // RunnerVar the runner variable for executing binaries.
 var RunnerVar util.Runner
 
+// KubeClient is for kubernetes CR operation
 var KubeClient kubernetes.Interface
+
+// OpenEbsClient2 is for openebs CR operation
 var OpenEbsClient2 clientset2.Interface
 
 // PoolPrefix is prefix for pool name
@@ -71,7 +74,7 @@ func PoolName(csp *api.CStorNPool) string {
 // Delete will destroy the pool for given csp.
 // It will also perform labelclear for pool disk.
 func Delete(csp *api.CStorNPool) error {
-	glog.Infof("Destroying a pool for %+v", csp)
+	glog.Infof("Destroying a pool {%s}", PoolName(csp))
 
 	// First delete a pool
 	ret, err := zfs.NewPoolDestroy().
@@ -208,7 +211,7 @@ func Create(csp *api.CStorNPool) error {
 	// We created the pool successfully
 	// Let's set cachefile for this pool, if it is provided in csp object
 	if len(csp.Spec.PoolConfig.CacheFile) != 0 && err == nil {
-		if ret, err := zfs.NewPoolSProperty().
+		if _, err := zfs.NewPoolSProperty().
 			WithProperty("cachefile", csp.Spec.PoolConfig.CacheFile).
 			WithPool(PoolName(csp)).
 			Execute(); err != nil {
@@ -476,10 +479,15 @@ func parsePoolStatus(output string) string {
 func Update(csp *api.CStorNPool) error {
 	var err error
 	var isObjChanged bool
+	var isRaidGroupChanged bool
 
 	// first we will check if there any bdev is replaced or removed
-	for raidIndex, raidGroup := range csp.Spec.RaidGroups {
-		for bdevIndex, bdev := range raidGroup.BlockDevices {
+	for raidIndex := 0; raidIndex < len(csp.Spec.RaidGroups); raidIndex++ {
+		isRaidGroupChanged = false
+		raidGroup := csp.Spec.RaidGroups[raidIndex]
+
+		for bdevIndex := 0; bdevIndex < len(raidGroup.BlockDevices); bdevIndex++ {
+			bdev := raidGroup.BlockDevices[bdevIndex]
 			glog.Infof("got bdev %s", bdev.BlockDeviceName)
 
 			// Let's check if bdev name is empty
@@ -491,6 +499,13 @@ func Update(csp *api.CStorNPool) error {
 				if er := removePoolVdev(csp, bdev); er != nil {
 					err = ErrorWrapf(err, "Failed to remove bdev {%s}.. %s", bdev.DevLink, er.Error())
 				}
+				// remove this entry since it's been already removed from pool
+				raidGroup.BlockDevices = append(raidGroup.BlockDevices[:bdevIndex], raidGroup.BlockDevices[bdevIndex+1:]...)
+				// We just remove the bdevIndex entry from BlockDevices
+				// let's decrement the index to handle above removal
+				bdevIndex--
+				isRaidGroupChanged = true
+				continue
 			}
 
 			// Let's check if bdev path is changed or not
@@ -502,10 +517,23 @@ func Update(csp *api.CStorNPool) error {
 					err = ErrorWrapf(err, "Failed to replace bdev for {%s}.. %s", bdev.BlockDeviceName, er.Error())
 				} else {
 					// Let's update devLink with new path for this bdev
-					csp.Spec.RaidGroups[raidIndex].BlockDevices[bdevIndex].DevLink = newpath
-					isObjChanged = true
+					raidGroup.BlockDevices[bdevIndex].DevLink = newpath
+					isRaidGroupChanged = true
 				}
 			}
+		}
+		// If raidGroup is changed then update the csp.spec.raidgroup entry
+		// If raidGroup doesn't have any blockdevice then remove that raidGroup
+		// and set isObjChanged
+		if isRaidGroupChanged {
+			if len(raidGroup.BlockDevices) != 0 {
+				csp.Spec.RaidGroups[raidIndex] = raidGroup
+			} else {
+				csp.Spec.RaidGroups = append(csp.Spec.RaidGroups[:raidIndex], csp.Spec.RaidGroups[raidIndex+1:]...)
+				// We removed the raidIndex entry csp.Spec.raidGroup
+				raidIndex--
+			}
+			isObjChanged = true
 		}
 	}
 
@@ -534,14 +562,15 @@ func removePoolVdev(csp *api.CStorNPool, bdev api.CStorPoolClusterBlockDevice) e
 
 func replacePoolVdev(csp *api.CStorNPool, bdev api.CStorPoolClusterBlockDevice, npath string) error {
 	if IsEmpty(npath) || IsEmpty(bdev.DevLink) {
-		return errors.Errorf("Empty path for bdev {%s}", bdev.BlockDeviceName)
+		return errors.Errorf("Empty path for bdev")
 	}
 
 	_, err := zfs.NewPoolDiskReplace().
 		WithOldVdev(bdev.DevLink).
 		WithNewVdev(npath).
 		WithPool(PoolName(csp)).
-		WithForcefully(true).Execute()
+		WithForcefully(true).
+		Execute()
 	return err
 }
 
@@ -554,7 +583,7 @@ func isBdevPathChanged(csp *api.CStorNPool, bdev *api.CStorPoolClusterBlockDevic
 		err = errors.Errorf("Failed to get bdev {%s} path err {%s}", bdev.BlockDeviceName, err.Error())
 	}
 
-	if err != nil && newPath != bdev.DevLink {
+	if err == nil && newPath != bdev.DevLink {
 		isPathChanged = true
 	}
 	return newPath, isPathChanged, err

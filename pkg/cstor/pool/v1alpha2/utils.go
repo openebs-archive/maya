@@ -80,7 +80,7 @@ func IsReconcileDisabled(csp *api.CStorNPool) bool {
 
 // IsHostNameChanged check if hostname for CSP object is changed
 func IsHostNameChanged(ocsp *api.CStorNPool, ncsp *api.CStorNPool) bool {
-	return ncsp.Spec.HostName == ocsp.Spec.HostName
+	return ncsp.Spec.HostName != ocsp.Spec.HostName
 }
 
 // IsEmpty check if string is empty or not

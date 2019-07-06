@@ -191,11 +191,10 @@ func (c *CStorPoolController) modifyEventHandler(csp *apis2.CStorNPool) error {
 	//TODO add modify
 	err := pool.Update(csp)
 	if err != nil {
-		glog.Errorf("Failed to update pool %v", csp)
+		glog.Errorf("Failed to modify pool {%s} .. {%v}", pool.PoolName(csp), err)
 		return err
 	}
 
-	glog.Infof("got error %s", err.Error())
 	// TODO where to put pool status
 	return nil
 }
