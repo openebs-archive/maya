@@ -48,7 +48,7 @@ checkGitDiff "make format"
 printf "\n"
 
 echo "Running : dep check"
-dep check
+dep check -skip-lock
 rc=$?; if [[ $rc != 0 ]]; then echo "dep check failed"; exit $rc; fi
 checkGitDiff "dep check"
 printf "\n"

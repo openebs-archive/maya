@@ -755,7 +755,8 @@ func (k *K8sClient) GetPod(name string, opts mach_apis_meta_v1.GetOptions) (*api
 
 // GetPods fetches the K8s Pods
 func (k *K8sClient) GetPods() ([]api_core_v1.Pod, error) {
-	podLists, err := k.cs.Core().Pods(k.ns).List(mach_apis_meta_v1.ListOptions{})
+	podLists, err := k.cs.CoreV1().Pods(k.ns).List(mach_apis_meta_v1.ListOptions{})
+
 	if err != nil {
 		return nil, err
 	}
