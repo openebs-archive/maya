@@ -19,11 +19,55 @@ package cspc
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
-	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/extnv1beta1/v1alpha1"
+	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
+	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
+	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
+	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
+	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
-	"k8s.io/api/core/v1"
-	extnv1beta1 "k8s.io/api/extensions/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
+)
+
+// OpenEBSServiceAccount name of the openebs service accout with required
+// permissions
+const (
+	OpenEBSServiceAccount = "openebs-maya-operator"
+	// PoolMgmtContainerName is the name of cstor target container name
+	PoolMgmtContainerName = "cstor-pool-mgmt"
+
+	// PoolContainerName is the name of cstor target container name
+	PoolContainerName = "cstor-pool"
+
+	// PoolExporterContainerName is the name of cstor target container name
+	PoolExporterContainerName = "maya-exporter"
+)
+
+var (
+	// run container in privileged mode configuration that will be
+	// applied to a container.
+	privileged            = true
+	defaultPoolMgmtMounts = []corev1.VolumeMount{
+		corev1.VolumeMount{
+			Name:      "device",
+			MountPath: "/dev",
+		},
+		corev1.VolumeMount{
+			Name:      "tmp",
+			MountPath: "/tmp",
+		},
+		corev1.VolumeMount{
+			Name:      "udev",
+			MountPath: "/run/udev",
+		},
+	}
+	// hostpathType represents the hostpath type
+	hostpathTypeDirectory = corev1.HostPathDirectory
+
+	// hostpathType represents the hostpath type
+	hostpathTypeDirectoryOrCreate = corev1.HostPathDirectoryOrCreate
 )
 
 // CreateStoragePool creates the required resource to provision a cStor pool
@@ -39,7 +83,10 @@ func (pc *PoolConfig) CreateStoragePool(cspcGot *apis.CStorPoolCluster) error {
 	}
 
 	poolDeployObj := pc.GetPoolDeploySpec(cspObj)
-	pc.createPoolDeployment(poolDeployObj)
+	err = pc.createPoolDeployment(poolDeployObj)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create deploy for csp {%s} for cspc {%s)", cspObj.Name, cspcGot.Name)
+	}
 	return nil
 }
 
@@ -48,19 +95,91 @@ func (pc *PoolConfig) createCSP(csp *apis.NewTestCStorPool) error {
 	return err
 }
 
-func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.NewTestCStorPool) *extnv1beta1.Deployment {
+func (pc *PoolConfig) createPoolDeployment(deployObj *appsv1.Deployment) error {
+	_, err := deploy.NewKubeClient().WithNamespace(pc.AlgorithConfig.Namespace).Create(deployObj)
+	return err
+}
 
+func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.NewTestCStorPool) *appsv1.Deployment {
 	deployObj, _ := deploy.NewBuilder().
 		WithName(csp.Name).
-		WithNameSpace(csp.Namespace).
-		WithAnnotations(map[string]string{}).
-		WithLabels(map[string]string{}).
-		WithOwnerReferences(csp).
-		WithReplicaCount(getReplicaCount()).
-		WithSelector(getSelector()).
-		WithDeploymentStrategy(extnv1beta1.RecreateDeploymentStrategyType).
-		WithPodTemplateSpec(getPodTemplateSpec()).Build()
-	return deployObj.Object
+		WithNamespace(csp.Namespace).
+		WithAnnotationsNew(getDeployAnnotations()).
+		WithLabelsNew(getDeployLabels(csp)).
+		WithNodeSelector(map[string]string{"kubernetes.io/hostname": csp.Spec.HostName}).
+		WithOwnerReferenceNew(getDeployOwnerReference(csp)).
+		WithReplicas(getReplicaCount()).
+		WithStrategyType(appsv1.RecreateDeploymentStrategyType).
+		WithSelectorMatchLabelsNew(getDeployMatchLabels(csp)).
+		WithPodTemplateSpecBuilder(
+			pts.NewBuilder().
+				WithLabelsNew(getPodLabels(csp)).
+				WithAnnotationsNew(getPodAnnotations()).
+				WithServiceAccountName(OpenEBSServiceAccount).
+				// For CStor-Pool-Mgmt container
+				WithContainerBuilders(
+					container.NewBuilder().
+						WithImage(getPoolMgmtImage()).
+						WithName(PoolMgmtContainerName).
+						WithImagePullPolicy(corev1.PullIfNotPresent).
+						WithPrivilegedSecurityContext(&privileged).
+						WithEnvsNew(getPoolMgmtEnv(csp)).
+						// TODO : Resource and Limit
+						WithVolumeMountsNew(getPoolMgmtMounts()),
+					// For CStor-Pool container
+					container.NewBuilder().
+						WithImage(getPoolImage()).
+						WithName(PoolContainerName).
+						// TODO : Resource and Limit
+						WithImagePullPolicy(corev1.PullIfNotPresent).
+						WithPrivilegedSecurityContext(&privileged).
+						WithPortsNew(getContainerPort(12000, 3232, 3233)).
+						WithLivenessProbe(getPoolLivenessProbe()).
+						WithEnvsNew(getPoolEnv(csp)).
+						WithLifeCycle(getPoolLifeCycle()).
+						WithVolumeMountsNew(getPoolMounts()),
+					// For maya exporter
+					container.NewBuilder().
+						WithImage(getMayaExporterImage()).
+						WithName(PoolExporterContainerName).
+						// TODO : Resource and Limit
+						WithImagePullPolicy(corev1.PullIfNotPresent).
+						WithPrivilegedSecurityContext(&privileged).
+						WithPortsNew(getContainerPort(9500)).
+						WithCommandNew([]string{"maya-exporter"}).
+						WithArgumentsNew([]string{"-e=pool"}).
+						WithVolumeMountsNew(getPoolMounts()),
+				).
+				// TODO : Add toleration
+				WithVolumeBuilders(
+					volume.NewBuilder().
+						WithName("device").
+						WithHostPathAndType(
+							"/dev",
+							&hostpathTypeDirectory,
+						),
+					volume.NewBuilder().
+						WithName("udev").
+						WithHostPathAndType(
+							"/run/udev",
+							&hostpathTypeDirectory,
+						),
+					volume.NewBuilder().
+						WithName("sparse").
+						WithHostPathAndType(
+							getSparseDirPath()+"shared-"+csp.Name,
+							&hostpathTypeDirectoryOrCreate,
+						),
+					volume.NewBuilder().
+						WithName("tmp").
+						WithHostPathAndType(
+							getSparseDirPath(),
+							&hostpathTypeDirectoryOrCreate,
+						),
+				),
+		).
+		Build()
+	return deployObj
 }
 
 func getReplicaCount() *int32 {
@@ -68,17 +187,176 @@ func getReplicaCount() *int32 {
 	return &count
 }
 
-// TODO: Fix following function -- ( currently only mocked)
-func getSelector() *metav1.LabelSelector {
-	return &metav1.LabelSelector{}
+func getDeployOwnerReference(csp *apis.NewTestCStorPool) []metav1.OwnerReference {
+	OwnerReference := []metav1.OwnerReference{
+		*metav1.NewControllerRef(csp, apis.SchemeGroupVersion.WithKind("NewTestCStorPool")),
+	}
+	return OwnerReference
 }
 
-// TODO: Fix following function -- ( currently only mocked)
-func getPodTemplateSpec() *v1.PodTemplateSpec {
-	return &v1.PodTemplateSpec{}
+// TODO: Use builder for labels and annotations
+func getDeployLabels(csp *apis.NewTestCStorPool) map[string]string {
+	return map[string]string{
+		string(apis.CStorPoolClusterCPK): csp.Annotations[string(apis.CStorPoolClusterCPK)],
+		"app":                            "cstor-pool",
+		"openebs.io/cstor-pool":          csp.Name,
+		"openebs.io/version":             version.GetVersion(),
+	}
 }
 
-func (pc *PoolConfig) createPoolDeployment(poolDeployObj *extnv1beta1.Deployment) error {
-	_, err := deploy.KubeClient(deploy.WithNamespace(poolDeployObj.Namespace)).Create(poolDeployObj)
-	return err
+func getDeployAnnotations() map[string]string {
+	return map[string]string{
+		"openebs.io/monitoring": "pool_exporter_prometheus",
+	}
+}
+
+func getPodLabels(csp *apis.NewTestCStorPool) map[string]string {
+	return getPodLabels(csp)
+}
+
+func getPodAnnotations() map[string]string {
+	return map[string]string{
+		"openebs.io/monitoring": "pool_exporter_prometheus",
+		"prometheus.io/path":    "/metrics",
+		"prometheus.io/port":    "9500",
+		"prometheus.io/scrape":  "true",
+	}
+}
+
+func getDeployMatchLabels(csp *apis.NewTestCStorPool) map[string]string {
+	return map[string]string{
+		"app": "cstor-pool",
+	}
+}
+
+// getVolumeTargetImage returns Volume target image
+// retrieves the value of the environment variable named
+// by the key.
+func getPoolMgmtImage() string {
+	image, present := os.LookupEnv("OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE")
+	if !present {
+		image = "openebs/cstor-pool-mgmt:latest"
+	}
+	return image
+}
+
+// getVolumeTargetImage returns Volume target image
+// retrieves the value of the environment variable named
+// by the key.
+func getPoolImage() string {
+	image, present := os.LookupEnv("OPENEBS_IO_CSTOR_POOL_IMAGE")
+	if !present {
+		image = "openebs/cstor-pool:latest"
+	}
+	return image
+}
+
+// getVolumeTargetImage returns Volume target image
+// retrieves the value of the environment variable named
+// by the key.
+func getMayaExporterImage() string {
+	image, present := os.LookupEnv("OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE")
+	if !present {
+		image = "openebs/m-exporter:latest"
+	}
+	return image
+}
+
+func getContainerPort(port ...int32) []corev1.ContainerPort {
+	var containerPorts []corev1.ContainerPort
+	for _, p := range port {
+		containerPorts = append(containerPorts, corev1.ContainerPort{ContainerPort: p, Protocol: "TCP"})
+	}
+	return containerPorts
+}
+
+func getPoolMgmtMounts() []corev1.VolumeMount {
+	return append(
+		defaultPoolMgmtMounts,
+		corev1.VolumeMount{
+			Name:      "sparse",
+			MountPath: getSparseDirPath(),
+		},
+	)
+}
+
+func getSparseDirPath() string {
+	dir, present := os.LookupEnv("OPENEBS_IO_CSTOR_POOL_SPARSE_DIR")
+	if !present {
+		dir = "/var/openebs/sparse"
+	}
+	return dir
+}
+
+func getPoolMgmtEnv(csp *apis.NewTestCStorPool) []corev1.EnvVar {
+	var env []corev1.EnvVar
+	return append(
+		env,
+		corev1.EnvVar{
+			Name:  "OPENEBS_IO_CSTOR_ID",
+			Value: string(csp.GetUID()),
+		},
+		corev1.EnvVar{
+			Name: "RESYNC_INTERVAL",
+			// TODO : Add tunable
+			Value: "30",
+		},
+		corev1.EnvVar{
+			Name: "POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
+	)
+}
+
+func getPoolLivenessProbe() *corev1.Probe {
+	probe := &corev1.Probe{
+		Handler: corev1.Handler{
+			Exec: &corev1.ExecAction{
+				Command: []string{"/bin/sh", "-c", "zfs set io.openebs:livenesstimestap='$(date)' cstor-$OPENEBS_IO_CSTOR_ID"},
+			},
+		},
+		FailureThreshold:    3,
+		InitialDelaySeconds: 300,
+		PeriodSeconds:       10,
+		TimeoutSeconds:      300,
+	}
+	return probe
+}
+
+func getPoolMounts() []corev1.VolumeMount {
+	return getPoolMgmtMounts()
+}
+
+func getPoolEnv(csp *apis.NewTestCStorPool) []corev1.EnvVar {
+	var env []corev1.EnvVar
+	return append(
+		env,
+		corev1.EnvVar{
+			Name:  "OPENEBS_IO_CSTOR_ID",
+			Value: string(csp.GetUID()),
+		},
+	)
+}
+
+func getPoolLifeCycle() *corev1.Lifecycle {
+	lc := &corev1.Lifecycle{
+		PostStart: &corev1.Handler{
+			Exec: &corev1.ExecAction{
+				Command: []string{"/bin/sh", "-c", "sleep 2"},
+			},
+		},
+	}
+	return lc
 }
