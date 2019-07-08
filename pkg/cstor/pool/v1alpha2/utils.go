@@ -26,6 +26,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	// PoolPrefix is prefix for pool name
+	PoolPrefix string = "cstor-"
+)
+
 // IsRightCStorPoolMgmt is to check if the pool request is for this pod.
 func IsRightCStorPoolMgmt(csp *api.CStorNPool) bool {
 	return os.Getenv(string(common.OpenEBSIOCStorID)) == csp.ObjectMeta.Labels["cstorpool.openebs.io/uid"]
@@ -96,4 +101,9 @@ func ErrorWrapf(err error, format string, args ...interface{}) error {
 	}
 
 	return errors.Wrapf(err, format, args...)
+}
+
+// PoolName return pool name for given CSP object
+func PoolName(csp *api.CStorNPool) string {
+	return PoolPrefix + string(csp.ObjectMeta.UID)
 }

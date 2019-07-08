@@ -78,7 +78,7 @@ func NewCStorPoolController(
 	cStorPoolInformer := cStorInformerFactory.Openebs().V1alpha2().CStorNPools()
 
 	pool.KubeClient = kubeclientset
-	pool.OpenEbsClient2 = clientset
+	pool.OpenEBSClient2 = clientset
 	pool.ImportedCStorPools = map[string]*apis2.CStorNPool{}
 
 	err := openebsScheme.AddToScheme(scheme.Scheme)
