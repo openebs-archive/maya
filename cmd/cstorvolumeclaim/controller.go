@@ -69,8 +69,7 @@ type Patch struct {
 }
 
 // syncHandler compares the actual state with the desired, and attempts to
-// converge the two. It then updates the Status block of the spcPoolUpdated resource
-// with the current status of the resource.
+// converge the two. syncHandler processes items from cvc Queue.
 func (c *CVCController) syncHandler(key string) error {
 	startTime := time.Now()
 	glog.V(4).Infof("Started syncing cstorvolumeclaim %q (%v)", key, startTime)
@@ -127,17 +126,9 @@ func (c *CVCController) enqueueCVC(obj interface{}) {
 }
 
 // synCVC is the function which tries to converge to a desired state for the
-// CStorVolumeClaims
+// CStorVolumeClaims. It then updates the Status block of the CStorVolumes claim
+// resource with the bound status once the required resources has been created.
 func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
-	//	var newCVCLease Leaser
-	//	newCVCLease = &Lease{cvc, cvcLeaseKey, c.clientset, c.kubeclientset}
-	//	err := newCVCLease.Hold()
-	//	if err != nil {
-	//		return errors.Wrapf(err, "Could not acquire lease on cvc object")
-	//	}
-	//	glog.V(4).Infof("Lease acquired successfully on CStorVolumeClaims %s ", spc.Name)
-	//	defer newCVCLease.Release()
-
 	// CStor Volume Claim should be deleted. Check if deletion timestamp is set
 	// and remove finalizer.
 	if c.isClaimDeletionCandidate(cvc) {
