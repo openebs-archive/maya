@@ -142,9 +142,9 @@ var (
 
 // Instance returns a singleton instance of
 // this client
-func Instance() *Client {
+func Instance(opts ...OptionFn) *Client {
 	once.Do(func() {
-		instance = New()
+		instance = New(opts...)
 	})
 
 	return instance

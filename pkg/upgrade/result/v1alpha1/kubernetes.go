@@ -19,16 +19,17 @@ package v1alpha1
 import (
 	"encoding/json"
 	"strings"
+	"sync"
+	"text/template"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/third_party/forked/golang/template"
-
+	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha1/clientset/internalclientset"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // getClientsetFunc is a typed function that
@@ -62,14 +63,15 @@ type patchFunc func(cs *clientset.Clientset, name string, pt types.PatchType, pa
 type updateFunc func(cs *clientset.Clientset, updateObj *apis.UpgradeResult,
 	namespace string) (*apis.UpgradeResult, error)
 
-// Kubeclient enables kubernetes API operations
-// on upgrade result instance
-type Kubeclient struct {
-	// clientset refers to upgrade's
-	// clientset that will be responsible to
+// CoreClient holds all the properties that are required to
+// execute a K8s API call. All of these properties can be set
+// once in the lifetime of the application. In other words,
+// a CoreClient instance should ideally be a singleton.
+type CoreClient struct {
+	// clientset refers to upgraderesult clientset that can
 	// make kubernetes API calls
 	clientset *clientset.Clientset
-	namespace string
+
 	// kubeconfig path to get kubernetes clientset
 	kubeConfigPath string
 
@@ -83,9 +85,74 @@ type Kubeclient struct {
 	getClientsetForPath getClientsetForPathFn
 }
 
-// KubeclientBuildOption defines the abstraction
-// to build a kubeclient instance
+// Kubeclient enables kubernetes API operations
+// on upgraderesult instance
+type Kubeclient struct {
+	// CoreClient has all the core kubernetes client
+	// related options
+	*CoreClient
+
+	// namespace to use during CRUD operations against
+	// upgraderesult resource
+	namespace string
+}
+
+// KubeclientBuildOption is a typed function that abstracts
+// building an instance of Kubeclient
 type KubeclientBuildOption func(*Kubeclient)
+
+// NewKubeClient returns a new instance of Kubeclient
+func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
+	k := &Kubeclient{CoreClient: &CoreClient{}}
+	for _, o := range opts {
+		o(k)
+	}
+	k.withDefaults()
+	return k
+}
+
+var (
+	coreClientInst *CoreClient
+	once           sync.Once
+)
+
+// KubeClientInstanceOrDie returns the singleton instance of Kubeclient
+//
+// NOTE:
+//  Here singleton points to CoreClient instance only since a Kubeclient
+// instance needs to change at runtime based on namespace. CoreClient's
+// clientset instance is the only field that is needed to be initialized
+// to consider Kubeclient as a singleton.
+//
+// NOTE:
+//  In order to keep this logic more caller code friendly, this function
+// is not named as CoreClientInstanceOrDie.
+//
+// Usage:
+//  Caller code will use syntax(-es) as shown below:
+//
+// ```go
+// import (
+//  uresult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+// )
+//
+// uresult.KubeClientInstanceOrDie().WithNamespace("my_ns").Get(...)
+// uresult.KubeClientInstanceOrDie().WithNamespace("my_ns").Create(...)
+// uresult.KubeClientInstanceOrDie().WithNamespace("my_ns").Update(...)
+// uresult.KubeClientInstanceOrDie().WithNamespace("my_ns").List(...)
+// ```
+func KubeClientInstanceOrDie(opts ...KubeclientBuildOption) *Kubeclient {
+	once.Do(func() {
+		k := NewKubeClient(opts...)
+		_, err := k.getClientOrCached()
+		if err != nil {
+			glog.Fatalf("failed to initialise kubeclient instance: {%v}", err)
+		}
+		coreClientInst = k.CoreClient
+	})
+
+	return &Kubeclient{CoreClient: coreClientInst}
+}
 
 // withDefaults sets the default options
 // of kubeclient instance
@@ -174,17 +241,6 @@ func (k *Kubeclient) getClientsetForPathOrDirect() (*clientset.Clientset, error)
 		return k.getClientsetForPath(k.kubeConfigPath)
 	}
 	return k.getClientset()
-}
-
-// NewKubeClient returns a new instance of kubeclient meant for
-// upgrade result related operations
-func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
-	k := &Kubeclient{}
-	for _, o := range opts {
-		o(k)
-	}
-	k.withDefaults()
-	return k
 }
 
 // WithNamespace sets namespace that should be used during
