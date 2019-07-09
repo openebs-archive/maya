@@ -26,7 +26,7 @@ func Import(csp *api.CStorNPool) (string, bool, error) {
 	// We imported pool successfully
 	// Let's set cachefile for this pool, if it is provided in csp object
 	if len(csp.Spec.PoolConfig.CacheFile) != 0 {
-		if _, err := zfs.NewPoolSProperty().
+		if _, err = zfs.NewPoolSProperty().
 			WithProperty("cachefile", csp.Spec.PoolConfig.CacheFile).
 			Execute(); err != nil {
 			//TODO, If cachefile set failed, do we need to return status as offline?

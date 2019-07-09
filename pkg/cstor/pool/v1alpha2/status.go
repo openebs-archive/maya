@@ -9,13 +9,20 @@ import (
 )
 
 const (
+	// StatusNoPoolsAvailable .. not pools available
 	StatusNoPoolsAvailable = "no pools available"
-	PoolStatusDegraded     = "DEGRADED"
-	PoolStatusFaulted      = "FAULTED"
-	PoolStatusOffline      = "OFFLINE"
-	PoolStatusOnline       = "ONLINE"
-	PoolStatusRemoved      = "REMOVED"
-	PoolStatusUnavail      = "UNAVAIL"
+	// PoolStatusDegraded .. pool is degraded
+	PoolStatusDegraded = "DEGRADED"
+	// PoolStatusFaulted .. pool is in faulty state
+	PoolStatusFaulted = "FAULTED"
+	// PoolStatusOffline .. pool is in offline state
+	PoolStatusOffline = "OFFLINE"
+	// PoolStatusOnline .. pool is online
+	PoolStatusOnline = "ONLINE"
+	// PoolStatusRemoved .. pool is in removed state
+	PoolStatusRemoved = "REMOVED"
+	// PoolStatusUnavail .. pool is unavailable
+	PoolStatusUnavail = "UNAVAIL"
 )
 
 // GetStatus return status of the pool

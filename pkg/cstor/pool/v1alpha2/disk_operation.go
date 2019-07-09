@@ -19,7 +19,7 @@ const (
 )
 
 // addRaidGroup add given raidGroup to pool
-func addRaidGroup(csp *api.CStorNPool, r *api.RaidGroup) error {
+func addRaidGroup(csp *api.CStorNPool, r api.RaidGroup) error {
 	var err error
 
 	if r.IsReadCache {
@@ -43,7 +43,7 @@ func addRaidGroup(csp *api.CStorNPool, r *api.RaidGroup) error {
 }
 
 // addVdev will add devices to pool
-func addVdevToPool(csp *api.CStorNPool, r *api.RaidGroup, deviceType string) error {
+func addVdevToPool(csp *api.CStorNPool, r api.RaidGroup, deviceType string) error {
 	ptype := r.Type
 	if len(ptype) == 0 {
 		return errors.Errorf("No type mentioned in raidGroup for pool {%s}", PoolName(csp))
@@ -85,7 +85,7 @@ func addNewVdevFromCSP(csp *api.CStorNPool) error {
 			}
 		}
 		if wholeGroup {
-			if er := addRaidGroup(csp, &raidGroup); er != nil {
+			if er := addRaidGroup(csp, raidGroup); er != nil {
 				err = ErrorWrapf(err, "Failed to add raidGroup{%s}.. %s", raidGroup.Name, er.Error())
 			}
 		} else if len(devlist) != 0 {

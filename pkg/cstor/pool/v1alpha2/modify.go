@@ -37,7 +37,7 @@ func Update(csp *api.CStorNPool) error {
 			}
 
 			// Let's check if bdev path is changed or not
-			newpath, isChanged, er := isBdevPathChanged(csp, &bdev)
+			newpath, isChanged, er := isBdevPathChanged(bdev)
 			if er != nil {
 				err = ErrorWrapf(err, "Failed to check bdev change {%s}.. %s", bdev.BlockDeviceName, er.Error())
 			} else if isChanged {

@@ -26,8 +26,7 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apis2 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
-
-	pool "github.com/openebs/maya/pkg/cstor/pool/v1alpha2"
+	zpool "github.com/openebs/maya/pkg/cstor/pool/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,6 +46,7 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	return c.eventHandler(operation, csp)
 }
 
+// TODO remove event base handling
 // cStorPoolEventHandler is to handle cstor pool related events.
 func (c *CStorPoolController) eventHandler(operation common.QueueOperation, csp *apis2.CStorNPool) error {
 	switch operation {
@@ -69,7 +69,7 @@ func (c *CStorPoolController) addEventHandler(csp *apis2.CStorNPool) error {
 	var isImported bool
 
 	uid := string(csp.GetUID())
-	importedPool := pool.ImportedCStorPools[uid]
+	importedPool := zpool.ImportedCStorPools[uid]
 
 	// TODO
 	// In which scenario it is possible??
@@ -85,7 +85,7 @@ func (c *CStorPoolController) addEventHandler(csp *apis2.CStorNPool) error {
 	// TODO move return to label and unlock
 	common.SyncResources.Mux.Lock()
 
-	status, isImported = pool.IsPoolImported(csp, true /* wait if Zrepl is initializing */)
+	status, isImported = zpool.IsPoolImported(csp, true /* wait if Zrepl is initializing */)
 	if isImported {
 		c.recorder.Event(csp,
 			corev1.EventTypeNormal,
@@ -95,7 +95,7 @@ func (c *CStorPoolController) addEventHandler(csp *apis2.CStorNPool) error {
 	}
 
 	// try to import pool
-	status, isImported, err = pool.Import(csp)
+	status, isImported, err = zpool.Import(csp)
 	if isImported {
 		if err != nil {
 			c.recorder.Event(csp,
@@ -115,8 +115,8 @@ func (c *CStorPoolController) addEventHandler(csp *apis2.CStorNPool) error {
 	//TODO: Why pool validation? should we consider zpool status during sync op only?
 
 	// IsInitStatus is to check if initial status of cstorpool object is `init`.
-	if pool.IsEmptyStatus(csp) || pool.IsPendingStatus(csp) {
-		err = pool.Create(csp)
+	if zpool.IsEmptyStatus(csp) || zpool.IsPendingStatus(csp) {
+		err = zpool.Create(csp)
 		if err != nil {
 			glog.Errorf("Pool creation failure: %v", string(csp.GetUID()))
 			c.recorder.Event(csp,
@@ -143,9 +143,9 @@ updatestatus:
 }
 
 func (c *CStorPoolController) destroyEventHandler(csp *apis2.CStorNPool) error {
-	// DeletePool is to delete cstor pool.
+	// DeletePool is to delete cstor zpool.
 	// It will also clear the label for relevant disk
-	err := pool.Delete(csp)
+	err := zpool.Delete(csp)
 	if err != nil {
 		c.recorder.Event(csp,
 			corev1.EventTypeWarning,
@@ -171,7 +171,7 @@ func (c *CStorPoolController) destroyEventHandler(csp *apis2.CStorNPool) error {
 func (c *CStorPoolController) syncEventHandler(csp *apis2.CStorNPool) error {
 	//TODO add sync operation
 	// Update pool status if changed
-	newstatus, err := pool.GetStatus(csp)
+	newstatus, err := zpool.GetStatus(csp)
 	if err != nil {
 		c.recorder.Event(csp,
 			corev1.EventTypeWarning,
@@ -180,7 +180,7 @@ func (c *CStorPoolController) syncEventHandler(csp *apis2.CStorNPool) error {
 		return err
 	}
 
-	glog.Infof("got status %s for pool {%s}", newstatus, pool.PoolName(csp))
+	glog.Infof("got status %s for pool {%s}", newstatus, zpool.PoolName(csp))
 
 	// TODO where to put pool status?
 	return nil
@@ -189,9 +189,9 @@ func (c *CStorPoolController) syncEventHandler(csp *apis2.CStorNPool) error {
 // modifyEventHandler
 func (c *CStorPoolController) modifyEventHandler(csp *apis2.CStorNPool) error {
 	//TODO add modify
-	err := pool.Update(csp)
+	err := zpool.Update(csp)
 	if err != nil {
-		glog.Errorf("Failed to modify pool {%s} .. {%v}", pool.PoolName(csp), err)
+		glog.Errorf("Failed to modify pool {%s} .. {%v}", zpool.PoolName(csp), err)
 		return err
 	}
 

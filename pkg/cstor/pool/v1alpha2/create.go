@@ -25,7 +25,7 @@ func Create(csp *api.CStorNPool) error {
 	for i, r := range raidGroups {
 		if !r.IsReadCache && !r.IsSpare && !r.IsWriteCache {
 			// we found the main raidgroup. let's create the pool
-			err := createPool(csp, &r)
+			err = createPool(csp, &r)
 			if err != nil {
 				glog.Errorf("Failed to create pool {%s} : %s", PoolName(csp), err.Error())
 				return err
@@ -39,7 +39,7 @@ func Create(csp *api.CStorNPool) error {
 	// We created the pool
 	// Lets update it with extra config, if provided
 	for _, r := range raidGroups {
-		if e := addRaidGroup(csp, &r); e != nil {
+		if e := addRaidGroup(csp, r); e != nil {
 			err = ErrorWrapf(err, "Failed to add raidGroup{%s}.. %s", r.Name, e.Error())
 		}
 	}
@@ -55,7 +55,7 @@ func Create(csp *api.CStorNPool) error {
 	// We created the pool successfully
 	// Let's set cachefile for this pool, if it is provided in csp object
 	if len(csp.Spec.PoolConfig.CacheFile) != 0 && err == nil {
-		if _, err := zfs.NewPoolSProperty().
+		if _, err = zfs.NewPoolSProperty().
 			WithProperty("cachefile", csp.Spec.PoolConfig.CacheFile).
 			WithPool(PoolName(csp)).
 			Execute(); err != nil {
