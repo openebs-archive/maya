@@ -31,10 +31,10 @@ import (
 )
 
 const (
-	// SpcLeaseKey is the key that will be used to acquire lease on cspc object.
+	// CSPCLeaseKey is the key that will be used to acquire lease on cspc object.
 	// It will be present in cspc annotations.
 	// If key has an empty value, that means no one has acquired a lease on cspc object.
-	SpcLeaseKey = "openebs.io/cspc-lease"
+	CSPCLeaseKey = "openebs.io/cspc-lease"
 	// PatchOperation is the strategy of patch operation.
 	PatchOperation = "replace"
 	// PatchPath is the path to the field on cspc object which need to be patched.
@@ -141,7 +141,7 @@ func (sl *Lease) patchSpcLeaseAnnotation() error {
 	cspcPatch[0].Op = PatchOperation
 	// object to be removed is finalizers
 	cspcPatch[0].Path = PatchPath
-	leaseValueObj, err := parseLeaseValue(cspcObject.Annotations[SpcLeaseKey])
+	leaseValueObj, err := parseLeaseValue(cspcObject.Annotations[CSPCLeaseKey])
 	if err != nil {
 		return err
 	}

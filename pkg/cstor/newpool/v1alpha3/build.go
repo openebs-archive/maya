@@ -167,6 +167,7 @@ func (b *Builder) WithLabels(labels map[string]string) *Builder {
 	return b
 }
 
+// WithNodeSelector sets the node selector field of CSP with provided argument.
 func (b *Builder) WithNodeSelector(nodeSelector map[string]string) *Builder {
 	if len(nodeSelector) == 0 {
 		b.errs = append(
@@ -179,6 +180,7 @@ func (b *Builder) WithNodeSelector(nodeSelector map[string]string) *Builder {
 	return b
 }
 
+// WithNodeName sets the HostName field of CSP with the provided argument.
 func (b *Builder) WithNodeName(nodeName string) *Builder {
 	if len(nodeName) == 0 {
 		b.errs = append(
@@ -191,6 +193,7 @@ func (b *Builder) WithNodeName(nodeName string) *Builder {
 	return b
 }
 
+// WithPoolConfig sets the pool config field of the CSP with the provided config.
 func (b *Builder) WithPoolConfig(poolConfig *apis.PoolConfig) *Builder {
 	if poolConfig == nil {
 		b.errs = append(
@@ -203,6 +206,7 @@ func (b *Builder) WithPoolConfig(poolConfig *apis.PoolConfig) *Builder {
 	return b
 }
 
+// WithRaidGroups sets the raid group field of the CSP with the provided raid groups.
 func (b *Builder) WithRaidGroups(raidGroup []apis.RaidGroup) *Builder {
 	if len(raidGroup) == 0 {
 		b.errs = append(
@@ -238,7 +242,7 @@ func (b *Builder) WithOwnerReference(spc *apis.StoragePoolClaim) *Builder {
 	return b
 }
 
-// WithOwnerReference sets the OwnerReference field in CSP with required
+// WithCSPCOwnerReference sets the OwnerReference field in CSP with required
 //fields
 func (b *Builder) WithCSPCOwnerReference(cspc *apis.CStorPoolCluster) *Builder {
 	if cspc == nil {

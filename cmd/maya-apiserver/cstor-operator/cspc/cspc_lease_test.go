@@ -38,7 +38,7 @@ func (focs *clientSet) SpcCreator(poolName string, SpcLeaseKeyPresent bool, SpcL
 			ObjectMeta: metav1.ObjectMeta{
 				Name: poolName,
 				Annotations: map[string]string{
-					SpcLeaseKey: "{\"holder\":\"" + SpcLeaseKeyValue + "\",\"leaderTransition\":1}",
+					CSPCLeaseKey: "{\"holder\":\"" + SpcLeaseKeyValue + "\",\"leaderTransition\":1}",
 				},
 			},
 		}
@@ -138,7 +138,7 @@ func TestHold(t *testing.T) {
 			var gotError bool
 			os.Setenv(string(env.OpenEBSMayaPodName), test.podName)
 			os.Setenv(string(env.OpenEBSNamespace), test.podNamespace)
-			newSpcLease = Lease{test.fakestoragepoolclaim, SpcLeaseKey, focs.oecs, fakeKubeClient}
+			newSpcLease = Lease{test.fakestoragepoolclaim, CSPCLeaseKey, focs.oecs, fakeKubeClient}
 			// Hold is the function under test.
 			err := newSpcLease.Hold()
 			if err == nil {
@@ -152,8 +152,8 @@ func TestHold(t *testing.T) {
 			}
 			// Check for lease value
 			cspcGot, err := focs.oecs.OpenebsV1alpha1().CStorPoolClusters("openebs").Get(test.fakestoragepoolclaim.Name, metav1.GetOptions{})
-			if cspcGot.Annotations[SpcLeaseKey] != test.expectedResult {
-				t.Errorf("Test case failed: expected lease value '%v' but got '%v' ", test.expectedResult, cspcGot.Annotations[SpcLeaseKey])
+			if cspcGot.Annotations[CSPCLeaseKey] != test.expectedResult {
+				t.Errorf("Test case failed: expected lease value '%v' but got '%v' ", test.expectedResult, cspcGot.Annotations[CSPCLeaseKey])
 
 			}
 			os.Unsetenv(string(env.OpenEBSMayaPodName))

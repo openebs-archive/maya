@@ -35,7 +35,7 @@ func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to select a node")
 	}
-	csplabels := ac.buildLabelsForCSP(poolSpec)
+	csplabels := ac.buildLabelsForCSP(nodeName)
 	cspObj, err := apiscsp.NewBuilder().
 		WithName(ac.CSPC.Name).
 		WithNodeSelector(poolSpec.NodeSelector).
@@ -58,9 +58,9 @@ func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 
 // buildLabelsForCSP builds labels for CSP
 // TODO : Improve following using builders
-func (ac *Config) buildLabelsForCSP(poolSpec *apis.PoolSpec) map[string]string {
+func (ac *Config) buildLabelsForCSP(nodeName string) map[string]string {
 	labels := make(map[string]string)
-	labels[HostName] = poolSpec.NodeSelector[HostName]
+	labels[HostName] = nodeName
 	labels[string(apis.CStorPoolClusterCPK)] = ac.CSPC.Name
 	labels[string(apis.OpenEBSVersionKey)] = version.GetVersion()
 	labels[string(apis.CASTypeKey)] = CasTypeCStor

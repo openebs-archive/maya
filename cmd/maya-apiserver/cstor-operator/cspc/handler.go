@@ -95,7 +95,7 @@ func (c *Controller) syncHandler(key string) error {
 	// Deep-copy otherwise we are mutating our cache.
 	// TODO: Deep-copy only when needed.
 	cspcGot := cspc.DeepCopy()
-	err = c.syncSpc(cspcGot)
+	err = c.syncCSPC(cspcGot)
 	return err
 }
 
@@ -113,7 +113,7 @@ func (c *Controller) enqueueSpc(cspc interface{}) {
 }
 
 // synSpc is the function which tries to converge to a desired state for the cspc.
-func (c *Controller) syncSpc(cspc *apis.CStorPoolCluster) error {
+func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 	//err := validate(cspc)
 	//if err != nil {
 	//	glog.Errorf("Validation of cspc failed:%s", err)
@@ -144,7 +144,7 @@ func (c *Controller) syncSpc(cspc *apis.CStorPoolCluster) error {
 // as the number of pools need to be created.
 func (pc *PoolConfig) create(pendingPoolCount int, cspc *apis.CStorPoolCluster) error {
 	var newSpcLease Leaser
-	newSpcLease = &Lease{cspc, SpcLeaseKey, pc.Controller.clientset, pc.Controller.kubeclientset}
+	newSpcLease = &Lease{cspc, CSPCLeaseKey, pc.Controller.clientset, pc.Controller.kubeclientset}
 	err := newSpcLease.Hold()
 	if err != nil {
 		return errors.Wrapf(err, "Could not acquire lease on cspc object")

@@ -177,12 +177,6 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 		c.recorder.Event(cspc, corev1.EventTypeWarning, "Update", message)
 		return
 	}
-	// Enqueue cspc when there is a pending pool to be created.
-	if c.isPoolPending(cspc) {
-		c.enqueueSpc(newSpc)
-	}
-
-	// TODO : Enqueue cspc when any day 2 ops needs to be handled
 }
 
 // deleteSpc is the delete event handler for cspc.

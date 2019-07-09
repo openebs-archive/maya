@@ -82,7 +82,10 @@ func (pc *PoolConfig) CreateStoragePool(cspcGot *apis.CStorPoolCluster) error {
 		return errors.Wrapf(err, "failed to create csp for cspc {%s}", cspcGot.Name)
 	}
 
-	poolDeployObj := pc.GetPoolDeploySpec(cspObj)
+	poolDeployObj, err := pc.GetPoolDeploySpec(cspObj)
+	if err != nil {
+		return err
+	}
 	err = pc.createPoolDeployment(poolDeployObj)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create deploy for csp {%s} for cspc {%s)", cspObj.Name, cspcGot.Name)
@@ -100,13 +103,14 @@ func (pc *PoolConfig) createPoolDeployment(deployObj *appsv1.Deployment) error {
 	return err
 }
 
-func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.NewTestCStorPool) *appsv1.Deployment {
-	deployObj, _ := deploy.NewBuilder().
+// GetPoolDeploySpec returns the pool deployment spec.
+func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.NewTestCStorPool) (*appsv1.Deployment, error) {
+	deployObj, err := deploy.NewBuilder().
 		WithName(csp.Name).
 		WithNamespace(csp.Namespace).
 		WithAnnotationsNew(getDeployAnnotations()).
 		WithLabelsNew(getDeployLabels(csp)).
-		WithNodeSelector(map[string]string{"kubernetes.io/hostname": csp.Spec.HostName}).
+		WithNodeSelector(csp.Spec.NodeSelector).
 		WithOwnerReferenceNew(getDeployOwnerReference(csp)).
 		WithReplicas(getReplicaCount()).
 		WithStrategyType(appsv1.RecreateDeploymentStrategyType).
@@ -179,7 +183,10 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.NewTestCStorPool) *appsv1.Depl
 				),
 		).
 		Build()
-	return deployObj
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to build pool deployment object")
+	}
+	return deployObj, nil
 }
 
 func getReplicaCount() *int32 {

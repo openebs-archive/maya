@@ -43,7 +43,7 @@ func TestNewControllerBuilder(t *testing.T) {
 	// TestCase#1
 	// Check for cache sync in controller instance.
 	if controller.cspcSynced == nil {
-		t.Errorf("No spc cache sync in controller object")
+		t.Errorf("No cspc cache sync in controller object")
 	}
 
 	// TestCase#2
@@ -61,12 +61,12 @@ func TestNewControllerBuilder(t *testing.T) {
 	// TestCase#4
 	// Check for kubeclientset in controller instance.
 	if controller.kubeclientset != fakeKubeClient {
-		t.Errorf("SPC controller object's kubeclientset mismatch")
+		t.Errorf("CSPC controller object's kubeclientset mismatch")
 	}
 
 	// TestCase#5
 	// Check for obenebsclientset in controller instance.
 	if controller.clientset != fakeOpenebsClient {
-		t.Errorf("SPC controller object's openebsclientset mismatch")
+		t.Errorf("CSPC controller object's openebsclientset mismatch")
 	}
 }

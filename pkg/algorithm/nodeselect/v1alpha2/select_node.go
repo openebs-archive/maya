@@ -49,25 +49,28 @@ import (
 //	return candidateNodesMap, nil
 //}
 
-// GetCandidateNodeMap returns a map of all nodes where the pool needs to be created.
+// SelectNode returns a node where pool should be created.
 func (ac *Config) SelectNode() (*apis.PoolSpec, string, error) {
-	usedNodes, err := ac.GetUsedNodeMap()
+	usedNodes, err := ac.GetUsedNode()
 	if err != nil {
 		return nil, "", errors.Wrapf(err, "could not get used nodes list for pool creation")
 	}
 	for _, pool := range ac.CSPC.Spec.Pools {
+		// pin it
+		pool := pool
 		nodeName, err := ac.GetNodeFromLabelSelector(pool.NodeSelector)
 		if err != nil {
 			glog.Errorf("could not use node for selectors {%v}", pool.NodeSelector)
 			continue
 		}
-		if usedNodes[nodeName] == false {
+		if !usedNodes[nodeName] {
 			return &pool, nodeName, nil
 		}
 	}
 	return nil, "", errors.New("no node qualified for pool creation")
 }
 
+// GetNodeFromLabelSelector returns the node name selected by provided labels
 func (ac *Config) GetNodeFromLabelSelector(labels map[string]string) (string, error) {
 	nodeList, err := nodeapis.NewKubeClient().List(metav1.ListOptions{LabelSelector: getLabelSelectorString(labels)})
 	if err != nil {
@@ -82,6 +85,8 @@ func (ac *Config) GetNodeFromLabelSelector(labels map[string]string) (string, er
 	return nodeList.Items[0].Name, nil
 }
 
+// getLabelSelectorString returns a string of label selector form label map to be used in
+// list options.
 func getLabelSelectorString(selector map[string]string) string {
 	var selectorString string
 	for key, value := range selector {
@@ -91,9 +96,9 @@ func getLabelSelectorString(selector map[string]string) string {
 	return selectorString
 }
 
-// GetUsedNodeMap returns a map of node for which pool has already been created.
-func (ac *Config) GetUsedNodeMap() (map[string]bool, error) {
-	usedNodeMap := make(map[string]bool)
+// GetUsedNode returns a map of node for which pool has already been created.
+func (ac *Config) GetUsedNode() (map[string]bool, error) {
+	usedNode := make(map[string]bool)
 	cspList, err := csp.
 		NewKubeClient().
 		WithNamespace(ac.Namespace).
@@ -105,28 +110,10 @@ func (ac *Config) GetUsedNodeMap() (map[string]bool, error) {
 		return nil, errors.Wrap(err, "could not list already created csp(s)")
 	}
 	for _, cspObj := range cspList.Items {
-		usedNodeMap[cspObj.Labels[string(apis.HostNameCPK)]] = true
+		usedNode[cspObj.Labels[string(apis.HostNameCPK)]] = true
 	}
-	return usedNodeMap, nil
+	return usedNode, nil
 }
-
-//// SelectNode selects a node and returns the pool spec from the cspc for pool provisioning.
-//func (ac *Config) SelectNode() (*apis.PoolSpec, error) {
-//	candidateNodes, err := ac.GetCandidateNodeMap()
-//	if err != nil {
-//		return nil, errors.Wrapf(err, "could not get pool spec for pool creation")
-//	}
-//	for _, pool := range ac.CSPC.Spec.Pools {
-//		pool := pool
-//		nodeName := pool.NodeSelector[HostName]
-//		if candidateNodes[nodeName] {
-//			if ValidatePoolSpec(&pool) {
-//				return &pool, nil
-//			}
-//		}
-//	}
-//	return nil, errors.New("no node qualified for pool creation")
-//}
 
 // GetBDListForNode returns a list of BD from the pool spec.
 // TODO : Move it to CStorPoolCluster packgage
@@ -161,7 +148,10 @@ func (ac *Config) ClaimBDsForNode(BD []string) error {
 			}
 		}
 
-		ac.ClaimBD(bdAPIObj)
+		err = ac.ClaimBD(bdAPIObj)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to claim BD {%s}", bdName)
+		}
 	}
 	return nil
 }
@@ -209,6 +199,7 @@ func (ac *Config) IsClaimedBDUsable(bdAPIObj *ndmapis.BlockDevice) (bool, error)
 	return false, nil
 }
 
+// ValidatePoolSpec validates the pool spec.
 // TODO: Fix following function -- (Current is mock only )
 func ValidatePoolSpec(pool *apis.PoolSpec) bool {
 	return true
