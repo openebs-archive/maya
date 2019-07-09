@@ -25,7 +25,6 @@ import (
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	listers "github.com/openebs/maya/pkg/client/generated/listers/openebs.io/v1alpha1"
 	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
-	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -132,10 +131,10 @@ func (cb *ControllerBuilder) withEventHandler(cspcInformerFactory informers.Shar
 	cspcInformer := cspcInformerFactory.Openebs().V1alpha1().CStorPoolClusters()
 	// Set up an event handler for when CSPC resources change
 	cspcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    cb.Controller.addSpc,
-		UpdateFunc: cb.Controller.updateSpc,
+		AddFunc:    cb.Controller.addCSPC,
+		UpdateFunc: cb.Controller.updateCSPC,
 		// This will enter the sync loop and no-op, because the cspc has been deleted from the store.
-		DeleteFunc: cb.Controller.deleteSpc,
+		DeleteFunc: cb.Controller.deleteCSPC,
 	})
 	return cb
 }
@@ -150,7 +149,7 @@ func (cb *ControllerBuilder) Build() (*Controller, error) {
 }
 
 // addSpc is the add event handler for cspc
-func (c *Controller) addSpc(obj interface{}) {
+func (c *Controller) addCSPC(obj interface{}) {
 	cspc, ok := obj.(*apis.CStorPoolCluster)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Couldn't get cspc object %#v", obj))
@@ -166,10 +165,10 @@ func (c *Controller) addSpc(obj interface{}) {
 }
 
 // updateSpc is the update event handler for cspc.
-func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
-	cspc, ok := newSpc.(*apis.CStorPoolCluster)
+func (c *Controller) updateCSPC(oldCSPC, newCSPC interface{}) {
+	cspc, ok := newCSPC.(*apis.CStorPoolCluster)
 	if !ok {
-		runtime.HandleError(fmt.Errorf("Couldn't get cspc object %#v", newSpc))
+		runtime.HandleError(fmt.Errorf("Couldn't get cspc object %#v", newCSPC))
 		return
 	}
 	if cspc.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
@@ -180,7 +179,7 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 }
 
 // deleteSpc is the delete event handler for cspc.
-func (c *Controller) deleteSpc(obj interface{}) {
+func (c *Controller) deleteCSPC(obj interface{}) {
 	cspc, ok := obj.(*apis.CStorPoolCluster)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -201,19 +200,4 @@ func (c *Controller) deleteSpc(obj interface{}) {
 	}
 	glog.V(4).Infof("Deleting storagepoolclaim %s", cspc.Name)
 	c.enqueueSpc(cspc)
-}
-
-func (c *Controller) isPoolPending(cspc *apis.CStorPoolCluster) bool {
-	openebsNameSpace := env.Get(env.OpenEBSNamespace)
-	if openebsNameSpace == "" {
-		glog.Errorf("Could not enqueue CSPC {%s}: got empty namespace for openebs from env variable", cspc.Name)
-		return false
-	}
-	pc, err := c.NewPoolConfig(cspc, openebsNameSpace)
-	if err != nil {
-		glog.Errorf("Could not enquue CSPC {%s}: {%v}", cspc.Name, err)
-		return false
-	}
-	return pc.AlgorithConfig.IsPoolPending()
-
 }

@@ -49,7 +49,7 @@ func predicateFailedError(message string) error {
 }
 
 var (
-	validationFailedError = errors.New("container validation failed")
+	errorvalidationFailed = errors.New("container validation failed")
 )
 
 // asContainer transforms this container instance into corresponding kubernetes
@@ -113,7 +113,7 @@ func (b *Builder) validate() error {
 	if len(b.errors) == 0 {
 		return nil
 	}
-	return validationFailedError
+	return errorvalidationFailed
 }
 
 // Build returns the final kubernetes container
@@ -358,7 +358,7 @@ func (b *Builder) WithEnvsNew(envs []corev1.EnvVar) *Builder {
 	return b
 }
 
-// WithEnvsNew sets the envs of the container
+// WithLivenessProbe sets the liveness probe of the container
 func (b *Builder) WithLivenessProbe(liveness *corev1.Probe) *Builder {
 	if liveness == nil {
 		b.errors = append(
@@ -372,7 +372,7 @@ func (b *Builder) WithLivenessProbe(liveness *corev1.Probe) *Builder {
 	return b
 }
 
-// WithEnvsNew sets the envs of the container
+// WithLifeCycle sets the life cycle of the container
 func (b *Builder) WithLifeCycle(lc *corev1.Lifecycle) *Builder {
 	if lc == nil {
 		b.errors = append(

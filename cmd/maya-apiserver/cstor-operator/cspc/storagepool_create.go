@@ -72,7 +72,7 @@ var (
 
 // CreateStoragePool creates the required resource to provision a cStor pool
 func (pc *PoolConfig) CreateStoragePool(cspcGot *apis.CStorPoolCluster) error {
-	cspObj, err := pc.AlgorithConfig.GetCSPSpec()
+	cspObj, err := pc.AlgorithmConfig.GetCSPSpec()
 	if err != nil {
 		return errors.Wrap(err, "failed to get CSP spec")
 	}
@@ -94,12 +94,12 @@ func (pc *PoolConfig) CreateStoragePool(cspcGot *apis.CStorPoolCluster) error {
 }
 
 func (pc *PoolConfig) createCSP(csp *apis.NewTestCStorPool) error {
-	_, err := apiscsp.NewKubeClient().WithNamespace(pc.AlgorithConfig.Namespace).Create(csp)
+	_, err := apiscsp.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).Create(csp)
 	return err
 }
 
 func (pc *PoolConfig) createPoolDeployment(deployObj *appsv1.Deployment) error {
-	_, err := deploy.NewKubeClient().WithNamespace(pc.AlgorithConfig.Namespace).Create(deployObj)
+	_, err := deploy.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).Create(deployObj)
 	return err
 }
 
@@ -218,7 +218,7 @@ func getDeployAnnotations() map[string]string {
 }
 
 func getPodLabels(csp *apis.NewTestCStorPool) map[string]string {
-	return getPodLabels(csp)
+	return getDeployLabels(csp)
 }
 
 func getPodAnnotations() map[string]string {

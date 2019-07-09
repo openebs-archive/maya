@@ -29,26 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//// GetCandidateNodeMap returns a map of all nodes where the pool needs to be created.
-//func (ac *Config) GetCandidateNodeMap() (map[string]bool, error) {
-//	candidateNodesMap := make(map[string]bool)
-//	usedNodeMap, err := ac.GetUsedNodeMap()
-//	if err != nil {
-//		return nil, errors.Wrapf(err, "could not get candidate nodes for pool creation")
-//	}
-//	for _, pool := range ac.CSPC.Spec.Pools {
-//		nodeName, err := ac.GetNodeFromLabelSelector(pool.NodeSelector)
-//		if err != nil {
-//			glog.Errorf("could not use node for selectors {%v}", pool.NodeSelector)
-//			continue
-//		}
-//		if usedNodeMap[nodeName] == false {
-//			candidateNodesMap[nodeName] = true
-//		}
-//	}
-//	return candidateNodesMap, nil
-//}
-
 // SelectNode returns a node where pool should be created.
 func (ac *Config) SelectNode() (*apis.PoolSpec, string, error) {
 	usedNodes, err := ac.GetUsedNode()

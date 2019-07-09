@@ -253,7 +253,7 @@ func (b *Builder) WithOwnerReference(spc *apis.StoragePoolClaim) *Builder {
 	return b
 }
 
-// WithOwnerReference sets the OwnerReference field in BDC with required
+// WithCSPCOwnerReference sets the OwnerReference field in BDC with required
 //fields
 func (b *Builder) WithCSPCOwnerReference(cspc *apis.CStorPoolCluster) *Builder {
 	if cspc == nil {

@@ -176,7 +176,7 @@ func (b *Builder) WithNodeSelector(nodeSelector map[string]string) *Builder {
 		)
 		return b
 	}
-	b.CSP.Object.Spec.HostName = nodeSelector["kubernetes.io/hostname"]
+	b.CSP.Object.Spec.NodeSelector = nodeSelector
 	return b
 }
 

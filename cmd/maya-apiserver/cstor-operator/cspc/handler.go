@@ -47,8 +47,8 @@ type clientSet struct {
 
 // PoolConfig embeds nodeselect config from algorithm package and Controller object.
 type PoolConfig struct {
-	AlgorithConfig *nodeselect.Config
-	Controller     *Controller
+	AlgorithmConfig *nodeselect.Config
+	Controller      *Controller
 }
 
 // NewPoolConfig returns a poolconfig object
@@ -61,7 +61,7 @@ func (c *Controller) NewPoolConfig(cspc *apis.CStorPoolCluster, namespace string
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get algorithm config for provisioning")
 	}
-	return &PoolConfig{AlgorithConfig: pc, Controller: c}, nil
+	return &PoolConfig{AlgorithmConfig: pc, Controller: c}, nil
 
 }
 
@@ -127,7 +127,7 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 	if err != nil {
 		return errors.Wrapf(err, "Could not sync CSPC {%s}: failed to get pool config", cspc.Name)
 	}
-	pendingPoolCount, err := pc.AlgorithConfig.GetPendingPoolCount()
+	pendingPoolCount, err := pc.AlgorithmConfig.GetPendingPoolCount()
 	if err != nil {
 		return err
 	}
@@ -143,8 +143,7 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 // create is a wrapper function that calls the actual function to create pool as many time
 // as the number of pools need to be created.
 func (pc *PoolConfig) create(pendingPoolCount int, cspc *apis.CStorPoolCluster) error {
-	var newSpcLease Leaser
-	newSpcLease = &Lease{cspc, CSPCLeaseKey, pc.Controller.clientset, pc.Controller.kubeclientset}
+	newSpcLease := &Lease{cspc, CSPCLeaseKey, pc.Controller.clientset, pc.Controller.kubeclientset}
 	err := newSpcLease.Hold()
 	if err != nil {
 		return errors.Wrapf(err, "Could not acquire lease on cspc object")

@@ -33,10 +33,6 @@ type getClientsetFn func() (clientset *kubernetes.Clientset, err error)
 type getFn func(cli *kubernetes.Clientset, name, namespace string,
 	opts *metav1.GetOptions) (*extnv1beta1.Deployment, error)
 
-// createFn is a typed function that abstracts creation of deployment instances
-type createFn func(cli *kubernetes.Clientset, namespace string,
-	deployObj *extnv1beta1.Deployment) (*extnv1beta1.Deployment, error)
-
 // rolloutStatusFn is a typed function that abstracts
 // rollout status of deployment instances
 type rolloutStatusFn func(d *extnv1beta1.Deployment) (*RolloutOutput, error)
@@ -55,7 +51,6 @@ type Kubeclient struct {
 	// functions useful during mocking
 	getClientset   getClientsetFn
 	get            getFn
-	create         createFn
 	rolloutStatus  rolloutStatusFn
 	rolloutStatusf rolloutStatusfFn
 }
@@ -82,17 +77,6 @@ func (k *Kubeclient) withDefaults() {
 			d, err = cli.ExtensionsV1beta1().
 				Deployments(namespace).
 				Get(name, *opts)
-			return
-		}
-	}
-
-	if k.create == nil {
-		k.create = func(cli *kubernetes.Clientset, namespace string,
-			deployObj *extnv1beta1.Deployment) (
-			d *extnv1beta1.Deployment, err error) {
-			d, err = cli.ExtensionsV1beta1().
-				Deployments(namespace).
-				Create(deployObj)
 			return
 		}
 	}
@@ -169,15 +153,6 @@ func (k *Kubeclient) Get(name string) (*extnv1beta1.Deployment, error) {
 		return nil, err
 	}
 	return k.get(cli, name, k.namespace, &metav1.GetOptions{})
-}
-
-// Get returns deployment object for given name
-func (k *Kubeclient) Create(deploy *extnv1beta1.Deployment) (*extnv1beta1.Deployment, error) {
-	cli, err := k.getClientOrCached()
-	if err != nil {
-		return nil, err
-	}
-	return k.create(cli, k.namespace, deploy)
 }
 
 // GetRaw returns deployment object for given name in byte format
