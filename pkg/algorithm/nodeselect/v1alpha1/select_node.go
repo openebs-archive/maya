@@ -45,10 +45,6 @@ type ClaimedBDDetails struct {
 	BlockDeviceList []BDDetails
 }
 
-type bdCapacityRepetition struct {
-	sizeRepetitions map[uint64]int
-}
-
 // NodeBlockDeviceSelector selects required node and block devices attached to
 // the node
 func (ac *Config) NodeBlockDeviceSelector() (map[string]*cspcbd.ListBuilder, error) {
@@ -216,7 +212,7 @@ func (ac *Config) getCandidateNodeBlockDevices(
 		listBuilder := nodeBlockDeviceMap[hostName]
 		capacity := bd.BlockDevice.Spec.Capacity.Storage
 		// If node is already in use by cspc then continue
-		if usedCSPCNodes[hostName] == true {
+		if usedCSPCNodes[hostName] {
 			continue
 		}
 		// If enough blockdevices are selected from the node then continue

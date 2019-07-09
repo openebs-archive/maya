@@ -20,10 +20,14 @@ import (
 	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
+// CSPCBlockDevice is a wrapper over cstorpoolcluster blockdevice api
+// object. It provides build, validations and other common
+// logic to be used by various feature specific callers.
 type CSPCBlockDevice struct {
 	object *apisv1alpha1.CStorPoolClusterBlockDevice
 }
 
+// CSPCBlockDeviceList holds the list of cspc blockdevice instances
 type CSPCBlockDeviceList struct {
 	items []*CSPCBlockDevice
 }

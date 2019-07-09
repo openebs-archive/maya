@@ -19,6 +19,7 @@ import (
 )
 
 const (
+	// CSPCFinalizer represents finalizer value on cspc
 	CSPCFinalizer = "cstorpoolcluster.openebs.io/finalizer"
 )
 
@@ -105,6 +106,7 @@ func (b *ListBuilder) WithFilter(pred ...Predicate) *ListBuilder {
 	return b
 }
 
+// ToAPI converts CSPC to API CSP
 func (c *CSPC) ToAPI() *apisv1alpha1.CStorPoolCluster {
 	return c.object
 }

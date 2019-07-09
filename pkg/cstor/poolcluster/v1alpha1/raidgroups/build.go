@@ -71,6 +71,7 @@ func (b *Builder) WithReadCache() *Builder {
 	return b
 }
 
+// WithCSPCBlockDeviceList sets the blockdevices field with provided value
 func (b *Builder) WithCSPCBlockDeviceList(listBuilderCSPCBD *cspcbd.ListBuilder) *Builder {
 	if listBuilderCSPCBD == nil {
 		b.errs = append(

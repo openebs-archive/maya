@@ -25,6 +25,7 @@ import (
 )
 
 const (
+	// SPCFinalizer represents finalizer value on spc
 	SPCFinalizer = "storagepoolclaim.openebs.io/finalizer"
 )
 

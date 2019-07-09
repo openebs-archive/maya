@@ -201,7 +201,6 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 	// Currently we are reconciling based on maxPool count
 	glog.V(4).Infof("Queuing SPC %s for update event", spc.Name)
 	c.enqueueSpc(newSpc)
-	return
 }
 
 // deleteSpc is the delete event handler for spc.

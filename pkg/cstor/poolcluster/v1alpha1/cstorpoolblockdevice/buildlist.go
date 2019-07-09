@@ -70,6 +70,9 @@ func (lb *ListBuilder) ListBuilderForObject(cspcBD *CSPCBlockDevice) *ListBuilde
 		)
 		return lb
 	}
+	if lb == nil {
+		return ListBuilderForObjectNew(cspcBD)
+	}
 	lb.list.items = append(lb.list.items, cspcBD)
 	return lb
 }
@@ -92,6 +95,9 @@ func (lb *ListBuilder) Len() int {
 	return lb.list.Len()
 }
 
+//TODO: Get good function name from reviews
+
+// ToObjectList converts the ListBuilder object into array of custom objects
 func (lb *ListBuilder) ToObjectList() ([]*CSPCBlockDevice, error) {
 	if len(lb.errs) > 0 {
 		return nil, errors.Errorf("%+v", lb.errs)
