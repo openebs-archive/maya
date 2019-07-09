@@ -28,7 +28,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller/metrics"
 	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/util"
 	"github.com/prometheus/client_golang/prometheus"
@@ -41,6 +40,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -52,7 +52,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ref "k8s.io/client-go/tools/reference"
 	"k8s.io/client-go/util/workqueue"
-	utilversion "k8s.io/kubernetes/pkg/util/version"
+	glog "k8s.io/klog"
 )
 
 // annClass annotation represents the storage class associated with a resource:
@@ -76,6 +76,9 @@ const annStorageProvisioner = "volume.beta.kubernetes.io/storage-provisioner"
 // This annotation is added to a PVC that has been triggered by scheduler to
 // be dynamically provisioned. Its value is the name of the selected node.
 const annSelectedNode = "volume.kubernetes.io/selected-node"
+
+// Finalizer for PVs so we know to clean them up
+const finalizerPV = "external-provisioner.volume.kubernetes.io/finalizer"
 
 // ProvisionController is a controller that provisions PersistentVolumes for
 // PersistentVolumeClaims.
@@ -124,9 +127,11 @@ type ProvisionController struct {
 
 	resyncPeriod time.Duration
 
+	rateLimiter               workqueue.RateLimiter
 	exponentialBackOffOnError bool
 	threadiness               int
 
+	createProvisionedPVBackoff    *wait.Backoff
 	createProvisionedPVRetryCount int
 	createProvisionedPVInterval   time.Duration
 
@@ -209,6 +214,18 @@ func Threadiness(threadiness int) func(*ProvisionController) error {
 	}
 }
 
+// RateLimiter is the workqueue.RateLimiter to use for the provisioning and
+// deleting work queues. If set, ExponentialBackOffOnError is ignored.
+func RateLimiter(rateLimiter workqueue.RateLimiter) func(*ProvisionController) error {
+	return func(c *ProvisionController) error {
+		if c.HasRun() {
+			return errRuntime
+		}
+		c.rateLimiter = rateLimiter
+		return nil
+	}
+}
+
 // ExponentialBackOffOnError determines whether to exponentially back off from
 // failures of Provision and Delete. Defaults to true.
 func ExponentialBackOffOnError(exponentialBackOffOnError bool) func(*ProvisionController) error {
@@ -228,6 +245,9 @@ func CreateProvisionedPVRetryCount(createProvisionedPVRetryCount int) func(*Prov
 		if c.HasRun() {
 			return errRuntime
 		}
+		if c.createProvisionedPVBackoff != nil {
+			return fmt.Errorf("CreateProvisionedPVBackoff cannot be used together with CreateProvisionedPVRetryCount")
+		}
 		c.createProvisionedPVRetryCount = createProvisionedPVRetryCount
 		return nil
 	}
@@ -240,13 +260,36 @@ func CreateProvisionedPVInterval(createProvisionedPVInterval time.Duration) func
 		if c.HasRun() {
 			return errRuntime
 		}
+		if c.createProvisionedPVBackoff != nil {
+			return fmt.Errorf("CreateProvisionedPVBackoff cannot be used together with CreateProvisionedPVInterval")
+		}
 		c.createProvisionedPVInterval = createProvisionedPVInterval
 		return nil
 	}
 }
 
+// CreateProvisionedPVBackoff is the configuration of exponential backoff between retries when we create a
+// PV object for a provisioned volume. Defaults to linear backoff, 10 seconds 5 times.
+// Only one of CreateProvisionedPVInterval+CreateProvisionedPVRetryCount or CreateProvisionedPVBackoff
+// can be used.
+func CreateProvisionedPVBackoff(backoff wait.Backoff) func(*ProvisionController) error {
+	return func(c *ProvisionController) error {
+		if c.HasRun() {
+			return errRuntime
+		}
+		if c.createProvisionedPVRetryCount != 0 {
+			return fmt.Errorf("CreateProvisionedPVBackoff cannot be used together with CreateProvisionedPVRetryCount")
+		}
+		if c.createProvisionedPVInterval != 0 {
+			return fmt.Errorf("CreateProvisionedPVBackoff cannot be used together with CreateProvisionedPVInterval")
+		}
+		c.createProvisionedPVBackoff = &backoff
+		return nil
+	}
+}
+
 // FailedProvisionThreshold is the threshold for max number of retries on
-// failures of Provision. Defaults to 15.
+// failures of Provision. Set to 0 to retry indefinitely. Defaults to 15.
 func FailedProvisionThreshold(failedProvisionThreshold int) func(*ProvisionController) error {
 	return func(c *ProvisionController) error {
 		if c.HasRun() {
@@ -258,7 +301,7 @@ func FailedProvisionThreshold(failedProvisionThreshold int) func(*ProvisionContr
 }
 
 // FailedDeleteThreshold is the threshold for max number of retries on failures
-// of Delete. Defaults to 15.
+// of Delete. Set to 0 to retry indefinitely. Defaults to 15.
 func FailedDeleteThreshold(failedDeleteThreshold int) func(*ProvisionController) error {
 	return func(c *ProvisionController) error {
 		if c.HasRun() {
@@ -436,48 +479,69 @@ func NewProvisionController(
 	eventRecorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: component})
 
 	controller := &ProvisionController{
-		client:                        client,
-		provisionerName:               provisionerName,
-		provisioner:                   provisioner,
-		kubeVersion:                   utilversion.MustParseSemantic(kubeVersion),
-		id:                            id,
-		component:                     component,
-		eventRecorder:                 eventRecorder,
-		resyncPeriod:                  DefaultResyncPeriod,
-		exponentialBackOffOnError:     DefaultExponentialBackOffOnError,
-		threadiness:                   DefaultThreadiness,
-		createProvisionedPVRetryCount: DefaultCreateProvisionedPVRetryCount,
-		createProvisionedPVInterval:   DefaultCreateProvisionedPVInterval,
-		failedProvisionThreshold:      DefaultFailedProvisionThreshold,
-		failedDeleteThreshold:         DefaultFailedDeleteThreshold,
-		leaderElection:                DefaultLeaderElection,
-		leaderElectionNamespace:       getInClusterNamespace(),
-		leaseDuration:                 DefaultLeaseDuration,
-		renewDeadline:                 DefaultRenewDeadline,
-		retryPeriod:                   DefaultRetryPeriod,
-		metricsPort:                   DefaultMetricsPort,
-		metricsAddress:                DefaultMetricsAddress,
-		metricsPath:                   DefaultMetricsPath,
-		hasRun:                        false,
-		hasRunLock:                    &sync.Mutex{},
+		client:                    client,
+		provisionerName:           provisionerName,
+		provisioner:               provisioner,
+		kubeVersion:               utilversion.MustParseSemantic(kubeVersion),
+		id:                        id,
+		component:                 component,
+		eventRecorder:             eventRecorder,
+		resyncPeriod:              DefaultResyncPeriod,
+		exponentialBackOffOnError: DefaultExponentialBackOffOnError,
+		threadiness:               DefaultThreadiness,
+		failedProvisionThreshold:  DefaultFailedProvisionThreshold,
+		failedDeleteThreshold:     DefaultFailedDeleteThreshold,
+		leaderElection:            DefaultLeaderElection,
+		leaderElectionNamespace:   getInClusterNamespace(),
+		leaseDuration:             DefaultLeaseDuration,
+		renewDeadline:             DefaultRenewDeadline,
+		retryPeriod:               DefaultRetryPeriod,
+		metricsPort:               DefaultMetricsPort,
+		metricsAddress:            DefaultMetricsAddress,
+		metricsPath:               DefaultMetricsPath,
+		hasRun:                    false,
+		hasRunLock:                &sync.Mutex{},
 	}
 
 	for _, option := range options {
-		option(controller)
+		err := option(controller)
+		if err != nil {
+			glog.Fatalf("Error processing controller options: %s", err)
+		}
 	}
 
-	ratelimiter := workqueue.NewMaxOfRateLimiter(
-		workqueue.NewItemExponentialFailureRateLimiter(15*time.Second, 1000*time.Second),
-		&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(10), 100)},
-	)
-	if !controller.exponentialBackOffOnError {
-		ratelimiter = workqueue.NewMaxOfRateLimiter(
+	var rateLimiter workqueue.RateLimiter
+	if controller.rateLimiter != nil {
+		// rateLimiter set via parameter takes precedence
+		rateLimiter = controller.rateLimiter
+	} else if controller.exponentialBackOffOnError {
+		rateLimiter = workqueue.NewMaxOfRateLimiter(
+			workqueue.NewItemExponentialFailureRateLimiter(15*time.Second, 1000*time.Second),
+			&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(10), 100)},
+		)
+	} else {
+		rateLimiter = workqueue.NewMaxOfRateLimiter(
 			workqueue.NewItemExponentialFailureRateLimiter(15*time.Second, 15*time.Second),
 			&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(10), 100)},
 		)
 	}
-	controller.claimQueue = workqueue.NewNamedRateLimitingQueue(ratelimiter, "claims")
-	controller.volumeQueue = workqueue.NewNamedRateLimitingQueue(ratelimiter, "volumes")
+	controller.claimQueue = workqueue.NewNamedRateLimitingQueue(rateLimiter, "claims")
+	controller.volumeQueue = workqueue.NewNamedRateLimitingQueue(rateLimiter, "volumes")
+
+	if controller.createProvisionedPVBackoff == nil {
+		// Use linear backoff with createProvisionedPVInterval and createProvisionedPVRetryCount by default.
+		if controller.createProvisionedPVInterval == 0 {
+			controller.createProvisionedPVInterval = DefaultCreateProvisionedPVInterval
+		}
+		if controller.createProvisionedPVRetryCount == 0 {
+			controller.createProvisionedPVRetryCount = DefaultCreateProvisionedPVRetryCount
+		}
+		controller.createProvisionedPVBackoff = &wait.Backoff{
+			Duration: controller.createProvisionedPVInterval,
+			Factor:   1, // linear backoff
+			Steps:    controller.createProvisionedPVRetryCount,
+		}
+	}
 
 	informer := informers.NewSharedInformerFactory(client, controller.resyncPeriod)
 
@@ -681,7 +745,10 @@ func (ctrl *ProvisionController) processNextClaimWorkItem() bool {
 		}
 
 		if err := ctrl.syncClaimHandler(key); err != nil {
-			if ctrl.claimQueue.NumRequeues(obj) < ctrl.failedProvisionThreshold {
+			if ctrl.failedProvisionThreshold == 0 {
+				glog.Warningf("Retrying syncing claim %q, failure %v", key, ctrl.claimQueue.NumRequeues(obj))
+				ctrl.claimQueue.AddRateLimited(obj)
+			} else if ctrl.claimQueue.NumRequeues(obj) < ctrl.failedProvisionThreshold {
 				glog.Warningf("Retrying syncing claim %q because failures %v < threshold %v", key, ctrl.claimQueue.NumRequeues(obj), ctrl.failedProvisionThreshold)
 				ctrl.claimQueue.AddRateLimited(obj)
 			} else {
@@ -722,11 +789,14 @@ func (ctrl *ProvisionController) processNextVolumeWorkItem() bool {
 		}
 
 		if err := ctrl.syncVolumeHandler(key); err != nil {
-			if ctrl.volumeQueue.NumRequeues(obj) < ctrl.failedDeleteThreshold {
-				glog.Warningf("Retrying syncing volume %q because failures %v < threshold %v", key, ctrl.volumeQueue.NumRequeues(obj), ctrl.failedProvisionThreshold)
+			if ctrl.failedDeleteThreshold == 0 {
+				glog.Warningf("Retrying syncing volume %q, failure %v", key, ctrl.volumeQueue.NumRequeues(obj))
+				ctrl.volumeQueue.AddRateLimited(obj)
+			} else if ctrl.volumeQueue.NumRequeues(obj) < ctrl.failedDeleteThreshold {
+				glog.Warningf("Retrying syncing volume %q because failures %v < threshold %v", key, ctrl.volumeQueue.NumRequeues(obj), ctrl.failedDeleteThreshold)
 				ctrl.volumeQueue.AddRateLimited(obj)
 			} else {
-				glog.Errorf("Giving up syncing volume %q because failures %v >= threshold %v", key, ctrl.volumeQueue.NumRequeues(obj), ctrl.failedProvisionThreshold)
+				glog.Errorf("Giving up syncing volume %q because failures %v >= threshold %v", key, ctrl.volumeQueue.NumRequeues(obj), ctrl.failedDeleteThreshold)
 				// Done but do not Forget: it will not be in the queue but NumRequeues
 				// will be saved until the obj is deleted from kubernetes
 			}
@@ -848,10 +918,16 @@ func (ctrl *ProvisionController) shouldProvision(claim *v1.PersistentVolumeClaim
 // shouldDelete returns whether a volume should have its backing volume
 // deleted, i.e. whether a Delete is "desired"
 func (ctrl *ProvisionController) shouldDelete(volume *v1.PersistentVolume) bool {
+	if deletionGuard, ok := ctrl.provisioner.(DeletionGuard); ok {
+		if !deletionGuard.ShouldDelete(volume) {
+			return false
+		}
+	}
+
 	// In 1.9+ PV protection means the object will exist briefly with a
 	// deletion timestamp even after our successful Delete. Ignore it.
 	if ctrl.kubeVersion.AtLeast(utilversion.MustParseSemantic("v1.9.0")) {
-		if volume.ObjectMeta.DeletionTimestamp != nil {
+		if !ctrl.checkFinalizer(volume, finalizerPV) && volume.ObjectMeta.DeletionTimestamp != nil {
 			return false
 		}
 	}
@@ -891,6 +967,15 @@ func (ctrl *ProvisionController) canProvision(claim *v1.PersistentVolumeClaim) e
 	}
 
 	return nil
+}
+
+func (ctrl *ProvisionController) checkFinalizer(volume *v1.PersistentVolume, finalizer string) bool {
+	for _, f := range volume.ObjectMeta.Finalizers {
+		if f == finalizer {
+			return true
+		}
+	}
+	return false
 }
 
 func (ctrl *ProvisionController) updateProvisionStats(claim *v1.PersistentVolumeClaim, err error, startTime time.Time) {
@@ -1028,6 +1113,11 @@ func (ctrl *ProvisionController) provisionClaimOperation(claim *v1.PersistentVol
 	// Set ClaimRef and the PV controller will bind and set annBoundByController for us
 	volume.Spec.ClaimRef = claimRef
 
+	// Add external provisioner finalizer if it doesn't already have it
+	if !ctrl.checkFinalizer(volume, finalizerPV) {
+		volume.ObjectMeta.Finalizers = append(volume.ObjectMeta.Finalizers, finalizerPV)
+	}
+
 	metav1.SetMetaDataAnnotation(&volume.ObjectMeta, annDynamicallyProvisioned, ctrl.provisionerName)
 	if ctrl.kubeVersion.AtLeast(utilversion.MustParseSemantic("v1.6.0")) {
 		volume.Spec.StorageClassName = claimClass
@@ -1036,47 +1126,49 @@ func (ctrl *ProvisionController) provisionClaimOperation(claim *v1.PersistentVol
 	}
 
 	// Try to create the PV object several times
-	for i := 0; i < ctrl.createProvisionedPVRetryCount; i++ {
+	var lastSaveError error
+	err = wait.ExponentialBackoff(*ctrl.createProvisionedPVBackoff, func() (bool, error) {
 		glog.Info(logOperation(operation, "trying to save persistentvolume %q", volume.Name))
 		if _, err = ctrl.client.CoreV1().PersistentVolumes().Create(volume); err == nil || apierrs.IsAlreadyExists(err) {
 			// Save succeeded.
 			if err != nil {
 				glog.Info(logOperation(operation, "persistentvolume %q already exists, reusing", volume.Name))
-				err = nil
 			} else {
 				glog.Info(logOperation(operation, "persistentvolume %q saved", volume.Name))
 			}
-			break
+			return true, nil
 		}
 		// Save failed, try again after a while.
 		glog.Info(logOperation(operation, "failed to save persistentvolume %q: %v", volume.Name, err))
-		time.Sleep(ctrl.createProvisionedPVInterval)
-	}
+		lastSaveError = err
+		return false, nil
+	})
 
 	if err != nil {
 		// Save failed. Now we have a storage asset outside of Kubernetes,
 		// but we don't have appropriate PV object for it.
 		// Emit some event here and try to delete the storage asset several
 		// times.
-		strerr := fmt.Sprintf("Error creating provisioned PV object for claim %s: %v. Deleting the volume.", claimToClaimKey(claim), err)
+		strerr := fmt.Sprintf("Error creating provisioned PV object for claim %s: %v. Deleting the volume.", claimToClaimKey(claim), lastSaveError)
 		glog.Error(logOperation(operation, strerr))
 		ctrl.eventRecorder.Event(claim, v1.EventTypeWarning, "ProvisioningFailed", strerr)
 
-		for i := 0; i < ctrl.createProvisionedPVRetryCount; i++ {
+		var lastDeleteError error
+		err = wait.ExponentialBackoff(*ctrl.createProvisionedPVBackoff, func() (bool, error) {
 			if err = ctrl.provisioner.Delete(volume); err == nil {
 				// Delete succeeded
 				glog.Info(logOperation(operation, "cleaning volume %q succeeded", volume.Name))
-				break
+				return true, nil
 			}
 			// Delete failed, try again after a while.
 			glog.Info(logOperation(operation, "failed to clean volume %q: %v", volume.Name, err))
-			time.Sleep(ctrl.createProvisionedPVInterval)
-		}
-
+			lastDeleteError = err
+			return false, nil
+		})
 		if err != nil {
 			// Delete failed several times. There is an orphaned volume and there
 			// is nothing we can do about it.
-			strerr := fmt.Sprintf("Error cleaning provisioned volume for claim %s: %v. Please delete manually.", claimToClaimKey(claim), err)
+			strerr := fmt.Sprintf("Error cleaning provisioned volume for claim %s: %v. Please delete manually.", claimToClaimKey(claim), lastDeleteError)
 			glog.Error(logOperation(operation, strerr))
 			ctrl.eventRecorder.Event(claim, v1.EventTypeWarning, "ProvisioningCleanupFailed", strerr)
 		}
@@ -1130,6 +1222,40 @@ func (ctrl *ProvisionController) deleteVolumeOperation(volume *v1.PersistentVolu
 		// try to delete the volume again on next update.
 		glog.Info(logOperation(operation, "failed to delete persistentvolume: %v", err))
 		return err
+	}
+
+	if len(newVolume.ObjectMeta.Finalizers) > 0 {
+		// Remove external-provisioner finalizer
+
+		// need to get the pv again because the delete has updated the object with a deletion timestamp
+		newVolume, err := ctrl.client.CoreV1().PersistentVolumes().Get(volume.Name, metav1.GetOptions{})
+		if err != nil {
+			// If the volume is not found return, otherwise error
+			if !apierrs.IsNotFound(err) {
+				glog.Info(logOperation(operation, "failed to get persistentvolume to update finalizer: %v", err))
+				return err
+			}
+			return nil
+		}
+		finalizers := make([]string, 0)
+		for _, finalizer := range newVolume.ObjectMeta.Finalizers {
+			if finalizer != finalizerPV {
+				finalizers = append(finalizers, finalizer)
+			}
+		}
+
+		// Only update the finalizers if we actually removed something
+		if len(finalizers) != len(newVolume.ObjectMeta.Finalizers) {
+			newVolume.ObjectMeta.Finalizers = finalizers
+			if _, err = ctrl.client.CoreV1().PersistentVolumes().Update(newVolume); err != nil {
+				if !apierrs.IsNotFound(err) {
+					// Couldn't remove finalizer and the object still exists, the controller may
+					// try to remove the finalizer again on the next update
+					glog.Info(logOperation(operation, "failed to remove finalizer for persistentvolume: %v", err))
+					return err
+				}
+			}
+		}
 	}
 
 	glog.Info(logOperation(operation, "persistentvolume deleted"))
