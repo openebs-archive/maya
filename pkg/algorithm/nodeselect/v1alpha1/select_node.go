@@ -241,7 +241,8 @@ func (ac *Config) getCandidateNodeBlockDevices(
 		} else {
 			// Add the current blockdevice to the existing listbuilder of
 			// blockdevice
-			listBuilder = listBuilder.ListBuilderForObject(cspcBDObj)
+			listBuilderObj := listBuilder.ListBuilderForObject(cspcBDObj)
+			nodeBlockDeviceMap[hostName] = listBuilderObj
 		}
 	}
 	if len(nodeBlockDeviceMap) == 0 {

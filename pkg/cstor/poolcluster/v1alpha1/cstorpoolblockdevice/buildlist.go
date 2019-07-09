@@ -53,7 +53,7 @@ func ListBuilderForObjectNew(cspcBD *CSPCBlockDevice) *ListBuilder {
 	if cspcBD == nil {
 		lb.errs = append(
 			lb.errs,
-			errors.New("failed to build cspc blockdevice list: missing object cspc blockdevice"),
+			errors.New("failed to build cspc blockdevice list: no new cspc blockdevice"),
 		)
 		return lb
 	}
