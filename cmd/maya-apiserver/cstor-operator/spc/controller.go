@@ -28,9 +28,11 @@ import (
 	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -50,6 +52,10 @@ type Controller struct {
 	ndmclientset ndmclientset.Interface
 
 	spcLister listers.StoragePoolClaimLister
+
+	cspcLister listers.CStorPoolClusterLister
+
+	nodeLister corelisters.NodeLister
 
 	// spcSynced is used for caches sync to get populated
 	spcSynced cache.InformerSynced
@@ -96,10 +102,24 @@ func (cb *ControllerBuilder) withNDMClient(ndmcs ndmclientset.Interface) *Contro
 	return cb
 }
 
+// withNodeLister fills node lister to controller object
+func (cb *ControllerBuilder) withNodeLister(sl kubeinformers.SharedInformerFactory) *ControllerBuilder {
+	nodeInformer := sl.Core().V1().Nodes()
+	cb.Controller.nodeLister = nodeInformer.Lister()
+	return cb
+}
+
 // withSpcLister fills spc lister to controller object.
 func (cb *ControllerBuilder) withSpcLister(sl informers.SharedInformerFactory) *ControllerBuilder {
 	spcInformer := sl.Openebs().V1alpha1().StoragePoolClaims()
 	cb.Controller.spcLister = spcInformer.Lister()
+	return cb
+}
+
+// withCSPCLister fills cspc lister to controller object
+func (cb *ControllerBuilder) withCSPCLister(sl informers.SharedInformerFactory) *ControllerBuilder {
+	cspcInformer := sl.Openebs().V1alpha1().CStorPoolClusters()
+	cb.Controller.cspcLister = cspcInformer.Lister()
 	return cb
 }
 
@@ -177,7 +197,10 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 		c.recorder.Event(spc, corev1.EventTypeWarning, "Update", message)
 		return
 	}
-	// Don't reconcile on spc
+
+	// Currently we are reconciling based on maxPool count
+	glog.V(4).Infof("Queuing SPC %s for update event", spc.Name)
+	c.enqueueSpc(newSpc)
 	return
 }
 

@@ -22,8 +22,10 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
+	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	cspcbd "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolblockdevice"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	node "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	volume "github.com/openebs/maya/pkg/volume"
 	"github.com/pkg/errors"
@@ -55,13 +57,9 @@ func (ac *Config) NodeBlockDeviceSelector() (map[string]*cspcbd.ListBuilder, err
 		return nil, err
 	}
 	if listBD == nil || len(listBD.Items) == 0 {
-		return nil, errors.New("no blockdevices available to create cstorpoolcluster")
+		return nil, errors.New("blockdevices are not available to create cstorpoolcluster")
 	}
-	selectedCapacity, err := ac.getCommonBDCapacity(listBD)
-	if err != nil {
-		return nil, err
-	}
-	nodeBlockDeviceList, err := ac.getCandidateNodeBlockDevices(listBD, selectedCapacity)
+	nodeBlockDeviceList, err := ac.getCandidateNodeBlockDevices(listBD)
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +124,55 @@ func (ac *Config) getUsedBlockDeviceMap() (map[string]int, error) {
 	return usedBDMap, nil
 }
 
+// getUsedCSPCNodes returns used node map to keep track of nodes that are in use
+// by CstroPoolCluster
+func (ac *Config) getUsedCSPCNodeMap() (map[string]bool, error) {
+	usedNodeMap := map[string]bool{}
+	cspcList, err := cspc.NewKubeClient().
+		WithNamespace(ac.Namespace).
+		List(metav1.ListOptions{
+			LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name,
+		})
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to get cspc namespace %s using",
+			ac.Namespace,
+		)
+	}
+	if len(cspcList.Items) == 0 {
+		return usedNodeMap, nil
+	}
+	//TODO: Is below check required?
+	if len(cspcList.Items) > 1 {
+		return nil, errors.Errorf(
+			"multiple cspcs are available for spc %s",
+			ac.Spc.Name,
+		)
+	}
+	cspcObj := cspcList.Items[0]
+	nodeList, err := node.NewKubeClient().List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	customNodeList := node.NewListBuilder().
+		WithAPIList(nodeList)
+	for _, pool := range cspcObj.Spec.Pools {
+		foundNode := false
+		for key, value := range pool.NodeSelector {
+			nodeName := customNodeList.GetLabeledNode(key, value).GetNodeName()
+			if nodeName != "" {
+				usedNodeMap[nodeName] = true
+				foundNode = true
+			}
+			if foundNode {
+				break
+			}
+		}
+	}
+	return usedNodeMap, nil
+}
+
 // getUsedNodeMap form a used node map to keep a track of nodes on the top of which storagepool cannot be provisioned
 // for a given storagepoolclaim.
 func (ac *Config) getUsedNodeMap() (map[string]int, error) {
@@ -143,97 +190,68 @@ func (ac *Config) getUsedNodeMap() (map[string]int, error) {
 // getCandidateNode make the map of node and blockdevices topology
 // For example it forms map of
 // N1 -> bd1, bd2, bd3
-// N2 -> bd4, bd5
+// N2 -> bd4, bd5, bd6
 func (ac *Config) getCandidateNodeBlockDevices(
 	listBlockDevice *ndmapis.BlockDeviceList,
-	selectedCapacity uint64,
 ) (map[string]*cspcbd.ListBuilder, error) {
 	minBDCount := blockdevice.DefaultDiskCount[ac.poolType()]
+	//usedCSPCNodes contains map of used nodes
+	usedCSPCNodes, err := ac.getUsedCSPCNodeMap()
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to get used nodes by cspc",
+		)
+	}
+
 	// nodeBlockDeviceMap is the data structure holding host name as key
 	// and cstorpoolcluster blockdevicelist as a value
 	nodeBlockDeviceMap := make(map[string]*cspcbd.ListBuilder)
 	for _, blockDevice := range listBlockDevice.Items {
+		blockDevice := blockDevice
 		bd := blockdevice.BlockDevice{
 			BlockDevice: &blockDevice,
 		}
-		hostName := blockDevice.Labels[string(apis.HostNameCPK)]
+		hostName := bd.BlockDevice.Labels[string(apis.HostNameCPK)]
 		listBuilder := nodeBlockDeviceMap[hostName]
-		capacity := blockDevice.Spec.Capacity.Storage
-		if capacity == selectedCapacity &&
-			(listBuilder == nil || listBuilder.Len() < minBDCount) {
-			capacityStr := volume.ByteCount(capacity)
-			devID := bd.GetDeviceID()
-			cspcBDObj, err := cspcbd.NewBuilder().
-				WithBlockDeviceName(blockDevice.Name).
-				WithCapacity(capacityStr).
-				WithDevLink(devID).Build()
-			if err != nil {
-				glog.Errorf(
-					"failed to build cspc blockdevice %s error: %v",
-					blockDevice.Name,
-					err,
-				)
-				continue
-			}
-
-			if listBuilder == nil {
-				// Entry to this block means first time the hostname will be mapped for the first time.
-				// Obviously, this entry of hostname(node) is for a usable
-				// blockdevices
-				nodeBlockDeviceMap[hostName] = cspcbd.ListBuilderForObjectNew(cspcBDObj)
-			} else {
-				// Add the current blockdevice to the existing listbuilder of
-				// blockdevice
-				listBuilder = listBuilder.ListBuilderForObject(cspcBDObj)
-			}
+		capacity := bd.BlockDevice.Spec.Capacity.Storage
+		// If node is already in use by cspc then continue
+		if usedCSPCNodes[hostName] == true {
+			continue
 		}
+		// If enough blockdevices are selected from the node then continue
+		if listBuilder != nil && listBuilder.Len() >= minBDCount {
+			continue
+		}
+		capacityStr := volume.ByteCount(capacity)
+		devID := bd.GetDeviceID()
+		cspcBDObj, err := cspcbd.NewBuilder().
+			WithBlockDeviceName(blockDevice.Name).
+			WithCapacity(capacityStr).
+			WithDevLink(devID).Build()
+		if err != nil {
+			glog.Errorf(
+				"failed to build cspc blockdevice %s error: %v",
+				blockDevice.Name,
+				err,
+			)
+			continue
+		}
+		if listBuilder == nil {
+			// Entry to this block means first time the hostname will be mapped for the first time.
+			// Obviously, this entry of hostname(node) is for a usable
+			// blockdevices
+			nodeBlockDeviceMap[hostName] = cspcbd.ListBuilderForObjectNew(cspcBDObj)
+		} else {
+			// Add the current blockdevice to the existing listbuilder of
+			// blockdevice
+			listBuilder = listBuilder.ListBuilderForObject(cspcBDObj)
+		}
+	}
+	if len(nodeBlockDeviceMap) == 0 {
+		return nil, errors.Errorf("failed to get nodes and corresponding blockdevices")
 	}
 	return nodeBlockDeviceMap, nil
-}
-
-// getCommonBDCapacity returns common blockdevice capacity accross the nodes in
-// cluster
-func (ac *Config) getCommonBDCapacity(listBlockDevice *ndmapis.BlockDeviceList) (uint64, error) {
-	nodeBDsCapacities := make(map[string]*bdCapacityRepetition)
-	minBDCount := blockdevice.DefaultDiskCount[ac.poolType()]
-	mapCapacityRepetitions := map[uint64]int{}
-	if ac.Spc.Spec.MaxPools == nil {
-		return 0, errors.Errorf(
-			"failed to get common capacity accross the nodes: maxPool field in spc is nil",
-		)
-	}
-	minReqNodeCount := *ac.Spc.Spec.MaxPools
-	totalRequiredBD := minBDCount * minReqNodeCount
-
-	for _, bd := range listBlockDevice.Items {
-		hostName := bd.Labels[string(apis.HostNameCPK)]
-		capacity := bd.Spec.Capacity.Storage
-		if nodeBDsCapacities[hostName] == nil {
-			tmpSizeRep := &bdCapacityRepetition{map[uint64]int{}}
-			tmpSizeRep.sizeRepetitions[capacity]++
-			nodeBDsCapacities[hostName] = tmpSizeRep
-		} else {
-			tmpSizeRep := nodeBDsCapacities[hostName]
-			tmpSizeRep.sizeRepetitions[capacity]++
-		}
-		mapCapacityRepetitions[capacity]++
-	}
-	for capacity, count := range mapCapacityRepetitions {
-		qualifiedNodes := 0
-		if count >= totalRequiredBD {
-			for _, bdCapacityRep := range nodeBDsCapacities {
-				if bdCapacityRep.sizeRepetitions[capacity] >= minBDCount {
-					qualifiedNodes++
-				}
-				if qualifiedNodes == minReqNodeCount {
-					return capacity, nil
-				}
-			}
-		}
-	}
-	return 0, errors.Errorf(
-		"no common blockdevice capacity is available accross the nodes to create cstorpoolcluster",
-	)
 }
 
 // selectQualifiedNodes returns map of qualified nodes and required count of
@@ -241,7 +259,6 @@ func (ac *Config) getCommonBDCapacity(listBlockDevice *ndmapis.BlockDeviceList) 
 func (ac *Config) selectQualifiedNodes(nodeCSPCBlockDeviceList map[string]*cspcbd.ListBuilder) (map[string]*cspcbd.ListBuilder, error) {
 	qualifiedNodes := map[string]*cspcbd.ListBuilder{}
 	minBDCount := blockdevice.DefaultDiskCount[ac.poolType()]
-	minReqNodeCount := *ac.Spc.Spec.MaxPools
 	qualifiedNodeCount := 0
 
 	for key, cspcbdList := range nodeCSPCBlockDeviceList {
@@ -250,18 +267,11 @@ func (ac *Config) selectQualifiedNodes(nodeCSPCBlockDeviceList map[string]*cspcb
 			qualifiedNodes[key] = cspcbdList
 			qualifiedNodeCount++
 		}
-		if qualifiedNodeCount == minReqNodeCount {
-			return qualifiedNodes, nil
-		}
 	}
 	if len(qualifiedNodes) == 0 {
 		return nil, errors.Errorf("nodes doesn't have enough blockdevices to create cstorpoolcluster")
 	}
-	return nil, errors.Errorf(
-		"cluster doesn't have %d nodes with %d blockdevices to create cstorpoolcluster",
-		minReqNodeCount,
-		minBDCount,
-	)
+	return qualifiedNodes, nil
 }
 
 func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) *nodeBlockDevice {
@@ -339,7 +349,6 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	if err != nil {
 		return nil, err
 	}
-	glog.Infof("Length of blockdevice %d", len(bdList.Items))
 	filterList := []string{blockdevice.FilterNonInactive, blockdevice.FilterUnclaimedDevices}
 
 	if diskType == string(apis.TypeSparseCPV) {

@@ -56,6 +56,8 @@ type Config struct {
 	CspClient cstorpool.CstorpoolInterface
 	// ProvisioningType tells the type of provisioning i.e. manual or auto.
 	ProvisioningType string
+	// Namespace where OpenEBS setup is installed
+	Namespace string
 }
 
 // getNDMK8sClient returns an instance of kubernetes client for NDM.
@@ -109,6 +111,7 @@ func NewConfig(spc *apis.StoragePoolClaim) *Config {
 	// Since provisioning type is auto kubernetes blockdevice client
 	bdClient = getNDMK8sClient()
 
+	namespace := env.Get(env.OpenEBSNamespace)
 	cspK8sClient := getCspK8sClient()
 	spK8sClient := getSpK8sClient()
 	pT := ProvisioningType(spc)
@@ -118,6 +121,7 @@ func NewConfig(spc *apis.StoragePoolClaim) *Config {
 		CspClient:         cspK8sClient,
 		SpClient:          spK8sClient,
 		ProvisioningType:  pT,
+		Namespace:         namespace,
 	}
 	return ac
 }

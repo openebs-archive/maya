@@ -33,6 +33,11 @@ func NewBuilder() *Builder {
 	return &Builder{cspc: &CSPC{object: &apisv1alpha1.CStorPoolCluster{}}}
 }
 
+// BuilderFromCSPC returns new instance of Builder with cspc object
+func BuilderFromCSPC(cspc *CSPC) *Builder {
+	return &Builder{cspc: cspc}
+}
+
 // WithName sets the Name field of CSPC with provided value.
 func (b *Builder) WithName(name string) *Builder {
 	if len(name) == 0 {
@@ -40,6 +45,37 @@ func (b *Builder) WithName(name string) *Builder {
 		return b
 	}
 	b.cspc.object.Name = name
+	return b
+}
+
+// WithLabelsNew resets existing labels if any with
+// ones that are provided here
+func (b *Builder) WithLabelsNew(labels map[string]string) *Builder {
+	if len(labels) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build service object: no new labels"),
+		)
+		return b
+	}
+
+	newlbls := map[string]string{}
+	for key, value := range labels {
+		newlbls[key] = value
+	}
+
+	// override
+	b.cspc.object.Labels = newlbls
+	return b
+}
+
+// WithFinalizersNew sets the finalizer field of CSPC with provided value
+func (b *Builder) WithFinalizersNew(finalizers []string) *Builder {
+	if len(finalizers) == 0 {
+		b.errs = append(b.errs, errors.New("failed to build CSPC object: missing CSPC finalizers"))
+		return b
+	}
+	b.cspc.object.Finalizers = append(b.cspc.object.Finalizers, finalizers...)
 	return b
 }
 

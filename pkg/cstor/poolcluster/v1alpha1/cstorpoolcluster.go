@@ -18,6 +18,10 @@ import (
 	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
+const (
+	CSPCFinalizer = "cstorpoolcluster.openebs.io/finalizer"
+)
+
 // CSPC is a wrapper over cstorpoolcluster api
 // object. It provides build, validations and other common
 // logic to be used by various feature specific callers.

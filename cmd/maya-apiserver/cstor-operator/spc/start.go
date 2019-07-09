@@ -74,6 +74,8 @@ func Start() error {
 		withNDMClient(ndmClient).
 		withspcSynced(spcInformerFactory).
 		withSpcLister(spcInformerFactory).
+		withCSPCLister(spcInformerFactory).
+		withNodeLister(kubeInformerFactory).
 		withRecorder(kubeClient).
 		withEventHandler(spcInformerFactory).
 		withWorkqueueRateLimiting().Build()

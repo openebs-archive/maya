@@ -521,6 +521,7 @@ func TestIsPoolPending(t *testing.T) {
 		withNDMClient(fakeNDMClient).
 		withspcSynced(openebsInformerFactory).
 		withSpcLister(openebsInformerFactory).
+		withCSPCLister(openebsInformerFactory).
 		withRecorder(fakeKubeClient).
 		withWorkqueueRateLimiting().
 		withEventHandler(openebsInformerFactory).

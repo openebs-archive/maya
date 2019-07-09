@@ -29,8 +29,11 @@ import (
 	"github.com/pkg/errors"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/kubernetes/pkg/util/slice"
 )
 
 var (
@@ -108,18 +111,25 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 		glog.Errorf("Validation of spc failed:%s", err)
 		return nil
 	}
-	pendingPoolCount := 1
-	err = c.create(pendingPoolCount, spc)
+	// spc finalizers should be removed only after deletion of corresponding cspc
+	if c.isSPCDeletetionCandidate(spc) {
+		return c.removeFinalizer(spc)
+	}
+	err = c.createOrUpdate(spc)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-// create is a wrapper function that calls the actual function to create pool as many time
-// as the number of pools need to be created.
-func (c *Controller) create(pendingPoolCount int, spc *apis.StoragePoolClaim) error {
+// createOrUpdate is a wrapper function that calls the actual function to create
+// or update cstorpoolcluster based on the availability of cspc
+func (c *Controller) createOrUpdate(spc *apis.StoragePoolClaim) error {
 	var newSpcLease Leaser
+	//Check whether create or update is required or not
+	if !c.isPoolSpecPending(spc) {
+		return nil
+	}
 	newSpcLease = &Lease{spc, SpcLeaseKey, c.clientset, c.kubeclientset}
 	err := newSpcLease.Hold()
 	if err != nil {
@@ -127,18 +137,15 @@ func (c *Controller) create(pendingPoolCount int, spc *apis.StoragePoolClaim) er
 	}
 	glog.V(4).Infof("Lease acquired successfully on storagepoolclaim %s ", spc.Name)
 	defer newSpcLease.Release()
-	for poolCount := 1; poolCount <= pendingPoolCount; poolCount++ {
-		glog.Infof("Creating cstorpoolcluster for storagepoolclaim %s", spc.Name)
-		err = c.CreateCStorPoolCluster(spc)
-		if err != nil {
-			runtime.HandleError(
-				errors.Wrapf(
-					err,
-					"failed to create cstorpoolcluster from spc %s",
-					spc.Name,
-				),
-			)
-		}
+	err = c.CreateOrUpdateCStorPoolCluster(spc)
+	if err != nil {
+		runtime.HandleError(
+			errors.Wrapf(
+				err,
+				"failed to create or update cstorpoolcluster from spc %s",
+				spc.Name,
+			),
+		)
 	}
 	return nil
 }
@@ -243,6 +250,30 @@ func (c *Controller) isPoolPending(spc *apis.StoragePoolClaim) bool {
 	return false
 }
 
+// isPoolSpecPending returns true when create or update operation is required
+func (c *Controller) isPoolSpecPending(spc *apis.StoragePoolClaim) bool {
+	// SPC and CSPC name will be same in case of auto provisioning of cstor
+	// pools creations
+	namespace := env.Get(env.OpenEBSNamespace)
+	customSPCObj := &spcv1alpha1.SPC{Object: spc}
+	selector := klabels.SelectorFromSet(customSPCObj.GetDefaultSPCLabels())
+	cspcObjList, err := c.cspcLister.
+		CStorPoolClusters(namespace).
+		List(selector)
+	if err != nil {
+		glog.Errorf("failed to get cspc %s in namespace %s", spc.Name, namespace)
+		return false
+	}
+	if len(cspcObjList) == 0 {
+		return true
+	}
+	//TODO: should we support down scale of pools
+	if len(cspcObjList[0].Spec.Pools) >= *spc.Spec.MaxPools {
+		return false
+	}
+	return true
+}
+
 // getPendingPoolCount gives the count of pool that needs to be provisioned for a given spc.
 func (c *Controller) getPendingPoolCount(spc *apis.StoragePoolClaim) (int, error) {
 	if !isAutoProvisioning(spc) {
@@ -318,6 +349,29 @@ func (c *Controller) getUsableNodeCount(spc *apis.StoragePoolClaim) (map[string]
 	return nodeCountMap, nil
 }
 
+// isSPCDeletionCandidate return true when deletion timestamp & finalizer is
+// available on spc
+func (c *Controller) isSPCDeletetionCandidate(spc *apis.StoragePoolClaim) bool {
+	return spc.ObjectMeta.DeletionTimestamp != nil &&
+		slice.ContainsString(spc.ObjectMeta.Finalizers, spcv1alpha1.SPCFinalizer, nil)
+}
+
+// removeFinalizer will delete cspc and remove finalizers on spc
+func (c *Controller) removeFinalizer(spc *apis.StoragePoolClaim) error {
+	cspcName := spc.Name
+	namespace := env.Get(env.OpenEBSNamespace)
+	err := c.deleteCSPCResource(spc.Name, namespace)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to delete cspc %s in namespace %s",
+			cspcName,
+			namespace,
+		)
+	}
+	return c.removeSPCFinalizer(spc)
+}
+
 // getUsedBlockDeviceMap form usedDisk map that will hold the list of all used
 // block device
 // TODO: Move to blockDevice package
@@ -337,6 +391,102 @@ func (c *Controller) getUsedBlockDeviceMap() (map[string]int, error) {
 		}
 	}
 	return usedBlockDeviceMap, nil
+}
+
+// deleteCSPCResource removes the finalizer from cspc and delete cspc resource
+func (c *Controller) deleteCSPCResource(cspcName, namespace string) error {
+	cspcObj, err := c.cspcLister.
+		CStorPoolClusters(namespace).
+		Get(cspcName)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to get cspc %s in namespace %s",
+			cspcName,
+			namespace,
+		)
+	}
+	newCSPCObj, err := c.removeCSPCFinalizer(cspcObj)
+	if err != nil {
+		return nil
+	}
+	err = c.clientset.
+		OpenebsV1alpha1().
+		CStorPoolClusters(newCSPCObj.Namespace).
+		Delete(newCSPCObj.Name, &metav1.DeleteOptions{})
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to delete cspc %s in namespace %s",
+			newCSPCObj.Name,
+			newCSPCObj.Namespace,
+		)
+	}
+	return nil
+}
+
+//TODO: Club removeCSPCFinalizer and removeSPCFinalizer by using interface
+
+// removeCSPCFinalizer will remove finalizer on cspc
+func (c *Controller) removeCSPCFinalizer(
+	cspcObj *apis.CStorPoolCluster) (*apis.CStorPoolCluster, error) {
+	if len(cspcObj.Finalizers) == 0 {
+		return cspcObj, nil
+	}
+	dupCSPCObj := cspcObj.DeepCopy()
+	dupCSPCObj.Finalizers = []string{}
+	patchBytes, err := getPatchData(cspcObj, dupCSPCObj)
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to get patch bytes for cspc %s in namespace %s",
+			dupCSPCObj.Name,
+			dupCSPCObj.Namespace,
+		)
+	}
+	newCSPCObj, err := c.clientset.
+		OpenebsV1alpha1().
+		CStorPoolClusters(cspcObj.Namespace).
+		Patch(dupCSPCObj.Name, types.MergePatchType, patchBytes)
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to remove finalizers from cspc %s in namespace %s",
+			cspcObj.Name,
+			cspcObj.Namespace,
+		)
+	}
+	return newCSPCObj, nil
+}
+
+// removeSPCFinalizer will remove finalizer on spc
+func (c *Controller) removeSPCFinalizer(
+	spcObj *apis.StoragePoolClaim) error {
+	if len(spcObj.Finalizers) == 0 {
+		return nil
+	}
+	dupSPCObj := spcObj.DeepCopy()
+	dupSPCObj.Finalizers = []string{}
+	patchBytes, err := getPatchData(spcObj, dupSPCObj)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to get patch bytes for spc %s",
+			dupSPCObj.Name,
+		)
+	}
+	_, err = c.clientset.
+		OpenebsV1alpha1().
+		StoragePoolClaims().
+		Patch(dupSPCObj.Name, types.MergePatchType, patchBytes)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to remove finalizers from spc %s",
+			spcObj.Name,
+		)
+	}
+	return nil
 }
 
 // isValidPendingPoolCount tells whether the pending pool count is valid or not.

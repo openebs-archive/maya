@@ -86,7 +86,8 @@ func FakeDiskCreator(bd *blockdevice.KubernetesClient) {
 				},
 			},
 			Status: ndmapis.DeviceStatus{
-				State: DiskStateActive,
+				State:      DiskStateActive,
+				ClaimState: ndmapis.BlockDeviceUnclaimed,
 			},
 		}
 		_, err := bd.Create(diskObjectList[diskListIndex])
@@ -130,6 +131,7 @@ func fakeAlgorithmConfig(spc *v1alpha1.StoragePoolClaim) *Config {
 		BlockDeviceClient: bdClient,
 		CspClient:         cspK8sClient,
 		SpClient:          spK8sClient,
+		Namespace:         "fake-ns",
 	}
 
 	return ac
@@ -188,399 +190,400 @@ func TestProvisioningType(t *testing.T) {
 	}
 }
 
-func TestNodeBlockDeviceAlloter(t *testing.T) {
-	tests := map[string]struct {
-		// fakeCasPool holds the fake fakeCasPool object in test cases.
-		fakeCasPool *v1alpha1.StoragePoolClaim
-		// expectedDiskListLength holds the length of disk list
-		expectedDiskListLength int
-		expectedErr            bool
-	}{
-		// Test Case #1
-		"autoSPC1": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "striped",
-					},
-					MaxPools: func() *int {
-						count := 1
-						return &count
-					}(),
-				},
-			},
-			expectedDiskListLength: 1,
-			expectedErr:            false,
-		},
-		// Test Case #2
-		"autoSPC2": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "mirrored",
-					},
-					MaxPools: func() *int {
-						count := 3
-						return &count
-					}(),
-				},
-			},
-			expectedDiskListLength: 6,
-			expectedErr:            false,
-		},
-		// Test Case #3
-		"autoSPC3": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "sparse",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "striped",
-					},
-					MaxPools: func() *int {
-						count := 4
-						return &count
-					}(),
-				},
-			},
-			expectedDiskListLength: 4,
-			expectedErr:            false,
-		},
-		// Test Case #4
-		"autoSPC4": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "raidz2",
-					},
-					MaxPools: func() *int {
-						count := 3
-						return &count
-					}(),
-				},
-			},
-			expectedDiskListLength: 18,
-			expectedErr:            false,
-		},
-		//Test Case #5
-		// blockdevice0, blockdevice1 are of sparse type
-		"manualSPC5": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "striped",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice0", "blockdevice1", "blockdevice2"},
-					},
-				},
-			},
-			expectedDiskListLength: 1,
-			expectedErr:            true,
-		},
-		// Test Case #6
-		"manualSPC6": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "mirrored",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice3", "blockdevice4"},
-					},
-				},
-			},
-			expectedDiskListLength: 2,
-			expectedErr:            true,
-		},
-		// Test Case #7
-		"manualSPC7": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "sparse",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "mirrored",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice1", "blockdevice71"},
-					},
-				},
-			},
-			expectedDiskListLength: 0,
-			expectedErr:            true,
-		},
-		// Test Case #8
-		"manualSPC8": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "mirrored",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice2", "blockdevice3", "blockdevice4", "blockdevice5"},
-					},
-				},
-			},
-			expectedDiskListLength: 4,
-			expectedErr:            true,
-		},
-		// Test Case #8
-		"manualSPC9": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "mirrored",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3"},
-					},
-				},
-			},
-			expectedDiskListLength: 2,
-			expectedErr:            true,
-		},
-		// Test Case #10
-		"manualSPC10Raidz": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "raidz",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice2", "blockdevice3", "blockdevice4"},
-					},
-				},
-			},
-			expectedDiskListLength: 3,
-			expectedErr:            true,
-		},
-		// Test Case #11
-		"manualSPC11Raidz": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "raidz",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice5", "blockdevice6"},
-					},
-				},
-			},
-			expectedDiskListLength: 0,
-			expectedErr:            true,
-		},
-		// Test Case #12
-		"manualSPC12Raidz": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "raidz",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3", "blockdevice4"},
-					},
-				},
-			},
-			expectedDiskListLength: 3,
-			expectedErr:            true,
-		},
-		// Test Case #13
-		"manualSPC13Raidz": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "raidz",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3", "blockdevice4", "blockdevice5"},
-					},
-				},
-			},
-			expectedDiskListLength: 3,
-			expectedErr:            true,
-		},
-		// Test Case #14
-		"manualSPC14Raidz": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "raidz",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice2"},
-					},
-				},
-			},
-			expectedDiskListLength: 0,
-			expectedErr:            true,
-		},
-		// Test Case #15
-		"manualSPC15Raidz2": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "raidz2",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3"},
-					},
-				},
-			},
-			expectedDiskListLength: 0,
-			expectedErr:            true,
-		},
-		// Test Case #16
-		"manualSPC16Raidz2": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "raidz2",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice1", "blockdevice2"},
-					},
-				},
-			},
-			expectedDiskListLength: 0,
-			expectedErr:            true,
-		},
-		// Test Case #17
-		"manualSPC17Raidz2": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "raidz2",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3", "blockdevice4"},
-					},
-				},
-			},
-			expectedDiskListLength: 0,
-			expectedErr:            true,
-		},
-		// Test Case #18
-		"manualSPC18Raidz2": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "raidz2",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice3", "blockdevice4", "blockdevice5", "blockdevice6", "blockdevice7", "blockdevice8"},
-					},
-				},
-			},
-			expectedDiskListLength: 6,
-			expectedErr:            true,
-		},
-		// Test Case #19
-		"manualSPC19Raidz2": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "raidz2",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice2", "blockdevice3", "blockdevice4", "blockdevice5", "blockdevice6", "blockdevice7", "blockdevice8", "blockdevice9", "blockdevice10", "blockdevice11", "blockdevice12", "blockdevice13"},
-					},
-				},
-			},
-			expectedDiskListLength: 12,
-			expectedErr:            true,
-		},
-		// Test Case #20
-		"manualSPC20Raidz2": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "raidz2",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3", "blockdevice4", "blockdevice5", "blockdevice6", "blockdevice7"},
-					},
-				},
-			},
-			expectedDiskListLength: 6,
-			expectedErr:            true,
-		},
-		// Test Case #21
-		"manualSPC21Raidz2": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "raidz2",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3", "blockdevice4", "blockdevice5", "blockdevice27"},
-					},
-				},
-			},
-			expectedDiskListLength: 0,
-			expectedErr:            true,
-		},
-		// Test Case #22
-		"manualSPC22Raidz2": {
-			fakeCasPool: &v1alpha1.StoragePoolClaim{
-				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "disk",
-					PoolSpec: v1alpha1.CStorPoolAttr{
-						PoolType: "mirrored",
-					},
-					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice0", "blockdevice1"},
-					},
-				},
-			},
-			expectedDiskListLength: 6,
-			expectedErr:            true,
-		},
-	}
-
-	for name, test := range tests {
-		name, test := name, test
-		t.Run(name, func(t *testing.T) {
-			//hostName := "gke-ashu-cstor-default-pool-a4065fd6-vxsh0"
-			ac := fakeAlgorithmConfig(test.fakeCasPool)
-			//blockdeviceList, err := ac.NodeBlockDeviceSelector()
-			selectedNodeBDs, err := ac.NodeBlockDeviceSelector()
-			if test.expectedErr && err == nil {
-				t.Fatalf("Test case failed expected error not to be nil")
-			}
-			if !test.expectedErr && err != nil {
-				t.Fatalf(
-					"Test case failed expected error to be nil but got error %v",
-					err,
-				)
-			}
-			if err == nil {
-				gotLen := 0
-				for _, val := range selectedNodeBDs {
-					val, _ := val.ToObjectList()
-					gotLen += len(val)
-				}
-				if gotLen != test.expectedDiskListLength {
-					t.Errorf("%q test case failed as the expected blockdevice list length is %d but got %d", name, test.expectedDiskListLength, gotLen)
-				}
-			}
-		})
-	}
-}
+//TODO: Uncomment or add UT for auto spc --> cspc
+//func TestNodeBlockDeviceAlloter(t *testing.T) {
+//	tests := map[string]struct {
+//		// fakeCasPool holds the fake fakeCasPool object in test cases.
+//		fakeCasPool *v1alpha1.StoragePoolClaim
+//		// expectedDiskListLength holds the length of disk list
+//		expectedDiskListLength int
+//		expectedErr            bool
+//	}{
+//		// Test Case #1
+//		"autoSPC1": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "striped",
+//					},
+//					MaxPools: func() *int {
+//						count := 1
+//						return &count
+//					}(),
+//				},
+//			},
+//			expectedDiskListLength: 1,
+//			expectedErr:            false,
+//		},
+//		// Test Case #2
+//		"autoSPC2": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "mirrored",
+//					},
+//					MaxPools: func() *int {
+//						count := 3
+//						return &count
+//					}(),
+//				},
+//			},
+//			expectedDiskListLength: 6,
+//			expectedErr:            false,
+//		},
+//		// Test Case #3
+//		"autoSPC3": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "sparse",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "striped",
+//					},
+//					MaxPools: func() *int {
+//						count := 4
+//						return &count
+//					}(),
+//				},
+//			},
+//			expectedDiskListLength: 4,
+//			expectedErr:            false,
+//		},
+//		// Test Case #4
+//		"autoSPC4": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "raidz2",
+//					},
+//					MaxPools: func() *int {
+//						count := 3
+//						return &count
+//					}(),
+//				},
+//			},
+//			expectedDiskListLength: 18,
+//			expectedErr:            false,
+//		},
+//		//Test Case #5
+//		// blockdevice0, blockdevice1 are of sparse type
+//		"manualSPC5": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "striped",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice0", "blockdevice1", "blockdevice2"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 1,
+//			expectedErr:            true,
+//		},
+//		// Test Case #6
+//		"manualSPC6": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "mirrored",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice3", "blockdevice4"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 2,
+//			expectedErr:            true,
+//		},
+//		// Test Case #7
+//		"manualSPC7": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "sparse",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "mirrored",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice1", "blockdevice71"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 0,
+//			expectedErr:            true,
+//		},
+//		// Test Case #8
+//		"manualSPC8": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "mirrored",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice2", "blockdevice3", "blockdevice4", "blockdevice5"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 4,
+//			expectedErr:            true,
+//		},
+//		// Test Case #8
+//		"manualSPC9": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "mirrored",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 2,
+//			expectedErr:            true,
+//		},
+//		// Test Case #10
+//		"manualSPC10Raidz": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "raidz",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice2", "blockdevice3", "blockdevice4"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 3,
+//			expectedErr:            true,
+//		},
+//		// Test Case #11
+//		"manualSPC11Raidz": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "raidz",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice5", "blockdevice6"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 0,
+//			expectedErr:            true,
+//		},
+//		// Test Case #12
+//		"manualSPC12Raidz": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "raidz",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3", "blockdevice4"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 3,
+//			expectedErr:            true,
+//		},
+//		// Test Case #13
+//		"manualSPC13Raidz": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "raidz",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3", "blockdevice4", "blockdevice5"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 3,
+//			expectedErr:            true,
+//		},
+//		// Test Case #14
+//		"manualSPC14Raidz": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "raidz",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice2"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 0,
+//			expectedErr:            true,
+//		},
+//		// Test Case #15
+//		"manualSPC15Raidz2": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "raidz2",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 0,
+//			expectedErr:            true,
+//		},
+//		// Test Case #16
+//		"manualSPC16Raidz2": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "raidz2",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice1", "blockdevice2"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 0,
+//			expectedErr:            true,
+//		},
+//		// Test Case #17
+//		"manualSPC17Raidz2": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "raidz2",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3", "blockdevice4"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 0,
+//			expectedErr:            true,
+//		},
+//		// Test Case #18
+//		"manualSPC18Raidz2": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "raidz2",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice3", "blockdevice4", "blockdevice5", "blockdevice6", "blockdevice7", "blockdevice8"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 6,
+//			expectedErr:            true,
+//		},
+//		// Test Case #19
+//		"manualSPC19Raidz2": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "raidz2",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice2", "blockdevice3", "blockdevice4", "blockdevice5", "blockdevice6", "blockdevice7", "blockdevice8", "blockdevice9", "blockdevice10", "blockdevice11", "blockdevice12", "blockdevice13"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 12,
+//			expectedErr:            true,
+//		},
+//		// Test Case #20
+//		"manualSPC20Raidz2": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "raidz2",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3", "blockdevice4", "blockdevice5", "blockdevice6", "blockdevice7"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 6,
+//			expectedErr:            true,
+//		},
+//		// Test Case #21
+//		"manualSPC21Raidz2": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "raidz2",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3", "blockdevice4", "blockdevice5", "blockdevice27"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 0,
+//			expectedErr:            true,
+//		},
+//		// Test Case #22
+//		"manualSPC22Raidz2": {
+//			fakeCasPool: &v1alpha1.StoragePoolClaim{
+//				Spec: v1alpha1.StoragePoolClaimSpec{
+//					Type: "disk",
+//					PoolSpec: v1alpha1.CStorPoolAttr{
+//						PoolType: "mirrored",
+//					},
+//					BlockDevices: v1alpha1.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice0", "blockdevice1"},
+//					},
+//				},
+//			},
+//			expectedDiskListLength: 6,
+//			expectedErr:            true,
+//		},
+//	}
+//
+//	for name, test := range tests {
+//		name, test := name, test
+//		t.Run(name, func(t *testing.T) {
+//			//hostName := "gke-ashu-cstor-default-pool-a4065fd6-vxsh0"
+//			ac := fakeAlgorithmConfig(test.fakeCasPool)
+//			//blockdeviceList, err := ac.NodeBlockDeviceSelector()
+//			selectedNodeBDs, err := ac.NodeBlockDeviceSelector()
+//			if test.expectedErr && err == nil {
+//				t.Fatalf("Test case failed expected error not to be nil")
+//			}
+//			if !test.expectedErr && err != nil {
+//				t.Fatalf(
+//					"Test case failed expected error to be nil but got error %v",
+//					err,
+//				)
+//			}
+//			if err == nil {
+//				gotLen := 0
+//				for _, val := range selectedNodeBDs {
+//					val, _ := val.ToObjectList()
+//					gotLen += len(val)
+//				}
+//				if gotLen != test.expectedDiskListLength {
+//					t.Errorf("%q test case failed as the expected blockdevice list length is %d but got %d", name, test.expectedDiskListLength, gotLen)
+//				}
+//			}
+//		})
+//	}
+//}

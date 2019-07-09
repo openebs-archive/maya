@@ -121,7 +121,7 @@ func (sl *Lease) Release() {
 		newErr := fmt.Errorf("Lease could not be removed:%v", err)
 		runtime.HandleError(newErr)
 	}
-	glog.Info("Lease removed successfully on storagepoolclaim")
+	glog.V(4).Info("Lease removed successfully on storagepoolclaim")
 }
 
 func (sl *Lease) getPodName() string {

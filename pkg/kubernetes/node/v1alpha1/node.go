@@ -91,6 +91,35 @@ func (b *ListBuilder) WithAPIObject(nodes ...corev1.Node) *ListBuilder {
 	return b
 }
 
+// GetLabeledNode return custom node instance if provided
+// key and value are present in any of the node instance
+func (b *ListBuilder) GetLabeledNode(key, value string) *Node {
+	for _, node := range b.list.items {
+		if node.HasLabel(key, value) {
+			return node
+		}
+	}
+	return nil
+}
+
+// HasLabel return true if provided key and value are
+// present in the node instance
+func (n *Node) HasLabel(key, value string) bool {
+	val, ok := n.object.GetLabels()[key]
+	if ok {
+		return val == value
+	}
+	return false
+}
+
+// GetNodeName returns name of the node instance
+func (n *Node) GetNodeName() string {
+	if n == nil {
+		return ""
+	}
+	return n.object.Name
+}
+
 // List returns the list of node instances that was built by this builder
 func (b *ListBuilder) List() *NodeList {
 	if b.filters == nil && len(b.filters) == 0 {

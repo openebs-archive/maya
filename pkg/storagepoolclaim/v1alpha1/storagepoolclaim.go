@@ -24,6 +24,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+const (
+	SPCFinalizer = "storagepoolclaim.openebs.io/finalizer"
+)
+
 // SupportedDiskTypes is a map containing the valid disk type
 var SupportedDiskTypes = map[apis.CasPoolValString]bool{
 	apis.TypeSparseCPV: true,
@@ -143,6 +147,12 @@ func (sb *Builder) WithPoolType(poolType string) *Builder {
 	return sb
 }
 
+// WithFinalizersNew sets the finalizer field of CSPC with provided value
+func (sb *Builder) WithFinalizersNew(finalizers ...string) *Builder {
+	sb.Spc.Object.Finalizers = append(sb.Spc.Object.Finalizers, finalizers...)
+	return sb
+}
+
 // WithOverProvisioning sets the OverProvisioning field of spc with provided argument value.
 func (sb *Builder) WithOverProvisioning(val bool) *Builder {
 	sb.Spc.Object.Spec.PoolSpec.OverProvisioning = val
@@ -231,4 +241,11 @@ func (l *SPCList) GetPoolUIDs() []string {
 		uids = append(uids, string(pool.GetUID()))
 	}
 	return uids
+}
+
+// GetDefaultSPCLabels returns deafult spc label to filter resources
+func (s *SPC) GetDefaultSPCLabels() map[string]string {
+	return map[string]string{
+		string(apis.StoragePoolClaimCPK): s.Object.Name,
+	}
 }

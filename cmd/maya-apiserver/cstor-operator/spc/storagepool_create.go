@@ -17,18 +17,25 @@ limitations under the License.
 package spc
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/golang/glog"
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha1"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
 	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	cspcbd "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolblockdevice"
 	poolspec "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
 	raidgroup "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/raidgroups"
-	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/openebs/maya/pkg/storagepool"
+	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
+	types "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 )
 
 // PoolCreateConfig is config object used to create a cstor pool.
@@ -47,66 +54,234 @@ type CasPoolBuilder struct {
 // runTasks are configmaps which has defined yaml templates for resources that needs
 // to be created or deleted for a storagepool creation or deletion respectively.
 
-// CreateStoragePool is a function that does following:
+// CreateOrUpdateCStorPoolCluster is a function that does following:
 // 1. It receives storagepoolclaim object from the spc watcher event handler.
-// 2. After successful validation, it will call a worker function for actual storage creation
-//    via the cas template specified in storagepoolclaim.
-func (c *Controller) CreateCStorPoolCluster(spcGot *apis.StoragePoolClaim) error {
+// 2. After successful validation, it will call a worker function to create or
+//    update cstorpoolcluster based on availability of cspc object
+func (c *Controller) CreateOrUpdateCStorPoolCluster(spcGot *apis.StoragePoolClaim) error {
 	poolconfig := c.NewPoolCreateConfig(spcGot)
-	newCStorPoolClusterObj, err := poolconfig.getCstorPoolCluster(spcGot)
-
+	maxPools := *spcGot.Spec.MaxPools
+	cspcObjList, err := c.cspcLister.
+		CStorPoolClusters(poolconfig.Namespace).
+		List(
+			klabels.SelectorFromSet(
+				map[string]string{
+					string(apis.StoragePoolClaimCPK): spcGot.Name,
+				},
+			),
+		)
 	if err != nil {
-		return errors.Wrapf(err, "failed to build cstorpoolcluster from spc %s", spcGot.Name)
+		return errors.Wrapf(err,
+			"failed to list cspc in %s namespace using spc %s label",
+			poolconfig.Namespace,
+			spcGot.Name,
+		)
+	}
+	if len(cspcObjList) == 0 {
+		//create cstorpoolcluster
+		glog.V(4).Infof(
+			"Creating cstorpoolcluster in namespce %s for storagepoolclaim %s",
+			poolconfig.Namespace,
+			spcGot.Name,
+		)
+		// create cstorpoolcluster
+		return poolconfig.createCStorPoolCluster(poolconfig.Namespace)
 	}
 
-	_, err = c.clientset.
-		OpenebsV1alpha1().
-		CStorPoolClusters(newCStorPoolClusterObj.Namespace).
-		Create(newCStorPoolClusterObj)
-	if err != nil {
-		return err
+	cspcObj := cspcObjList[0]
+	if len(cspcObj.Spec.Pools) < maxPools {
+		return poolconfig.updateCStorPoolCluster(cspcObj)
 	}
-	glog.Infof("Successfully create cstorpoolcluster from spc %s", spcGot.Name)
 	return nil
 }
 
-func (pc *PoolCreateConfig) getCstorPoolCluster(spc *apis.StoragePoolClaim) (*apis.CStorPoolCluster, error) {
-	// get namespace where OpenEBS is installed
-	namespace := env.Get(env.OpenEBSNamespace)
-	cspcBuildObj := cspc.NewBuilder().
-		WithName(spc.Name).
-		WithNamespace(namespace)
-	mapNodeBlockDeviceList, err := pc.NodeBlockDeviceSelector()
+// createCStorPoolCluster creates cspc object and patch spc with finalizers
+func (pc *PoolCreateConfig) createCStorPoolCluster(
+	namespace string) error {
+	spc := pc.Spc
+	newCSPCObj, err := pc.buildCSPCFromSPC(spc, namespace)
 	if err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"failed to get nodes and corresponding blockdevices",
+		return errors.Wrapf(err,
+			"failed to build cstorpoolcluster from spc %s",
+			spc.Name,
 		)
 	}
-	for nodeName, customCSPCBDList := range mapNodeBlockDeviceList {
-		//TODO: Get key and value from node resource
-		nodeSelector := map[string]string{string(apis.HostNameCPK): nodeName}
-		cacheFile := pc.Spc.Spec.PoolSpec.CacheFile
-		poolType := pc.Spc.Spec.PoolSpec.PoolType
-		raidGroupBuilder := raidgroup.NewBuilder().
-			WithType(poolType).
-			WithName("group-1").
-			WithCSPCBlockDeviceList(customCSPCBDList)
-		poolSpecBuilder := poolspec.NewBuilder().
-			WithNodeSelectorNew(nodeSelector).
-			WithCompression("off").
-			WithDefaultRaidGroupType(poolType).
-			WithRaidGroupBuilder(raidGroupBuilder)
-		if cacheFile != "" {
-			poolSpecBuilder = poolSpecBuilder.WithCacheFilePath(cacheFile)
-		}
-		cspcBuildObj = cspcBuildObj.WithPoolSpecBuilder(poolSpecBuilder)
+	newCSPCObj, err = pc.clientset.
+		OpenebsV1alpha1().
+		CStorPoolClusters(newCSPCObj.Namespace).
+		Create(newCSPCObj)
+	if err != nil {
+		return err
 	}
-	customCSPCObj, err := cspcBuildObj.Build()
+	glog.Infof(
+		"Successfully create cstorpoolcluster %s in namespace %s from spc %s",
+		newCSPCObj.Name,
+		newCSPCObj.Namespace,
+		spc.Name,
+	)
+	return pc.patchSPCWithFinalizers()
+}
+
+// patchSPCWithFinalizers patches spc with spc finalizer
+func (pc *PoolCreateConfig) patchSPCWithFinalizers() error {
+	// Add finalizers on spc
+	spcObj, err := pc.spcLister.
+		Get(pc.Spc.Name)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to get spc %s from lister",
+			pc.Spc.Name,
+		)
+	}
+
+	// make deepcopy of existing object to update it
+	newSPCObj := spcObj.DeepCopy()
+	spcBuilderObj := spcv1alpha1.BuilderForObject(
+		&spcv1alpha1.SPC{
+			Object: newSPCObj,
+		},
+	).
+		WithFinalizersNew(spcv1alpha1.SPCFinalizer).
+		Build()
+	patchBytes, err := getPatchData(spcObj, spcBuilderObj.Object)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to get patch bytes for spc %s",
+			pc.Spc.Name,
+		)
+	}
+	_, err = pc.clientset.
+		OpenebsV1alpha1().
+		StoragePoolClaims().
+		Patch(pc.Spc.Name, types.MergePatchType, patchBytes)
+	if err != nil {
+		//TODO: is deletetion of cspc is required?
+		_ = pc.deleteCSPCResource(spcObj.Name, pc.Namespace)
+		return errors.Wrapf(
+			err,
+			"failed to update spc %s with finalizers",
+			spcObj.Name,
+		)
+	}
+	return nil
+}
+
+// updateCStorPoolCluster updates the pool specs of cspc object
+func (pc *PoolCreateConfig) updateCStorPoolCluster(
+	cspcObj *apis.CStorPoolCluster) error {
+	dupCSPCObj := cspcObj.DeepCopy()
+	mapNodeBlockDeviceList, err := pc.NodeBlockDeviceSelector()
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to update cspc %s in namespace %s",
+			dupCSPCObj.Name,
+			dupCSPCObj.Namespace,
+		)
+	}
+	cspcBuilderObj := cspc.BuilderFromCSPC(
+		cspc.NewForAPIObject(dupCSPCObj),
+	)
+	pendingPoolSpecCount := *pc.Spc.Spec.MaxPools - len(dupCSPCObj.Spec.Pools)
+	customCSPCObj, err := pc.
+		addPoolSpecToCSPCBuilder(cspcBuilderObj, mapNodeBlockDeviceList, pendingPoolSpecCount).
+		Build()
+	if err != nil {
+		return err
+	}
+
+	patchBytes, err := getPatchData(cspcObj, customCSPCObj.ToAPI())
+	if err != nil {
+		return err
+	}
+	updatedCSPCObj, err := pc.clientset.
+		OpenebsV1alpha1().
+		CStorPoolClusters(dupCSPCObj.Namespace).
+		Patch(dupCSPCObj.Name, types.MergePatchType, patchBytes)
+	if err != nil {
+		return err
+	}
+	glog.Infof(
+		"Successfully updated cstorpoolcluster %s in namespace %s",
+		updatedCSPCObj.Name,
+		updatedCSPCObj.Namespace,
+	)
+	return nil
+}
+
+// buildCSPCFromSPC builds new cspc from spc
+func (pc *PoolCreateConfig) buildCSPCFromSPC(
+	spc *apis.StoragePoolClaim,
+	namespace string) (*apis.CStorPoolCluster, error) {
+	cpscFinalizers := []string{cspc.CSPCFinalizer}
+	// get namespace where OpenEBS is installed
+	cspcBuildObj := cspc.NewBuilder().
+		WithName(spc.Name).
+		WithLabelsNew(getSPCLabels(spc)).
+		WithNamespace(namespace).
+		WithFinalizersNew(cpscFinalizers)
+	mapNodeBlockDeviceList, err := pc.NodeBlockDeviceSelector()
+	if err != nil {
+		return nil, err
+	}
+	noOfPoolSpecs := *spc.Spec.MaxPools
+	customCSPCObj, err := pc.
+		addPoolSpecToCSPCBuilder(cspcBuildObj, mapNodeBlockDeviceList, noOfPoolSpecs).
+		Build()
 	if err != nil {
 		return nil, err
 	}
 	return customCSPCObj.ToAPI(), nil
+}
+
+// addPoolSpecToCSPCBuilder tries to add required numeber of pool specs to
+// existing cspc builder
+func (pc *PoolCreateConfig) addPoolSpecToCSPCBuilder(
+	cspcBuilderObj *cspc.Builder,
+	mapNodeBlockDeviceList map[string]*cspcbd.ListBuilder,
+	reqPoolSpecCount int) *cspc.Builder {
+	currentPoolSpecCount := 0
+	for nodeName, customCSPCBDList := range mapNodeBlockDeviceList {
+		if currentPoolSpecCount == reqPoolSpecCount {
+			break
+		}
+		// blockdevice gives nodeName as a value of kubernetes.io/hostName label
+		// using above label get node labels
+		nodeObj, err := pc.nodeLister.Get(nodeName)
+		if err != nil {
+			glog.Errorf("failed to get node %s object", nodeName)
+			continue
+		}
+		//Assumption kubernetes.io/hostName is the unique label available on node
+		val, ok := nodeObj.GetLabels()[string(apis.HostNameCPK)]
+		if !ok {
+			glog.Errorf("failed to get value of label %s on node %s object",
+				apis.HostNameCPK,
+				nodeName,
+			)
+			continue
+		}
+		nodeSelector := map[string]string{string(apis.HostNameCPK): val}
+		cacheFile := pc.Spc.Spec.PoolSpec.CacheFile
+		poolType := pc.Spc.Spec.PoolSpec.PoolType
+		poolSpecBuilder := poolspec.NewBuilder().
+			WithNodeSelectorNew(nodeSelector).
+			WithCompression("off").
+			WithDefaultRaidGroupType(poolType).
+			WithRaidGroupBuilder(
+				raidgroup.NewBuilder().
+					WithType(poolType).
+					WithName("group-1").
+					WithCSPCBlockDeviceList(customCSPCBDList),
+			)
+		if cacheFile != "" {
+			poolSpecBuilder = poolSpecBuilder.WithCacheFilePath(cacheFile)
+		}
+		cspcBuilderObj = cspcBuilderObj.WithPoolSpecBuilder(poolSpecBuilder)
+		currentPoolSpecCount++
+	}
+	return cspcBuilderObj
 }
 
 // getCasPool returns a configured cas pool object.
@@ -240,7 +415,6 @@ func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePo
 		var bdList []apis.CspBlockDevice
 		var group apis.BlockDeviceGroup
 		for j := 0; j < count; j++ {
-
 			blockDevice := apis.CspBlockDevice{
 				Name:        claimedNodeBDs.BlockDeviceList[i+j].BDName,
 				InUseByPool: true,
@@ -269,4 +443,24 @@ func (pc *PoolCreateConfig) getDeviceID(blockDeviceName string) (string, error) 
 		deviceID = blockDevice.Spec.Path
 	}
 	return deviceID, nil
+}
+
+func getSPCLabels(spc *apis.StoragePoolClaim) map[string]string {
+	return map[string]string{string(apis.StoragePoolClaimCPK): spc.Name}
+}
+
+func getPatchData(oldObj, newObj interface{}) ([]byte, error) {
+	oldData, err := json.Marshal(oldObj)
+	if err != nil {
+		return nil, fmt.Errorf("marshal old object failed: %v", err)
+	}
+	newData, err := json.Marshal(newObj)
+	if err != nil {
+		return nil, fmt.Errorf("mashal new object failed: %v", err)
+	}
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, oldObj)
+	if err != nil {
+		return nil, fmt.Errorf("CreateTwoWayMergePatch failed: %v", err)
+	}
+	return patchBytes, nil
 }
