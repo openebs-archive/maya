@@ -133,6 +133,9 @@ func TestHold(t *testing.T) {
 
 	// Iterate over whole map to run the test cases.
 	for name, test := range tests {
+		// pin it
+		name := name
+		test := test
 		t.Run(name, func(t *testing.T) {
 			var newSpcLease Lease
 			var gotError bool
