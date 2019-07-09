@@ -48,13 +48,13 @@ func checkIfPoolPresent(name string) bool {
 	return true
 }
 
-func isBdevPathChanged(csp *api.CStorNPool, bdev *api.CStorPoolClusterBlockDevice) (string, bool, error) {
+func isBdevPathChanged(bdev api.CStorPoolClusterBlockDevice) (string, bool, error) {
 	var err error
 	var isPathChanged bool
 
 	newPath, er := getPathForBDev(bdev.BlockDeviceName)
 	if er != nil {
-		err = errors.Errorf("Failed to get bdev {%s} path err {%s}", bdev.BlockDeviceName, err.Error())
+		err = errors.Errorf("Failed to get bdev {%s} path err {%s}", bdev.BlockDeviceName, er.Error())
 	}
 
 	if err == nil && newPath != bdev.DevLink {
