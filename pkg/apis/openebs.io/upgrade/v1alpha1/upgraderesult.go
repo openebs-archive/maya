@@ -19,12 +19,13 @@ package v1alpha1
 import (
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func init() {
 	// Register adds UpgradeResult and UpgradeResultList objects to
 	// SchemeBuilder so they can be added to a Scheme
-	SchemeBuilder.Register(&UpgradeResult{}, &UpgradeResultList{})
+	SchemeBuilder.Register(addKnownTypes)
 }
 
 // +genclient
@@ -183,4 +184,14 @@ func (urList UpgradeResultList) String() string {
 // GoString implements GoStringer interface
 func (urList UpgradeResultList) GoString() string {
 	return urList.String()
+}
+
+// Adds the list of known types to api.Scheme.
+func addKnownTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(SchemeGroupVersion,
+		&UpgradeResult{},
+		&UpgradeResultList{},
+	)
+	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
+	return nil
 }

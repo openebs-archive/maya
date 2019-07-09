@@ -17,8 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
 )
 
 var (
@@ -27,8 +27,9 @@ var (
 	SchemeGroupVersion = schema.GroupVersion{Group: "openebs.io", Version: "v1alpha1"}
 
 	// SchemeBuilder for upgrade
-	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
+	//SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
 
+	SchemeBuilder runtime.SchemeBuilder
 	// AddToScheme function for upgrade is required by pkg/client/...
 	AddToScheme = SchemeBuilder.AddToScheme
 )
