@@ -17,30 +17,78 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"github.com/golang/glog"
+	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
+	nodeapis "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
 	"github.com/openebs/maya/pkg/volume"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+//// GetCandidateNodeMap returns a map of all nodes where the pool needs to be created.
+//func (ac *Config) GetCandidateNodeMap() (map[string]bool, error) {
+//	candidateNodesMap := make(map[string]bool)
+//	usedNodeMap, err := ac.GetUsedNodeMap()
+//	if err != nil {
+//		return nil, errors.Wrapf(err, "could not get candidate nodes for pool creation")
+//	}
+//	for _, pool := range ac.CSPC.Spec.Pools {
+//		nodeName, err := ac.GetNodeFromLabelSelector(pool.NodeSelector)
+//		if err != nil {
+//			glog.Errorf("could not use node for selectors {%v}", pool.NodeSelector)
+//			continue
+//		}
+//		if usedNodeMap[nodeName] == false {
+//			candidateNodesMap[nodeName] = true
+//		}
+//	}
+//	return candidateNodesMap, nil
+//}
+
 // GetCandidateNodeMap returns a map of all nodes where the pool needs to be created.
-func (ac *Config) GetCandidateNodeMap() (map[string]bool, error) {
-	// TODO : Do not select a node if it is not ready
-	candidateNodesMap := make(map[string]bool)
-	usedNodeMap, err := ac.GetUsedNodeMap()
+func (ac *Config) SelectNode() (*apis.PoolSpec, string, error) {
+	usedNodes, err := ac.GetUsedNodeMap()
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not get candidate nodes for pool creation")
+		return nil, "", errors.Wrapf(err, "could not get used nodes list for pool creation")
 	}
 	for _, pool := range ac.CSPC.Spec.Pools {
-		nodeName := pool.NodeSelector[HostName]
-		if usedNodeMap[nodeName] == false {
-			candidateNodesMap[nodeName] = true
+		nodeName, err := ac.GetNodeFromLabelSelector(pool.NodeSelector)
+		if err != nil {
+			glog.Errorf("could not use node for selectors {%v}", pool.NodeSelector)
+			continue
+		}
+		if usedNodes[nodeName] == false {
+			return &pool, nodeName, nil
 		}
 	}
-	return candidateNodesMap, nil
+	return nil, "", errors.New("no node qualified for pool creation")
+}
+
+func (ac *Config) GetNodeFromLabelSelector(labels map[string]string) (string, error) {
+	nodeList, err := nodeapis.NewKubeClient().List(metav1.ListOptions{LabelSelector: getLabelSelectorString(labels)})
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get node list from the node selector")
+	}
+	if len(nodeList.Items) != 1 {
+		return "", errors.Errorf("could not get a unique node from the given node selectors")
+	}
+	if !nodeapis.NewBuilder().WithAPINode(&nodeList.Items[0]).Node.IsReady() {
+		return "", errors.Errorf("node {%s} is not ready", nodeList.Items[0].Name)
+	}
+	return nodeList.Items[0].Name, nil
+}
+
+func getLabelSelectorString(selector map[string]string) string {
+	var selectorString string
+	for key, value := range selector {
+		selectorString = selectorString + key + "=" + value + ","
+	}
+	selectorString = selectorString[:len(selectorString)-len(",")]
+	return selectorString
 }
 
 // GetUsedNodeMap returns a map of node for which pool has already been created.
@@ -62,23 +110,23 @@ func (ac *Config) GetUsedNodeMap() (map[string]bool, error) {
 	return usedNodeMap, nil
 }
 
-// SelectNode selects a node and returns the pool spec from the cspc for pool provisioning.
-func (ac *Config) SelectNode() (*apis.PoolSpec, error) {
-	candidateNodes, err := ac.GetCandidateNodeMap()
-	if err != nil {
-		return nil, errors.Wrapf(err, "could not get pool spec for pool creation")
-	}
-	for _, pool := range ac.CSPC.Spec.Pools {
-		pool := pool
-		nodeName := pool.NodeSelector[HostName]
-		if candidateNodes[nodeName] {
-			if ValidatePoolSpec(&pool) {
-				return &pool, nil
-			}
-		}
-	}
-	return nil, errors.New("no node qualified for pool creation")
-}
+//// SelectNode selects a node and returns the pool spec from the cspc for pool provisioning.
+//func (ac *Config) SelectNode() (*apis.PoolSpec, error) {
+//	candidateNodes, err := ac.GetCandidateNodeMap()
+//	if err != nil {
+//		return nil, errors.Wrapf(err, "could not get pool spec for pool creation")
+//	}
+//	for _, pool := range ac.CSPC.Spec.Pools {
+//		pool := pool
+//		nodeName := pool.NodeSelector[HostName]
+//		if candidateNodes[nodeName] {
+//			if ValidatePoolSpec(&pool) {
+//				return &pool, nil
+//			}
+//		}
+//	}
+//	return nil, errors.New("no node qualified for pool creation")
+//}
 
 // GetBDListForNode returns a list of BD from the pool spec.
 // TODO : Move it to CStorPoolCluster packgage
@@ -98,53 +146,28 @@ func (ac *Config) GetBDListForNode(pool *apis.PoolSpec) []string {
 // pool provisioning.
 // If the block device(s) is/are unclaimed, then those are claimed.
 func (ac *Config) ClaimBDsForNode(BD []string) error {
-	for _, bd := range BD {
-		IsBDClaimed, err := ac.IsBDClaimed(bd)
+	for _, bdName := range BD {
+		bdAPIObj, err := bd.NewKubeClient().WithNamespace(ac.Namespace).Get(bdName, metav1.GetOptions{})
 		if err != nil {
-			return errors.Wrapf(err, "error in getting details for BD {%s} whether it is claimed", bd)
+			return errors.Wrapf(err, "error in getting details for BD {%s} whether it is claimed", bdName)
 		}
-		if IsBDClaimed {
-			IsClaimedBDUsable, err := ac.IsClaimedBDUsable(bd)
+		if bd.BuilderForAPIObject(bdAPIObj).BlockDevice.IsClaimed() {
+			IsClaimedBDUsable, err := ac.IsClaimedBDUsable(bdAPIObj)
 			if err != nil {
-				return errors.Wrapf(err, "error in getting details for BD {%s} for usability", bd)
+				return errors.Wrapf(err, "error in getting details for BD {%s} for usability", bdName)
 			}
 			if !IsClaimedBDUsable {
-				return errors.Errorf("BD {%s} already in use", bd)
+				return errors.Errorf("BD {%s} already in use", bdName)
 			}
 		}
-	}
-	return ac.ClaimBDList(BD)
-}
 
-// ClaimBDList claims a list of  BlockDevices
-// If the block device is already claimed -- no action is performed i.e. it remains claimed
-func (ac *Config) ClaimBDList(BDList []string) error {
-	if len(BDList) == 0 {
-		return errors.New("No block devices to claim")
-	}
-	for _, bd := range BDList {
-		IsBDClaimed, err := ac.IsBDClaimed(bd)
-		if err != nil {
-			return errors.Wrapf(err, "error in getting details for BD {%s} whether it is claimed", bd)
-		}
-		if IsBDClaimed {
-			continue
-		}
-		err = ac.ClaimBD(bd)
-		if err != nil {
-			return errors.Wrapf(err, "could not claim block device {%s}", bd)
-		}
+		ac.ClaimBD(bdAPIObj)
 	}
 	return nil
 }
 
 // ClaimBD claims a given BlockDevice
-func (ac *Config) ClaimBD(BD string) error {
-	// TODO: Do not claim a block device if it is not active
-	bdObj, err := bd.NewKubeClient().WithNamespace(ac.Namespace).Get(BD, metav1.GetOptions{})
-	if err != nil {
-		return errors.Wrapf(err, "failed to claim BD %s", BD)
-	}
+func (ac *Config) ClaimBD(bdObj *ndmapis.BlockDevice) error {
 	newBDCObj, err := bdc.NewBuilder().
 		WithName("bdc-" + string(bdObj.UID)).
 		WithNamespace(ac.Namespace).
@@ -168,36 +191,22 @@ func (ac *Config) ClaimBD(BD string) error {
 
 // IsClaimedBDUsable returns true if the passed BD is already claimed and can be
 // used for provisioning
-func (ac *Config) IsClaimedBDUsable(BD string) (bool, error) {
-	bdAPIObj, err := bd.NewKubeClient().WithNamespace(ac.Namespace).Get(BD, metav1.GetOptions{})
-	if err != nil {
-		return false, errors.Wrapf(err, "could not get block device object {%s}", BD)
-	}
+func (ac *Config) IsClaimedBDUsable(bdAPIObj *ndmapis.BlockDevice) (bool, error) {
 	bdObj := bd.BuilderForAPIObject(bdAPIObj)
 	if bdObj.BlockDevice.IsClaimed() {
 		bdcName := bdObj.BlockDevice.Object.Spec.ClaimRef.Name
 		bdcAPIObject, err := bdc.NewKubeClient().WithNamespace(ac.Namespace).Get(bdcName, metav1.GetOptions{})
 		if err != nil {
-			return false, errors.Wrapf(err, "could not get block device claim for block device {%s}", BD)
+			return false, errors.Wrapf(err, "could not get block device claim for block device {%s}", bdAPIObj.Name)
 		}
 		bdcObj := bdc.BuilderForAPIObject(bdcAPIObject)
 		if bdcObj.BDC.HasLabel(string(apis.CStorPoolClusterCPK), ac.CSPC.Name) {
 			return true, nil
 		}
 	} else {
-		return false, errors.Wrapf(err, "block device {%s} is not claimed", BD)
+		return false, errors.Errorf("block device {%s} is not claimed", bdAPIObj.Name)
 	}
 	return false, nil
-}
-
-// IsBDClaimed returns true if the passed BD is already claimed
-func (ac *Config) IsBDClaimed(BD string) (bool, error) {
-	bdAPIObj, err := bd.NewKubeClient().WithNamespace(ac.Namespace).Get(BD, metav1.GetOptions{})
-	if err != nil {
-		return false, errors.Wrapf(err, "could not get block device object {%s}", BD)
-	}
-	bdObj := bd.BuilderForAPIObject(bdAPIObj)
-	return bdObj.BlockDevice.IsClaimed(), nil
 }
 
 // TODO: Fix following function -- (Current is mock only )

@@ -178,6 +178,19 @@ func (b *Builder) WithNodeSelector(nodeSelector map[string]string) *Builder {
 	b.CSP.Object.Spec.HostName = nodeSelector["kubernetes.io/hostname"]
 	return b
 }
+
+func (b *Builder) WithNodeName(nodeName string) *Builder {
+	if len(nodeName) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build CSP object: missing node name"),
+		)
+		return b
+	}
+	b.CSP.Object.Spec.HostName = nodeName
+	return b
+}
+
 func (b *Builder) WithPoolConfig(poolConfig *apis.PoolConfig) *Builder {
 	if poolConfig == nil {
 		b.errs = append(

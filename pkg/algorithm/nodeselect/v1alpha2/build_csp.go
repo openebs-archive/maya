@@ -31,7 +31,7 @@ const (
 // GetCSPSpec returns a CSP spec that should be created and claims all the
 // block device present in the CSP spec
 func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
-	poolSpec, err := ac.SelectNode()
+	poolSpec, nodeName, err := ac.SelectNode()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to select a node")
 	}
@@ -39,6 +39,7 @@ func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 	cspObj, err := apiscsp.NewBuilder().
 		WithName(ac.CSPC.Name).
 		WithNodeSelector(poolSpec.NodeSelector).
+		WithNodeName(nodeName).
 		WithPoolConfig(&poolSpec.PoolConfig).
 		WithRaidGroups(poolSpec.RaidGroups).
 		WithCSPCOwnerReference(ac.CSPC).

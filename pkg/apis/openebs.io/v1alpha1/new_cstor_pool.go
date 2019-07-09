@@ -39,7 +39,10 @@ type NewCStorPoolSpec struct {
 	// HostName is the name of kubernetes node where the pool
 	// should be created.
 	HostName string `json:"hostName"`
-
+	// NodeSelector is the labels that will be used to select
+	// a node for pool provisioning.
+	// Required field
+	NodeSelector map[string]string `json:"nodeSelector"`
 	// PoolConfig is the default pool config that applies to the
 	// pool on node.
 	PoolConfig PoolConfig `json:"poolConfig"`
