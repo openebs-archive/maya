@@ -4,12 +4,22 @@ import (
 	"github.com/golang/glog"
 	api "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
+	"github.com/pkg/errors"
 )
 
 // Create will create the pool for given csp object
 func Create(csp *api.CStorNPool) error {
 	var err error
-	raidGroups := csp.Spec.RaidGroups
+
+	// Let's check if there is any disk having the pool config
+	// If so then we will not create the pool
+	ret, nonImported, err := checkIfNonImportedPool(csp)
+	if err != nil {
+		return errors.Errorf("Failed to check non imported pool")
+	}
+	if nonImported {
+		return errors.Errorf("Pool {%s} is in faulty state.. %s", PoolName(csp), ret)
+	}
 
 	glog.Infof("Creating a pool for %s %s", csp.Name, PoolName(csp))
 
@@ -22,13 +32,15 @@ func Create(csp *api.CStorNPool) error {
 	// 1. zpool create newpool mirror v0 v1
 	// 2. zpool add newpool log mirror v4 v5
 	// 3. zpool add newpool mirror v2 v3
+	spec := csp.Spec.DeepCopy()
+	raidGroups := spec.RaidGroups
 	for i, r := range raidGroups {
 		if !r.IsReadCache && !r.IsSpare && !r.IsWriteCache {
 			// we found the main raidgroup. let's create the pool
-			err = createPool(csp, &r)
+			err = createPool(csp, r)
 			if err != nil {
-				glog.Errorf("Failed to create pool {%s} : %s", PoolName(csp), err.Error())
-				return err
+				return errors.Errorf("Failed to create pool {%s} : %s",
+					PoolName(csp), err.Error())
 			}
 			// Remove this raidGroup
 			raidGroups = append(raidGroups[:i], raidGroups[i+1:]...)
@@ -44,32 +56,10 @@ func Create(csp *api.CStorNPool) error {
 		}
 	}
 
-	// TODO, should we delete the pool?
-	if err != nil {
-		glog.Errorf("Failed to add supporting device to pool {%s} : {%s}", PoolName(csp), err.Error())
-	} else {
-		// Add entry to imported pool list
-		ImportedCStorPools[string(csp.GetUID())] = csp
-	}
-
-	// We created the pool successfully
-	// Let's set cachefile for this pool, if it is provided in csp object
-	if len(csp.Spec.PoolConfig.CacheFile) != 0 && err == nil {
-		if _, err = zfs.NewPoolSProperty().
-			WithProperty("cachefile", csp.Spec.PoolConfig.CacheFile).
-			WithPool(PoolName(csp)).
-			Execute(); err != nil {
-			//TODO, If cachefile set failed, do we need to delete the pool?
-			glog.Errorf("Failed to set cachefile for pool {%s} : %s", PoolName(csp), err.Error())
-		}
-		err = nil
-		glog.Infof("Set cachefile successful for pool {%s}", PoolName(csp))
-	}
-
 	return err
 }
 
-func createPool(csp *api.CStorNPool, r *api.RaidGroup) error {
+func createPool(csp *api.CStorNPool, r api.RaidGroup) error {
 	ptype := r.Type
 	if len(ptype) == 0 {
 		// type is not mentioned in raidGroup,
@@ -77,14 +67,14 @@ func createPool(csp *api.CStorNPool, r *api.RaidGroup) error {
 		ptype = csp.Spec.PoolConfig.DefaultRaidGroupType
 	}
 
-	vlist, err := getPathForCSPBdevList(r.BlockDevices)
+	vlist, err := getPathForBdevList(r.BlockDevices)
 	if err != nil {
-		glog.Errorf("Failed to get list of disk-path : %s", err.Error())
-		return err
+		return errors.Errorf("Failed to get list of disk-path : %s", err.Error())
 	}
 
 	_, err = zfs.NewPoolCreate().
 		WithType(ptype).
+		WithProperty("cachefile", csp.Spec.PoolConfig.CacheFile).
 		WithPool(PoolName(csp)).
 		WithVdevList(vlist).
 		Execute()

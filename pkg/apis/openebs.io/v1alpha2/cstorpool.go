@@ -44,8 +44,8 @@ const (
 type CStorNPool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              PoolSpec               `json:"spec"`
-	Status            CStorPoolClusterStatus `json:"status"`
+	Spec              PoolSpec        `json:"spec"`
+	Status            CStorPoolStatus `json:"status"`
 }
 
 //PoolSpec is the spec for pool on node where it should be created.
@@ -124,10 +124,53 @@ type CStorPoolClusterBlockDevice struct {
 	DevLink string `json:"devLink"`
 }
 
-// CStorPoolClusterStatus is for handling status of pool.
-type CStorPoolClusterStatus struct {
-	Phase string `json:"phase"`
+// CStorPoolStatus is for handling status of pool.
+type CStorPoolStatus struct {
+	Phase    CStorPoolPhase        `json:"phase"`
+	Capacity CStorPoolCapacityAttr `json:"capacity"`
 }
+
+// CStorPoolPhase is a typed string for phase field of CStorPool.
+type CStorPoolPhase string
+
+// CStorPoolCapacityAttr describes pool capacity status
+type CStorPoolCapacityAttr struct {
+	Total string `json:"total"`
+	Free  string `json:"free"`
+	Used  string `json:"used"`
+}
+
+// Status written onto CStorPool and CStorVolumeReplica objects.
+// Resetting state to either Empty or Pending need to be done with care,
+// as, label clear and pool creation depends on this state.
+const (
+	// CStorPoolStatusEmpty ensures the create operation is to be done, if import fails.
+	// Check comment
+	CStorPoolStatusEmpty CStorPoolPhase = ""
+	// CStorPoolStatusOnline signifies that the pool is online.
+	CStorPoolStatusOnline CStorPoolPhase = "Healthy"
+	// CStorPoolStatusOffline signifies that the pool is offline.
+	CStorPoolStatusOffline CStorPoolPhase = "Offline"
+	// CStorPoolStatusDegraded signifies that the pool is degraded.
+	CStorPoolStatusDegraded CStorPoolPhase = "Degraded"
+	// CStorPoolStatusFaulted signifies that the pool is faulted.
+	CStorPoolStatusFaulted CStorPoolPhase = "Faulted"
+	// CStorPoolStatusRemoved signifies that the pool is removed.
+	CStorPoolStatusRemoved CStorPoolPhase = "Removed"
+	// CStorPoolStatusUnavail signifies that the pool is not available.
+	CStorPoolStatusUnavail CStorPoolPhase = "Unavail"
+	// CStorPoolStatusDeletionFailed signifies that the pool status could not be fetched.
+	CStorPoolStatusError CStorPoolPhase = "Error"
+	// CStorPoolStatusDeletionFailed ensures the resource deletion has failed.
+	CStorPoolStatusDeletionFailed CStorPoolPhase = "DeletionFailed"
+	// CStorPoolStatusInvalid ensures invalid resource.
+	CStorPoolStatusInvalid CStorPoolPhase = "Invalid"
+	// CStorPoolStatusErrorDuplicate ensures error due to duplicate resource.
+	CStorPoolStatusErrorDuplicate CStorPoolPhase = "ErrorDuplicate"
+	// CStorPoolStatusPending ensures pending task for cstorpool.
+	// Check comment
+	CStorPoolStatusPending CStorPoolPhase = "Pending"
+)
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=cstornpools

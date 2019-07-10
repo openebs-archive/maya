@@ -1,6 +1,8 @@
 package v1alpha2
 
 import (
+	"strings"
+
 	api "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
 	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
@@ -10,7 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func getPathForCSPBdevList(bdevs []api.CStorPoolClusterBlockDevice) ([]string, error) {
+func getPathForBdevList(bdevs []api.CStorPoolClusterBlockDevice) ([]string, error) {
 	var vdev []string
 	var err error
 
@@ -26,6 +28,8 @@ func getPathForCSPBdevList(bdevs []api.CStorPoolClusterBlockDevice) ([]string, e
 }
 
 func getPathForBDev(bdev string) (string, error) {
+	// TODO
+	// replace `NAMESPACE` with env variable from CSP deployment
 	bd, err := blockdevice.NewKubeClient().
 		WithNamespace(env.Get("NAMESPACE")).
 		Get(bdev, metav1.GetOptions{})
@@ -95,4 +99,29 @@ func checkIfDeviceUsed(path string, t zpool.Topology) bool {
 		return isUsed
 	}
 	return isUsed
+}
+
+func checkIfNonImportedPool(csp *api.CStorNPool) (string, bool, error) {
+	ret, err := zfs.NewPoolImport().Execute()
+	if err != nil {
+		return string(ret), false, err
+	}
+	if strings.Contains(string(ret), PoolName(csp)) {
+		return string(ret), true, nil
+	}
+	return string(ret), false, nil
+}
+
+// getDeviceType will return type of device from raidGroup
+// It can be either log/cache/stripe(/"")
+func getDeviceType(r api.RaidGroup) string {
+	if r.IsReadCache {
+		return DeviceTypeReadCache
+	} else if r.IsSpare {
+		return DeviceTypeSpare
+	} else if r.IsWriteCache {
+		return DeviceTypeWriteCache
+	} else {
+		return DeviceTypeEmpty
+	}
 }

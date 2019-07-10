@@ -96,9 +96,9 @@ func (c *CStorPoolController) processNextWorkItem() bool {
 			runtime.HandleError(fmt.Errorf("expected string in workqueue but got %#v", obj))
 			return nil
 		}
-		// Run the syncHandler, passing it the namespace/name string of the
+		// Run the reconcile, passing it the namespace/name string of the
 		// cStorPool resource to be synced.
-		if err := c.syncHandler(q.Key, q.Operation); err != nil {
+		if err := c.reconcile(q.Key); err != nil {
 			return fmt.Errorf("error syncing '%s': %s", q.Key, err.Error())
 		}
 		// Finally, if no error occurs we Forget this item so it does not

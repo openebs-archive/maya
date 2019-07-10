@@ -36,15 +36,14 @@ func IsRightCStorPoolMgmt(csp *api.CStorNPool) bool {
 	return os.Getenv(string(common.OpenEBSIOCStorID)) == csp.ObjectMeta.Labels["cstorpool.openebs.io/uid"]
 }
 
-// IsDestroyEvent is to check if the call is for cStorPool destroy.
-func IsDestroyEvent(csp *api.CStorNPool) bool {
+// IsDestroyed is to check if the call is for cStorPool destroy.
+func IsDestroyed(csp *api.CStorNPool) bool {
 	return csp.ObjectMeta.DeletionTimestamp != nil
 }
 
-// IsOnlyStatusChange is to check only status change of cStorPool object.
-func IsOnlyStatusChange(ocsp, ncsp *api.CStorNPool) bool {
-	return reflect.DeepEqual(ocsp.Spec, ncsp.Spec) &&
-		!reflect.DeepEqual(ocsp.Status, ncsp.Status)
+// IsStatusChange is to check status change of cStorPool object.
+func IsStatusChange(oldStatus, newStatus api.CStorPoolStatus) bool {
+	return !reflect.DeepEqual(oldStatus, newStatus)
 }
 
 // IsSyncEvent is to check if ResourceVersion of cStorPool object is not modifed.
@@ -54,23 +53,23 @@ func IsSyncEvent(ocsp, ncsp *api.CStorNPool) bool {
 
 // IsEmptyStatus is to check if the status of cStorPool object is empty.
 func IsEmptyStatus(csp *api.CStorNPool) bool {
-	return csp.Status.Phase == string(apis.CStorPoolStatusEmpty)
+	return csp.Status.Phase == api.CStorPoolStatusEmpty
 }
 
 // IsPendingStatus is to check if the status of cStorPool object is pending.
 func IsPendingStatus(csp *api.CStorNPool) bool {
-	return csp.Status.Phase == string(apis.CStorPoolStatusPending)
+	return csp.Status.Phase == api.CStorPoolStatusPending
 }
 
 // IsErrorDuplicate is to check if the status of cStorPool object is error-duplicate.
 func IsErrorDuplicate(csp *api.CStorNPool) bool {
-	return csp.Status.Phase == string(apis.CStorPoolStatusErrorDuplicate)
+	return csp.Status.Phase == api.CStorPoolStatusErrorDuplicate
 }
 
 // IsDeletionFailedBefore is to make sure no other operation should happen if the
 // status of cStorPool is deletion-failed.
 func IsDeletionFailedBefore(csp *api.CStorNPool) bool {
-	return csp.Status.Phase == string(apis.CStorPoolStatusDeletionFailed)
+	return csp.Status.Phase == api.CStorPoolStatusDeletionFailed
 }
 
 // IsUIDSet check if UID is set or not

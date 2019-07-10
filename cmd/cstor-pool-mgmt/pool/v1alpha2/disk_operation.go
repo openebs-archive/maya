@@ -20,36 +20,14 @@ const (
 
 // addRaidGroup add given raidGroup to pool
 func addRaidGroup(csp *api.CStorNPool, r api.RaidGroup) error {
-	var err error
-
-	if r.IsReadCache {
-		if e := addVdevToPool(csp, r, DeviceTypeReadCache); e != nil {
-			err = ErrorWrapf(err, "Failed add readcache {%s}", e.Error())
-		}
-	} else if r.IsSpare {
-		if e := addVdevToPool(csp, r, DeviceTypeSpare); e != nil {
-			err = ErrorWrapf(err, "Failed to add spare disk {%s}", e.Error())
-		}
-	} else if r.IsWriteCache {
-		if e := addVdevToPool(csp, r, DeviceTypeWriteCache); e != nil {
-			err = ErrorWrapf(err, "Failed to add write cache {%s}", e.Error())
-		}
-	} else {
-		if e := addVdevToPool(csp, r, DeviceTypeEmpty); e != nil {
-			err = ErrorWrapf(err, "Failed to add additional disk {%s}", e.Error())
-		}
-	}
-	return err
-}
-
-// addVdev will add devices to pool
-func addVdevToPool(csp *api.CStorNPool, r api.RaidGroup, deviceType string) error {
 	ptype := r.Type
 	if len(ptype) == 0 {
 		return errors.Errorf("No type mentioned in raidGroup for pool {%s}", PoolName(csp))
 	}
 
-	vlist, err := getPathForCSPBdevList(r.BlockDevices)
+	deviceType := getDeviceType(r)
+
+	vlist, err := getPathForBdevList(r.BlockDevices)
 	if err != nil {
 		glog.Errorf("Failed to get list of disk-path : %s", err.Error())
 		return err
@@ -90,6 +68,7 @@ func addNewVdevFromCSP(csp *api.CStorNPool) error {
 			}
 		} else if len(devlist) != 0 {
 			if _, er := zfs.NewPoolExpansion().
+				WithDeviceType(getDeviceType(raidGroup)).
 				WithVdevList(devlist).
 				WithPool(PoolName(csp)).
 				Execute(); er != nil {
@@ -126,7 +105,22 @@ func replacePoolVdev(csp *api.CStorNPool, bdev api.CStorPoolClusterBlockDevice, 
 		return errors.Errorf("Empty path for bdev")
 	}
 
-	_, err := zfs.NewPoolDiskReplace().
+	// Wait! Device patch may got changed due after import
+	// Let's check if a device, having path `npath`, is already present in pool
+	poolTopology, err := zfs.
+		NewPoolDump().
+		WithPool(PoolName(csp)).
+		Execute()
+	if err != nil {
+		return errors.Errorf("Failed to fetch pool topology.. %s", err.Error())
+	}
+
+	if isUsed := checkIfDeviceUsed(npath, poolTopology); isUsed {
+		return nil
+	}
+
+	// Replace the disk
+	_, err = zfs.NewPoolDiskReplace().
 		WithOldVdev(bdev.DevLink).
 		WithNewVdev(npath).
 		WithPool(PoolName(csp)).
