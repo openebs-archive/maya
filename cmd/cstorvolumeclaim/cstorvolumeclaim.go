@@ -17,7 +17,9 @@ limitations under the License.
 package cstorvolumeclaim
 
 import (
+	"math/rand"
 	"strconv"
+	"time"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
@@ -358,7 +360,7 @@ func distributeCVRs(
 		return err
 	}
 
-	uniquePoolList := getUniquePoolList(volume.Name, poolList)
+	uniquePoolList := getUsablePoolList(volume.Name, poolList)
 	for i, pool := range uniquePoolList.Items {
 		pool := pool
 		if i < replicaCount {
@@ -419,10 +421,10 @@ func creatCVR(
 	return cvrObj, nil
 }
 
-// GetUniqueUsedPoolNames returns a list of cstor pool
+// GetUsedPoolNames returns a list of cstor pool
 // name corresponding to cstor volume replica
 // instances
-func getUniqueUsedPoolNames(cvrList *apis.CStorVolumeReplicaList) map[string]bool {
+func getUsedPoolNames(cvrList *apis.CStorVolumeReplicaList) map[string]bool {
 	var usedPoolMap = make(map[string]bool)
 	for _, cvr := range cvrList.Items {
 		poolName := cvr.GetLabels()[string(cstorpoolNameLabel)]
@@ -433,10 +435,10 @@ func getUniqueUsedPoolNames(cvrList *apis.CStorVolumeReplicaList) map[string]boo
 	return usedPoolMap
 }
 
-// GetUniquePoolList returns a list of unique cstorpools
+// GetUsablePoolList returns a list of unique cstorpools
 // which hasn't been used to create cstor volume replica
 // instances
-func getUniquePoolList(pvName string, poolList *apis.CStorPoolList) *apis.CStorPoolList {
+func getUsablePoolList(pvName string, poolList *apis.CStorPoolList) *apis.CStorPoolList {
 	uniquePool := &apis.CStorPoolList{}
 
 	pvLabel := pvAnnotaion + pvName
@@ -447,11 +449,24 @@ func getUniquePoolList(pvName string, poolList *apis.CStorPoolList) *apis.CStorP
 		return nil
 	}
 
-	usedPoolMap := getUniqueUsedPoolNames(cvrList)
+	usedPoolMap := getUsedPoolNames(cvrList)
 	for _, pool := range poolList.Items {
 		if !usedPoolMap[pool.Name] {
 			uniquePool.Items = append(uniquePool.Items, pool)
 		}
 	}
-	return uniquePool
+	return randomizePoolList(uniquePool)
+}
+
+// randomizePoolList returns randomized pool list
+func randomizePoolList(list *apis.CStorPoolList) *apis.CStorPoolList {
+	res := &apis.CStorPoolList{}
+
+	r := rand.New(rand.NewSource(time.Now().Unix()))
+	perm := r.Perm(len(list.Items))
+	for _, randomIdx := range perm {
+		res.Items = append(res.Items, list.Items[randomIdx])
+	}
+
+	return res
 }
