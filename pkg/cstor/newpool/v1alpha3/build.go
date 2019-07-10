@@ -168,7 +168,7 @@ func (b *Builder) WithLabels(labels map[string]string) *Builder {
 }
 
 // WithNodeSelectorReference sets the node selector field of CSP with provided argument.
-func (b *Builder) WithNodeSelectorReference(nodeSelector map[string]string) *Builder {
+func (b *Builder) WithNodeSelectorByReference(nodeSelector map[string]string) *Builder {
 	if len(nodeSelector) == 0 {
 		b.errs = append(
 			b.errs,

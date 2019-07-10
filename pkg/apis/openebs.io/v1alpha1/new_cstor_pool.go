@@ -34,7 +34,7 @@ type NewTestCStorPool struct {
 	Status CStorPoolStatus  `json:"status"`
 }
 
-// CStorPoolSpec is the spec listing fields for a CStorPool resource.
+// NewCStorPoolSpec is the spec listing fields for a CStorPool resource.
 type NewCStorPoolSpec struct {
 	// HostName is the name of kubernetes node where the pool
 	// should be created.

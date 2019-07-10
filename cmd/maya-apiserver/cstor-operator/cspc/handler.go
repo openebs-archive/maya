@@ -100,10 +100,10 @@ func (c *Controller) syncHandler(key string) error {
 	return err
 }
 
-// enqueueSpc takes a SPC resource and converts it into a namespace/name
+// enqueueCSPC takes a CSPC resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
-// passed resources of any type other than SPC.
-func (c *Controller) enqueueSpc(cspc interface{}) {
+// passed resources of any type other than CSPC.
+func (c *Controller) enqueueCSPC(cspc interface{}) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(cspc); err != nil {

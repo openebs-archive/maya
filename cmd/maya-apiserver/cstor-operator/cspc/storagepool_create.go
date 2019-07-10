@@ -242,7 +242,7 @@ func getDeployMatchLabels() map[string]string {
 func getPoolMgmtImage() string {
 	image, present := os.LookupEnv("OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE")
 	if !present {
-		image = "openebs/cstor-pool-mgmt:latest"
+		image = "openebs/cstor-pool-mgmt:ci"
 	}
 	return image
 }
@@ -253,7 +253,7 @@ func getPoolMgmtImage() string {
 func getPoolImage() string {
 	image, present := os.LookupEnv("OPENEBS_IO_CSTOR_POOL_IMAGE")
 	if !present {
-		image = "openebs/cstor-pool:latest"
+		image = "openebs/cstor-pool:ci"
 	}
 	return image
 }
@@ -264,7 +264,7 @@ func getPoolImage() string {
 func getMayaExporterImage() string {
 	image, present := os.LookupEnv("OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE")
 	if !present {
-		image = "openebs/m-exporter:latest"
+		image = "openebs/m-exporter:ci"
 	}
 	return image
 }

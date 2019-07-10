@@ -161,7 +161,7 @@ func (c *Controller) addCSPC(obj interface{}) {
 		return
 	}
 	glog.V(4).Infof("Queuing CSPC %s for add event", cspc.Name)
-	c.enqueueSpc(cspc)
+	c.enqueueCSPC(cspc)
 }
 
 // updateSpc is the update event handler for cspc.
@@ -176,6 +176,7 @@ func (c *Controller) updateCSPC(oldCSPC, newCSPC interface{}) {
 		c.recorder.Event(cspc, corev1.EventTypeWarning, "Update", message)
 		return
 	}
+	c.enqueueCSPC(cspc)
 }
 
 // deleteSpc is the delete event handler for cspc.
@@ -199,5 +200,5 @@ func (c *Controller) deleteCSPC(obj interface{}) {
 		return
 	}
 	glog.V(4).Infof("Deleting cstorpoolcluster %s", cspc.Name)
-	c.enqueueSpc(cspc)
+	c.enqueueCSPC(cspc)
 }
