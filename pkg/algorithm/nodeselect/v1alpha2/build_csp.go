@@ -21,6 +21,7 @@ import (
 	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/rand"
 )
 
 const (
@@ -37,7 +38,7 @@ func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 	}
 	csplabels := ac.buildLabelsForCSP(nodeName)
 	cspObj, err := apiscsp.NewBuilder().
-		WithName(ac.CSPC.Name).
+		WithName(ac.CSPC.Name + rand.String(4)).
 		WithNodeSelectorByReference(poolSpec.NodeSelector).
 		WithNodeName(nodeName).
 		WithPoolConfig(&poolSpec.PoolConfig).
