@@ -91,6 +91,24 @@ func (b *ListBuilder) WithAPIObject(nodes ...corev1.Node) *ListBuilder {
 	return b
 }
 
+// GetNodeNameFromLabels returns node name if any node has all labels else
+// return empty value
+func (b *ListBuilder) GetNodeNameFromLabels(labels map[string]string) string {
+	for _, node := range b.list.items {
+		hasAllLabels := true
+		for key, value := range labels {
+			if !node.HasLabel(key, value) {
+				hasAllLabels = false
+				break
+			}
+		}
+		if hasAllLabels {
+			return node.object.Name
+		}
+	}
+	return ""
+}
+
 // GetLabeledNode return custom node instance if provided
 // key and value are present in any of the node instance
 func (b *ListBuilder) GetLabeledNode(key, value string) *Node {

@@ -154,16 +154,9 @@ func (ac *Config) getUsedCSPCNodeMap() (map[string]bool, error) {
 	customNodeList := node.NewListBuilder().
 		WithAPIList(nodeList)
 	for _, pool := range cspcObj.Spec.Pools {
-		foundNode := false
-		for key, value := range pool.NodeSelector {
-			nodeName := customNodeList.GetLabeledNode(key, value).GetNodeName()
-			if nodeName != "" {
-				usedNodeMap[nodeName] = true
-				foundNode = true
-			}
-			if foundNode {
-				break
-			}
+		nodeName := customNodeList.GetNodeNameFromLabels(pool.NodeSelector)
+		if nodeName != "" {
+			usedNodeMap[nodeName] = true
 		}
 	}
 	return usedNodeMap, nil

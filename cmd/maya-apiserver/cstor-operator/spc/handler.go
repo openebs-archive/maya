@@ -271,6 +271,10 @@ func (c *Controller) isPoolSpecPending(spc *apis.StoragePoolClaim) bool {
 	if len(cspcObjList) == 0 {
 		return true
 	}
+	if len(cspcObjList) > 1 {
+		glog.Errorf("got more than one cspc using spc %s", spc.Name, namespace)
+		return false
+	}
 	//TODO: should we support down scale of pools
 	if len(cspcObjList[0].Spec.Pools) >= *spc.Spec.MaxPools {
 		return false
