@@ -32,6 +32,9 @@ type Config struct {
 	CSPC *apis.CStorPoolCluster
 	// Namespace is the namespace where openebs is installed.
 	Namespace string
+	// VisitedNodes is a map which contains the node names which has already been
+	// processed for pool provisioning
+	VisitedNodes map[string]bool
 }
 
 // Builder embeds the Config object.
@@ -44,8 +47,9 @@ type Builder struct {
 func NewBuilder() *Builder {
 	return &Builder{
 		ConfigObj: &Config{
-			CSPC:      &apis.CStorPoolCluster{},
-			Namespace: "",
+			CSPC:         &apis.CStorPoolCluster{},
+			Namespace:    "",
+			VisitedNodes: make(map[string]bool),
 		},
 	}
 }

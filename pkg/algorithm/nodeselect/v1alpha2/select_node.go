@@ -40,13 +40,19 @@ func (ac *Config) SelectNode() (*apis.PoolSpec, string, error) {
 		// pin it
 		pool := pool
 		nodeName, err := GetNodeFromLabelSelector(pool.NodeSelector)
-		if err != nil {
-			glog.Errorf("could not use node for selectors {%v}", pool.NodeSelector)
+		if ac.VisitedNodes[nodeName] {
 			continue
+		} else {
+			ac.VisitedNodes[nodeName] = true
+			if err != nil {
+				glog.Errorf("could not use node for selectors {%v}", pool.NodeSelector)
+				continue
+			}
+			if !usedNodes[nodeName] {
+				return &pool, nodeName, nil
+			}
 		}
-		if !usedNodes[nodeName] {
-			return &pool, nodeName, nil
-		}
+
 	}
 	return nil, "", errors.New("no node qualified for pool creation")
 }
@@ -115,6 +121,7 @@ func (ac *Config) GetBDListForNode(pool *apis.PoolSpec) []string {
 // pool provisioning.
 // If the block device(s) is/are unclaimed, then those are claimed.
 func (ac *Config) ClaimBDsForNode(BD []string) error {
+	pendingClaim := 0
 	for _, bdName := range BD {
 		bdAPIObj, err := bd.NewKubeClient().WithNamespace(ac.Namespace).Get(bdName, metav1.GetOptions{})
 		if err != nil {
@@ -127,15 +134,19 @@ func (ac *Config) ClaimBDsForNode(BD []string) error {
 			}
 			if !IsClaimedBDUsable {
 				return errors.Errorf("BD {%s} already in use", bdName)
-			} else {
-				continue
 			}
+			continue
 		}
 
 		err = ac.ClaimBD(bdAPIObj)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to claim BD {%s}", bdName)
 		}
+		pendingClaim++
+	}
+
+	if pendingClaim > 0 {
+		return errors.New("block devices are pending to be claimed")
 	}
 	return nil
 }

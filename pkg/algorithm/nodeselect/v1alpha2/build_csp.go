@@ -51,7 +51,7 @@ func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 
 	err = ac.ClaimBDsForNode(ac.GetBDListForNode(poolSpec))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to claim block devices for node selector {%v}", poolSpec.NodeSelector)
+		return nil, errors.Wrapf(err, "failed to claim block devices for node {%s}", nodeName)
 	}
 	return cspObj.Object, nil
 }
