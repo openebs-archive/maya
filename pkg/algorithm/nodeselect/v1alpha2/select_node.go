@@ -122,6 +122,8 @@ func (ac *Config) ClaimBDsForNode(BD []string) error {
 			}
 			if !IsClaimedBDUsable {
 				return errors.Errorf("BD {%s} already in use", bdName)
+			} else {
+				continue
 			}
 		}
 
@@ -148,7 +150,7 @@ func (ac *Config) ClaimBD(bdObj *ndmapis.BlockDevice) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to build block device claim for bd {%s}", bdObj.Name)
 	}
-
+	// TODO : Do no create if already exists.
 	_, err = bdc.NewKubeClient().WithNamespace(ac.Namespace).Create(newBDCObj.Object)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create block device claim for bd {%s}", bdObj.Name)
