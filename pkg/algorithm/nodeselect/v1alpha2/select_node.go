@@ -40,14 +40,15 @@ func (ac *Config) SelectNode() (*apis.PoolSpec, string, error) {
 		// pin it
 		pool := pool
 		nodeName, err := GetNodeFromLabelSelector(pool.NodeSelector)
+		if err != nil || nodeName == "" {
+			glog.Errorf("could not use node for selectors {%v}", pool.NodeSelector)
+			continue
+		}
 		if ac.VisitedNodes[nodeName] {
 			continue
 		} else {
 			ac.VisitedNodes[nodeName] = true
-			if err != nil {
-				glog.Errorf("could not use node for selectors {%v}", pool.NodeSelector)
-				continue
-			}
+
 			if !usedNodes[nodeName] {
 				return &pool, nodeName, nil
 			}
@@ -146,7 +147,7 @@ func (ac *Config) ClaimBDsForNode(BD []string) error {
 	}
 
 	if pendingClaim > 0 {
-		return errors.New("block devices are pending to be claimed")
+		return errors.Errorf("%d block device claims are pending", pendingClaim)
 	}
 	return nil
 }

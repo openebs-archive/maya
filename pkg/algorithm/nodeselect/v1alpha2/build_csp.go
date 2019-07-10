@@ -32,7 +32,7 @@ const (
 // block device present in the CSP spec
 func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 	poolSpec, nodeName, err := ac.SelectNode()
-	if err != nil {
+	if err != nil || nodeName == "" {
 		return nil, errors.Wrap(err, "failed to select a node")
 	}
 	csplabels := ac.buildLabelsForCSP(nodeName)
