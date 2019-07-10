@@ -76,13 +76,13 @@ func (pc *PoolConfig) CreateStoragePool() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get CSP spec")
 	}
-	err = pc.createCSP(cspObj)
+	gotCSP, err := pc.createCSP(cspObj)
 
 	if err != nil {
 		return errors.Wrapf(err, "failed to create csp for cspc {%s}", pc.AlgorithmConfig.CSPC.Name)
 	}
 
-	poolDeployObj, err := pc.GetPoolDeploySpec(cspObj)
+	poolDeployObj, err := pc.GetPoolDeploySpec(gotCSP)
 	if err != nil {
 		return err
 	}
@@ -93,9 +93,9 @@ func (pc *PoolConfig) CreateStoragePool() error {
 	return nil
 }
 
-func (pc *PoolConfig) createCSP(csp *apis.NewTestCStorPool) error {
-	_, err := apiscsp.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).Create(csp)
-	return err
+func (pc *PoolConfig) createCSP(csp *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error) {
+	gotCSP, err := apiscsp.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).Create(csp)
+	return gotCSP, err
 }
 
 func (pc *PoolConfig) createPoolDeployment(deployObj *appsv1.Deployment) error {

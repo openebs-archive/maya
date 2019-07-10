@@ -381,10 +381,11 @@ func NewForAPIObject(
 // Build returns a deployment instance
 func (b *Builder) Build() (*appsv1.Deployment, error) {
 	err := b.validate()
+	// TODO: err in Wrapf is not logged. Fix is required
 	if err != nil {
 		return nil, errors.Wrapf(err,
 			"failed to build a deployment: %s",
-			b.deployment.object)
+			b.deployment.object.Name)
 	}
 	return b.deployment.object, nil
 }
@@ -392,7 +393,7 @@ func (b *Builder) Build() (*appsv1.Deployment, error) {
 func (b *Builder) validate() error {
 	if len(b.errors) != 0 {
 		return errors.Errorf(
-			"failed to validate: build errors were found: %v",
+			"failed to validate: build errors were found: %+v",
 			b.errors,
 		)
 	}

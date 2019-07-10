@@ -39,6 +39,7 @@ func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 	csplabels := ac.buildLabelsForCSP(nodeName)
 	cspObj, err := apiscsp.NewBuilder().
 		WithName(ac.CSPC.Name + "-" + rand.String(4)).
+		WithNamespace(ac.Namespace).
 		WithNodeSelectorByReference(poolSpec.NodeSelector).
 		WithNodeName(nodeName).
 		WithPoolConfig(&poolSpec.PoolConfig).
