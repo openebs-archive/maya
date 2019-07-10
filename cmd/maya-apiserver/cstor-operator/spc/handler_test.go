@@ -22,6 +22,7 @@ import (
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	ndmFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/fake"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -630,6 +631,7 @@ func TestIsPoolSpecPening(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
+			_ = env.Set(env.OpenEBSNamespace, "openebs")
 			gotBool := controller.isPoolSpecPending(test.spc)
 			if gotBool != test.expectedIsPending {
 				t.Errorf("%q test case failed as expected %v but got %v", name, test.expectedIsPending, gotBool)

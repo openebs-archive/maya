@@ -14,7 +14,11 @@
 
 package v1alpha1
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 const (
 	kubeletReady = "KubeletReady"
@@ -243,4 +247,27 @@ func (b *Builder) WithTaints(taintsToAdd []corev1.Taint) *Builder {
 // Len returns the number of items present in the NodeList
 func (n *NodeList) Len() int {
 	return len(n.items)
+}
+
+// GetNodeFromLabelSelector returns the node name selected by provided labels
+func GetNodeFromLabelSelector(labels map[string]string) (string, error) {
+	nodeList, err := NewKubeClient().List(metav1.ListOptions{LabelSelector: getLabelSelectorString(labels)})
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get node list from the node selector")
+	}
+	if len(nodeList.Items) != 1 {
+		return "", errors.Errorf("could not get a unique node from the given node selectors")
+	}
+	return nodeList.Items[0].Name, nil
+}
+
+// getLabelSelectorString returns a string of label selector form label map to be used in
+// list options.
+func getLabelSelectorString(selector map[string]string) string {
+	var selectorString string
+	for key, value := range selector {
+		selectorString = selectorString + key + "=" + value + ","
+	}
+	selectorString = selectorString[:len(selectorString)-len(",")]
+	return selectorString
 }

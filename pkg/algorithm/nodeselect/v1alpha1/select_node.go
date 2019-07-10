@@ -147,14 +147,19 @@ func (ac *Config) getUsedCSPCNodeMap() (map[string]bool, error) {
 		)
 	}
 	cspcObj := cspcList.Items[0]
-	nodeList, err := node.NewKubeClient().List(metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-	customNodeList := node.NewListBuilder().
-		WithAPIList(nodeList)
+	// TODO: Remove below code after getting review comments
+	//nodeList, err := node.NewKubeClient().List(metav1.ListOptions{})
+	//if err != nil {
+	//	return nil, err
+	//}
+	//customNodeList := node.NewListBuilder().
+	//	WithAPIList(nodeList)
 	for _, pool := range cspcObj.Spec.Pools {
-		nodeName := customNodeList.GetNodeNameFromLabels(pool.NodeSelector)
+		//nodeName := customNodeList.GetNodeNameFromLabels(pool.NodeSelector)
+		nodeName, err := node.GetNodeFromLabelSelector(pool.NodeSelector)
+		if err != nil {
+			return nil, err
+		}
 		if nodeName != "" {
 			usedNodeMap[nodeName] = true
 		}
@@ -201,6 +206,9 @@ func (ac *Config) getCandidateNodeBlockDevices(
 		bd := blockdevice.BlockDevice{
 			BlockDevice: &blockDevice,
 		}
+		//TODO: Update below code when ndm fixes bug
+		// i.e updating value of kubernetes.io/hostName as node name instead of
+		// putting host name
 		hostName := bd.BlockDevice.Labels[string(apis.HostNameCPK)]
 		listBuilder := nodeBlockDeviceMap[hostName]
 		capacity := bd.BlockDevice.Spec.Capacity.Storage

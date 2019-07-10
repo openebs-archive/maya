@@ -39,7 +39,7 @@ func (ac *Config) SelectNode() (*apis.PoolSpec, string, error) {
 	for _, pool := range ac.CSPC.Spec.Pools {
 		// pin it
 		pool := pool
-		nodeName, err := GetNodeFromLabelSelector(pool.NodeSelector)
+		nodeName, err := nodeapis.GetNodeFromLabelSelector(pool.NodeSelector)
 		if err != nil || nodeName == "" {
 			glog.Errorf("could not use node for selectors {%v}", pool.NodeSelector)
 			continue
@@ -56,31 +56,6 @@ func (ac *Config) SelectNode() (*apis.PoolSpec, string, error) {
 
 	}
 	return nil, "", errors.New("no node qualified for pool creation")
-}
-
-// GetNodeFromLabelSelector returns the node name selected by provided labels
-// TODO : Move it to node package
-func GetNodeFromLabelSelector(labels map[string]string) (string, error) {
-	nodeList, err := nodeapis.NewKubeClient().List(metav1.ListOptions{LabelSelector: getLabelSelectorString(labels)})
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get node list from the node selector")
-	}
-	if len(nodeList.Items) != 1 {
-		return "", errors.Errorf("could not get a unique node from the given node selectors")
-	}
-	return nodeList.Items[0].Name, nil
-}
-
-// getLabelSelectorString returns a string of label selector form label map to be used in
-// list options.
-// TODO : Move it to node package
-func getLabelSelectorString(selector map[string]string) string {
-	var selectorString string
-	for key, value := range selector {
-		selectorString = selectorString + key + "=" + value + ","
-	}
-	selectorString = selectorString[:len(selectorString)-len(",")]
-	return selectorString
 }
 
 // GetUsedNode returns a map of node for which pool has already been created.
