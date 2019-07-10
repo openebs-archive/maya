@@ -154,6 +154,9 @@ func TestHold(t *testing.T) {
 			}
 			// Check for lease value
 			cspcGot, err := focs.oecs.OpenebsV1alpha1().CStorPoolClusters("openebs").Get(test.fakestoragepoolclaim.Name, metav1.GetOptions{})
+			if err != nil {
+				t.Errorf("Test case failed as could not get cspc: {%v}", err)
+			}
 			if cspcGot.Annotations[CSPCLeaseKey] != test.expectedResult {
 				t.Errorf("Test case failed: expected lease value '%v' but got '%v' ", test.expectedResult, cspcGot.Annotations[CSPCLeaseKey])
 

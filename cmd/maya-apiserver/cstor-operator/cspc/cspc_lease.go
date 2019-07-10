@@ -19,6 +19,7 @@ package cspc
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"strings"
 
 	"github.com/golang/glog"
@@ -102,15 +103,19 @@ func (sl *Lease) Hold() error {
 // 3.putUpdatedValue
 // See the functions(below) for more details on update strategy
 func (sl *Lease) Update(podName string) error {
+	var err error
 	newSpcObject := sl.Object.(*apis.CStorPoolCluster)
 	if newSpcObject.Annotations == nil {
-		sl.putKeyValue(podName, newSpcObject)
+		_, err = sl.putKeyValue(podName, newSpcObject)
 	} else if newSpcObject.Annotations[sl.leaseKey] == "" {
-		sl.putValue(podName, newSpcObject)
+		_, err = sl.putValue(podName, newSpcObject)
 	} else {
-		sl.putUpdatedValue(podName, newSpcObject)
+		_, err = sl.putUpdatedValue(podName, newSpcObject)
 	}
-	_, err := sl.oecs.OpenebsV1alpha1().CStorPoolClusters(env.Get(env.OpenEBSNamespace)).Update(newSpcObject)
+	if err != nil {
+		return errors.Wrapf(err, "failed to update while taking lease")
+	}
+	_, err = sl.oecs.OpenebsV1alpha1().CStorPoolClusters(env.Get(env.OpenEBSNamespace)).Update(newSpcObject)
 	return err
 }
 
@@ -160,7 +165,7 @@ func (sl *Lease) patchSpcLeaseAnnotation() error {
 }
 
 // isLeaderLive checks whether the holder of lease is live or not
-// If the holder is not live or does not exists the function will return true.
+// If the holder is not live or does not exists the function will return false.
 
 // If the holder of lease is not live or does not exists the lease can be acquired
 // by the other contestant(i.e. maya pod)
@@ -173,21 +178,14 @@ func (sl *Lease) isLeaderLive(leaseValueObj LeaseContract) bool {
 		return false
 	}
 	podStatus := pod.Status.Phase
-	if string(podStatus) != string(corev1.PodRunning) {
-		return false
-	}
-
-	return true
+	return string(podStatus) == string(corev1.PodRunning)
 }
 
 // A lease is expired if it has a empty holder name.
 // The holder of lease can only expire the lease.
 // isLeaseExpired return true if the lease is expired.
 func isLeaseExpired(leaseValueObj LeaseContract) bool {
-	if strings.TrimSpace(leaseValueObj.Holder) == "" {
-		return true
-	}
-	return false
+	return strings.TrimSpace(leaseValueObj.Holder) == ""
 }
 
 // parseLeaseValue will parse a leaseValue string to lease object

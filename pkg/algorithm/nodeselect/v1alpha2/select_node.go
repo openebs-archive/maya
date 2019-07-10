@@ -121,8 +121,8 @@ func (ac *Config) ClaimBDsForNode(BD []string) error {
 			return errors.Wrapf(err, "error in getting details for BD {%s} whether it is claimed", bdName)
 		}
 		if bd.BuilderForAPIObject(bdAPIObj).BlockDevice.IsClaimed() {
-			IsClaimedBDUsable, err := ac.IsClaimedBDUsable(bdAPIObj)
-			if err != nil {
+			IsClaimedBDUsable, errBD := ac.IsClaimedBDUsable(bdAPIObj)
+			if errBD != nil {
 				return errors.Wrapf(err, "error in getting details for BD {%s} for usability", bdName)
 			}
 			if !IsClaimedBDUsable {

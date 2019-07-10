@@ -24,7 +24,7 @@ func TestStart(t *testing.T) {
 	var err error
 	var errchannel = make(chan error)
 	go func() {
-		err := Start()
+		err = Start()
 		errchannel <- err
 	}()
 	select {

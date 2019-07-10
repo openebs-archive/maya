@@ -114,7 +114,7 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.NewTestCStorPool) (*appsv1.Dep
 		WithOwnerReferenceNew(getDeployOwnerReference(csp)).
 		WithReplicas(getReplicaCount()).
 		WithStrategyType(appsv1.RecreateDeploymentStrategyType).
-		WithSelectorMatchLabelsNew(getDeployMatchLabels(csp)).
+		WithSelectorMatchLabelsNew(getDeployMatchLabels()).
 		WithPodTemplateSpecBuilder(
 			pts.NewBuilder().
 				WithLabelsNew(getPodLabels(csp)).
@@ -230,7 +230,7 @@ func getPodAnnotations() map[string]string {
 	}
 }
 
-func getDeployMatchLabels(csp *apis.NewTestCStorPool) map[string]string {
+func getDeployMatchLabels() map[string]string {
 	return map[string]string{
 		"app": "cstor-pool",
 	}
