@@ -103,6 +103,12 @@ func (pc *PoolCreateConfig) createCStorPoolCluster(
 	updatedSPC := pc.Spc
 	if !slice.ContainsString(pc.Spc.ObjectMeta.Finalizers, spcv1alpha1.SPCFinalizer, nil) {
 		updatedSPC, err = pc.patchSPCWithFinalizers()
+		if err != nil {
+			return errors.Wrapf(
+				err,
+				"failed to patch spc %s", pc.Spc.Name,
+			)
+		}
 	}
 	pc.Spc = updatedSPC
 	spc := pc.Spc

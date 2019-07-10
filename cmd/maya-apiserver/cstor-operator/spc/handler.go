@@ -259,6 +259,10 @@ func (c *Controller) isPoolSpecPending(spc *apis.StoragePoolClaim) bool {
 		return false
 	}
 	namespace := env.Get(env.OpenEBSNamespace)
+	if namespace == "" {
+		glog.Errorf("failed to get namespace for openebs from env variable")
+		return false
+	}
 	customSPCObj := &spcv1alpha1.SPC{Object: spc}
 	selector := klabels.SelectorFromSet(customSPCObj.GetDefaultSPCLabels())
 	cspcObjList, err := c.cspcLister.
@@ -272,7 +276,7 @@ func (c *Controller) isPoolSpecPending(spc *apis.StoragePoolClaim) bool {
 		return true
 	}
 	if len(cspcObjList) > 1 {
-		glog.Errorf("got more than one cspc using spc %s", spc.Name, namespace)
+		glog.Errorf("got more than one cspc using spc %s", spc.Name)
 		return false
 	}
 	//TODO: should we support down scale of pools
