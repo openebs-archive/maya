@@ -31,7 +31,8 @@ import (
 	cvc "github.com/openebs/maya/cmd/cstorvolumeclaim"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/server"
-	spc "github.com/openebs/maya/cmd/maya-apiserver/cstor-operator/spc"
+	"github.com/openebs/maya/cmd/maya-apiserver/cstor-operator/cspc"
+	"github.com/openebs/maya/cmd/maya-apiserver/cstor-operator/spc"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	install "github.com/openebs/maya/pkg/install/v1alpha1"
@@ -179,6 +180,14 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 		err := spc.Start()
 		if err != nil {
 			glog.Errorf("Failed to start storage pool controller: %s", err.Error())
+		}
+
+	}()
+
+	go func() {
+		err := cspc.Start()
+		if err != nil {
+			glog.Errorf("Failed to start CStorPoolCluster controller: %s", err.Error())
 		}
 	}()
 	go func() {

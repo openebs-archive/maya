@@ -14,229 +14,219 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1alpha3
 
 import (
-	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
 	// StoragePoolKind holds the value of StoragePoolClaim
 	StoragePoolKind = "StoragePoolClaim"
-
 	// StoragePoolKindCSPC holds the value of CStorPoolCluster
 	StoragePoolKindCSPC = "CStorPoolCluster"
 	// APIVersion holds the value of OpenEBS version
 	APIVersion = "openebs.io/v1alpha1"
 )
 
-// Builder is the builder object for BlockDeviceClaim
+// Builder is the builder object for CStorPool
 type Builder struct {
-	BDC  *BlockDeviceClaim
+	CSP  *CStorPool
 	errs []error
 }
 
 // NewBuilder returns an empty instance of the Builder object
 func NewBuilder() *Builder {
 	return &Builder{
-		BDC:  &BlockDeviceClaim{&ndm.BlockDeviceClaim{}},
+		CSP:  &CStorPool{&apis.NewTestCStorPool{}},
 		errs: []error{},
 	}
 }
 
-// BuilderForObject returns an instance of the Builder object based on block
-// device object
-func BuilderForObject(BlockDeviceClaim *BlockDeviceClaim) *Builder {
+// BuilderForObject returns an instance of the Builder object based on
+// CStorPool object
+func BuilderForObject(CStorPool *CStorPool) *Builder {
 	return &Builder{
-		BDC:  BlockDeviceClaim,
+		CSP:  CStorPool,
 		errs: []error{},
 	}
 }
 
-// BuilderForAPIObject returns an instance of the Builder object based on block
-// device claim api object.
-func BuilderForAPIObject(bdc *ndm.BlockDeviceClaim) *Builder {
+// BuilderForAPIObject returns an instance of the Builder object based on
+// CStorPool api object.
+func BuilderForAPIObject(csp *apis.NewTestCStorPool) *Builder {
 	return &Builder{
-		BDC:  &BlockDeviceClaim{bdc},
+		CSP:  &CStorPool{csp},
 		errs: []error{},
 	}
 }
 
-// Build returns the BlockDeviceClaim instance
-func (b *Builder) Build() (*BlockDeviceClaim, error) {
+// Build returns the CStorPoolClaim instance
+func (b *Builder) Build() (*CStorPool, error) {
 	if len(b.errs) > 0 {
 		return nil, errors.Errorf("%+v", b.errs)
 	}
-	return b.BDC, nil
+	return b.CSP, nil
 }
 
-// WithName sets the Name field of BDC with provided value.
+// WithName sets the Name field of CSP with provided value.
 func (b *Builder) WithName(name string) *Builder {
 	if len(name) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build BDC object: missing BDC name"),
+			errors.New("failed to build CSP object: missing CSP name"),
 		)
 		return b
 	}
-	b.BDC.Object.Name = name
+	b.CSP.Object.Name = name
 	return b
 }
 
-// WithNamespace sets the Namespace field of BDC provided arguments
+// WithNamespace sets the Namespace field of CSP provided arguments
 func (b *Builder) WithNamespace(namespace string) *Builder {
 	if len(namespace) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build BDC object: missing BDC namespace"),
+			errors.New("failed to build CSP object: missing CSP namespace"),
 		)
 		return b
 	}
-	b.BDC.Object.Namespace = namespace
+	b.CSP.Object.Namespace = namespace
 	return b
 }
 
-// WithAnnotationsNew sets the Annotations field of BDC with provided arguments
+// WithAnnotationsNew sets the Annotations field of CSP with provided arguments
 func (b *Builder) WithAnnotationsNew(annotations map[string]string) *Builder {
 	if len(annotations) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build BDC object: missing annotations"),
+			errors.New("failed to build CSP object: missing annotations"),
 		)
 		return b
 	}
-	b.BDC.Object.Annotations = make(map[string]string)
+	b.CSP.Object.Annotations = make(map[string]string)
 	for key, value := range annotations {
-		b.BDC.Object.Annotations[key] = value
+		b.CSP.Object.Annotations[key] = value
 	}
 	return b
 }
 
 // WithAnnotations appends or overwrites existing Annotations
-// values of BDC with provided arguments
+// values of CSP with provided arguments
 func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 	if len(annotations) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build BDC object: missing annotations"),
+			errors.New("failed to build CSP object: missing annotations"),
 		)
 		return b
 	}
-	if b.BDC.Object.Annotations == nil {
+	if b.CSP.Object.Annotations == nil {
 		return b.WithAnnotationsNew(annotations)
 	}
 	for key, value := range annotations {
-		b.BDC.Object.Annotations[key] = value
+		b.CSP.Object.Annotations[key] = value
 	}
 	return b
 }
 
-// WithLabelsNew sets the Labels field of BDC with provided arguments
+// WithLabelsNew sets the Labels field of CSP with provided arguments
 func (b *Builder) WithLabelsNew(labels map[string]string) *Builder {
 	if len(labels) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build BDC object: missing labels"),
+			errors.New("failed to build CSP object: missing labels"),
 		)
 		return b
 	}
-	b.BDC.Object.Labels = make(map[string]string)
+	b.CSP.Object.Labels = make(map[string]string)
 	for key, value := range labels {
-		b.BDC.Object.Labels[key] = value
+		b.CSP.Object.Labels[key] = value
 	}
 	return b
 }
 
 // WithLabels appends or overwrites existing Labels
-// values of BDC with provided arguments
+// values of CSP with provided arguments
 func (b *Builder) WithLabels(labels map[string]string) *Builder {
 	if len(labels) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build BDC object: missing labels"),
+			errors.New("failed to build CSP object: missing labels"),
 		)
 		return b
 	}
-	if b.BDC.Object.Labels == nil {
+	if b.CSP.Object.Labels == nil {
 		return b.WithLabelsNew(labels)
 	}
 	for key, value := range labels {
-		b.BDC.Object.Labels[key] = value
+		b.CSP.Object.Labels[key] = value
 	}
 	return b
 }
 
-// WithBlockDeviceName sets the BlockDeviceName field of BDC provided arguments
-func (b *Builder) WithBlockDeviceName(bdName string) *Builder {
-	if len(bdName) == 0 {
+// WithNodeSelectorByReference sets the node selector field of CSP with provided argument.
+func (b *Builder) WithNodeSelectorByReference(nodeSelector map[string]string) *Builder {
+	if len(nodeSelector) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build BDC object: missing BlockDevice name"),
+			errors.New("failed to build CSP object: missing nodeSelector"),
 		)
 		return b
 	}
-	b.BDC.Object.Spec.BlockDeviceName = bdName
+	b.CSP.Object.Spec.NodeSelector = nodeSelector
 	return b
 }
 
-// WithDeviceType sets the DeviceType field of BDC provided arguments
-func (b *Builder) WithDeviceType(dType string) *Builder {
-	if len(dType) == 0 {
+// WithNodeName sets the HostName field of CSP with the provided argument.
+func (b *Builder) WithNodeName(nodeName string) *Builder {
+	if len(nodeName) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build BDC object: missing device type"),
+			errors.New("failed to build CSP object: missing node name"),
 		)
 		return b
 	}
-	b.BDC.Object.Spec.DeviceType = dType
+	b.CSP.Object.Spec.HostName = nodeName
 	return b
 }
 
-// WithHostName sets the hostName field of BDC provided arguments
-func (b *Builder) WithHostName(hName string) *Builder {
-	if len(hName) == 0 {
+// WithPoolConfig sets the pool config field of the CSP with the provided config.
+func (b *Builder) WithPoolConfig(poolConfig *apis.PoolConfig) *Builder {
+	if poolConfig == nil {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build BDC object: missing host name"),
+			errors.New("failed to build CSP object: missing poolConfig"),
 		)
 		return b
 	}
-	b.BDC.Object.Spec.HostName = hName
+	b.CSP.Object.Spec.PoolConfig = *poolConfig
 	return b
 }
 
-// WithCapacity sets the Capacity field in BDC with provided arguments
-func (b *Builder) WithCapacity(capacity string) *Builder {
-	resCapacity, err := resource.ParseQuantity(capacity)
-	if err != nil {
+// WithRaidGroups sets the raid group field of the CSP with the provided raid groups.
+func (b *Builder) WithRaidGroups(raidGroup []apis.RaidGroup) *Builder {
+	if len(raidGroup) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.Wrapf(
-				err, "failed to build BDC object: failed to parse capacity {%s}",
-				capacity,
-			),
+			errors.New("failed to build CSP object: missing raidGroups"),
 		)
 		return b
 	}
-	resourceList := corev1.ResourceList{
-		corev1.ResourceName(ndm.ResourceStorage): resCapacity,
-	}
-	b.BDC.Object.Spec.Resources.Requests = resourceList
+
+	b.CSP.Object.Spec.RaidGroup = raidGroup
 	return b
 }
 
-// WithOwnerReference sets the OwnerReference field in BDC with required
+// WithOwnerReference sets the OwnerReference field in CSP with required
 //fields
 func (b *Builder) WithOwnerReference(spc *apis.StoragePoolClaim) *Builder {
 	if spc == nil {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build BDC object: spc object is nil"),
+			errors.New("failed to build CSP object: spc object is nil"),
 		)
 		return b
 	}
@@ -249,17 +239,17 @@ func (b *Builder) WithOwnerReference(spc *apis.StoragePoolClaim) *Builder {
 		BlockOwnerDeletion: &trueVal,
 		Controller:         &trueVal,
 	}
-	b.BDC.Object.OwnerReferences = append(b.BDC.Object.OwnerReferences, reference)
+	b.CSP.Object.OwnerReferences = append(b.CSP.Object.OwnerReferences, reference)
 	return b
 }
 
-// WithCSPCOwnerReference sets the OwnerReference field in BDC with required
+// WithCSPCOwnerReference sets the OwnerReference field in CSP with required
 //fields
 func (b *Builder) WithCSPCOwnerReference(cspc *apis.CStorPoolCluster) *Builder {
 	if cspc == nil {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build BDC object: cspc object is nil"),
+			errors.New("failed to build CSP object: cspc object is nil"),
 		)
 		return b
 	}
@@ -272,6 +262,6 @@ func (b *Builder) WithCSPCOwnerReference(cspc *apis.CStorPoolCluster) *Builder {
 		BlockOwnerDeletion: &trueVal,
 		Controller:         &trueVal,
 	}
-	b.BDC.Object.OwnerReferences = append(b.BDC.Object.OwnerReferences, reference)
+	b.CSP.Object.OwnerReferences = append(b.CSP.Object.OwnerReferences, reference)
 	return b
 }
