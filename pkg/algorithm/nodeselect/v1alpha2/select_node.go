@@ -59,9 +59,6 @@ func (ac *Config) GetNodeFromLabelSelector(labels map[string]string) (string, er
 	if len(nodeList.Items) != 1 {
 		return "", errors.Errorf("could not get a unique node from the given node selectors")
 	}
-	if !nodeapis.NewBuilder().WithAPINode(&nodeList.Items[0]).Node.IsReady() {
-		return "", errors.Errorf("node {%s} is not ready", nodeList.Items[0].Name)
-	}
 	return nodeList.Items[0].Name, nil
 }
 

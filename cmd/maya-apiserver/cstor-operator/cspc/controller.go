@@ -189,7 +189,7 @@ func (c *Controller) deleteCSPC(obj interface{}) {
 		}
 		cspc, ok = tombstone.Obj.(*apis.CStorPoolCluster)
 		if !ok {
-			runtime.HandleError(fmt.Errorf("Tombstone contained object that is not a storagepoolclaim %#v", obj))
+			runtime.HandleError(fmt.Errorf("Tombstone contained object that is not a cstorpoolcluster %#v", obj))
 			return
 		}
 	}
@@ -198,6 +198,6 @@ func (c *Controller) deleteCSPC(obj interface{}) {
 		c.recorder.Event(cspc, corev1.EventTypeWarning, "Delete", message)
 		return
 	}
-	glog.V(4).Infof("Deleting storagepoolclaim %s", cspc.Name)
+	glog.V(4).Infof("Deleting cstorpoolcluster %s", cspc.Name)
 	c.enqueueSpc(cspc)
 }

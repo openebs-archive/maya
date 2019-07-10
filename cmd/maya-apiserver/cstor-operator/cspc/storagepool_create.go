@@ -71,7 +71,7 @@ var (
 )
 
 // CreateStoragePool creates the required resource to provision a cStor pool
-func (pc *PoolConfig) CreateStoragePool(cspcGot *apis.CStorPoolCluster) error {
+func (pc *PoolConfig) CreateStoragePool() error {
 	cspObj, err := pc.AlgorithmConfig.GetCSPSpec()
 	if err != nil {
 		return errors.Wrap(err, "failed to get CSP spec")
@@ -79,7 +79,7 @@ func (pc *PoolConfig) CreateStoragePool(cspcGot *apis.CStorPoolCluster) error {
 	err = pc.createCSP(cspObj)
 
 	if err != nil {
-		return errors.Wrapf(err, "failed to create csp for cspc {%s}", cspcGot.Name)
+		return errors.Wrapf(err, "failed to create csp for cspc {%s}", pc.AlgorithmConfig.CSPC.Name)
 	}
 
 	poolDeployObj, err := pc.GetPoolDeploySpec(cspObj)
@@ -88,7 +88,7 @@ func (pc *PoolConfig) CreateStoragePool(cspcGot *apis.CStorPoolCluster) error {
 	}
 	err = pc.createPoolDeployment(poolDeployObj)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create deploy for csp {%s} for cspc {%s)", cspObj.Name, cspcGot.Name)
+		return errors.Wrapf(err, "failed to create deploy for csp {%s} for cspc {%s)", cspObj.Name, pc.AlgorithmConfig.CSPC.Name)
 	}
 	return nil
 }

@@ -71,9 +71,9 @@ func (c *Controller) NewPoolConfig(cspc *apis.CStorPoolCluster, namespace string
 // with the current status of the resource.
 func (c *Controller) syncHandler(key string) error {
 	startTime := time.Now()
-	glog.V(4).Infof("Started syncing storagepoolclaim %q (%v)", key, startTime)
+	glog.V(4).Infof("Started syncing cstorpoolcluster %q (%v)", key, startTime)
 	defer func() {
-		glog.V(4).Infof("Finished syncing storagepoolclaim %q (%v)", key, time.Since(startTime))
+		glog.V(4).Infof("Finished syncing cstorpoolcluster %q (%v)", key, time.Since(startTime))
 	}()
 
 	// Convert the namespace/name string into a distinct namespace and name
@@ -149,13 +149,13 @@ func (pc *PoolConfig) create(pendingPoolCount int, cspc *apis.CStorPoolCluster) 
 	if err != nil {
 		return errors.Wrapf(err, "Could not acquire lease on cspc object")
 	}
-	glog.V(4).Infof("Lease acquired successfully on storagepoolclaim %s ", cspc.Name)
+	glog.V(4).Infof("Lease acquired successfully on cstorpoolcluster %s ", cspc.Name)
 	defer newSpcLease.Release()
 	for poolCount := 1; poolCount <= pendingPoolCount; poolCount++ {
-		glog.Infof("Provisioning pool %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, cspc.Name)
-		err = pc.CreateStoragePool(cspc)
+		glog.Infof("Provisioning pool %d/%d for cstorpoolcluster %s", poolCount, pendingPoolCount, cspc.Name)
+		err = pc.CreateStoragePool()
 		if err != nil {
-			runtime.HandleError(errors.Wrapf(err, "Pool provisioning failed for %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, cspc.Name))
+			runtime.HandleError(errors.Wrapf(err, "Pool provisioning failed for %d/%d for cstorpoolcluster %s", poolCount, pendingPoolCount, cspc.Name))
 		}
 	}
 	return nil
