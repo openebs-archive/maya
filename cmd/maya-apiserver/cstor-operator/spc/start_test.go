@@ -16,6 +16,7 @@ limitations under the License.
 package spc
 
 import (
+	"sync"
 	"testing"
 	"time"
 )
@@ -24,7 +25,8 @@ func TestStart(t *testing.T) {
 	var err error
 	var errchannel = make(chan error)
 	go func() {
-		err := Start()
+		var mux = sync.RWMutex{}
+		err = Start(&mux)
 		errchannel <- err
 	}()
 	select {

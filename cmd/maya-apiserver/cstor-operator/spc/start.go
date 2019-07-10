@@ -17,6 +17,8 @@ limitations under the License.
 package spc
 
 import (
+	"sync"
+
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
@@ -38,7 +40,7 @@ var (
 )
 
 // Start starts the cstor-operator.
-func Start() error {
+func Start(controllerMtx *sync.RWMutex) error {
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
 
@@ -68,6 +70,13 @@ func Start() error {
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
 	spcInformerFactory := informers.NewSharedInformerFactory(openebsClient, time.Second*30)
+	// Build() fn of all controllers calls AddToScheme to adds all types of this
+	// clientset into the given scheme.
+	// If multiple controllers happen to call this AddToScheme same time,
+	// it causes panic with error saying concurrent map access.
+	// This lock is used to serialize the AddToScheme call of all controllers.
+	controllerMtx.Lock()
+
 	controller, err := NewControllerBuilder().
 		withKubeClient(kubeClient).
 		withOpenEBSClient(openebsClient).
@@ -77,6 +86,10 @@ func Start() error {
 		withRecorder(kubeClient).
 		withEventHandler(spcInformerFactory).
 		withWorkqueueRateLimiting().Build()
+
+	// blocking call, can't use defer to release the lock
+	controllerMtx.Unlock()
+
 	if err != nil {
 		return errors.Wrapf(err, "error building controller instance")
 	}
