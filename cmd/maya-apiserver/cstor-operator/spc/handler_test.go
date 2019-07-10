@@ -22,6 +22,7 @@ import (
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	ndmFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/fake"
+	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
@@ -567,6 +568,134 @@ func TestIsPoolPending(t *testing.T) {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			gotBool := controller.isPoolPending(test.spc)
+			if gotBool != test.expectedIsPending {
+				t.Errorf("%q test case failed as expected %v but got %v", name, test.expectedIsPending, gotBool)
+			}
+		})
+	}
+}
+
+func TestIsPoolSpecPening(t *testing.T) {
+	fakeKubeClient := fake.NewSimpleClientset()
+	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	fakeNDMClient := ndmFakeClientset.NewSimpleClientset()
+	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
+	controller, err := NewControllerBuilder().
+		withKubeClient(fakeKubeClient).
+		withOpenEBSClient(fakeOpenebsClient).
+		withNDMClient(fakeNDMClient).
+		withspcSynced(openebsInformerFactory).
+		withSpcLister(openebsInformerFactory).
+		withCSPCLister(openebsInformerFactory).
+		withRecorder(fakeKubeClient).
+		withWorkqueueRateLimiting().
+		withEventHandler(openebsInformerFactory).
+		Build()
+	if err != nil {
+		t.Fatalf("failed to build controller instance: %s", err)
+	}
+	tests := map[string]struct {
+		spc               *apis.StoragePoolClaim
+		expectedIsPending bool
+	}{
+		"Auto SPC": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type:     string(apis.TypeBlockDeviceCPV),
+					MaxPools: newInt(3),
+				},
+			},
+			expectedIsPending: true,
+		},
+		"Manual SPC": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type: string(apis.TypeBlockDeviceCPV),
+					BlockDevices: apis.BlockDeviceAttr{
+						BlockDeviceList: []string{"blockdevice-1"},
+					},
+				},
+			},
+			expectedIsPending: false,
+		},
+	}
+
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			gotBool := controller.isPoolSpecPending(test.spc)
+			if gotBool != test.expectedIsPending {
+				t.Errorf("%q test case failed as expected %v but got %v", name, test.expectedIsPending, gotBool)
+			}
+		})
+	}
+}
+
+func TestIsSPCDeletionCandidate(t *testing.T) {
+	tests := map[string]struct {
+		spc               *apis.StoragePoolClaim
+		expectedIsPending bool
+	}{
+		"Deletion SPC With finalizers": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-pool-claim-1",
+					Finalizers: []string{spcv1alpha1.SPCFinalizer, "storagePoolClaim"},
+					DeletionTimestamp: func() *metav1.Time {
+						t := metav1.Now()
+						return &t
+					}(),
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type:     string(apis.TypeBlockDeviceCPV),
+					MaxPools: newInt(3),
+				},
+			},
+			expectedIsPending: true,
+		},
+		"Normal SPC With finalizer": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-pool-claim-1",
+					Finalizers: []string{spcv1alpha1.SPCFinalizer},
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type:     string(apis.TypeBlockDeviceCPV),
+					MaxPools: newInt(3),
+				},
+			},
+			expectedIsPending: false,
+		},
+		"Deletion SPC With someother finalizers": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-pool-claim-1",
+					Finalizers: []string{"storagePoolClaim"},
+					DeletionTimestamp: func() *metav1.Time {
+						t := metav1.Now()
+						return &t
+					}(),
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type:     string(apis.TypeBlockDeviceCPV),
+					MaxPools: newInt(3),
+				},
+			},
+			expectedIsPending: false,
+		},
+	}
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			gotBool := isSPCDeletetionCandidate(test.spc)
 			if gotBool != test.expectedIsPending {
 				t.Errorf("%q test case failed as expected %v but got %v", name, test.expectedIsPending, gotBool)
 			}

@@ -112,7 +112,7 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 		return nil
 	}
 	// spc finalizers should be removed only after deletion of corresponding cspc
-	if c.isSPCDeletetionCandidate(spc) {
+	if isSPCDeletetionCandidate(spc) {
 		return c.removeFinalizer(spc)
 	}
 	err = c.createOrUpdate(spc)
@@ -254,6 +254,10 @@ func (c *Controller) isPoolPending(spc *apis.StoragePoolClaim) bool {
 func (c *Controller) isPoolSpecPending(spc *apis.StoragePoolClaim) bool {
 	// SPC and CSPC name will be same in case of auto provisioning of cstor
 	// pools creations
+	if !isAutoProvisioning(spc) {
+		glog.Errorf("manual provisioning of pools using %s is not supported", spc.Name)
+		return false
+	}
 	namespace := env.Get(env.OpenEBSNamespace)
 	customSPCObj := &spcv1alpha1.SPC{Object: spc}
 	selector := klabels.SelectorFromSet(customSPCObj.GetDefaultSPCLabels())
@@ -349,13 +353,6 @@ func (c *Controller) getUsableNodeCount(spc *apis.StoragePoolClaim) (map[string]
 	return nodeCountMap, nil
 }
 
-// isSPCDeletionCandidate return true when deletion timestamp & finalizer is
-// available on spc
-func (c *Controller) isSPCDeletetionCandidate(spc *apis.StoragePoolClaim) bool {
-	return spc.ObjectMeta.DeletionTimestamp != nil &&
-		slice.ContainsString(spc.ObjectMeta.Finalizers, spcv1alpha1.SPCFinalizer, nil)
-}
-
 // removeFinalizer will delete cspc and remove finalizers on spc
 func (c *Controller) removeFinalizer(spc *apis.StoragePoolClaim) error {
 	cspcName := spc.Name
@@ -398,6 +395,9 @@ func (c *Controller) deleteCSPCResource(cspcName, namespace string) error {
 	cspcObj, err := c.cspcLister.
 		CStorPoolClusters(namespace).
 		Get(cspcName)
+	if k8serror.IsNotFound(err) {
+		return nil
+	}
 	if err != nil {
 		return errors.Wrapf(
 			err,
@@ -505,4 +505,11 @@ func isAutoProvisioning(spc *apis.StoragePoolClaim) bool {
 // isManualProvisioning returns true if the spc is auto provisioning type.
 func isManualProvisioning(spc *apis.StoragePoolClaim) bool {
 	return spc.Spec.BlockDevices.BlockDeviceList != nil
+}
+
+// isSPCDeletionCandidate return true when deletion timestamp & finalizer is
+// available on spc
+func isSPCDeletetionCandidate(spc *apis.StoragePoolClaim) bool {
+	return spc.ObjectMeta.DeletionTimestamp != nil &&
+		slice.ContainsString(spc.ObjectMeta.Finalizers, spcv1alpha1.SPCFinalizer, nil)
 }

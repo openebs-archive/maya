@@ -36,6 +36,7 @@ import (
 	klabels "k8s.io/apimachinery/pkg/labels"
 	types "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
+	"k8s.io/kubernetes/pkg/util/slice"
 )
 
 // PoolCreateConfig is config object used to create a cstor pool.
@@ -98,20 +99,31 @@ func (c *Controller) CreateOrUpdateCStorPoolCluster(spcGot *apis.StoragePoolClai
 // createCStorPoolCluster creates cspc object and patch spc with finalizers
 func (pc *PoolCreateConfig) createCStorPoolCluster(
 	namespace string) error {
+	var err error
+	updatedSPC := pc.Spc
+	if !slice.ContainsString(pc.Spc.ObjectMeta.Finalizers, spcv1alpha1.SPCFinalizer, nil) {
+		updatedSPC, err = pc.patchSPCWithFinalizers()
+	}
+	pc.Spc = updatedSPC
 	spc := pc.Spc
-	newCSPCObj, err := pc.buildCSPCFromSPC(spc, namespace)
+	cspcObj, err := pc.buildCSPCFromSPC(spc, namespace)
 	if err != nil {
 		return errors.Wrapf(err,
 			"failed to build cstorpoolcluster from spc %s",
 			spc.Name,
 		)
 	}
-	newCSPCObj, err = pc.clientset.
+	newCSPCObj, err := pc.clientset.
 		OpenebsV1alpha1().
-		CStorPoolClusters(newCSPCObj.Namespace).
-		Create(newCSPCObj)
+		CStorPoolClusters(cspcObj.Namespace).
+		Create(cspcObj)
 	if err != nil {
-		return err
+		return errors.Wrapf(
+			err,
+			"failed to create cspc %s in namespace %s",
+			cspcObj.Name,
+			cspcObj.Namespace,
+		)
 	}
 	glog.Infof(
 		"Successfully create cstorpoolcluster %s in namespace %s from spc %s",
@@ -119,16 +131,16 @@ func (pc *PoolCreateConfig) createCStorPoolCluster(
 		newCSPCObj.Namespace,
 		spc.Name,
 	)
-	return pc.patchSPCWithFinalizers()
+	return nil
 }
 
 // patchSPCWithFinalizers patches spc with spc finalizer
-func (pc *PoolCreateConfig) patchSPCWithFinalizers() error {
+func (pc *PoolCreateConfig) patchSPCWithFinalizers() (*apis.StoragePoolClaim, error) {
 	// Add finalizers on spc
 	spcObj, err := pc.spcLister.
 		Get(pc.Spc.Name)
 	if err != nil {
-		return errors.Wrapf(
+		return nil, errors.Wrapf(
 			err,
 			"failed to get spc %s from lister",
 			pc.Spc.Name,
@@ -146,26 +158,26 @@ func (pc *PoolCreateConfig) patchSPCWithFinalizers() error {
 		Build()
 	patchBytes, err := getPatchData(spcObj, spcBuilderObj.Object)
 	if err != nil {
-		return errors.Wrapf(
+		return nil, errors.Wrapf(
 			err,
 			"failed to get patch bytes for spc %s",
 			pc.Spc.Name,
 		)
 	}
-	_, err = pc.clientset.
+	updatedSPCObj, err := pc.clientset.
 		OpenebsV1alpha1().
 		StoragePoolClaims().
 		Patch(pc.Spc.Name, types.MergePatchType, patchBytes)
 	if err != nil {
 		//TODO: is deletetion of cspc is required?
 		_ = pc.deleteCSPCResource(spcObj.Name, pc.Namespace)
-		return errors.Wrapf(
+		return nil, errors.Wrapf(
 			err,
 			"failed to update spc %s with finalizers",
 			spcObj.Name,
 		)
 	}
-	return nil
+	return updatedSPCObj, nil
 }
 
 // updateCStorPoolCluster updates the pool specs of cspc object
