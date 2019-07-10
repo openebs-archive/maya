@@ -17,8 +17,6 @@ limitations under the License.
 package poolcontroller
 
 import (
-	"fmt"
-
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -31,9 +29,8 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	zpool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool/v1alpha2"
 	api "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
-	pool "github.com/openebs/maya/pkg/cstor/pool/v1alpha2"
 
 	//for v1alpha2
 
@@ -77,9 +74,8 @@ func NewCStorPoolController(
 	// obtain references to shared index informers for the cStorPool resources
 	cStorPoolInformer := cStorInformerFactory.Openebs().V1alpha2().CStorNPools()
 
-	pool.KubeClient = kubeclientset
-	pool.OpenEBSClient2 = clientset
-	pool.ImportedCStorPools = map[string]*apis2.CStorNPool{}
+	zpool.KubeClient = kubeclientset
+	zpool.OpenEBSClient2 = clientset
 
 	err := openebsScheme.AddToScheme(scheme.Scheme)
 	if err != nil {
@@ -114,70 +110,22 @@ func NewCStorPoolController(
 	cStorPoolInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			csp := obj.(*apis2.CStorNPool)
-			if !pool.IsRightCStorPoolMgmt(csp) ||
-				pool.IsDeletionFailedBefore(csp) ||
-				pool.IsErrorDuplicate(csp) {
+			if !zpool.IsRightCStorPoolMgmt(csp) {
 				return
 			}
-
-			if pool.IsReconcileDisabled(csp) {
-				controller.recorder.Event(csp,
-					corev1.EventTypeWarning,
-					"Create",
-					fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey)))
-				return
-			}
-
-			controller.enqueueCStorPool(csp, common.QOpAdd)
+			controller.enqueueCStorPool(csp)
 		},
 
 		UpdateFunc: func(oldVar, newVar interface{}) {
-			var op common.QueueOperation
-
 			ncsp := newVar.(*api.CStorNPool)
-			ocsp := oldVar.(*api.CStorNPool)
 
-			if !pool.IsRightCStorPoolMgmt(ncsp) ||
-				pool.IsDeletionFailedBefore(ncsp) ||
-				pool.IsErrorDuplicate(ncsp) ||
-				pool.IsOnlyStatusChange(ocsp, ncsp) {
+			if !zpool.IsRightCStorPoolMgmt(ncsp) {
 				return
 			}
-
-			if pool.IsReconcileDisabled(ncsp) {
-				controller.recorder.Event(ncsp,
-					corev1.EventTypeWarning,
-					"Create",
-					fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey)))
-				return
-			}
-
-			if pool.IsSyncEvent(ocsp, ncsp) {
-				op = common.QOpSync
-			} else if pool.IsDestroyEvent(ncsp) {
-				op = common.QOpDestroy
-			} else if pool.IsHostNameChanged(ocsp, ncsp) {
-				// pool migration
-				op = common.QOpAdd
-			} else {
-				op = common.QOpModify
-			}
-
-			controller.enqueueCStorPool(ncsp, op)
+			controller.enqueueCStorPool(ncsp)
 		},
 		DeleteFunc: func(obj interface{}) {
 			csp := obj.(*apis2.CStorNPool)
-			if !pool.IsRightCStorPoolMgmt(csp) {
-				return
-			}
-
-			if pool.IsReconcileDisabled(csp) {
-				controller.recorder.Event(csp,
-					corev1.EventTypeWarning,
-					"Delete",
-					fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey)))
-				return
-			}
 			glog.Infof("cStorPool Resource deleted event: %v, %v", csp.ObjectMeta.Name, string(csp.ObjectMeta.UID))
 		},
 	})
@@ -188,11 +136,11 @@ func NewCStorPoolController(
 // enqueueCstorPool takes a CStorPool resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
 // passed resources of any type other than CStorPools.
-func (c *CStorPoolController) enqueueCStorPool(obj *apis2.CStorNPool, op common.QueueOperation) {
+func (c *CStorPoolController) enqueueCStorPool(obj *apis2.CStorNPool) {
 	key, err := cache.MetaNamespaceKeyFunc(obj)
 	if err != nil {
 		runtime.HandleError(err)
 		return
 	}
-	c.workqueue.AddRateLimited(common.QueueLoad{Key: key, Operation: op})
+	c.workqueue.AddRateLimited(common.QueueLoad{Key: key})
 }

@@ -17,23 +17,12 @@ limitations under the License.
 package v1alpha2
 
 import (
-	api "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
-	"github.com/openebs/maya/pkg/util"
 
 	//	clientset1 "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 
 	clientset2 "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset"
 	"k8s.io/client-go/kubernetes"
 )
-
-// ImportedCStorPools is a map of imported cstor pools API config identified via their UID
-var ImportedCStorPools map[string]*api.CStorNPool
-
-//PoolAddEventHandled is a flag representing if the pool has been initially imported or created
-var PoolAddEventHandled = false
-
-// RunnerVar the runner variable for executing binaries.
-var RunnerVar util.Runner
 
 // KubeClient is for kubernetes CR operation
 var KubeClient kubernetes.Interface

@@ -54,9 +54,7 @@ func Update(csp *api.CStorNPool) error {
 		// If raidGroup doesn't have any blockdevice then remove that raidGroup
 		// and set isObjChanged
 		if isRaidGroupChanged {
-			if len(raidGroup.BlockDevices) != 0 {
-				csp.Spec.RaidGroups[raidIndex] = raidGroup
-			} else {
+			if len(raidGroup.BlockDevices) == 0
 				csp.Spec.RaidGroups = append(csp.Spec.RaidGroups[:raidIndex], csp.Spec.RaidGroups[raidIndex+1:]...)
 				// We removed the raidIndex entry csp.Spec.raidGroup
 				raidIndex--

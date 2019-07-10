@@ -11,6 +11,11 @@ import (
 func Delete(csp *api.CStorNPool) error {
 	glog.Infof("Destroying a pool {%s}", PoolName(csp))
 
+	// Let's check if pool exists or not
+	if poolExist := checkIfPoolPresent(PoolName(csp)); !poolExist {
+		return nil
+	}
+
 	// First delete a pool
 	ret, err := zfs.NewPoolDestroy().
 		WithPool(PoolName(csp)).
@@ -20,13 +25,10 @@ func Delete(csp *api.CStorNPool) error {
 		return err
 	}
 
-	// Remove entry from imported pool list
-	delete(ImportedCStorPools, string(csp.GetUID()))
-
 	// We successfully deleted the pool.
 	// We also need to clear the label for attached disk
 	for _, r := range csp.Spec.RaidGroups {
-		vlist, err := getPathForCSPBdevList(r.BlockDevices)
+		vlist, err := getPathForBdevList(r.BlockDevices)
 		if err != nil {
 			glog.Errorf("Failed to fetch vdev path, skipping labelclear : %s", err.Error())
 		}
