@@ -26,6 +26,7 @@ import (
 	nodeapis "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
 	"github.com/openebs/maya/pkg/volume"
 	"github.com/pkg/errors"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -38,7 +39,7 @@ func (ac *Config) SelectNode() (*apis.PoolSpec, string, error) {
 	for _, pool := range ac.CSPC.Spec.Pools {
 		// pin it
 		pool := pool
-		nodeName, err := ac.GetNodeFromLabelSelector(pool.NodeSelector)
+		nodeName, err := GetNodeFromLabelSelector(pool.NodeSelector)
 		if err != nil {
 			glog.Errorf("could not use node for selectors {%v}", pool.NodeSelector)
 			continue
@@ -51,7 +52,8 @@ func (ac *Config) SelectNode() (*apis.PoolSpec, string, error) {
 }
 
 // GetNodeFromLabelSelector returns the node name selected by provided labels
-func (ac *Config) GetNodeFromLabelSelector(labels map[string]string) (string, error) {
+// TODO : Move it to node package
+func GetNodeFromLabelSelector(labels map[string]string) (string, error) {
 	nodeList, err := nodeapis.NewKubeClient().List(metav1.ListOptions{LabelSelector: getLabelSelectorString(labels)})
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get node list from the node selector")
@@ -64,6 +66,7 @@ func (ac *Config) GetNodeFromLabelSelector(labels map[string]string) (string, er
 
 // getLabelSelectorString returns a string of label selector form label map to be used in
 // list options.
+// TODO : Move it to node package
 func getLabelSelectorString(selector map[string]string) string {
 	var selectorString string
 	for key, value := range selector {
@@ -74,6 +77,8 @@ func getLabelSelectorString(selector map[string]string) string {
 }
 
 // GetUsedNode returns a map of node for which pool has already been created.
+// Note : Filter function is not used from node builder package as it needs
+// CSP builder package which cam cause import loops.
 func (ac *Config) GetUsedNode() (map[string]bool, error) {
 	usedNode := make(map[string]bool)
 	cspList, err := csp.
@@ -138,7 +143,7 @@ func (ac *Config) ClaimBDsForNode(BD []string) error {
 // ClaimBD claims a given BlockDevice
 func (ac *Config) ClaimBD(bdObj *ndmapis.BlockDevice) error {
 	newBDCObj, err := bdc.NewBuilder().
-		WithName("bdc-" + string(bdObj.UID)).
+		WithName("bdc-cstor-" + string(bdObj.UID)).
 		WithNamespace(ac.Namespace).
 		WithLabels(map[string]string{string(apis.CStorPoolClusterCPK): ac.CSPC.Name}).
 		WithBlockDeviceName(bdObj.Name).
@@ -150,8 +155,11 @@ func (ac *Config) ClaimBD(bdObj *ndmapis.BlockDevice) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to build block device claim for bd {%s}", bdObj.Name)
 	}
-	// TODO : Do no create if already exists.
 	_, err = bdc.NewKubeClient().WithNamespace(ac.Namespace).Create(newBDCObj.Object)
+	if k8serror.IsAlreadyExists(err) {
+		glog.Infof("BDC for BD {%s} already created", bdObj.Name)
+		return nil
+	}
 	if err != nil {
 		return errors.Wrapf(err, "failed to create block device claim for bd {%s}", bdObj.Name)
 	}

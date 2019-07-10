@@ -168,7 +168,7 @@ func (b *Builder) WithLabels(labels map[string]string) *Builder {
 }
 
 // WithNodeSelector sets the node selector field of CSP with provided argument.
-func (b *Builder) WithNodeSelector(nodeSelector map[string]string) *Builder {
+func (b *Builder) WithNodeSelectorReference(nodeSelector map[string]string) *Builder {
 	if len(nodeSelector) == 0 {
 		b.errs = append(
 			b.errs,
@@ -215,6 +215,7 @@ func (b *Builder) WithRaidGroups(raidGroup []apis.RaidGroup) *Builder {
 		)
 		return b
 	}
+
 	b.CSP.Object.Spec.RaidGroup = raidGroup
 	return b
 }
