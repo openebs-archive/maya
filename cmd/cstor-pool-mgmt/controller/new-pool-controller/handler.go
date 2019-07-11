@@ -85,12 +85,11 @@ func (c *CStorPoolController) reconcile(key string) error {
 				fmt.Sprintf("%s : %s", string(common.MessageResourceFailCreate), err.Error()))
 			common.SyncResources.Mux.Unlock()
 			return err
-		} else {
-			c.recorder.Event(csp,
-				corev1.EventTypeNormal,
-				string(common.SuccessCreated),
-				string(common.MessageResourceCreated))
 		}
+		c.recorder.Event(csp,
+			corev1.EventTypeNormal,
+			string(common.SuccessCreated),
+			string(common.MessageResourceCreated))
 	}
 	common.SyncResources.Mux.Unlock()
 
