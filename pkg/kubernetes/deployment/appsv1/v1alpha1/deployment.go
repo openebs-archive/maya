@@ -80,6 +80,7 @@ func NewBuilder() *Builder {
 		deployment: &Deploy{
 			object: &appsv1.Deployment{},
 		},
+		errors: []error{},
 	}
 }
 

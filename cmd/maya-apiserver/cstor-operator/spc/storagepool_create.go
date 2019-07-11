@@ -17,13 +17,11 @@ limitations under the License.
 package spc
 
 import (
-	"encoding/json"
-	"fmt"
-
 	"github.com/golang/glog"
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha1"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	apiutil "github.com/openebs/maya/pkg/apiutil"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
 	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	cspcbd "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolblockdevice"
@@ -35,7 +33,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 	types "k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/kubernetes/pkg/util/slice"
 )
 
@@ -162,7 +159,7 @@ func (pc *PoolCreateConfig) patchSPCWithFinalizers() (*apis.StoragePoolClaim, er
 	).
 		WithFinalizersNew(spcv1alpha1.SPCFinalizer).
 		Build()
-	patchBytes, err := getPatchData(spcObj, spcBuilderObj.Object)
+	patchBytes, err := apiutil.GetPatchData(spcObj, spcBuilderObj.Object)
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
@@ -209,7 +206,7 @@ func (pc *PoolCreateConfig) updateCStorPoolCluster(
 		return err
 	}
 
-	patchBytes, err := getPatchData(cspcObj, customCSPCObj.ToAPI())
+	patchBytes, err := apiutil.GetPatchData(cspcObj, customCSPCObj.ToAPI())
 	if err != nil {
 		return err
 	}
@@ -465,20 +462,4 @@ func (pc *PoolCreateConfig) getDeviceID(blockDeviceName string) (string, error) 
 
 func getSPCLabels(spc *apis.StoragePoolClaim) map[string]string {
 	return map[string]string{string(apis.StoragePoolClaimCPK): spc.Name}
-}
-
-func getPatchData(oldObj, newObj interface{}) ([]byte, error) {
-	oldData, err := json.Marshal(oldObj)
-	if err != nil {
-		return nil, fmt.Errorf("marshal old object failed: %v", err)
-	}
-	newData, err := json.Marshal(newObj)
-	if err != nil {
-		return nil, fmt.Errorf("mashal new object failed: %v", err)
-	}
-	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, oldObj)
-	if err != nil {
-		return nil, fmt.Errorf("CreateTwoWayMergePatch failed: %v", err)
-	}
-	return patchBytes, nil
 }

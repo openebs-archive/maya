@@ -207,8 +207,8 @@ func (ac *Config) getCandidateNodeBlockDevices(
 			BlockDevice: &blockDevice,
 		}
 		//TODO: Update below code when ndm fixes bug
-		// i.e updating value of kubernetes.io/hostName as node name instead of
-		// putting host name
+		// i.e updating value of kubernetes.io/hostName as host name instead of
+		// putting node name
 		hostName := bd.BlockDevice.Labels[string(apis.HostNameCPK)]
 		listBuilder := nodeBlockDeviceMap[hostName]
 		capacity := bd.BlockDevice.Spec.Capacity.Storage

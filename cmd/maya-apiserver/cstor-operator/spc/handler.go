@@ -23,7 +23,10 @@ import (
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	apiutil "github.com/openebs/maya/pkg/apiutil"
+	apiutils "github.com/openebs/maya/pkg/apiutil"
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	cspcv1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/pkg/errors"
@@ -374,7 +377,7 @@ func (c *Controller) removeFinalizer(spc *apis.StoragePoolClaim) error {
 			namespace,
 		)
 	}
-	return c.removeSPCFinalizer(spc)
+	return c.removeSPCFinalizer(spc, spcv1alpha1.SPCFinalizer)
 }
 
 // getUsedBlockDeviceMap form usedDisk map that will hold the list of all used
@@ -414,7 +417,7 @@ func (c *Controller) deleteCSPCResource(cspcName, namespace string) error {
 			namespace,
 		)
 	}
-	newCSPCObj, err := c.removeCSPCFinalizer(cspcObj)
+	newCSPCObj, err := c.removeCSPCFinalizer(cspcObj, cspcv1alpha1.CSPCFinalizer)
 	if err != nil {
 		return nil
 	}
@@ -437,13 +440,13 @@ func (c *Controller) deleteCSPCResource(cspcName, namespace string) error {
 
 // removeCSPCFinalizer will remove finalizer on cspc
 func (c *Controller) removeCSPCFinalizer(
-	cspcObj *apis.CStorPoolCluster) (*apis.CStorPoolCluster, error) {
+	cspcObj *apis.CStorPoolCluster, finalizerList ...string) (*apis.CStorPoolCluster, error) {
 	if len(cspcObj.Finalizers) == 0 {
 		return cspcObj, nil
 	}
 	dupCSPCObj := cspcObj.DeepCopy()
-	dupCSPCObj.Finalizers = []string{}
-	patchBytes, err := getPatchData(cspcObj, dupCSPCObj)
+	apiutils.RemoveFinalizer(&dupCSPCObj.ObjectMeta, finalizerList...)
+	patchBytes, err := apiutil.GetPatchData(cspcObj, dupCSPCObj)
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
@@ -469,13 +472,13 @@ func (c *Controller) removeCSPCFinalizer(
 
 // removeSPCFinalizer will remove finalizer on spc
 func (c *Controller) removeSPCFinalizer(
-	spcObj *apis.StoragePoolClaim) error {
+	spcObj *apis.StoragePoolClaim, finalizerList ...string) error {
 	if len(spcObj.Finalizers) == 0 {
 		return nil
 	}
 	dupSPCObj := spcObj.DeepCopy()
-	dupSPCObj.Finalizers = []string{}
-	patchBytes, err := getPatchData(spcObj, dupSPCObj)
+	apiutils.RemoveFinalizer(&dupSPCObj.ObjectMeta, finalizerList...)
+	patchBytes, err := apiutil.GetPatchData(spcObj, dupSPCObj)
 	if err != nil {
 		return errors.Wrapf(
 			err,
