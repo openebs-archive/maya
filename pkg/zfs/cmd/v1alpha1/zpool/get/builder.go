@@ -59,8 +59,8 @@ type PoolGProperty struct {
 	err error
 }
 
-// NewPoolGProperty returns new instance of object PoolGProperty
-func NewPoolGProperty() *PoolGProperty {
+// NewPoolGetProperty returns new instance of object PoolGProperty
+func NewPoolGetProperty() *PoolGProperty {
 	return &PoolGProperty{}
 }
 

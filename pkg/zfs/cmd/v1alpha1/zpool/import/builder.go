@@ -157,10 +157,9 @@ func (p *PoolImport) Build() (*PoolImport, error) {
 		}
 	}
 
-	if IsDirectorylistSet()(p) {
-		p.appendCommand(&c, fmt.Sprintf(" -d "))
+	if !IsCachefileSet()(p) && IsDirectorylistSet()(p) {
 		for _, i := range p.Directorylist {
-			p.appendCommand(&c, fmt.Sprintf(" %s ", i))
+			p.appendCommand(&c, fmt.Sprintf(" -d %s ", i))
 		}
 	}
 

@@ -39,11 +39,11 @@ func (c *CStorPoolController) reconcile(key string) error {
 	var isImported bool
 
 	csp, err := c.getCSPObjFromKey(key)
-	if err != nil {
+	if err != nil || csp == nil {
 		return err
 	}
 
-	if zpool.IsReconcileDisabled(csp) {
+	if IsReconcileDisabled(csp) {
 		c.recorder.Event(csp,
 			corev1.EventTypeWarning,
 			fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey)),
@@ -51,7 +51,7 @@ func (c *CStorPoolController) reconcile(key string) error {
 		return nil
 	}
 
-	if zpool.IsDestroyed(csp) {
+	if IsDestroyed(csp) {
 		return c.destroy(csp)
 	}
 
@@ -59,7 +59,7 @@ func (c *CStorPoolController) reconcile(key string) error {
 	common.SyncResources.Mux.Lock()
 
 	// try to import pool
-	_, isImported, err = zpool.Import(csp)
+	isImported, err = zpool.Import(csp)
 	if isImported {
 		if err != nil {
 			c.recorder.Event(csp,
@@ -69,11 +69,12 @@ func (c *CStorPoolController) reconcile(key string) error {
 			common.SyncResources.Mux.Unlock()
 			return err
 		}
+		zpool.CheckImportedPoolVolume()
 		common.SyncResources.Mux.Unlock()
 		return c.update(csp)
 	}
 
-	if zpool.IsEmptyStatus(csp) || zpool.IsPendingStatus(csp) {
+	if IsEmptyStatus(csp) || IsPendingStatus(csp) {
 		err = zpool.Create(csp)
 		if err != nil {
 			// We will try to create it in next event
@@ -81,7 +82,7 @@ func (c *CStorPoolController) reconcile(key string) error {
 			c.recorder.Event(csp,
 				corev1.EventTypeWarning,
 				string(common.FailureCreate),
-				string(common.MessageResourceFailCreate))
+				fmt.Sprintf("%s : %s", string(common.MessageResourceFailCreate), err.Error()))
 			common.SyncResources.Mux.Unlock()
 			return err
 		} else {
@@ -144,7 +145,38 @@ func (c *CStorPoolController) update(csp *apis2.CStorNPool) error {
 }
 
 func (c *CStorPoolController) updateStatus(csp *apis2.CStorNPool) error {
-	status, err := zpool.GetStatus(csp)
+	var status apis2.CStorPoolStatus
+	var err error
+	pool := zpool.PoolName(csp)
+
+	state, er := zpool.GetPropertyValue(pool, "health")
+	if er != nil {
+		err = zpool.ErrorWrapf(err, "Failed to fetch health")
+	} else {
+		status.Phase = apis2.CStorPoolPhase(state)
+	}
+
+	freeSize, er := zpool.GetPropertyValue(pool, "free")
+	if er != nil {
+		err = zpool.ErrorWrapf(err, "Failed to fetch free size")
+	} else {
+		status.Capacity.Free = freeSize
+	}
+
+	usedSize, er := zpool.GetPropertyValue(pool, "allocated")
+	if er != nil {
+		err = zpool.ErrorWrapf(err, "Failed to fetch used size")
+	} else {
+		status.Capacity.Used = usedSize
+	}
+
+	totalSize, er := zpool.GetPropertyValue(pool, "size")
+	if er != nil {
+		err = zpool.ErrorWrapf(err, "Failed to fetch total size")
+	} else {
+		status.Capacity.Total = totalSize
+	}
+
 	if err != nil {
 		c.recorder.Event(csp,
 			corev1.EventTypeWarning,
@@ -153,7 +185,7 @@ func (c *CStorPoolController) updateStatus(csp *apis2.CStorNPool) error {
 		return err
 	}
 
-	if zpool.IsStatusChange(csp.Status, status) {
+	if IsStatusChange(csp.Status, status) {
 		csp.Status = status
 		_, err = zpool.OpenEBSClient2.
 			OpenebsV1alpha2().

@@ -96,7 +96,6 @@ func TestHold(t *testing.T) {
 	tests := map[string]struct {
 		// fakestoragepoolclaim holds the fake storagepoolcalim object in test cases.
 		fakestoragepoolclaim *apis.CStorNPool
-		storagePoolClaimName string
 		podName              string
 		podNamespace         string
 		// expectedResult holds the expected error for the test case under run.

@@ -20,7 +20,7 @@ package padd
 type PredicateFunc func(*PoolDiskReplace) bool
 
 // IsOldVdevSet method check if the OldVdev field of PoolDiskReplace object is set.
-func IsVdevListSet() PredicateFunc {
+func IsOldVdevSet() PredicateFunc {
 	return func(p *PoolDiskReplace) bool {
 		return len(p.OldVdev) != 0
 	}

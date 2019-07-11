@@ -96,14 +96,19 @@ func (sl *Lease) Hold() (interface{}, error) {
 // 3.putUpdatedValue
 // See the functions(below) for more details on update strategy
 func (sl *Lease) Update(podName string) (interface{}, error) {
+	var err error
 	newCspObject := sl.Object.(*apis.CStorNPool)
 	if newCspObject.Annotations == nil {
-		sl.putKeyValue(podName, newCspObject)
+		_, err = sl.putKeyValue(podName, newCspObject)
 	} else if newCspObject.Annotations[sl.LeaseKey] == "" {
-		sl.putValue(podName, newCspObject)
+		_, err = sl.putValue(podName, newCspObject)
 	} else {
-		sl.putUpdatedValue(podName, newCspObject)
+		_, err = sl.putUpdatedValue(podName, newCspObject)
 	}
+	if err != nil {
+		return nil, err
+	}
+
 	csp, err := sl.Oecs.
 		OpenebsV1alpha2().
 		CStorNPools(newCspObject.Namespace).
@@ -202,10 +207,7 @@ func (sl *Lease) isLeaderALive(leaseValueObj LeaseContract) bool {
 // The holder of lease can only expire the lease.
 // isLeaseExpired return true if the lease is expired.
 func isLeaseExpired(leaseValueObj LeaseContract) bool {
-	if strings.TrimSpace(leaseValueObj.Holder) == "" {
-		return true
-	}
-	return false
+	return strings.TrimSpace(leaseValueObj.Holder) == ""
 }
 
 // parseLeaseValue will parse a leaseValue string to lease object
@@ -268,7 +270,7 @@ func (sl *Lease) putUpdatedValue(podName string, newCspObject *apis.CStorNPool) 
 
 // Patch is the specific implementation if Patch() interface for patching CSP objects.
 // Similarly, we can have for other objects, if required.
-func (sl *Lease) Patch(name string, nameSpace string, patchType types.PatchType, patches []byte) (*apis.CStorNPool, error) {
+func (sl *Lease) Patch(name, nameSpace string, patchType types.PatchType, patches []byte) (*apis.CStorNPool, error) {
 	obj, err := sl.Oecs.OpenebsV1alpha2().CStorNPools(nameSpace).Patch(name, patchType, patches)
 	return obj, err
 }

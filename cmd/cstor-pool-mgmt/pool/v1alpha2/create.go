@@ -13,11 +13,11 @@ func Create(csp *api.CStorNPool) error {
 
 	// Let's check if there is any disk having the pool config
 	// If so then we will not create the pool
-	ret, nonImported, err := checkIfNonImportedPool(csp)
+	ret, notImported, err := checkIfPoolNotImported(csp)
 	if err != nil {
-		return errors.Errorf("Failed to check non imported pool")
+		return errors.Errorf("Failed to check not imported pool %s", err.Error())
 	}
-	if nonImported {
+	if notImported {
 		return errors.Errorf("Pool {%s} is in faulty state.. %s", PoolName(csp), ret)
 	}
 

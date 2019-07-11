@@ -50,8 +50,8 @@ type PoolSProperty struct {
 	err error
 }
 
-// NewPoolSProperty returns new instance of object PoolSProperty
-func NewPoolSProperty() *PoolSProperty {
+// NewPoolSetProperty returns new instance of object PoolSProperty
+func NewPoolSetProperty() *PoolSProperty {
 	return &PoolSProperty{}
 }
 
