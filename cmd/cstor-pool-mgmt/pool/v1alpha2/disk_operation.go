@@ -44,6 +44,7 @@ func addRaidGroup(csp *api.CStorNPool, r api.RaidGroup) error {
 	return err
 }
 
+/*
 // addNewVdevFromCSP will add new disk, which is not being used in pool, from csp to given pool
 func addNewVdevFromCSP(csp *api.CStorNPool) error {
 	var err error
@@ -81,7 +82,9 @@ func addNewVdevFromCSP(csp *api.CStorNPool) error {
 
 	return err
 }
+*/
 
+/*
 func removePoolVdev(csp *api.CStorNPool, bdev api.CStorPoolClusterBlockDevice) error {
 	if _, err := zfs.NewPoolRemove().
 		WithDevice(bdev.DevLink).
@@ -101,6 +104,7 @@ func removePoolVdev(csp *api.CStorNPool, bdev api.CStorPoolClusterBlockDevice) e
 
 	return nil
 }
+*/
 
 func replacePoolVdev(csp *api.CStorNPool, bdev api.CStorPoolClusterBlockDevice, npath string) error {
 	if IsEmpty(npath) || IsEmpty(bdev.DevLink) {

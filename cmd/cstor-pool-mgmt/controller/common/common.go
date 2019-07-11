@@ -159,6 +159,7 @@ const (
 
 // Different types of k8s namespaces.
 const (
+	// DefaultNameSpace namespace `default`
 	DefaultNameSpace string = "default"
 )
 

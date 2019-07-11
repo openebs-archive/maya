@@ -396,7 +396,7 @@ func TestIsOnlyStatusChange(t *testing.T) {
 		},
 	}
 	for desc, ut := range testPoolResource {
-		obtainedOutput := zpool.IsOnlyStatusChange(ut.testOld, ut.testNew)
+		obtainedOutput := IsOnlyStatusChange(ut.testOld, ut.testNew)
 		if obtainedOutput != ut.expectedOutput {
 			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedOutput,
 				obtainedOutput)
@@ -455,7 +455,7 @@ func TestIsEmptyStatus(t *testing.T) {
 		},
 	}
 	for desc, ut := range testPoolResource {
-		obtainedOutput := zpool.IsEmptyStatus(ut.test)
+		obtainedOutput := IsEmptyStatus(ut.test)
 		if obtainedOutput != ut.expectedOutput {
 			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedOutput,
 				obtainedOutput)
@@ -514,7 +514,7 @@ func TestIsDeletionFailedBefore(t *testing.T) {
 		},
 	}
 	for desc, ut := range testPoolResource {
-		obtainedOutput := zpool.IsDeletionFailedBefore(ut.test)
+		obtainedOutput := IsDeletionFailedBefore(ut.test)
 		if obtainedOutput != ut.expectedOutput {
 			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedOutput,
 				obtainedOutput)
