@@ -110,7 +110,7 @@ func NewCStorPoolController(
 	cStorPoolInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			csp := obj.(*apis2.CStorNPool)
-			if !zpool.IsRightCStorPoolMgmt(csp) {
+			if !IsRightCStorPoolMgmt(csp) {
 				return
 			}
 			controller.enqueueCStorPool(csp)
@@ -119,7 +119,7 @@ func NewCStorPoolController(
 		UpdateFunc: func(oldVar, newVar interface{}) {
 			ncsp := newVar.(*api.CStorNPool)
 
-			if !zpool.IsRightCStorPoolMgmt(ncsp) {
+			if !IsRightCStorPoolMgmt(ncsp) {
 				return
 			}
 			controller.enqueueCStorPool(ncsp)

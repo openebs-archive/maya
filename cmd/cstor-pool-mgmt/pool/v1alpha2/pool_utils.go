@@ -12,6 +12,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	// TODO
+	// CSPC should set ENV variable for following constant
+
+	// SparseDir sparse file location
+	SparseDir = "/var/openebs/sparse"
+	// DevDir /dev/ path
+	DevDir = "/dev"
+)
+
 func getPathForBdevList(bdevs []api.CStorPoolClusterBlockDevice) ([]string, error) {
 	var vdev []string
 	var err error
@@ -36,11 +46,15 @@ func getPathForBDev(bdev string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	if len(bd.Spec.DevLinks) != 0 && len(bd.Spec.DevLinks[0].Links) != 0 {
+		return bd.Spec.DevLinks[0].Links[0], nil
+	}
 	return bd.Spec.Path, nil
 }
 
 func checkIfPoolPresent(name string) bool {
-	if _, err := zfs.NewPoolGProperty().
+	if _, err := zfs.NewPoolGetProperty().
 		WithParsableMode(true).
 		WithScriptedMode(true).
 		WithField("name").
@@ -101,8 +115,11 @@ func checkIfDeviceUsed(path string, t zpool.Topology) bool {
 	return isUsed
 }
 
-func checkIfNonImportedPool(csp *api.CStorNPool) (string, bool, error) {
-	ret, err := zfs.NewPoolImport().Execute()
+func checkIfPoolNotImported(csp *api.CStorNPool) (string, bool, error) {
+	ret, err := zfs.NewPoolImport().
+		WithDirectory(SparseDir).
+		WithDirectory(DevDir).
+		Execute()
 	if err != nil {
 		return string(ret), false, err
 	}

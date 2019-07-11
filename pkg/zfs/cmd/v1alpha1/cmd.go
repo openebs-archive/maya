@@ -50,13 +50,13 @@ func NewVolumeClone() *vclone.VolumeClone {
 	return &vclone.VolumeClone{}
 }
 
-// NewPoolSProperty returns new instance of object PoolSProperty
-func NewPoolSProperty() *pset.PoolSProperty {
+// NewPoolSetProperty returns new instance of object PoolSProperty
+func NewPoolSetProperty() *pset.PoolSProperty {
 	return &pset.PoolSProperty{}
 }
 
-// NewPoolGProperty returns new instance of object PoolGProperty
-func NewPoolGProperty() *pget.PoolGProperty {
+// NewPoolGetProperty returns new instance of object PoolGProperty
+func NewPoolGetProperty() *pget.PoolGProperty {
 	return &pget.PoolGProperty{}
 }
 

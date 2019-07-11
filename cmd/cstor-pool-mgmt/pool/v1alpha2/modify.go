@@ -26,6 +26,7 @@ func Update(csp *api.CStorNPool) error {
 				// TODO should we offline it only?
 				if er := removePoolVdev(csp, bdev); er != nil {
 					err = ErrorWrapf(err, "Failed to remove bdev {%s}.. %s", bdev.DevLink, er.Error())
+					continue
 				}
 				// remove this entry since it's been already removed from pool
 				raidGroup.BlockDevices = append(raidGroup.BlockDevices[:bdevIndex], raidGroup.BlockDevices[bdevIndex+1:]...)
@@ -54,7 +55,7 @@ func Update(csp *api.CStorNPool) error {
 		// If raidGroup doesn't have any blockdevice then remove that raidGroup
 		// and set isObjChanged
 		if isRaidGroupChanged {
-			if len(raidGroup.BlockDevices) == 0
+			if len(raidGroup.BlockDevices) == 0 {
 				csp.Spec.RaidGroups = append(csp.Spec.RaidGroups[:raidIndex], csp.Spec.RaidGroups[raidIndex+1:]...)
 				// We removed the raidIndex entry csp.Spec.raidGroup
 				raidIndex--

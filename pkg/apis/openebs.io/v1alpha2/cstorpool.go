@@ -159,7 +159,7 @@ const (
 	CStorPoolStatusRemoved CStorPoolPhase = "Removed"
 	// CStorPoolStatusUnavail signifies that the pool is not available.
 	CStorPoolStatusUnavail CStorPoolPhase = "Unavail"
-	// CStorPoolStatusDeletionFailed signifies that the pool status could not be fetched.
+	// CStorPoolStatusError signifies that the pool status could not be fetched.
 	CStorPoolStatusError CStorPoolPhase = "Error"
 	// CStorPoolStatusDeletionFailed ensures the resource deletion has failed.
 	CStorPoolStatusDeletionFailed CStorPoolPhase = "DeletionFailed"

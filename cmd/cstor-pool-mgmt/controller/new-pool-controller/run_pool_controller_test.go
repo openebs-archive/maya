@@ -20,9 +20,9 @@ import (
 	"time"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
-	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
+	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset/fake"
+	informers "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/informer/externalversions"
 
 	"github.com/openebs/maya/pkg/signals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -73,22 +73,23 @@ func TestProcessNextWorkItemModify(t *testing.T) {
 
 	testPoolResource := map[string]struct {
 		expectedOutput bool
-		test           *apis.CStorPool
+		test           *apis.CStorNPool
 	}{
 		"img2PoolResource": {
 			expectedOutput: true,
-			test: &apis.CStorPool{
+			test: &apis.CStorNPool{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "pool2",
 					UID:        types.UID("abcd"),
 					Finalizers: []string{"cstorpool.openebs.io/finalizer"},
+					Namespace:  common.DefaultNameSpace,
 				},
-				Spec: apis.CStorPoolSpec{
-					PoolSpec: apis.CStorPoolAttr{
-						CacheFile:        "/tmp/pool2.cache",
-						PoolType:         "striped",
-						OverProvisioning: false,
+				Spec: apis.PoolSpec{
+					PoolConfig: apis.PoolConfig{
+						CacheFile:            "/tmp/pool2.cache",
+						DefaultRaidGroupType: "striped",
+						OverProvisioning:     false,
 					},
 				},
 				Status: apis.CStorPoolStatus{},
@@ -96,7 +97,9 @@ func TestProcessNextWorkItemModify(t *testing.T) {
 		},
 	}
 
-	_, err := poolController.clientset.OpenebsV1alpha1().CStorPools().Create(testPoolResource["img2PoolResource"].test)
+	_, err := poolController.clientset.OpenebsV1alpha2().
+		CStorNPools(testPoolResource["img2PoolResource"].test.Namespace).
+		Create(testPoolResource["img2PoolResource"].test)
 	if err != nil {
 		t.Fatalf("Unable to create resource : %v", testPoolResource["img2PoolResource"].test.ObjectMeta.Name)
 	}
@@ -127,22 +130,23 @@ func TestProcessNextWorkItemDestroy(t *testing.T) {
 
 	testPoolResource := map[string]struct {
 		expectedOutput bool
-		test           *apis.CStorPool
+		test           *apis.CStorNPool
 	}{
 		"img2PoolResource": {
 			expectedOutput: true,
-			test: &apis.CStorPool{
+			test: &apis.CStorNPool{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "pool2",
 					UID:        types.UID("abcd"),
 					Finalizers: []string{"cstorpool.openebs.io/finalizer"},
+					Namespace:  common.DefaultNameSpace,
 				},
-				Spec: apis.CStorPoolSpec{
-					PoolSpec: apis.CStorPoolAttr{
-						CacheFile:        "/tmp/pool2.cache",
-						PoolType:         "striped",
-						OverProvisioning: false,
+				Spec: apis.PoolSpec{
+					PoolConfig: apis.PoolConfig{
+						CacheFile:            "/tmp/pool2.cache",
+						DefaultRaidGroupType: "striped",
+						OverProvisioning:     false,
 					},
 				},
 				Status: apis.CStorPoolStatus{},
@@ -150,7 +154,9 @@ func TestProcessNextWorkItemDestroy(t *testing.T) {
 		},
 	}
 
-	_, err := poolController.clientset.OpenebsV1alpha1().CStorPools().Create(testPoolResource["img2PoolResource"].test)
+	_, err := poolController.clientset.OpenebsV1alpha2().
+		CStorNPools(testPoolResource["img2PoolResource"].test.Namespace).
+		Create(testPoolResource["img2PoolResource"].test)
 	if err != nil {
 		t.Fatalf("Unable to create resource : %v", testPoolResource["img2PoolResource"].test.ObjectMeta.Name)
 	}

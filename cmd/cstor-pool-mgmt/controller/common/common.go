@@ -157,12 +157,9 @@ const (
 	QOpSync QueueOperation = "Sync"
 )
 
-// namespace defines kubernetes namespace specified for cvr.
-type namespace string
-
 // Different types of k8s namespaces.
 const (
-	defaultNameSpace namespace = "default"
+	DefaultNameSpace string = "default"
 )
 
 // SyncResources is to synchronize pool and volumereplica.
@@ -216,7 +213,7 @@ func CheckForCStorVolumeReplicaCRD(clientset clientset.Interface) {
 		// or not, we are trying to handle only the error of CVR CR List api indirectly.
 		// CRD has only two types of scope, cluster and namespaced. If CR list api
 		// for default namespace works fine, then CR list api works for all namespaces.
-		_, err := clientset.OpenebsV1alpha1().CStorVolumeReplicas(string(defaultNameSpace)).List(metav1.ListOptions{})
+		_, err := clientset.OpenebsV1alpha1().CStorVolumeReplicas(string(DefaultNameSpace)).List(metav1.ListOptions{})
 		if err != nil {
 			glog.Errorf("CStorVolumeReplica CRD not found. Retrying after %v, error: %v", CRDRetryInterval, err)
 			time.Sleep(CRDRetryInterval)

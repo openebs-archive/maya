@@ -22,7 +22,9 @@ const (
 func addRaidGroup(csp *api.CStorNPool, r api.RaidGroup) error {
 	ptype := r.Type
 	if len(ptype) == 0 {
-		return errors.Errorf("No type mentioned in raidGroup for pool {%s}", PoolName(csp))
+		// type is not mentioned in raidGroup,
+		// We will use default raidGroupType from poolConfig
+		ptype = csp.Spec.PoolConfig.DefaultRaidGroupType
 	}
 
 	deviceType := getDeviceType(r)

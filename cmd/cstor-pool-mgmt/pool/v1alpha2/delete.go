@@ -21,7 +21,7 @@ func Delete(csp *api.CStorNPool) error {
 		WithPool(PoolName(csp)).
 		Execute()
 	if err != nil {
-		glog.Errorf("Failed to destroy a pool : %s : %s", ret, err.Error())
+		glog.Errorf("Failed to destroy a pool {%s}.. %s", ret, err.Error())
 		return err
 	}
 
@@ -30,13 +30,13 @@ func Delete(csp *api.CStorNPool) error {
 	for _, r := range csp.Spec.RaidGroups {
 		vlist, err := getPathForBdevList(r.BlockDevices)
 		if err != nil {
-			glog.Errorf("Failed to fetch vdev path, skipping labelclear : %s", err.Error())
+			glog.Errorf("Failed to fetch vdev path, skipping labelclear.. %s", err.Error())
 		}
 		for _, v := range vlist {
 			if _, err := zfs.NewPoolLabelClear().
 				WithForceFully(true).
 				WithVdev(v).Execute(); err != nil {
-				glog.Errorf("Failed to perform label clear for disk {%s}", v)
+				glog.Errorf("Failed to perform label clear for disk {%s}.. %s", v, err.Error())
 			}
 		}
 	}
