@@ -66,6 +66,7 @@ type metrics struct {
 	healthyReplicaCounter  prometheus.Gauge
 	degradedReplicaCounter prometheus.Gauge
 	totalReplicaCounter    prometheus.Gauge
+	isClientConnected      prometheus.Gauge
 	volumeUpTime           *prometheus.GaugeVec
 }
 
@@ -92,6 +93,7 @@ type stats struct {
 	healthyReplicaCount  float64
 	degradedReplicaCount float64
 	offlineReplicaCount  float64
+	isClientConnected    float64
 	name                 string
 	replicas             []v1.Replica
 	status               v1.TargetMode
@@ -248,6 +250,14 @@ func Metrics(cas string) metrics {
 				Namespace: "openebs",
 				Name:      "total_replica_count",
 				Help:      "Total no of replicas connected to cas",
+			},
+		),
+
+		isClientConnected: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "client_status",
+				Help:      "Initiator/Client status connected to jiva target: (0, 1): {Not Connected, Connected} ",
 			},
 		),
 	}

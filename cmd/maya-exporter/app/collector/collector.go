@@ -72,6 +72,7 @@ func (c *collector) collectors() []prometheus.Collector {
 		c.degradedReplicaCounter,
 		c.healthyReplicaCounter,
 		c.volumeUpTime,
+		c.isClientConnected,
 	}
 }
 
@@ -179,6 +180,7 @@ func (c *collector) set(volStats stats) {
 	c.healthyReplicaCounter.Set(volStats.healthyReplicaCount)
 
 	c.volumeStatus.Set(float64(volStats.getVolumeStatus()))
+	c.isClientConnected.Set(volStats.isClientConnected)
 
 	return
 }
