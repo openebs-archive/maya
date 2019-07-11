@@ -21,6 +21,7 @@ import (
 	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/rand"
 )
 
 const (
@@ -32,12 +33,13 @@ const (
 // block device present in the CSP spec
 func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 	poolSpec, nodeName, err := ac.SelectNode()
-	if err != nil {
+	if err != nil || nodeName == "" {
 		return nil, errors.Wrap(err, "failed to select a node")
 	}
 	csplabels := ac.buildLabelsForCSP(nodeName)
 	cspObj, err := apiscsp.NewBuilder().
-		WithName(ac.CSPC.Name).
+		WithName(ac.CSPC.Name + "-" + rand.String(4)).
+		WithNamespace(ac.Namespace).
 		WithNodeSelectorByReference(poolSpec.NodeSelector).
 		WithNodeName(nodeName).
 		WithPoolConfig(&poolSpec.PoolConfig).
@@ -51,7 +53,7 @@ func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 
 	err = ac.ClaimBDsForNode(ac.GetBDListForNode(poolSpec))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to claim block devices for node selector {%v}", poolSpec.NodeSelector)
+		return nil, errors.Wrapf(err, "failed to claim block devices for node {%s}", nodeName)
 	}
 	return cspObj.Object, nil
 }
