@@ -131,9 +131,7 @@ updatestatus:
 }
 
 func (c *CStorPoolController) update(csp *apis2.CStorNPool) error {
-	var err error
-
-	err = zpool.Update(csp)
+	err := zpool.Update(csp)
 	if err != nil {
 		c.recorder.Event(csp,
 			corev1.EventTypeWarning,
