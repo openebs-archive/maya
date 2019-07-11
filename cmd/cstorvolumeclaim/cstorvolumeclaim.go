@@ -18,7 +18,6 @@ package cstorvolumeclaim
 
 import (
 	"math/rand"
-	"strconv"
 	"time"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -30,9 +29,7 @@ import (
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
-	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -51,6 +48,9 @@ const (
 	ReplicaCount = "replicaCount"
 	// CStorVolumeReplicaFinalizer is the name of finalizer on CStorVolumeClaim
 	CStorVolumeReplicaFinalizer = "cstorvolumereplica.openebs.io/finalizer"
+	// pvSelector is the selector key for cstorvolumereplica belongs to a cstor
+	// volume
+	pvSelector = "openebs.io/persistent-volume"
 )
 
 var (
@@ -173,46 +173,13 @@ func getNamespace() string {
 	return menv.Get(menv.OpenEBSNamespace)
 }
 
-// getStorageClass return storageclass object for a given storageClass Name.
-// or error if any.
-func getStorageClass(
-	scName string,
-) (*storagev1.StorageClass, error) {
-	if scName == "" {
-		return nil, errors.New("failed to get storageclass: name missing")
-	}
-	scObj, err := sc.NewKubeClient().Get(scName, metav1.GetOptions{})
-	if err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"failed to get storageclass {%s}",
-			scName,
-		)
-	}
-	return scObj, nil
-}
-
-// getReplicationFactor gets the ReplicationFactor from the from given storageclass
-func getReplicationFactor(
-	class *storagev1.StorageClass,
-) (int, error) {
-
-	count := class.Parameters[ReplicaCount]
-
-	rfactor, err := strconv.Atoi(count)
-	if err != nil {
-		return 0, err
-	}
-	return rfactor, nil
-}
-
 // getSPC gets storagePoolClaim from
 // storageclass parameter
 func getSPC(
-	sc *storagev1.StorageClass,
+	claim *apis.CStorVolumeClaim,
 ) string {
 
-	spcName := sc.Parameters["storagePoolClaim"]
+	spcName := claim.Annotations["openebs.io/cspc-name"]
 	return spcName
 }
 
@@ -246,7 +213,7 @@ func listCStorPools(
 }
 
 // getOrCreateTargetService creates cstor volume target service
-func getOrCreateTargetService(storageClassName string,
+func getOrCreateTargetService(
 	claim *apis.CStorVolumeClaim,
 ) (*corev1.Service, error) {
 
@@ -290,19 +257,12 @@ func getOrCreateTargetService(storageClassName string,
 func getOrCreateCStorVolumeResource(
 	service *corev1.Service,
 	claim *apis.CStorVolumeClaim,
-	class *storagev1.StorageClass,
 ) (*apis.CStorVolume, error) {
 
 	qCap := claim.Spec.Capacity[corev1.ResourceStorage]
-	rfactor, err := getReplicationFactor(class)
-	if err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"failed to get replica-count and factor from sc {%s}",
-			class.Name,
-		)
-	}
 
+	// get the replicaCount from cstorvolume claim
+	rfactor := claim.Spec.ReplicaCount
 	cfactor := rfactor/2 + 1
 
 	cvObj, err := cv.NewKubeclient(cv.WithNamespace(getNamespace())).
@@ -344,18 +304,18 @@ func getOrCreateCStorVolumeResource(
 // on the available cstor pools created for storagepoolclaim.
 // if pools are less then desired replicaCount its return an error.
 func distributeCVRs(
-	replicaCount int,
+	pendingReplicaCount int,
+	claim *apis.CStorVolumeClaim,
 	service *corev1.Service,
 	volume *apis.CStorVolume,
-	class *storagev1.StorageClass,
 ) error {
 
-	spcName := getSPC(class)
+	spcName := getSPC(claim)
 	if len(spcName) == 0 {
-		return errors.New("failed to get spc name from storageClass")
+		return errors.New("failed to get spc name from cstorvolumeclaim")
 	}
 
-	poolList, err := listCStorPools(spcName, replicaCount)
+	poolList, err := listCStorPools(spcName, claim.Spec.ReplicaCount)
 	if err != nil {
 		return err
 	}
@@ -364,21 +324,24 @@ func distributeCVRs(
 
 	// randomizePoolList to get the pool list in random order
 	usablePoolList = randomizePoolList(usablePoolList)
-	for i, pool := range usablePoolList.Items {
+
+	for count, pool := range usablePoolList.Items {
 		pool := pool
-		if i < replicaCount {
-			_, err = creatCVR(service, volume, &pool)
+		if count < pendingReplicaCount {
+			_, err = createCVR(service, volume, &pool)
 			if err != nil {
 				return err
 			}
+		} else {
+			return nil
 		}
 	}
-	return err
+	return nil
 }
 
 // createCVR is actual method to create cstorvolumereplica resource on a given
 // cstor pool
-func creatCVR(
+func createCVR(
 	service *corev1.Service,
 	volume *apis.CStorVolume,
 	pool *apis.CStorPool,

@@ -19,7 +19,6 @@ package cstorvolumeclaim
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/golang/glog"
@@ -27,7 +26,6 @@ import (
 	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
@@ -154,9 +152,9 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 		return nil
 	}
 
-	//NodeId indicates where the volume is needed to be mounted, i.e the node
+	//NodeID indicates where the volume is needed to be mounted, i.e the node
 	// where the app has been scheduled.
-	nodeID := cvc.Publish.NodeId
+	nodeID := cvc.Publish.NodeID
 	if nodeID == "" {
 		// We choose to absorb the error here as the worker would requeue the
 		// resource otherwise. Instead, the next time the resource is updated
@@ -232,20 +230,16 @@ func (c *CVCController) updateCVCObj(
 // 5. Update the cstorvolumeclaim with claimRef info and bound with cstorvolume.
 func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeClaim, error) {
 
-	scName := cvc.Annotations[string(apis.StorageConfigClassKey)]
-	scObj, err := getStorageClass(scName)
-	if err != nil {
-		return nil, err
-	}
+	_ = cvc.Annotations[string(apis.ConfigClassKey)]
 
 	glog.V(2).Infof("creating cstorvolume service resource")
-	svcObj, err := getOrCreateTargetService(scName, cvc)
+	svcObj, err := getOrCreateTargetService(cvc)
 	if err != nil {
 		return nil, err
 	}
 
 	glog.V(2).Infof("creating cstorvolume resource")
-	cvObj, err := getOrCreateCStorVolumeResource(svcObj, cvc, scObj)
+	cvObj, err := getOrCreateCStorVolumeResource(svcObj, cvc)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +251,7 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 	}
 
 	glog.V(2).Infof("creating cstorvolume replica resource")
-	err = c.distributePendingCVRs(cvc, cvObj, svcObj, scObj)
+	err = c.distributePendingCVRs(cvc, cvObj, svcObj)
 	if err != nil {
 		return nil, err
 	}
@@ -282,14 +276,13 @@ func (c *CVCController) distributePendingCVRs(
 	cvc *apis.CStorVolumeClaim,
 	cv *apis.CStorVolume,
 	service *corev1.Service,
-	class *storagev1.StorageClass,
 ) error {
 
-	desiredReplicaCount, err := c.getPendingCVRCount(cvc, class)
+	pendingReplicaCount, err := c.getPendingCVRCount(cvc)
 	if err != nil {
 		return err
 	}
-	err = distributeCVRs(desiredReplicaCount, service, cv, class)
+	err = distributeCVRs(pendingReplicaCount, cvc, service, cv)
 	if err != nil {
 		return err
 	}
@@ -341,20 +334,14 @@ func (c *CVCController) removeClaimFinalizer(
 // in case of any failures
 func (c *CVCController) getPendingCVRCount(
 	cvc *apis.CStorVolumeClaim,
-	class *storagev1.StorageClass,
 ) (int, error) {
-
-	desiredReplicaCount, err := getReplicationFactor(class)
-	if err != nil {
-		return 0, err
-	}
 
 	currentReplicaCount, err := c.getCurrentReplicaCount(cvc)
 	if err != nil {
 		runtime.HandleError(err)
 		return 0, err
 	}
-	return desiredReplicaCount - currentReplicaCount, nil
+	return cvc.Spec.ReplicaCount - currentReplicaCount, nil
 }
 
 // getCurrentReplicaCount give the current cstorvolumereplicas count for the
@@ -380,11 +367,7 @@ func (c *CVCController) getCurrentReplicaCount(cvc *apis.CStorVolumeClaim) (int,
 // IsCVRPending look for pending cstorvolume replicas compared to desired
 // replica count. returns true if count doesn't matches.
 func (c *CVCController) IsCVRPending(cvc *apis.CStorVolumeClaim) (bool, error) {
-	rCount := cvc.Annotations["openebs.io/replicaCount"]
-	desiredReplicaCount, err := strconv.Atoi(rCount)
-	if err != nil {
-		return false, err
-	}
+
 	selector := klabels.SelectorFromSet(BaseLabels(cvc))
 	CVRs, err := c.cvrLister.CStorVolumeReplicas(cvc.Namespace).
 		List(selector)
@@ -392,13 +375,13 @@ func (c *CVCController) IsCVRPending(cvc *apis.CStorVolumeClaim) (bool, error) {
 		return false, merrors.Errorf("failed to list cvr : %v", err)
 	}
 	// TODO: check for greater values
-	return desiredReplicaCount != len(CVRs), nil
+	return cvc.Spec.ReplicaCount != len(CVRs), nil
 }
 
 // BaseLabels returns the base labels we apply to cstorvolumereplicas created
 func BaseLabels(cvc *apis.CStorVolumeClaim) map[string]string {
 	base := map[string]string{
-		pvAnnotaion: cvc.Name,
+		pvSelector: cvc.Name,
 	}
 	return base
 }
