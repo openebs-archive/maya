@@ -154,7 +154,6 @@ func getDeviceType(r api.RaidGroup) string {
 		return DeviceTypeSpare
 	} else if r.IsWriteCache {
 		return DeviceTypeWriteCache
-	} else {
-		return DeviceTypeEmpty
 	}
+	return DeviceTypeEmpty
 }
