@@ -20,7 +20,9 @@ import (
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
+	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	"github.com/pkg/errors"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -56,4 +58,25 @@ func (c *Config) IsPoolPending() bool {
 		return true
 	}
 	return false
+}
+
+// GetCSPWithoutDeployment gets the CSPs for whom the pool deployment does not exists.
+func (c *Config) GetCSPWithoutDeployment() ([]apis.NewTestCStorPool, error) {
+	var cspList []apis.NewTestCStorPool
+	cspGotList, err := apiscsp.NewKubeClient().WithNamespace(c.Namespace).List(metav1.ListOptions{LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + c.CSPC.Name})
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not list csp for cspc {%s}", c.CSPC.Name)
+	}
+	for _, cspObj := range cspGotList.Items {
+		cspObj := cspObj
+		_, err := deploy.NewKubeClient().WithNamespace(c.Namespace).Get(cspObj.Name)
+		if k8serror.IsNotFound(err) {
+			cspList = append(cspList, cspObj)
+			continue
+		}
+		if err != nil {
+			glog.Errorf("Could not get pool deployment for csp {%s}", cspObj.Name)
+		}
+	}
+	return cspList, nil
 }

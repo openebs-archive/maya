@@ -138,6 +138,16 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 			return err
 		}
 	}
+
+	cspList, err := pc.AlgorithmConfig.GetCSPWithoutDeployment()
+	if err != nil {
+		return err
+	}
+
+	if len(cspList) > 0 {
+		pc.createDeployForCSPList(cspList)
+	}
+
 	return nil
 }
 
@@ -159,4 +169,20 @@ func (pc *PoolConfig) create(pendingPoolCount int, cspc *apis.CStorPoolCluster) 
 		}
 	}
 	return nil
+}
+
+func (pc *PoolConfig) createDeployForCSPList(cspList []apis.NewTestCStorPool) {
+	for _, cspObj := range cspList {
+		cspObj := cspObj
+		deployObj, err := pc.GetPoolDeploySpec(&cspObj)
+		if err != nil {
+			glog.Errorf("could not get deployment spec for csp {%s}:{%s}", cspObj.Name, err.Error())
+			continue
+		}
+		err = pc.createPoolDeployment(deployObj)
+		if err != nil {
+			glog.Errorf("could not create deployment for csp {%s}:{%s}", cspObj.Name, err.Error())
+			continue
+		}
+	}
 }
