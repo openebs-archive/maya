@@ -42,6 +42,7 @@ func TestRun(t *testing.T) {
 	// Instantiate the cStor Pool controllers.
 	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
 		openebsInformerFactory)
+	common.Init()
 
 	stopCh := signals.SetupSignalHandler()
 	done := make(chan bool)
@@ -70,6 +71,7 @@ func TestProcessNextWorkItemModify(t *testing.T) {
 	// Instantiate the cStor Pool controllers.
 	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
 		openebsInformerFactory)
+	common.Init()
 
 	testPoolResource := map[string]struct {
 		expectedOutput bool
@@ -127,6 +129,7 @@ func TestProcessNextWorkItemDestroy(t *testing.T) {
 	// Instantiate the cStor Pool controllers.
 	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
 		openebsInformerFactory)
+	common.Init()
 
 	testPoolResource := map[string]struct {
 		expectedOutput bool

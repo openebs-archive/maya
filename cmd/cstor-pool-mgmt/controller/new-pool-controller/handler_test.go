@@ -41,6 +41,7 @@ func TestGetPoolResource(t *testing.T) {
 	// Instantiate the cStor Pool controllers.
 	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
 		openebsInformerFactory)
+	common.Init()
 
 	testPoolResource := map[string]struct {
 		expectedPoolName string
@@ -133,6 +134,7 @@ func TestRemoveFinalizer(t *testing.T) {
 	// Instantiate the cStor Pool controllers.
 	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
 		openebsInformerFactory)
+	common.Init()
 
 	testPoolResource := map[string]struct {
 		expectedError error

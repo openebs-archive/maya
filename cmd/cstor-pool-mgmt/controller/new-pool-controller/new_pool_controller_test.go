@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset/fake"
 	informers "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/informer/externalversions"
 	kubeinformers "k8s.io/client-go/informers"
@@ -37,6 +38,7 @@ func TestNewCStorPoolController(t *testing.T) {
 	// Instantiate the cStor Pool controllers.
 	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
 		openebsInformerFactory)
+	common.Init()
 
 	if poolController.kubeclientset != fakeKubeClient {
 		t.Fatalf("Pool controller object's kubeclientset mismatch")
