@@ -114,7 +114,7 @@ func TestGetPoolResource(t *testing.T) {
 			t.Fatalf("Desc:%v, Unable to create resource : %v", desc, ut.test.ObjectMeta.Name)
 		}
 		// Get the created pool resource using name
-		cStorPoolObtained, err := poolController.getCSPObjFromKey(ut.test.ObjectMeta.Name)
+		cStorPoolObtained, _ := poolController.getCSPObjFromKey(ut.test.ObjectMeta.Name)
 		if string(cStorPoolObtained.ObjectMeta.UID) != ut.expectedPoolName {
 			t.Fatalf("Desc:%v, PoolName mismatch, Expected:%v, Got:%v", desc, ut.expectedPoolName,
 				string(cStorPoolObtained.ObjectMeta.UID))
