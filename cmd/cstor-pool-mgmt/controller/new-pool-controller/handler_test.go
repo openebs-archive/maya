@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
-	zpool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset/fake"
 	informers "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/informer/externalversions"
@@ -203,7 +202,7 @@ func TestIsRightCStorPoolMgmt(t *testing.T) {
 	}
 	for desc, ut := range testPoolResource {
 		os.Setenv(string(common.OpenEBSIOCStorID), string(ut.test.UID))
-		obtainedOutput := zpool.IsRightCStorPoolMgmt(ut.test)
+		obtainedOutput := IsRightCStorPoolMgmt(ut.test)
 		if obtainedOutput != ut.expectedOutput {
 			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedOutput,
 				obtainedOutput)
@@ -241,7 +240,7 @@ func TestIsRightCStorPoolMgmtNegative(t *testing.T) {
 	}
 	for desc, ut := range testPoolResource {
 		os.Setenv(string(common.OpenEBSIOCStorID), string("awer"))
-		obtainedOutput := zpool.IsRightCStorPoolMgmt(ut.test)
+		obtainedOutput := IsRightCStorPoolMgmt(ut.test)
 		if obtainedOutput != ut.expectedOutput {
 			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedOutput,
 				obtainedOutput)
@@ -301,7 +300,7 @@ func TestIsDestroyEvent(t *testing.T) {
 		},
 	}
 	for desc, ut := range testPoolResource {
-		obtainedOutput := zpool.IsDestroyed(ut.test)
+		obtainedOutput := IsDestroyed(ut.test)
 		if obtainedOutput != ut.expectedOutput {
 			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedOutput,
 				obtainedOutput)
