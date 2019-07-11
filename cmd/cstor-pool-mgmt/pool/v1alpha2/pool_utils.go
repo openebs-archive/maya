@@ -44,7 +44,7 @@ func getPathForBdevList(bdevs []api.CStorPoolClusterBlockDevice) ([]string, erro
 
 	for _, b := range bdevs {
 		path, er := getPathForBDev(b.BlockDeviceName)
-		if er != nil {
+		if er != nil || IsEmpty(path) {
 			err = ErrorWrapf(err, "Failed to fetch path for bdev {%s} {%s}", b.BlockDeviceName, er.Error())
 			continue
 		}
