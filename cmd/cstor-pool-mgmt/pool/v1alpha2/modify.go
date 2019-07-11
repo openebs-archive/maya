@@ -20,22 +20,25 @@ func Update(csp *api.CStorNPool) error {
 
 			// Let's check if bdev name is empty
 			// if yes then remove relevant disk from pool
-			if IsEmpty(bdev.BlockDeviceName) {
-				// block device name is empty
-				// Let's remove it
-				// TODO should we offline it only?
-				if er := removePoolVdev(csp, bdev); er != nil {
-					err = ErrorWrapf(err, "Failed to remove bdev {%s}.. %s", bdev.DevLink, er.Error())
-					continue
-				}
-				// remove this entry since it's been already removed from pool
-				raidGroup.BlockDevices = append(raidGroup.BlockDevices[:bdevIndex], raidGroup.BlockDevices[bdevIndex+1:]...)
-				// We just remove the bdevIndex entry from BlockDevices
-				// let's decrement the index to handle above removal
-				bdevIndex--
-				isRaidGroupChanged = true
-				continue
-			}
+			/*
+				// TODO revisit for day-2 ops
+					if IsEmpty(bdev.BlockDeviceName) {
+						// block device name is empty
+						// Let's remove it
+						// TODO should we offline it only?
+						if er := removePoolVdev(csp, bdev); er != nil {
+							err = ErrorWrapf(err, "Failed to remove bdev {%s}.. %s", bdev.DevLink, er.Error())
+							continue
+						}
+						// remove this entry since it's been already removed from pool
+						raidGroup.BlockDevices = append(raidGroup.BlockDevices[:bdevIndex], raidGroup.BlockDevices[bdevIndex+1:]...)
+						// We just remove the bdevIndex entry from BlockDevices
+						// let's decrement the index to handle above removal
+						bdevIndex--
+						isRaidGroupChanged = true
+						continue
+					}
+			*/
 
 			// Let's check if bdev path is changed or not
 			newpath, isChanged, er := isBdevPathChanged(bdev)
@@ -63,11 +66,12 @@ func Update(csp *api.CStorNPool) error {
 			isObjChanged = true
 		}
 	}
-
-	if er := addNewVdevFromCSP(csp); er != nil {
-		err = ErrorWrapf(err, "Failed to execute add operation.. %s", er.Error())
-	}
-
+	/*
+		TODO revisit for day 2 ops
+		if er := addNewVdevFromCSP(csp); er != nil {
+			err = ErrorWrapf(err, "Failed to execute add operation.. %s", er.Error())
+		}
+	*/
 	if isObjChanged {
 		if _, er := OpenEBSClient2.
 			OpenebsV1alpha2().
