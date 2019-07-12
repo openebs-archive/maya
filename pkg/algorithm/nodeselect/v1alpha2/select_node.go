@@ -23,6 +23,7 @@ import (
 	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
+	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	nodeapis "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
 	"github.com/openebs/maya/pkg/volume"
 	"github.com/pkg/errors"
@@ -162,6 +163,7 @@ func (ac *Config) ClaimBD(bdObj *ndmapis.BlockDevice) error {
 		WithHostName(bdObj.Labels[string(apis.HostNameCPK)]).
 		WithCapacity(volume.ByteCount(bdObj.Spec.Capacity.Storage)).
 		WithCSPCOwnerReference(ac.CSPC).
+		WithFinalizer(cspc.CSPCFinalizer).
 		Build()
 
 	if err != nil {
