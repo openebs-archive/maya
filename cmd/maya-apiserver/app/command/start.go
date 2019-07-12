@@ -22,6 +22,7 @@ import (
 	"os/signal"
 	"reflect"
 	"sort"
+	"sync"
 
 	"strings"
 	"syscall"
@@ -126,6 +127,7 @@ func NewCmdStart() *cobra.Command {
 func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 	glog.Infof("Initializing maya-apiserver...")
 
+	var ControllerMutex = sync.RWMutex{}
 	// Read and merge with default configuration
 	mconfig := c.readMayaConfig()
 	if mconfig == nil {
@@ -177,7 +179,7 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 
 	// start storage pool controller
 	go func() {
-		err := spc.Start()
+		err := spc.Start(&ControllerMutex)
 		if err != nil {
 			glog.Errorf("Failed to start storage pool controller: %s", err.Error())
 		}
@@ -185,22 +187,17 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 	}()
 
 	go func() {
-		err := cspc.Start()
+		err := cspc.Start(&ControllerMutex)
 		if err != nil {
 			glog.Errorf("Failed to start CStorPoolCluster controller: %s", err.Error())
 		}
 	}()
 	go func() {
-		err := cvc.Start()
+		err := cvc.Start(&ControllerMutex)
 		if err != nil {
 			glog.Errorf("Failed to start cstorvolume claim controller: %s", err.Error())
 		}
 	}()
-
-	// start webhook controller
-	//go func() {
-	//	webhook.Start()
-	//}()
 
 	if env.Truthy(env.OpenEBSEnableAnalytics) {
 		usage.New().Build().InstallBuilder(true).Send()
