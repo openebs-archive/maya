@@ -121,6 +121,7 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 		WithName(bdcName).
 		WithHostName(blkDevOpts.nodeName).
 		WithCapacity(blkDevOpts.capacity).
+		WithFinalizer(LocalPVFinalizer).
 		Build()
 
 	if err != nil {

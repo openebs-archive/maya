@@ -61,6 +61,8 @@ const (
 	// Some of the PVCs launched with older helm charts, still
 	// refer to the StorageClass via beta annotations.
 	betaStorageClassAnnotation = "volume.beta.kubernetes.io/storage-class"
+	// LocalPVFinalizer represents finalizer string used by LocalPV
+	LocalPVFinalizer = "localpv.openebs.io/finalizer"
 )
 
 //GetVolumeConfig creates a new VolumeConfig struct by
