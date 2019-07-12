@@ -275,3 +275,16 @@ func (b *Builder) WithCSPCOwnerReference(cspc *apis.CStorPoolCluster) *Builder {
 	b.BDC.Object.OwnerReferences = append(b.BDC.Object.OwnerReferences, reference)
 	return b
 }
+
+// WithFinalizer sets the finalizer field in the BDC
+func (b *Builder) WithFinalizer(finalizer string) *Builder {
+	if len(finalizer) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: missing finalizer"),
+		)
+		return b
+	}
+	b.BDC.Object.Finalizers = append(b.BDC.Object.Finalizers, finalizer)
+	return b
+}
