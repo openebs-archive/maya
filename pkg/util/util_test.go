@@ -244,3 +244,30 @@ func TestMergeMap(t *testing.T) {
 
 	}
 }
+
+func TestRemoveString(t *testing.T) {
+	slice1 := []string{"val1", "val2", "val3"}
+	slice2 := []string{"val1", "val2", "val3", "val1"}
+	slice3 := []string{"val1", "val2", "val1", "val3"}
+	slice4 := []string{"val2", "val1", "val1", "val3"}
+	tests := map[string]struct {
+		actual      []string
+		removeValue string
+		expected    []string
+	}{
+		"value is at start":                 {slice1, "val1", []string{"val2", "val3"}},
+		"value is at end":                   {slice1, "val3", []string{"val1", "val2"}},
+		"value is in between":               {slice1, "val2", []string{"val1", "val3"}},
+		"value is twice at start & end":     {slice2, "val1", []string{"val2", "val3"}},
+		"value is twice at start & between": {slice3, "val1", []string{"val2", "val3"}},
+		"value is twice in between":         {slice4, "val1", []string{"val2", "val3"}},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			newSlice := RemoveString(test.actual, test.removeValue)
+			if !reflect.DeepEqual(newSlice, test.expected) {
+				t.Fatalf(" failed to test RemoveString: expected slice '%v': actual slice '%v'", test.expected, newSlice)
+			}
+		})
+	}
+}
