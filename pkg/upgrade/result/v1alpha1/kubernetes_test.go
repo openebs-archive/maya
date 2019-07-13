@@ -477,9 +477,7 @@ func TestKubernetesPatch(t *testing.T) {
 }
 
 func TestKubeClientInstance(t *testing.T) {
-	k := KubeClientInstanceOrDie(
-		WithClientset(&clientset.Clientset{}),
-	)
+	k := KubeClientInstance()
 
 	if k == nil {
 		t.Fatalf("test failed: expected non nil kubeclient got nil")
@@ -489,8 +487,8 @@ func TestKubeClientInstance(t *testing.T) {
 		t.Fatalf("test failed: expected non nil coreclient got nil")
 	}
 
-	if k.clientset == nil {
-		t.Fatalf("test failed: expected non nil clientset got nil")
+	if k.clientset != nil {
+		t.Fatalf("test failed: expected nil clientset got not nil")
 	}
 }
 
@@ -512,12 +510,82 @@ func TestKubeClientInstanceWithNamespace(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			k := KubeClientInstanceOrDie(WithClientset(&clientset.Clientset{})).
+			k := KubeClientInstance(WithClientset(&clientset.Clientset{})).
 				WithNamespace(mock.namespace)
 
 			if mock.expectNamespace != k.namespace {
 				t.Fatalf("test %s failed: expected ns %q got %q", name, mock.expectNamespace, k.namespace)
 			}
 		})
+	}
+}
+
+func TestKubeClientInstanceIsReallySingleton(t *testing.T) {
+
+	var csOk = func() KubeclientBuildOption {
+		return func(k *Kubeclient) {
+			k.getClientset = fakeGetClientset
+		}
+	}
+
+	var csNil = func() KubeclientBuildOption {
+		return func(k *Kubeclient) {
+			k.getClientset = fakeGetNilErrClientSet
+		}
+	}
+
+	var csErr = func() KubeclientBuildOption {
+		return func(k *Kubeclient) {
+			k.getClientset = fakeGetErrClientSet
+		}
+	}
+
+	// instantiate the singleton if not already
+	if coreClientInst == nil {
+		KubeClientInstance(csErr())
+	}
+
+	// if singleton has been set with nil clientset, invoke the
+	// singleton again by setting a non-nil clientset.
+	// However, the instance should still return a nil clientset.
+	if coreClientInst != nil && coreClientInst.clientset == nil {
+		k := KubeClientInstance(csOk())
+
+		if k.clientset != nil {
+			t.Fatalf("test failed: expected nil clientset got not nil")
+		}
+	}
+
+	// if singleton has been set with not nil clientset, invoke the
+	// singleton again by setting a nil clientset. However, the
+	// instance should still return not nil clientset.
+	if coreClientInst != nil && coreClientInst.clientset != nil {
+		k := KubeClientInstance(csNil())
+
+		if k.clientset == nil {
+			t.Fatalf("test failed: expected not nil clientset got nil")
+		}
+	}
+
+	// if singleton has been set with nil clientset error, invoke the
+	// singleton again by setting a clientset error. However, the
+	// instance should still return nil clientset error.
+	if coreClientInst != nil && coreClientInst.clientsetErr == nil {
+		k := KubeClientInstance(csErr())
+
+		if k.clientsetErr != nil {
+			t.Fatalf("test failed: expected nil clientset error got not nil")
+		}
+	}
+
+	// if singleton has been set with clientset error, invoke the
+	// singleton again by setting no clientset error. However, the
+	// instance should still return clientset error.
+	if coreClientInst != nil && coreClientInst.clientsetErr != nil {
+		k := KubeClientInstance(csOk())
+
+		if k.clientsetErr == nil {
+			t.Fatalf("test failed: expected not nil clientset error got nil")
+		}
 	}
 }

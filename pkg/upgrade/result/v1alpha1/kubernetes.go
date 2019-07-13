@@ -23,7 +23,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha1/clientset/internalclientset"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
@@ -75,6 +74,9 @@ type CoreClient struct {
 	// kubeconfig path to get kubernetes clientset
 	kubeConfigPath string
 
+	// error if any while retrieving clientset
+	clientsetErr error
+
 	// functions useful during mocking
 	getClientset        getClientsetFunc
 	list                listFunc
@@ -116,7 +118,7 @@ var (
 	once           sync.Once
 )
 
-// KubeClientInstanceOrDie returns the singleton instance of Kubeclient
+// KubeClientInstance returns the singleton instance of Kubeclient
 //
 // NOTE:
 //  Here singleton points to CoreClient instance only since a Kubeclient
@@ -136,18 +138,17 @@ var (
 //  uresult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 // )
 //
-// uresult.KubeClientInstanceOrDie().WithNamespace("my_ns").Get(...)
-// uresult.KubeClientInstanceOrDie().WithNamespace("my_ns").Create(...)
-// uresult.KubeClientInstanceOrDie().WithNamespace("my_ns").Update(...)
-// uresult.KubeClientInstanceOrDie().WithNamespace("my_ns").List(...)
+// uresult.KubeClientInstance().WithNamespace("my_ns").Get(...)
+// uresult.KubeClientInstance().WithNamespace("my_ns").Create(...)
+// uresult.KubeClientInstance().WithNamespace("my_ns").Update(...)
+// uresult.KubeClientInstance().WithNamespace("my_ns").List(...)
 // ```
-func KubeClientInstanceOrDie(opts ...KubeclientBuildOption) *Kubeclient {
+func KubeClientInstance(opts ...KubeclientBuildOption) *Kubeclient {
 	once.Do(func() {
 		k := NewKubeClient(opts...)
-		_, err := k.getClientOrCached()
-		if err != nil {
-			glog.Fatalf("failed to initialise kubeclient instance: {%v}", err)
-		}
+		k.CoreClient.clientset, k.CoreClient.clientsetErr =
+			k.getClientsetForPathOrDirect()
+
 		coreClientInst = k.CoreClient
 	})
 
@@ -253,6 +254,9 @@ func (k *Kubeclient) WithNamespace(namespace string) *Kubeclient {
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
 func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
+	if k.clientsetErr != nil {
+		return nil, k.clientsetErr
+	}
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
