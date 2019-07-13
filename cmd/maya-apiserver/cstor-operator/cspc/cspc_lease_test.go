@@ -18,16 +18,17 @@ package cspc
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 
-	"github.com/golang/glog"
-	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
-	env "github.com/openebs/maya/pkg/env/v1alpha1"
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"os"
 	"strconv"
 	"testing"
+
+	"github.com/golang/glog"
+	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
 
 // SpcCreator will create fake cspc objects

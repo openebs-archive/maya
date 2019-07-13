@@ -31,7 +31,6 @@ import (
 
 	backupcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/backup-controller"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
-	poolcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/pool-controller"
 	replicacontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/replica-controller"
 	restorecontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/restore"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
@@ -40,11 +39,11 @@ import (
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	"github.com/openebs/maya/pkg/signals"
 
-	poolcontroller2 "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/new-pool-controller"
-
-	// for v1alpha2
-	clientset2 "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset"
-	informers2 "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/informer/externalversions"
+	//poolcontroller2 "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/new-pool-controller"
+	poolcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/new-pool-controller"
+	//// for v1alpha2
+	//clientset2 "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset"
+	//informers2 "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/informer/externalversions"
 )
 
 const (
@@ -75,10 +74,10 @@ func StartControllers(kubeconfig string) {
 		glog.Fatalf("Error building openebs clientset: %s", err.Error())
 	}
 
-	openebsClient2, err := clientset2.NewForConfig(cfg)
-	if err != nil {
-		glog.Fatalf("Error building openebs clientset: %s", err.Error())
-	}
+	//openebsClient2, err := clientset.NewForConfig(cfg)
+	//if err != nil {
+	//	glog.Fatalf("Error building openebs clientset: %s", err.Error())
+	//}
 
 	common.Init()
 
@@ -108,15 +107,15 @@ func StartControllers(kubeconfig string) {
 	openebsInformerFactory := informers.NewSharedInformerFactory(openebsClient, getSyncInterval())
 
 	// openebsInformerFactory2 constructs a new instance of openebs sharedInformerFactory.
-	openebsInformerFactory2 := informers2.NewSharedInformerFactory(openebsClient2, getSyncInterval())
+	//openebsInformerFactory2 := informers.NewSharedInformerFactory(openebsClient2, getSyncInterval())
+
+	//// Instantiate the cStor Pool and VolumeReplica controllers.
+	//cStorPoolController := poolcontroller.NewCStorPoolController(kubeClient, openebsClient, kubeInformerFactory,
+	//	openebsInformerFactory)
 
 	// Instantiate the cStor Pool and VolumeReplica controllers.
 	cStorPoolController := poolcontroller.NewCStorPoolController(kubeClient, openebsClient, kubeInformerFactory,
 		openebsInformerFactory)
-
-	// Instantiate the cStor Pool and VolumeReplica controllers.
-	cStorPoolController2 := poolcontroller2.NewCStorPoolController(kubeClient, openebsClient2, kubeInformerFactory,
-		openebsInformerFactory2)
 
 	volumeReplicaController := replicacontroller.NewCStorVolumeReplicaController(kubeClient, openebsClient, kubeInformerFactory,
 		openebsInformerFactory)
@@ -131,25 +130,25 @@ func StartControllers(kubeconfig string) {
 
 	go kubeInformerFactory.Start(stopCh)
 	go openebsInformerFactory.Start(stopCh)
-	go openebsInformerFactory2.Start(stopCh)
+	//go openebsInformerFactory2.Start(stopCh)
 
 	// Waitgroup for starting pool and VolumeReplica controller goroutines.
 	var wg sync.WaitGroup
+	//wg.Add(NumRoutinesThatFollow)
+
+	//// Run controller for cStorPool.
+	//go func() {
+	//	if err = cStorPoolController.Run(NumThreads, stopCh); err != nil {
+	//		glog.Fatalf("Error running CStorPool controller: %s", err.Error())
+	//	}
+	//	wg.Done()
+	//}()
+
 	wg.Add(NumRoutinesThatFollow)
 
 	// Run controller for cStorPool.
 	go func() {
 		if err = cStorPoolController.Run(NumThreads, stopCh); err != nil {
-			glog.Fatalf("Error running CStorPool controller: %s", err.Error())
-		}
-		wg.Done()
-	}()
-
-	wg.Add(NumRoutinesThatFollow)
-
-	// Run controller for cStorPool.
-	go func() {
-		if err = cStorPoolController2.Run(NumThreads, stopCh); err != nil {
 			glog.Fatalf("Error running CStorPool controller: %s", err.Error())
 		}
 		wg.Done()

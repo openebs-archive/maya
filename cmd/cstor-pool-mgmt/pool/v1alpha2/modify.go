@@ -17,11 +17,11 @@ limitations under the License.
 package v1alpha2
 
 import (
-	api "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
 // Update will update the deployed pool according to given csp object
-func Update(csp *api.CStorNPool) error {
+func Update(csp *apis.NewTestCStorPool) error {
 	var err error
 	var isObjChanged bool
 	var isRaidGroupChanged bool
@@ -89,9 +89,9 @@ func Update(csp *api.CStorNPool) error {
 		}
 	*/
 	if isObjChanged {
-		if _, er := OpenEBSClient2.
-			OpenebsV1alpha2().
-			CStorNPools(csp.Namespace).
+		if _, er := OpenEBSClient.
+			OpenebsV1alpha1().
+			NewTestCStorPools(csp.Namespace).
 			Update(csp); er != nil {
 			err = ErrorWrapf(err, "Failed to update object.. err {%s}", er.Error())
 		}

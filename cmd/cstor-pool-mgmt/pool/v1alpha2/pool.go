@@ -20,12 +20,13 @@ import (
 
 	//	clientset1 "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 
-	clientset2 "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset"
+	//clientset2 "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
 )
 
 // KubeClient is for kubernetes CR operation
 var KubeClient kubernetes.Interface
 
-// OpenEBSClient2 is for openebs CR operation
-var OpenEBSClient2 clientset2.Interface
+// OpenEBSClient is for openebs CR operation
+var OpenEBSClient clientset.Interface

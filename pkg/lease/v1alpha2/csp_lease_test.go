@@ -16,15 +16,17 @@ limitations under the License.
 package lease
 
 import (
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 
 	"os"
 	"strconv"
 	"testing"
 
 	"github.com/golang/glog"
-	openebs "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset"
-	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset/fake"
+	//openebs "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	//openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset/fake"
+	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -32,31 +34,33 @@ import (
 )
 
 type fakeClientset struct {
-	oecs openebs.Interface
+	oecs clientset.Interface
 }
 
 // CspCreator will create fake csp objects
-func (focs *fakeClientset) CspCreator(poolName string, CspLeaseKeyPresent bool, CspLeaseKeyValue string) *apis.CStorNPool {
-	var cspObject *apis.CStorNPool
+func (focs *fakeClientset) CspCreator(poolName string, CspLeaseKeyPresent bool, CspLeaseKeyValue string) *apis.NewTestCStorPool {
+	var cspObject *apis.NewTestCStorPool
 	if CspLeaseKeyPresent {
-		cspObject = &apis.CStorNPool{
+		cspObject = &apis.NewTestCStorPool{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: poolName,
 				Annotations: map[string]string{
 					CspLeaseKey: "{\"holder\":\"" + CspLeaseKeyValue + "\",\"leaderTransition\":1}",
 				},
+				Namespace: NameSpace,
 			},
 		}
 	} else {
-		cspObject = &apis.CStorNPool{
+		cspObject = &apis.NewTestCStorPool{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: poolName,
+				Name:      poolName,
+				Namespace: NameSpace,
 			},
 		}
 	}
 	cspGot, err := focs.oecs.
-		OpenebsV1alpha2().
-		CStorNPools(cspObject.Namespace).
+		OpenebsV1alpha1().
+		NewTestCStorPools(cspObject.Namespace).
 		Create(cspObject)
 	if err != nil {
 		glog.Error(err)
@@ -95,7 +99,7 @@ func TestHold(t *testing.T) {
 	PodCreator(fakeKubeClient, "pool-pod")
 	tests := map[string]struct {
 		// fakestoragepoolclaim holds the fake storagepoolcalim object in test cases.
-		fakestoragepoolclaim *apis.CStorNPool
+		fakestoragepoolclaim *apis.NewTestCStorPool
 		podName              string
 		podNamespace         string
 		// expectedResult holds the expected error for the test case under run.
@@ -160,12 +164,11 @@ func TestHold(t *testing.T) {
 			}
 			// Check for lease value
 			cspGot, _ := focs.oecs.
-				OpenebsV1alpha2().
-				CStorNPools(NameSpace).
+				OpenebsV1alpha1().
+				NewTestCStorPools(NameSpace).
 				Get(test.fakestoragepoolclaim.Name, metav1.GetOptions{})
 			if cspGot.Annotations[CspLeaseKey] != test.expectedResult {
 				t.Errorf("Test case failed: expected lease value '%v' but got '%v' ", test.expectedResult, cspGot.Annotations[CspLeaseKey])
-
 			}
 			os.Unsetenv(string(PodName))
 			os.Unsetenv(string(NameSpace))

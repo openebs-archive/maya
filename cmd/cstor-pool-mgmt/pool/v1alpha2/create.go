@@ -18,13 +18,13 @@ package v1alpha2
 
 import (
 	"github.com/golang/glog"
-	api "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
 	"github.com/pkg/errors"
 )
 
 // Create will create the pool for given csp object
-func Create(csp *api.CStorNPool) error {
+func Create(csp *apis.NewTestCStorPool) error {
 	var err error
 
 	// Let's check if there is any disk having the pool config
@@ -75,7 +75,7 @@ func Create(csp *api.CStorNPool) error {
 	return err
 }
 
-func createPool(csp *api.CStorNPool, r api.RaidGroup) error {
+func createPool(csp *apis.NewTestCStorPool, r apis.RaidGroup) error {
 	ptype := r.Type
 	if len(ptype) == 0 {
 		// type is not mentioned in raidGroup,

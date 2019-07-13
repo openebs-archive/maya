@@ -19,7 +19,7 @@ package v1alpha2
 import (
 	"strings"
 
-	api "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
@@ -38,7 +38,7 @@ const (
 	DevDir = "/dev"
 )
 
-func getPathForBdevList(bdevs []api.CStorPoolClusterBlockDevice) ([]string, error) {
+func getPathForBdevList(bdevs []apis.CStorPoolClusterBlockDevice) ([]string, error) {
 	var vdev []string
 	var err error
 
@@ -82,7 +82,7 @@ func checkIfPoolPresent(name string) bool {
 	return true
 }
 
-func isBdevPathChanged(bdev api.CStorPoolClusterBlockDevice) (string, bool, error) {
+func isBdevPathChanged(bdev apis.CStorPoolClusterBlockDevice) (string, bool, error) {
 	var err error
 	var isPathChanged bool
 
@@ -131,7 +131,7 @@ func checkIfDeviceUsed(path string, t zpool.Topology) bool {
 	return isUsed
 }
 
-func checkIfPoolNotImported(csp *api.CStorNPool) (string, bool, error) {
+func checkIfPoolNotImported(csp *apis.NewTestCStorPool) (string, bool, error) {
 	ret, err := zfs.NewPoolImport().
 		WithDirectory(SparseDir).
 		WithDirectory(DevDir).
@@ -147,7 +147,7 @@ func checkIfPoolNotImported(csp *api.CStorNPool) (string, bool, error) {
 
 // getDeviceType will return type of device from raidGroup
 // It can be either log/cache/stripe(/"")
-func getDeviceType(r api.RaidGroup) string {
+func getDeviceType(r apis.RaidGroup) string {
 	if r.IsReadCache {
 		return DeviceTypeReadCache
 	} else if r.IsSpare {

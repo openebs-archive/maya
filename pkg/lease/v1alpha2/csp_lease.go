@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	patch "github.com/openebs/maya/pkg/patch/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -52,7 +52,7 @@ const (
 // It will try to hold a lease on csp object.
 func (sl *Lease) Hold() (interface{}, error) {
 	// Get the lease value.
-	cspObject, ok := sl.Object.(*apis.CStorNPool)
+	cspObject, ok := sl.Object.(*apis.NewTestCStorPool)
 	if !ok {
 		return nil, fmt.Errorf("expected csp object for leasing but got %#v", cspObject)
 	}
@@ -97,7 +97,7 @@ func (sl *Lease) Hold() (interface{}, error) {
 // See the functions(below) for more details on update strategy
 func (sl *Lease) Update(podName string) (interface{}, error) {
 	var err error
-	newCspObject := sl.Object.(*apis.CStorNPool)
+	newCspObject := sl.Object.(*apis.NewTestCStorPool)
 	if newCspObject.Annotations == nil {
 		_, err = sl.putKeyValue(podName, newCspObject)
 	} else if newCspObject.Annotations[sl.LeaseKey] == "" {
@@ -110,8 +110,8 @@ func (sl *Lease) Update(podName string) (interface{}, error) {
 	}
 
 	csp, err := sl.Oecs.
-		OpenebsV1alpha2().
-		CStorNPools(newCspObject.Namespace).
+		OpenebsV1alpha1().
+		NewTestCStorPools(newCspObject.Namespace).
 		Update(newCspObject)
 	return csp, err
 }
@@ -140,7 +140,7 @@ func (sl *Lease) getPodName() (string, error) {
 
 // patchCspLeaseAnnotation will patch the lease key annotation on csp object to release the lease
 func (sl *Lease) patchCspLeaseAnnotation() error {
-	cspObject, ok := sl.Object.(*apis.CStorNPool)
+	cspObject, ok := sl.Object.(*apis.NewTestCStorPool)
 	if !ok {
 		return fmt.Errorf("expected csp object for leasing but got %#v", cspObject)
 	}
@@ -221,7 +221,7 @@ func parseLeaseValue(leaseValue string) (LeaseContract, error) {
 }
 
 // putKeyValue function will update lease on such CSP which was not acquired by any pod ever in its lifetime.
-func (sl *Lease) putKeyValue(podName string, newCspObject *apis.CStorNPool) (*apis.CStorNPool, error) {
+func (sl *Lease) putKeyValue(podName string, newCspObject *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error) {
 	// make a map that should contain the lease key in csp
 	mapLease := make(map[string]string)
 	leaseValueObj := &LeaseContract{
@@ -239,7 +239,7 @@ func (sl *Lease) putKeyValue(podName string, newCspObject *apis.CStorNPool) (*ap
 }
 
 // putValue function will update lease on CSP if the holder of lease has released the lease successfully.
-func (sl *Lease) putValue(podName string, newCspObject *apis.CStorNPool) (*apis.CStorNPool, error) {
+func (sl *Lease) putValue(podName string, newCspObject *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error) {
 	leaseValueObj := &LeaseContract{
 		podName,
 		1,
@@ -253,7 +253,7 @@ func (sl *Lease) putValue(podName string, newCspObject *apis.CStorNPool) (*apis.
 }
 
 // putUpdatedValue function will update lease on CSP if the holder of lease has died before releasing the lease.
-func (sl *Lease) putUpdatedValue(podName string, newCspObject *apis.CStorNPool) (*apis.CStorNPool, error) {
+func (sl *Lease) putUpdatedValue(podName string, newCspObject *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error) {
 	leaseValueObj, err := parseLeaseValue(newCspObject.Annotations[sl.LeaseKey])
 	if err != nil {
 		return nil, err
@@ -270,7 +270,7 @@ func (sl *Lease) putUpdatedValue(podName string, newCspObject *apis.CStorNPool) 
 
 // Patch is the specific implementation if Patch() interface for patching CSP objects.
 // Similarly, we can have for other objects, if required.
-func (sl *Lease) Patch(name, nameSpace string, patchType types.PatchType, patches []byte) (*apis.CStorNPool, error) {
-	obj, err := sl.Oecs.OpenebsV1alpha2().CStorNPools(nameSpace).Patch(name, patchType, patches)
+func (sl *Lease) Patch(name, nameSpace string, patchType types.PatchType, patches []byte) (*apis.NewTestCStorPool, error) {
+	obj, err := sl.Oecs.OpenebsV1alpha1().NewTestCStorPools(nameSpace).Patch(name, patchType, patches)
 	return obj, err
 }

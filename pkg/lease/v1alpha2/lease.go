@@ -17,7 +17,8 @@ limitations under the License.
 package lease
 
 import (
-	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	//clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset"
 	"k8s.io/client-go/kubernetes"
 )
 

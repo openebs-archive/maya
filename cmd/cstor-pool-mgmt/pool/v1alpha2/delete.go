@@ -18,13 +18,13 @@ package v1alpha2
 
 import (
 	"github.com/golang/glog"
-	api "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
 )
 
 // Delete will destroy the pool for given csp.
 // It will also perform labelclear for pool disk.
-func Delete(csp *api.CStorNPool) error {
+func Delete(csp *apis.NewTestCStorPool) error {
 	glog.Infof("Destroying a pool {%s}", PoolName(csp))
 
 	// Let's check if pool exists or not

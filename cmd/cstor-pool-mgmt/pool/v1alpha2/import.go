@@ -20,7 +20,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
-	api "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
 )
 
@@ -30,7 +30,7 @@ import (
 // It will return -
 // - If pool is imported or not
 // - If any error occurred during import operation
-func Import(csp *api.CStorNPool) (bool, error) {
+func Import(csp *apis.NewTestCStorPool) (bool, error) {
 	if poolExist := checkIfPoolPresent(PoolName(csp)); poolExist {
 		return true, nil
 	}

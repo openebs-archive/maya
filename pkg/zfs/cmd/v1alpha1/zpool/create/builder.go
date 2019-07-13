@@ -72,7 +72,9 @@ func (p *PoolCreate) WithCheck(check ...PredicateFunc) *PoolCreate {
 
 // WithProperty method fills the Property field of PoolCreate object.
 func (p *PoolCreate) WithProperty(key, value string) *PoolCreate {
-	p.Property = append(p.Property, fmt.Sprintf("%s=%s", key, value))
+	if value != "" {
+		p.Property = append(p.Property, fmt.Sprintf("%s=%s", key, value))
+	}
 	return p
 }
 

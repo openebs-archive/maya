@@ -30,14 +30,12 @@ import (
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	zpool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool/v1alpha2"
-	api "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 
-	//for v1alpha2
-
-	apis2 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
-	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset"
-	openebsScheme "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset/scheme"
-	informers "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/informer/externalversions"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/versioned/scheme"
+	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
+	//openebsScheme "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset/scheme"
 )
 
 const poolControllerName = "NCStorPool"
@@ -72,10 +70,10 @@ func NewCStorPoolController(
 	cStorInformerFactory informers.SharedInformerFactory) *CStorPoolController {
 
 	// obtain references to shared index informers for the cStorPool resources
-	cStorPoolInformer := cStorInformerFactory.Openebs().V1alpha2().CStorNPools()
+	cStorPoolInformer := cStorInformerFactory.Openebs().V1alpha1().NewTestCStorPools()
 
 	zpool.KubeClient = kubeclientset
-	zpool.OpenEBSClient2 = clientset
+	zpool.OpenEBSClient = clientset
 
 	err := openebsScheme.AddToScheme(scheme.Scheme)
 	if err != nil {
@@ -100,7 +98,7 @@ func NewCStorPoolController(
 		kubeclientset:   kubeclientset,
 		clientset:       clientset,
 		cStorPoolSynced: cStorPoolInformer.Informer().HasSynced,
-		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CStorNPool"),
+		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CStorPool"),
 		recorder:        recorder,
 	}
 
@@ -109,7 +107,7 @@ func NewCStorPoolController(
 	// Set up an event handler for when CstorPool resources change.
 	cStorPoolInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			csp := obj.(*apis2.CStorNPool)
+			csp := obj.(*apis.NewTestCStorPool)
 			if !IsRightCStorPoolMgmt(csp) {
 				return
 			}
@@ -117,15 +115,15 @@ func NewCStorPoolController(
 		},
 
 		UpdateFunc: func(oldVar, newVar interface{}) {
-			ncsp := newVar.(*api.CStorNPool)
+			csp := newVar.(*apis.NewTestCStorPool)
 
-			if !IsRightCStorPoolMgmt(ncsp) {
+			if !IsRightCStorPoolMgmt(csp) {
 				return
 			}
-			controller.enqueueCStorPool(ncsp)
+			controller.enqueueCStorPool(csp)
 		},
 		DeleteFunc: func(obj interface{}) {
-			csp := obj.(*apis2.CStorNPool)
+			csp := obj.(*apis.NewTestCStorPool)
 			glog.Infof("cStorPool Resource deleted event: %v, %v", csp.ObjectMeta.Name, string(csp.ObjectMeta.UID))
 		},
 	})
@@ -136,7 +134,7 @@ func NewCStorPoolController(
 // enqueueCstorPool takes a CStorPool resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
 // passed resources of any type other than CStorPools.
-func (c *CStorPoolController) enqueueCStorPool(obj *apis2.CStorNPool) {
+func (c *CStorPoolController) enqueueCStorPool(obj *apis.NewTestCStorPool) {
 	key, err := cache.MetaNamespaceKeyFunc(obj)
 	if err != nil {
 		runtime.HandleError(err)

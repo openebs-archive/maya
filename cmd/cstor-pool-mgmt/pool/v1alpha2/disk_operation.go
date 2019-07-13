@@ -18,7 +18,7 @@ package v1alpha2
 
 import (
 	"github.com/golang/glog"
-	api "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
 	"github.com/pkg/errors"
 )
@@ -35,7 +35,7 @@ const (
 )
 
 // addRaidGroup add given raidGroup to pool
-func addRaidGroup(csp *api.CStorNPool, r api.RaidGroup) error {
+func addRaidGroup(csp *apis.NewTestCStorPool, r apis.RaidGroup) error {
 	ptype := r.Type
 	if len(ptype) == 0 {
 		// type is not mentioned in raidGroup,
@@ -62,7 +62,7 @@ func addRaidGroup(csp *api.CStorNPool, r api.RaidGroup) error {
 
 /*
 // addNewVdevFromCSP will add new disk, which is not being used in pool, from csp to given pool
-func addNewVdevFromCSP(csp *api.CStorNPool) error {
+func addNewVdevFromCSP(csp *apis.NewTestCStorPool) error {
 	var err error
 
 	poolTopology, err := zfs.NewPoolDump().WithPool(PoolName(csp)).Execute()
@@ -101,7 +101,7 @@ func addNewVdevFromCSP(csp *api.CStorNPool) error {
 */
 
 /*
-func removePoolVdev(csp *api.CStorNPool, bdev api.CStorPoolClusterBlockDevice) error {
+func removePoolVdev(csp *apis.NewTestCStorPool, bdev apis.CStorPoolClusterBlockDevice) error {
 	if _, err := zfs.NewPoolRemove().
 		WithDevice(bdev.DevLink).
 		WithPool(PoolName(csp)).
@@ -122,7 +122,7 @@ func removePoolVdev(csp *api.CStorNPool, bdev api.CStorPoolClusterBlockDevice) e
 }
 */
 
-func replacePoolVdev(csp *api.CStorNPool, bdev api.CStorPoolClusterBlockDevice, npath string) error {
+func replacePoolVdev(csp *apis.NewTestCStorPool, bdev apis.CStorPoolClusterBlockDevice, npath string) error {
 	if IsEmpty(npath) || IsEmpty(bdev.DevLink) {
 		return errors.Errorf("Empty path for bdev")
 	}

@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
-	api "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha2"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
 )
 
@@ -37,7 +37,7 @@ func ErrorWrapf(err error, format string, args ...interface{}) error {
 }
 
 // PoolName return pool name for given CSP object
-func PoolName(csp *api.CStorNPool) string {
+func PoolName(csp *apis.NewTestCStorPool) string {
 	return PoolPrefix + string(csp.ObjectMeta.UID)
 }
 

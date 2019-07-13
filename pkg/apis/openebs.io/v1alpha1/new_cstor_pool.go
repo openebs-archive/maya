@@ -46,8 +46,8 @@ type NewCStorPoolSpec struct {
 	// PoolConfig is the default pool config that applies to the
 	// pool on node.
 	PoolConfig PoolConfig `json:"poolConfig"`
-	// RaidGroup is the group containing block devices
-	RaidGroup []RaidGroup `json:"raidGroup"`
+	// RaidGroups is the group containing block devices
+	RaidGroups []RaidGroup `json:"raidGroup"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
