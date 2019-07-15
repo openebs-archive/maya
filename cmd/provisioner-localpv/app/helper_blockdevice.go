@@ -242,12 +242,12 @@ func (p *Provisioner) removeFinalizer(blkDevOpts *HelperBlockDeviceOptions) erro
 	}
 
 	// create a copy of BDC for creating patch
-	newBDC := bdc.DeepCopy()
+	bdcCopy := bdc.DeepCopy()
 
 	// edit the finalizer in the copy of the BDC
-	newBDC.Finalizers = util.RemoveString(bdc.Finalizers, LocalPVFinalizer)
+	bdcCopy.Finalizers = util.RemoveString(bdc.Finalizers, LocalPVFinalizer)
 
-	patchBytes, err := apiutil.GetPatchData(bdc, newBDC)
+	patchBytes, err := apiutil.GetPatchData(bdc, bdcCopy)
 
 	// patch the BDC with the new finalizer array
 	_, err = blockdeviceclaim.NewKubeClient().
