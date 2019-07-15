@@ -174,15 +174,19 @@ func (pc *PoolConfig) create(pendingPoolCount int, cspc *apis.CStorPoolCluster) 
 func (pc *PoolConfig) createDeployForCSPList(cspList []apis.NewTestCStorPool) {
 	for _, cspObj := range cspList {
 		cspObj := cspObj
-		deployObj, err := pc.GetPoolDeploySpec(&cspObj)
-		if err != nil {
-			glog.Errorf("could not get deployment spec for csp {%s}:{%s}", cspObj.Name, err.Error())
-			continue
-		}
-		err = pc.createPoolDeployment(deployObj)
-		if err != nil {
-			glog.Errorf("could not create deployment for csp {%s}:{%s}", cspObj.Name, err.Error())
-			continue
-		}
+		pc.createDeployForCSP(&cspObj)
+	}
+}
+
+func (pc *PoolConfig) createDeployForCSP(csp *apis.NewTestCStorPool) {
+	deployObj, err := pc.GetPoolDeploySpec(csp)
+	if err != nil {
+		glog.Errorf("could not get deployment spec for csp {%s}:{%s}", csp.Name, err.Error())
+		return
+	}
+	err = pc.createPoolDeployment(deployObj)
+	if err != nil {
+		glog.Errorf("could not create deployment for csp {%s}:{%s}", csp.Name, err.Error())
+		return
 	}
 }
