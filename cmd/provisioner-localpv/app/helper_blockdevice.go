@@ -20,6 +20,9 @@ and modified to work with the configuration options used by OpenEBS
 package app
 
 import (
+	"github.com/openebs/maya/pkg/apiutil"
+	"github.com/openebs/maya/pkg/util"
+	"k8s.io/apimachinery/pkg/types"
 	//"fmt"
 	//"path/filepath"
 	//"strings"
@@ -43,6 +46,8 @@ import (
 
 const (
 	bdcStorageClassAnnotation = "local.openebs.io/blockdeviceclaim"
+	// LocalPVFinalizer represents finalizer string used by LocalPV
+	LocalPVFinalizer = "local.openebs.io/finalizer"
 )
 
 //TODO
@@ -208,8 +213,13 @@ func (p *Provisioner) deleteBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 		return nil
 	}
 
-	//TODO: Issue a delete BDC request
-	err := blockdeviceclaim.NewKubeClient().
+	err := p.removeFinalizer(blkDevOpts)
+	if err != nil {
+		// if finalizer is not removed, donot proceed with deletion
+		return errors.Errorf("unable to remove finalizer on BDC %v : %v", blkDevOpts.name, err)
+	}
+
+	err = blockdeviceclaim.NewKubeClient().
 		WithNamespace(p.namespace).
 		Delete(blkDevOpts.bdcName, &metav1.DeleteOptions{})
 
@@ -218,4 +228,31 @@ func (p *Provisioner) deleteBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 		return errors.Errorf("unable to delete BDC %v associated with PV:%v", blkDevOpts.bdcName, blkDevOpts.name)
 	}
 	return nil
+}
+
+//
+func (p *Provisioner) removeFinalizer(blkDevOpts *HelperBlockDeviceOptions) error {
+	glog.Info("removing local-pv finalizer on the BDC")
+
+	bdc, err := blockdeviceclaim.NewKubeClient().
+		WithNamespace(p.namespace).
+		Get(blkDevOpts.name, metav1.GetOptions{})
+	if err != nil {
+		return errors.Errorf("unable to get BDC %s for removing finalizer", blkDevOpts.name)
+	}
+
+	// create a copy of BDC for creating patch
+	newBDC := bdc.DeepCopy()
+
+	// edit the finalizer in the copy of the BDC
+	newBDC.Finalizers = util.RemoveString(bdc.Finalizers, LocalPVFinalizer)
+
+	patchBytes, err := apiutil.GetPatchData(bdc, newBDC)
+
+	// patch the BDC with the new finalizer array
+	_, err = blockdeviceclaim.NewKubeClient().
+		WithNamespace(p.namespace).
+		Patch(blkDevOpts.name, types.MergePatchType, patchBytes)
+
+	return err
 }
