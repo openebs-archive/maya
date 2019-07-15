@@ -17,6 +17,8 @@ limitations under the License.
 package cspc
 
 import (
+	"os"
+
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
@@ -28,7 +30,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
 )
 
 // OpenEBSServiceAccount name of the openebs service accout with required
@@ -169,13 +170,13 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.NewTestCStorPool) (*appsv1.Dep
 							&hostpathTypeDirectory,
 						),
 					volume.NewBuilder().
-						WithName("sparse").
+						WithName("tmp").
 						WithHostPathAndType(
-							getSparseDirPath()+"shared-"+csp.Name,
+							getSparseDirPath()+"/shared-"+csp.Name,
 							&hostpathTypeDirectoryOrCreate,
 						),
 					volume.NewBuilder().
-						WithName("tmp").
+						WithName("sparse").
 						WithHostPathAndType(
 							getSparseDirPath(),
 							&hostpathTypeDirectoryOrCreate,

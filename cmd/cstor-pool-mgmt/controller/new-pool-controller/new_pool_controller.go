@@ -38,7 +38,7 @@ import (
 	//openebsScheme "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset/scheme"
 )
 
-const poolControllerName = "NCStorPool"
+const poolControllerName = "CStorPool"
 
 // CStorPoolController is the controller implementation for CStorPool resources.
 type CStorPoolController struct {

@@ -64,7 +64,7 @@ func (c *CStorPoolController) reconcile(key string) error {
 			c.recorder.Event(csp,
 				corev1.EventTypeWarning,
 				string(common.FailureImported),
-				string(common.FailureImportOperations))
+				fmt.Sprintf("Failed to import pool due to '%s'", err.Error()))
 			common.SyncResources.Mux.Unlock()
 			return err
 		}
@@ -81,14 +81,14 @@ func (c *CStorPoolController) reconcile(key string) error {
 			c.recorder.Event(csp,
 				corev1.EventTypeWarning,
 				string(common.FailureCreate),
-				fmt.Sprintf("%s : %s", string(common.MessageResourceFailCreate), err.Error()))
+				fmt.Sprintf("Failed to create pool due to '%s'", err.Error()))
 			common.SyncResources.Mux.Unlock()
 			return err
 		}
 		c.recorder.Event(csp,
 			corev1.EventTypeNormal,
 			string(common.SuccessCreated),
-			string(common.MessageResourceCreated))
+			fmt.Sprintf("Pool created successfully"))
 	}
 	common.SyncResources.Mux.Unlock()
 
@@ -105,7 +105,7 @@ func (c *CStorPoolController) destroy(csp *apis.NewTestCStorPool) error {
 		c.recorder.Event(csp,
 			corev1.EventTypeWarning,
 			string(common.FailureDestroy),
-			string(common.MessageResourceFailDestroy))
+			fmt.Sprintf("Failed to delete pool due to '%s'", err.Error()))
 		phase = apis.CStorPoolStatusDeletionFailed
 		goto updatestatus
 	}
@@ -177,7 +177,7 @@ func (c *CStorPoolController) updateStatus(csp *apis.NewTestCStorPool) error {
 		c.recorder.Event(csp,
 			corev1.EventTypeWarning,
 			string(common.FailureStatusSync),
-			string(common.MessageResourceFailStatusSync))
+			fmt.Sprintf("Failed to sync due to '%s'", err.Error()))
 		return err
 	}
 
