@@ -18,6 +18,12 @@ package cspc
 
 import (
 	"fmt"
+	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	"github.com/openebs/maya/pkg/apiutil"
+	"github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"time"
 
 	"github.com/golang/glog"
@@ -137,6 +143,30 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 		return nil
 	}
 
+
+	if !cspc.DeletionTimestamp.IsZero() {
+
+		// get all the BDCs associated with the cspc
+		bdcList, err := c.getUsedBDCs(cspc, openebsNameSpace)
+		if err != nil {
+			return err
+		}
+		glog.Infof("Length of bdc %d", len(bdcList.Items))
+		// iterate over the bdc and remove the finalizer
+		for _, bdc := range bdcList.Items {
+			_, err := c.removeBDCFinalizer(&bdc, v1alpha1.CSPCFinalizer)
+			if err != nil {
+				return err
+			}
+		}
+
+		// remove finalizer on cspc
+		_, err = c.removeCSPCFinalizer(cspc, v1alpha1.CSPCFinalizer)
+		if err != nil {
+			return err
+		}
+	}
+
 	pendingPoolCount, err := pc.AlgorithmConfig.GetPendingPoolCount()
 	if err != nil {
 		message := fmt.Sprintf("Could not sync CSPC : failed to get pending pool count: {%s}", err.Error())
@@ -218,4 +248,52 @@ func (pc *PoolConfig) createDeployForCSP(csp *apis.NewTestCStorPool) error {
 		return errors.Wrapf(err, "could not create deployment for csp {%s}", csp.Name)
 	}
 	return nil
+}
+
+// getUsedBDCs returns BDCList that is associated with the given cspc
+func (c *Controller) getUsedBDCs(cspc *apis.CStorPoolCluster, namespace string) (*ndmapis.BlockDeviceClaimList, error) {
+	bdcList, err := c.ndmclientset.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+		List(metav1.ListOptions{LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + cspc.Name})
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not list BDCs for CSPC %v", cspc.Name)
+	}
+	return bdcList, nil
+}
+
+// removeBDCFinalizer removes cspc finalizer from the BDCs
+func (c *Controller) removeBDCFinalizer(bdcObj *ndmapis.BlockDeviceClaim, finalizer string) (*ndmapis.BlockDeviceClaim, error) {
+	if len(bdcObj.Finalizers) == 0 {
+		return bdcObj, nil
+	}
+
+	bdcCopy := bdcObj.DeepCopy()
+	bdcCopy.Finalizers = util.RemoveString(bdcCopy.Finalizers, finalizer)
+
+	newBDCobj, err := c.ndmclientset.OpenebsV1alpha1().BlockDeviceClaims(bdcObj.Namespace).Update(bdcCopy)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to remove finalizer from BDC %v", bdcObj.Name)
+	}
+	return newBDCobj, nil
+}
+
+// removeCSPCFinalizer will remove finalizer on cspc
+func (c *Controller) removeCSPCFinalizer(cspcObj *apis.CStorPoolCluster, finalizer string) (*apis.CStorPoolCluster, error) {
+	if len(cspcObj.Finalizers) == 0 {
+		return cspcObj, nil
+	}
+
+	cspcCopy := cspcObj.DeepCopy()
+	cspcCopy.Finalizers = util.RemoveString(cspcCopy.Finalizers, finalizer)
+	patchBytes, err := apiutil.GetPatchData(cspcObj, cspcCopy)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get patch bytes from cspc %v", cspcCopy.Name)
+	}
+	newCSPCObj, err := c.clientset.
+		OpenebsV1alpha1().
+		CStorPoolClusters(cspcObj.Namespace).
+		Patch(cspcCopy.Name, types.MergePatchType, patchBytes)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to remove finalizers from cspc %v", cspcObj.Name)
+	}
+	return newCSPCObj, nil
 }
