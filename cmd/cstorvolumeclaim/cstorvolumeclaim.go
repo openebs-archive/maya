@@ -173,13 +173,12 @@ func getNamespace() string {
 	return menv.Get(menv.OpenEBSNamespace)
 }
 
-// getSPC gets storagePoolClaim from
-// storageclass parameter
+// getSPC gets storagePoolClaim from cstorvolumeclaim resource
 func getSPC(
 	claim *apis.CStorVolumeClaim,
 ) string {
 
-	spcName := claim.Annotations["openebs.io/cspc-name"]
+	spcName := claim.Labels[string(apis.StoragePoolClaimCPK)]
 	return spcName
 }
 
