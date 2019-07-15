@@ -98,7 +98,7 @@ func NewCStorPoolController(
 		kubeclientset:   kubeclientset,
 		clientset:       clientset,
 		cStorPoolSynced: cStorPoolInformer.Informer().HasSynced,
-		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CStorPool"),
+		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), poolControllerName),
 		recorder:        recorder,
 	}
 

@@ -54,7 +54,7 @@ func (c *CStorPoolController) reconcile(key string) error {
 		return c.destroy(csp)
 	}
 
-	// take a lock for common
+	// take a lock for common package for updating variables
 	common.SyncResources.Mux.Lock()
 
 	// try to import pool
