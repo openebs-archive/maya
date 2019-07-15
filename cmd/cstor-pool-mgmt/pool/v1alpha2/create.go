@@ -88,11 +88,14 @@ func createPool(csp *apis.NewTestCStorPool, r apis.RaidGroup) error {
 		return errors.Errorf("Failed to get list of disk-path : %s", err.Error())
 	}
 
-	_, err = zfs.NewPoolCreate().
+	ret, err := zfs.NewPoolCreate().
 		WithType(ptype).
 		WithProperty("cachefile", csp.Spec.PoolConfig.CacheFile).
 		WithPool(PoolName(csp)).
 		WithVdevList(vlist).
 		Execute()
-	return err
+	if err != nil {
+		return errors.Errorf("Failed to create pool.. %s .. %s", string(ret), err.Error())
+	}
+	return nil
 }
