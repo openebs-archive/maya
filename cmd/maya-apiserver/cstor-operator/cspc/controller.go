@@ -157,7 +157,7 @@ func (c *Controller) addCSPC(obj interface{}) {
 	}
 	if cspc.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
 		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey))
-		c.recorder.Event(cspc, corev1.EventTypeWarning, "Create", message)
+		c.recorder.Event(cspc, apis.EventTypeWarning, "Create", message)
 		return
 	}
 	glog.V(4).Infof("Queuing CSPC %s for add event", cspc.Name)
@@ -173,7 +173,7 @@ func (c *Controller) updateCSPC(oldCSPC, newCSPC interface{}) {
 	}
 	if cspc.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
 		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey))
-		c.recorder.Event(cspc, corev1.EventTypeWarning, "Update", message)
+		c.recorder.Event(cspc, apis.EventTypeWarning, "Update", message)
 		return
 	}
 	c.enqueueCSPC(cspc)
@@ -196,7 +196,7 @@ func (c *Controller) deleteCSPC(obj interface{}) {
 	}
 	if cspc.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
 		message := fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey))
-		c.recorder.Event(cspc, corev1.EventTypeWarning, "Delete", message)
+		c.recorder.Event(cspc, apis.EventTypeWarning, "Delete", message)
 		return
 	}
 	glog.V(4).Infof("Deleting cstorpoolcluster %s", cspc.Name)
