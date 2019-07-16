@@ -26,15 +26,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-const (
-	// maxRetries is the number of times a CSPC will be retried before it is dropped out of the queue.
-	// With the current rate-limiter in use (5ms*2^(maxRetries-1)) the following numbers represent the times
-	// a CSPC is going to be requeued:
-	//
-	// 5ms, 10ms, 20ms, 40ms, 80ms, 160ms, 320ms, 640ms, 1.3s, 2.6s, 5.1s, 10.2s, 20.4s, 41s, 82s
-	maxRetries = 15
-)
-
 // Run will set up the event handlers for types we are interested in, as well
 // as syncing informer caches and starting workers. It will block until stopCh
 // is closed, at which point it will shutdown the workqueue and wait for
@@ -83,7 +74,7 @@ func (c *Controller) processNextWorkItem() bool {
 	}
 
 	// We wrap this block in a func so we can defer c.workqueue.Done.
-	err, key := func(obj interface{}) (error, string) {
+	err := func(obj interface{}) error {
 		// We call Done here so the workqueue knows we have finished
 		// processing this item. We also must remember to call Forget if we
 		// do not want this work item being re-queued. For example, we do
@@ -104,43 +95,26 @@ func (c *Controller) processNextWorkItem() bool {
 			// process a work item that is invalid.
 			c.workqueue.Forget(obj)
 			runtime.HandleError(fmt.Errorf("expected string in workqueue but got %#v", obj))
-			return nil, ""
+			return nil
 		}
 		// Run the syncHandler, passing it the namespace/name string of the
 		// Foo resource to be synced.
 		if err := c.syncHandler(key); err != nil {
 			// Put the item back on the workqueue to handle any transient errors.
 			c.workqueue.AddRateLimited(key)
-			return fmt.Errorf("error syncing '%s': %s", key, err.Error()), key
+			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
 		}
 		// Finally, if no error occurs we Forget this item so it does not
 		// get queued again until another change happens.
 		c.workqueue.Forget(obj)
 		glog.V(1).Infof("Successfully synced '%s'", key)
-		return nil, key
+		return nil
 	}(obj)
 
 	if err != nil {
-		c.handleErr(err, key)
+		runtime.HandleError(err)
 		return true
 	}
 
 	return true
-}
-
-func (c *Controller) handleErr(err error, key interface{}) {
-	if err == nil {
-		c.workqueue.Forget(key)
-		return
-	}
-
-	if c.workqueue.NumRequeues(key) < maxRetries {
-		glog.V(2).Infof("Requeuing CSPC as sync failed %v: %v", key, err)
-		c.workqueue.AddRateLimited(key)
-		return
-	}
-
-	runtime.HandleError(err)
-	glog.V(2).Infof("Dropping CSPC %q out of the queue: %v", key, err)
-	c.workqueue.Forget(key)
 }
