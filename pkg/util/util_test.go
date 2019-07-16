@@ -261,6 +261,9 @@ func TestRemoveString(t *testing.T) {
 		"value is twice at start & end":     {slice2, "val1", []string{"val2", "val3"}},
 		"value is twice at start & between": {slice3, "val1", []string{"val2", "val3"}},
 		"value is twice in between":         {slice4, "val1", []string{"val2", "val3"}},
+		"nil array and non empty value":     {nil, "val1", nil},
+		"empty string to be removed":        {slice1, "", slice1},
+		"nil array and empty string":        {nil, "", nil},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
