@@ -144,26 +144,10 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 	}
 
 	if !cspc.DeletionTimestamp.IsZero() {
-
-		// get all the BDCs associated with the cspc
-		bdcList, err := c.getUsedBDCs(cspc, openebsNameSpace)
-		if err != nil {
-			return err
-		}
-
-		// iterate over the bdc and remove the finalizer
-		for _, bdc := range bdcList.Items {
-			err := c.removeBDCFinalizer(&bdc, v1alpha1.CSPCFinalizer)
-			if err != nil {
-				return err
-			}
-		}
-
-		// remove finalizer on cspc
-		err = c.removeCSPCFinalizer(cspc, v1alpha1.CSPCFinalizer)
-		if err != nil {
-			return err
-		}
+		// if returns error, we need to reque the request;
+		// else will return from sync method to avoid further reconcilation
+		// of object
+		return c.handleDeletion(cspc, openebsNameSpace)
 	}
 
 	pendingPoolCount, err := pc.AlgorithmConfig.GetPendingPoolCount()
@@ -257,6 +241,34 @@ func (c *Controller) getUsedBDCs(cspc *apis.CStorPoolCluster, namespace string) 
 		return nil, errors.Wrapf(err, "could not list BDCs for CSPC %v", cspc.Name)
 	}
 	return bdcList, nil
+}
+
+// handleDeletion is used to perform operation when the delete timestamp is set
+// on the object
+func (c *Controller) handleDeletion(cspc *apis.CStorPoolCluster, namespace string) error {
+	// get all the BDCs associated with the cspc
+	bdcList, err := c.getUsedBDCs(cspc, namespace)
+	if err != nil {
+		return err
+	}
+
+	// iterate over the bdc and remove the finalizer
+	for _, bdc := range bdcList.Items {
+		err := c.removeBDCFinalizer(&bdc, v1alpha1.CSPCFinalizer)
+		if err != nil {
+			return err
+		}
+	}
+
+	// remove finalizer on cspc
+	err = c.removeCSPCFinalizer(cspc, v1alpha1.CSPCFinalizer)
+	if err != nil {
+		return err
+	}
+
+	// if finalizer is removed successfully, then object will
+	// be removed and no need to reconcile further
+	return nil
 }
 
 // removeBDCFinalizer removes the given finalizer from the BDC
