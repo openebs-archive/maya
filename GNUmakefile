@@ -66,6 +66,18 @@ EXTERNAL_TOOLS=\
 # list only our .go files i.e. exlcudes any .go files from the vendor directory
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
+# docker hub username
+HUB_USER?=openebs
+
+# Repository name
+CSTOR_POOL_MGMT_REPO_NAME?=cstor-pool-mgmt
+CSTOR_VOLUME_MGMT_REPO_NAME?=cstor-volume-mgmt
+M_EXPORTER_REPO_NAME?=m-exporter
+ADMISSION_SERVER_REPO_NAME?=admission-server
+M_APISERVER_REPO_NAME?=m-apiserver
+M_APISERVER_REPO_NAME?=m-apiserver
+M_UPGRADE_REPO_NAME?=m-upgrade
+
 ifeq (${IMAGE_TAG}, )
   IMAGE_TAG = ci
   export IMAGE_TAG
@@ -263,7 +275,7 @@ pool-mgmt-image: cstor-pool-mgmt
 	@echo "--> cstor-pool-mgmt image "
 	@echo "----------------------------"
 	@cp bin/cstor-pool-mgmt/${POOL_MGMT} buildscripts/cstor-pool-mgmt/
-	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t openebs/cstor-pool-mgmt:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
+	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t ${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
 	@rm buildscripts/cstor-pool-mgmt/${POOL_MGMT}
 
 #Use this to build cstor-volume-mgmt
@@ -287,7 +299,7 @@ volume-mgmt-image: cstor-volume-mgmt
 	@echo "--> cstor-volume-mgmt image         "
 	@echo "----------------------------"
 	@cp bin/cstor-volume-mgmt/${VOLUME_MGMT} buildscripts/cstor-volume-mgmt/
-	@cd buildscripts/cstor-volume-mgmt && sudo docker build -t openebs/cstor-volume-mgmt:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/cstor-volume-mgmt && sudo docker build -t ${HUB_USER}/${CSTOR_VOLUME_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/cstor-volume-mgmt/${VOLUME_MGMT}
 
 # Use this to build only the maya-exporter.
@@ -303,7 +315,7 @@ exporter-image: exporter
 	@echo "--> m-exporter image         "
 	@echo "----------------------------"
 	@cp bin/exporter/${EXPORTER} buildscripts/exporter/
-	@cd buildscripts/exporter && sudo docker build -t openebs/m-exporter:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} .
+	@cd buildscripts/exporter && sudo docker build -t ${HUB_USER}/${M_EXPORTER_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} .
 	@rm buildscripts/exporter/${EXPORTER}
 
 admission-server-image:
@@ -312,7 +324,7 @@ admission-server-image:
 	@echo "----------------------------"
 	@PNAME=${WEBHOOK} CTLNAME=${WEBHOOK} sh -c "'$(PWD)/buildscripts/build.sh'"
 	@cp bin/${WEBHOOK}/${WEBHOOK} buildscripts/admission-server/
-	@cd buildscripts/${WEBHOOK} && sudo docker build -t openebs/admission-server:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/${WEBHOOK} && sudo docker build -t ${HUB_USER}/${ADMISSION_SERVER_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/${WEBHOOK}/${WEBHOOK}
 
 # Use this to build only the maya apiserver.
@@ -330,7 +342,7 @@ apiserver-image: mayactl apiserver
 	@echo "----------------------------"
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
 	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
-	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/apiserver && sudo docker build -t ${HUB_USER}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
 
@@ -340,7 +352,7 @@ rhel-apiserver-image: mayactl apiserver
 	@echo "----------------------------"
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
 	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
-	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:${IMAGE_TAG} -f Dockerfile.rhel --build-arg VERSION=${VERSION} .
+	@cd buildscripts/apiserver && sudo docker build -t ${HUB_USER}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG} -f Dockerfile.rhel --build-arg VERSION=${VERSION} .
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
 
@@ -367,7 +379,7 @@ upgrade-image: upgrade
 	@echo "--> ${UPGRADE} image"
 	@echo "----------------------------"
 	@cp bin/${UPGRADE}/${UPGRADE} buildscripts/${UPGRADE}/
-	@cd buildscripts/${UPGRADE} && sudo docker build -t openebs/m-upgrade:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/${UPGRADE} && sudo docker build -t ${HUB_USER}/${M_UPGRADE_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/${UPGRADE}/${UPGRADE}
 
 .PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image upgrade upgrade-image testv
