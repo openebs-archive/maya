@@ -20,7 +20,7 @@ and modified to work with the configuration options used by OpenEBS
 package app
 
 import (
-	strategicmerge "github.com/openebs/maya/pkg/kubernetes/strategicmerge/v1alpha1"
+	"github.com/openebs/maya/pkg/kubernetes/strategicmerge"
 	"github.com/openebs/maya/pkg/util"
 	"k8s.io/apimachinery/pkg/types"
 	//"fmt"

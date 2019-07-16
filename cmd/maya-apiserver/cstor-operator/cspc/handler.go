@@ -20,7 +20,7 @@ import (
 	"fmt"
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	"github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
-	strategicmerge "github.com/openebs/maya/pkg/kubernetes/strategicmerge/v1alpha1"
+	"github.com/openebs/maya/pkg/kubernetes/strategicmerge"
 	"github.com/openebs/maya/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
