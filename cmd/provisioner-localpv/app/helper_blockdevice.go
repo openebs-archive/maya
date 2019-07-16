@@ -241,13 +241,10 @@ func (p *Provisioner) removeFinalizer(blkDevOpts *HelperBlockDeviceOptions) erro
 		return errors.Errorf("unable to get BDC %s for removing finalizer", blkDevOpts.name)
 	}
 
-	// create a copy of BDC for creating patch
-	bdcCopy := bdc.DeepCopy()
-
 	// edit the finalizer in the copy of the BDC
-	bdcCopy.Finalizers = util.RemoveString(bdc.Finalizers, LocalPVFinalizer)
+	bdc.Finalizers = util.RemoveString(bdc.Finalizers, LocalPVFinalizer)
 
-	patchBytes, err := strategicmerge.GetPatchData(bdc, bdcCopy)
+	patchBytes, err := strategicmerge.GetPatchData(bdc, bdc)
 	if err != nil {
 		return errors.Wrapf(err, "could not create patch bytes for BDC %s", bdc.Name)
 	}

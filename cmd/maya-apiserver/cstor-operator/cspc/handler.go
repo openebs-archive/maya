@@ -143,7 +143,6 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 		return nil
 	}
 
-
 	if !cspc.DeletionTimestamp.IsZero() {
 
 		// get all the BDCs associated with the cspc
@@ -151,17 +150,17 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 		if err != nil {
 			return err
 		}
-		glog.Infof("Length of bdc %d", len(bdcList.Items))
+
 		// iterate over the bdc and remove the finalizer
 		for _, bdc := range bdcList.Items {
-			_, err := c.removeBDCFinalizer(&bdc, v1alpha1.CSPCFinalizer)
+			err := c.removeBDCFinalizer(&bdc, v1alpha1.CSPCFinalizer)
 			if err != nil {
 				return err
 			}
 		}
 
 		// remove finalizer on cspc
-		_, err = c.removeCSPCFinalizer(cspc, v1alpha1.CSPCFinalizer)
+		err = c.removeCSPCFinalizer(cspc, v1alpha1.CSPCFinalizer)
 		if err != nil {
 			return err
 		}
@@ -260,44 +259,42 @@ func (c *Controller) getUsedBDCs(cspc *apis.CStorPoolCluster, namespace string) 
 	return bdcList, nil
 }
 
-// removeBDCFinalizer removes cspc finalizer from the BDCs
-func (c *Controller) removeBDCFinalizer(bdcObj *ndmapis.BlockDeviceClaim, finalizer string) (*ndmapis.BlockDeviceClaim, error) {
+// removeBDCFinalizer removes the given finalizer from the BDC
+func (c *Controller) removeBDCFinalizer(bdcObj *ndmapis.BlockDeviceClaim, finalizer string) error {
 	if len(bdcObj.Finalizers) == 0 {
-		return bdcObj, nil
+		return nil
 	}
 
-	bdcCopy := bdcObj.DeepCopy()
-	bdcCopy.Finalizers = util.RemoveString(bdcCopy.Finalizers, finalizer)
+	bdcObj.Finalizers = util.RemoveString(bdcObj.Finalizers, finalizer)
 
 	// Update is used instead of patch, because when there were 2 finalizers in the object
 	// and tried to remove the first finalizer using patch operation , it was not working. The
 	// patch operation didn't return any error but the object was not getting patched.
 	// using Update() it was possible to remove the finalizer on the BDC
-	newBDCobj, err := c.ndmclientset.OpenebsV1alpha1().BlockDeviceClaims(bdcObj.Namespace).Update(bdcCopy)
+	_, err := c.ndmclientset.OpenebsV1alpha1().BlockDeviceClaims(bdcObj.Namespace).Update(bdcObj)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to remove finalizer from BDC %v", bdcObj.Name)
+		return errors.Wrapf(err, "failed to remove finalizer from BDC %v", bdcObj.Name)
 	}
-	return newBDCobj, nil
+	return nil
 }
 
 // removeCSPCFinalizer will remove finalizer on cspc
-func (c *Controller) removeCSPCFinalizer(cspcObj *apis.CStorPoolCluster, finalizer string) (*apis.CStorPoolCluster, error) {
+func (c *Controller) removeCSPCFinalizer(cspcObj *apis.CStorPoolCluster, finalizer string) error {
 	if len(cspcObj.Finalizers) == 0 {
-		return cspcObj, nil
+		return nil
 	}
 
-	cspcCopy := cspcObj.DeepCopy()
-	cspcCopy.Finalizers = util.RemoveString(cspcCopy.Finalizers, finalizer)
-	patchBytes, err := strategicmerge.GetPatchData(cspcObj, cspcCopy)
+	cspcObj.Finalizers = util.RemoveString(cspcObj.Finalizers, finalizer)
+	patchBytes, err := strategicmerge.GetPatchData(cspcObj, cspcObj)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get patch bytes from cspc %v", cspcCopy.Name)
+		return errors.Wrapf(err, "failed to get patch bytes from cspc %v", cspcObj.Name)
 	}
-	newCSPCObj, err := c.clientset.
+	_, err = c.clientset.
 		OpenebsV1alpha1().
 		CStorPoolClusters(cspcObj.Namespace).
-		Patch(cspcCopy.Name, types.MergePatchType, patchBytes)
+		Patch(cspcObj.Name, types.MergePatchType, patchBytes)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to remove finalizers from cspc %v", cspcObj.Name)
+		return errors.Wrapf(err, "failed to remove finalizers from cspc %v", cspcObj.Name)
 	}
-	return newCSPCObj, nil
+	return nil
 }
