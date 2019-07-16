@@ -20,7 +20,7 @@ and modified to work with the configuration options used by OpenEBS
 package app
 
 import (
-	"github.com/openebs/maya/pkg/apiutil"
+	strategicmerge "github.com/openebs/maya/pkg/kubernetes/strategicmerge/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"k8s.io/apimachinery/pkg/types"
 	//"fmt"
@@ -247,7 +247,7 @@ func (p *Provisioner) removeFinalizer(blkDevOpts *HelperBlockDeviceOptions) erro
 	// edit the finalizer in the copy of the BDC
 	bdcCopy.Finalizers = util.RemoveString(bdc.Finalizers, LocalPVFinalizer)
 
-	patchBytes, err := apiutil.GetPatchData(bdc, bdcCopy)
+	patchBytes, err := strategicmerge.GetPatchData(bdc, bdcCopy)
 	if err != nil {
 		return errors.Wrapf(err, "could not create patch bytes for BDC %s", bdc.Name)
 	}

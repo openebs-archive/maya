@@ -19,8 +19,8 @@ package cspc
 import (
 	"fmt"
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
-	"github.com/openebs/maya/pkg/apiutil"
 	"github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	strategicmerge "github.com/openebs/maya/pkg/kubernetes/strategicmerge/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -288,7 +288,7 @@ func (c *Controller) removeCSPCFinalizer(cspcObj *apis.CStorPoolCluster, finaliz
 
 	cspcCopy := cspcObj.DeepCopy()
 	cspcCopy.Finalizers = util.RemoveString(cspcCopy.Finalizers, finalizer)
-	patchBytes, err := apiutil.GetPatchData(cspcObj, cspcCopy)
+	patchBytes, err := strategicmerge.GetPatchData(cspcObj, cspcCopy)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get patch bytes from cspc %v", cspcCopy.Name)
 	}
