@@ -284,15 +284,17 @@ func (c *Controller) removeCSPCFinalizer(cspcObj *apis.CStorPoolCluster, finaliz
 		return nil
 	}
 
-	cspcObj.Finalizers = util.RemoveString(cspcObj.Finalizers, finalizer)
-	patchBytes, err := strategicmerge.GetPatchData(cspcObj, cspcObj)
+	cspcCopy := cspcObj.DeepCopy()
+	cspcCopy.Finalizers = util.RemoveString(cspcCopy.Finalizers, finalizer)
+	patchBytes, err := strategicmerge.GetPatchData(cspcObj, cspcCopy)
+
 	if err != nil {
 		return errors.Wrapf(err, "failed to get patch bytes from cspc %v", cspcObj.Name)
 	}
 	_, err = c.clientset.
 		OpenebsV1alpha1().
 		CStorPoolClusters(cspcObj.Namespace).
-		Patch(cspcObj.Name, types.MergePatchType, patchBytes)
+		Patch(cspcCopy.Name, types.MergePatchType, patchBytes)
 	if err != nil {
 		return errors.Wrapf(err, "failed to remove finalizers from cspc %v", cspcObj.Name)
 	}
