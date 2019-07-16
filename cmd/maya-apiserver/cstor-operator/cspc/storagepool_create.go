@@ -79,7 +79,7 @@ func (pc *PoolConfig) CreateStoragePool() error {
 	gotCSP, err := pc.createCSP(cspObj)
 
 	if err != nil {
-		return errors.New("failed to create CSP")
+		return errors.Wrap(err, "failed to create CSP")
 	}
 
 	err = pc.createDeployForCSP(gotCSP)

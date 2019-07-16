@@ -26,6 +26,7 @@ import (
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -123,7 +124,7 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 	openebsNameSpace := env.Get(env.OpenEBSNamespace)
 	if openebsNameSpace == "" {
 		message := fmt.Sprint("Could not sync CSPC: got empty namespace for openebs from env variable")
-		c.recorder.Event(cspc, apis.EventTypeError, "Getting Namespace", message)
+		c.recorder.Event(cspc, corev1.EventTypeWarning, "Getting Namespace", message)
 		glog.Errorf("Could not sync CSPC {%s}: got empty namespace for openebs from env variable", cspc.Name)
 		return nil
 	}
@@ -131,7 +132,7 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 	pc, err := c.NewPoolConfig(cspc, openebsNameSpace)
 	if err != nil {
 		message := fmt.Sprintf("Could not sync CSPC : failed to get pool config: {%s}", err.Error())
-		c.recorder.Event(cspc, apis.EventTypeError, "Creating Pool Config", message)
+		c.recorder.Event(cspc, corev1.EventTypeWarning, "Creating Pool Config", message)
 		glog.Errorf("Could not sync CSPC {%s}: failed to get pool config: {%s}", cspc.Name, err.Error())
 		return nil
 	}
@@ -139,7 +140,7 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 	pendingPoolCount, err := pc.AlgorithmConfig.GetPendingPoolCount()
 	if err != nil {
 		message := fmt.Sprintf("Could not sync CSPC : failed to get pending pool count: {%s}", err.Error())
-		c.recorder.Event(cspc, apis.EventTypeError, "Getting Pending Pool(s) ", message)
+		c.recorder.Event(cspc, corev1.EventTypeWarning, "Getting Pending Pool(s) ", message)
 		glog.Errorf("Could not sync CSPC {%s}: failed to get pending pool count:{%s}", cspc.Name, err.Error())
 		return nil
 	}
@@ -148,7 +149,7 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 		err = pc.create(pendingPoolCount, cspc)
 		if err != nil {
 			message := fmt.Sprintf("Could not create pool(s) for CSPC: %s", err.Error())
-			c.recorder.Event(cspc, apis.EventTypeError, "Pool Create", message)
+			c.recorder.Event(cspc, corev1.EventTypeWarning, "Pool Create", message)
 			glog.Errorf("Could not create pool(s) for CSPC {%s}:{%s}", cspc.Name, err.Error())
 			return nil
 		}
@@ -158,7 +159,7 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 	if err != nil {
 		// Note: CSP for which pool deployment does not exists are known as orphaned.
 		message := fmt.Sprintf("Error in getting orphaned CSP :{%s}", err.Error())
-		c.recorder.Event(cspc, apis.EventTypeError, "Pool Create", message)
+		c.recorder.Event(cspc, corev1.EventTypeWarning, "Pool Create", message)
 		glog.Errorf("Error in getting orphaned CSP for CSPC {%s}:{%s}", cspc.Name, err.Error())
 		return nil
 	}
@@ -181,16 +182,15 @@ func (pc *PoolConfig) create(pendingPoolCount int, cspc *apis.CStorPoolCluster) 
 	glog.V(4).Infof("Lease acquired successfully on cstorpoolcluster %s ", cspc.Name)
 	defer newSpcLease.Release()
 	for poolCount := 1; poolCount <= pendingPoolCount; poolCount++ {
-
-		message := fmt.Sprintf("Provisioning pool %d/%d ", poolCount, pendingPoolCount)
-		pc.Controller.recorder.Event(cspc, "Info", "Create", message)
-
-		glog.Infof("Provisioning pool %d/%d for cstorpoolcluster %s", poolCount, pendingPoolCount, cspc.Name)
 		err = pc.CreateStoragePool()
 		if err != nil {
 			message := fmt.Sprintf("Pool provisioning failed for %d/%d ", poolCount, pendingPoolCount)
-			pc.Controller.recorder.Event(cspc, apis.EventTypeError, "Create", message)
+			pc.Controller.recorder.Event(cspc, corev1.EventTypeWarning, "Create", message)
 			runtime.HandleError(errors.Wrapf(err, "Pool provisioning failed for %d/%d for cstorpoolcluster %s", poolCount, pendingPoolCount, cspc.Name))
+		} else {
+			message := fmt.Sprintf("Pool Provisioned %d/%d ", poolCount, pendingPoolCount)
+			pc.Controller.recorder.Event(cspc, corev1.EventTypeNormal, "Create", message)
+			glog.Infof("Pool provisioned successfully %d/%d for cstorpoolcluster %s", poolCount, pendingPoolCount, cspc.Name)
 		}
 	}
 	return nil
@@ -202,7 +202,7 @@ func (pc *PoolConfig) createDeployForCSPList(cspList []apis.NewTestCStorPool) {
 		err := pc.createDeployForCSP(&cspObj)
 		if err != nil {
 			message := fmt.Sprintf("Failed to create pool deployment for CSP %s: %s", cspObj.Name, err.Error())
-			pc.Controller.recorder.Event(pc.AlgorithmConfig.CSPC, apis.EventTypeError, "PoolDeploymentCreate", message)
+			pc.Controller.recorder.Event(pc.AlgorithmConfig.CSPC, corev1.EventTypeWarning, "PoolDeploymentCreate", message)
 			runtime.HandleError(errors.Errorf("Failed to create pool deployment for CSP %s: %s", cspObj.Name, err.Error()))
 		}
 	}
