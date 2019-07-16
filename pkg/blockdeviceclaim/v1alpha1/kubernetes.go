@@ -63,6 +63,10 @@ type deleteCollectionFn func(cli *clientset.Clientset, namespace string, listOpt
 // to patch block device claim
 type patchFn func(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error)
 
+// updateFn is a typed function that abstracts to update
+// block device claim
+type updateFn func(cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error)
+
 // Kubeclient enables kubernetes API operations
 // on block device instance
 type Kubeclient struct {
@@ -82,6 +86,7 @@ type Kubeclient struct {
 	del                 deleteFn
 	delCollection       deleteCollectionFn
 	patch               patchFn
+	update              updateFn
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -138,6 +143,11 @@ func (k *Kubeclient) WithDefaults() {
 	if k.patch == nil {
 		k.patch = func(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error) {
 			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).Patch(name, pt, data, subresources...)
+		}
+	}
+	if k.update == nil {
+		k.update = func(cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).Update(bdc)
 		}
 	}
 }
@@ -263,4 +273,16 @@ func (k *Kubeclient) Patch(name string, pt types.PatchType, data []byte, subreso
 		return nil, errors.Wrapf(err, "failed to patch bdc: {%s}", name)
 	}
 	return k.patch(cli, k.namespace, name, pt, data, subresources...)
+}
+
+// Update updates the block device claim if present in kubernetes cluster
+func (k *Kubeclient) Update(bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
+	if bdc == nil {
+		return nil, errors.New("failed to udpate bdc: nil bdc object")
+	}
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update bdc {%s} in namespace {%s}", bdc.Name, bdc.Namespace)
+	}
+	return k.update(cli, k.namespace, bdc)
 }

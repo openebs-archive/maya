@@ -20,9 +20,7 @@ and modified to work with the configuration options used by OpenEBS
 package app
 
 import (
-	"github.com/openebs/maya/pkg/kubernetes/strategicmerge"
 	"github.com/openebs/maya/pkg/util"
-	"k8s.io/apimachinery/pkg/types"
 	//"fmt"
 	//"path/filepath"
 	//"strings"
@@ -241,21 +239,13 @@ func (p *Provisioner) removeFinalizer(blkDevOpts *HelperBlockDeviceOptions) erro
 		return errors.Errorf("unable to get BDC %s for removing finalizer", blkDevOpts.name)
 	}
 
-	// create a copy of BDC for creating patch
-	bdcCopy := bdc.DeepCopy()
-
 	// edit the finalizer in the copy of the BDC
-	bdcCopy.Finalizers = util.RemoveString(bdc.Finalizers, LocalPVFinalizer)
-
-	patchBytes, err := strategicmerge.GetPatchData(bdc, bdcCopy)
-	if err != nil {
-		return errors.Wrapf(err, "could not create patch bytes for BDC %s", bdc.Name)
-	}
+	bdc.Finalizers = util.RemoveString(bdc.Finalizers, LocalPVFinalizer)
 
 	// patch the BDC with the new finalizer array
 	_, err = blockdeviceclaim.NewKubeClient().
 		WithNamespace(p.namespace).
-		Patch(blkDevOpts.name, types.MergePatchType, patchBytes)
+		Update(bdc)
 
 	return err
 }
