@@ -248,6 +248,9 @@ func (p *Provisioner) removeFinalizer(blkDevOpts *HelperBlockDeviceOptions) erro
 	bdcCopy.Finalizers = util.RemoveString(bdc.Finalizers, LocalPVFinalizer)
 
 	patchBytes, err := apiutil.GetPatchData(bdc, bdcCopy)
+	if err != nil {
+		return errors.Wrapf(err, "could not create patch bytes for BDC %s", bdc.Name)
+	}
 
 	// patch the BDC with the new finalizer array
 	_, err = blockdeviceclaim.NewKubeClient().
