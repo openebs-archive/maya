@@ -351,7 +351,7 @@ func (c *CVCController) getCurrentReplicaCount(cvc *apis.CStorVolumeClaim) (int,
 	//	CVRs, err := c.cvrLister.CStorVolumeReplicas(cvc.Namespace).
 	//		List(klabels.Set(pvLabel).AsSelector())
 
-	pvLabel := pvAnnotaion + cvc.Name
+	pvLabel := pvSelector + "=" + cvc.Name
 
 	cvrList, err := c.clientset.
 		OpenebsV1alpha1().

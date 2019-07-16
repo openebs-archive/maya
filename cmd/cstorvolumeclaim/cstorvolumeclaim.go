@@ -40,7 +40,6 @@ const (
 	cvKind  = "CStorVolume"
 
 	cstorpoolNameLabel = "cstorpool.openebs.io/name"
-	pvAnnotaion        = "openebs.io/persistent-volume="
 	// spcAnnotation annotation for spc for listing cstor pools created for
 	// a StoragePool Claim
 	spcAnnotation = "openebs.io/storage-pool-claim="
@@ -406,7 +405,7 @@ func getUsedPoolNames(cvrList *apis.CStorVolumeReplicaList) map[string]bool {
 func getUsablePoolList(pvName string, poolList *apis.CStorPoolList) *apis.CStorPoolList {
 	usablePoolList := &apis.CStorPoolList{}
 
-	pvLabel := pvAnnotaion + pvName
+	pvLabel := pvSelector + "=" + pvName
 	cvrList, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).List(metav1.ListOptions{
 		LabelSelector: pvLabel,
 	})
