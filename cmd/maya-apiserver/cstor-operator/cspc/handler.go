@@ -269,6 +269,10 @@ func (c *Controller) removeBDCFinalizer(bdcObj *ndmapis.BlockDeviceClaim, finali
 	bdcCopy := bdcObj.DeepCopy()
 	bdcCopy.Finalizers = util.RemoveString(bdcCopy.Finalizers, finalizer)
 
+	// Update is used instead of patch, because when there were 2 finalizers in the object
+	// and tried to remove the first finalizer using patch operation , it was not working. The
+	// patch operation didn't return any error but the object was not getting patched.
+	// using Update() it was possible to remove the finalizer on the BDC
 	newBDCobj, err := c.ndmclientset.OpenebsV1alpha1().BlockDeviceClaims(bdcObj.Namespace).Update(bdcCopy)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to remove finalizer from BDC %v", bdcObj.Name)
