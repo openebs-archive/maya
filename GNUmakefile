@@ -70,6 +70,8 @@ GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 HUB_USER?=openebs
 
 # Repository name
+# format of docker image name is <hub-user>/<repo-name>[:<tag>].
+# so final name will be ${HUB_USER}/${*_REPO_NAME}:${IMAGE_TAG}
 CSTOR_POOL_MGMT_REPO_NAME?=cstor-pool-mgmt
 CSTOR_VOLUME_MGMT_REPO_NAME?=cstor-volume-mgmt
 M_EXPORTER_REPO_NAME?=m-exporter
@@ -272,7 +274,8 @@ cstor-pool-mgmt:
 
 pool-mgmt-image: cstor-pool-mgmt
 	@echo "----------------------------"
-	@echo "--> cstor-pool-mgmt image "
+	@echo -n "--> cstor-pool-mgmt image "
+	@echo "${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/cstor-pool-mgmt/${POOL_MGMT} buildscripts/cstor-pool-mgmt/
 	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t ${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
@@ -296,7 +299,8 @@ protobuf:
 
 volume-mgmt-image: cstor-volume-mgmt
 	@echo "----------------------------"
-	@echo "--> cstor-volume-mgmt image         "
+	@echo -n "--> cstor-volume-mgmt image "
+	@echo "${HUB_USER}/${CSTOR_VOLUME_MGMT_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/cstor-volume-mgmt/${VOLUME_MGMT} buildscripts/cstor-volume-mgmt/
 	@cd buildscripts/cstor-volume-mgmt && sudo docker build -t ${HUB_USER}/${CSTOR_VOLUME_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
@@ -312,7 +316,8 @@ exporter:
 # m-exporter image. This is going to be decoupled soon.
 exporter-image: exporter
 	@echo "----------------------------"
-	@echo "--> m-exporter image         "
+	@echo -n "--> m-exporter image "
+	@echo "${HUB_USER}/${M_EXPORTER_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/exporter/${EXPORTER} buildscripts/exporter/
 	@cd buildscripts/exporter && sudo docker build -t ${HUB_USER}/${M_EXPORTER_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} .
@@ -320,7 +325,8 @@ exporter-image: exporter
 
 admission-server-image:
 	@echo "----------------------------"
-	@echo "--> admission-server image         "
+	@echo -n "--> admission-server image "
+	@echo "${HUB_USER}/${ADMISSION_SERVER_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@PNAME=${WEBHOOK} CTLNAME=${WEBHOOK} sh -c "'$(PWD)/buildscripts/build.sh'"
 	@cp bin/${WEBHOOK}/${WEBHOOK} buildscripts/admission-server/
@@ -338,7 +344,8 @@ apiserver:
 # m-apiserver image. This is going to be decoupled soon.
 apiserver-image: mayactl apiserver
 	@echo "----------------------------"
-	@echo "--> apiserver image         "
+	@echo -n "--> apiserver image "
+	@echo "${HUB_USER}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
 	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
@@ -348,7 +355,8 @@ apiserver-image: mayactl apiserver
 
 rhel-apiserver-image: mayactl apiserver
 	@echo "----------------------------"
-	@echo "--> rhel based apiserver image"
+	@echo -n "--> rhel based apiserver image "
+	@echo "${HUB_USER}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
 	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
@@ -376,7 +384,8 @@ upgrade:
 # build upgrade image
 upgrade-image: upgrade
 	@echo "----------------------------"
-	@echo "--> ${UPGRADE} image"
+	@echo -n "--> ${UPGRADE} image "
+	@echo "${HUB_USER}/${M_UPGRADE_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/${UPGRADE}/${UPGRADE} buildscripts/${UPGRADE}/
 	@cd buildscripts/${UPGRADE} && sudo docker build -t ${HUB_USER}/${M_UPGRADE_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
