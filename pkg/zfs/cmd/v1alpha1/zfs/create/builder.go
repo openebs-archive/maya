@@ -133,6 +133,7 @@ func (v *VolumeCreate) Execute() ([]byte, error) {
 	}
 
 	// execute command here
+	// #nosec
 	return exec.Command(bin.BASH, "-c", v.Command).CombinedOutput()
 }
 

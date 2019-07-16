@@ -124,6 +124,7 @@ func (v *VolumeClone) Execute() ([]byte, error) {
 		return nil, err
 	}
 
+	// #nosec
 	return exec.Command(bin.BASH, "-c", v.Command).CombinedOutput()
 }
 

@@ -92,6 +92,7 @@ func (p *PoolDump) Execute() (vdump.Topology, error) {
 	}
 
 	// execute command here
+	// #nosec
 	out, err := exec.Command(bin.BASH, "-c", p.Command).CombinedOutput()
 	if err != nil {
 		return t, err

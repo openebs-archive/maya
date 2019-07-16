@@ -114,6 +114,7 @@ func (v *VolumeRename) Execute() ([]byte, error) {
 		return nil, err
 	}
 	// execute command here
+	// #nosec
 	return exec.Command(bin.BASH, "-c", v.Command).CombinedOutput()
 }
 
