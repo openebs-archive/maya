@@ -50,6 +50,13 @@ func IsForcefullySet() PredicateFunc {
 // IsTypeSet method check if the Type field of PoolCreate object is set.
 func IsTypeSet() PredicateFunc {
 	return func(p *PoolCreate) bool {
+		// If no device type is mentioned in command
+		// ZFS consider it as a stripe type by itself
+		// We don't need to provide `stripe` as a type in command
+		// So If user has provided type `stripe`, we will ignore it
+		if p.Type == "stripe" {
+			return false
+		}
 		return len(p.Type) != 0
 	}
 }
