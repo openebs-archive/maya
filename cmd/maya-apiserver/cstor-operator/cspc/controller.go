@@ -119,7 +119,7 @@ func (cb *ControllerBuilder) withWorkqueueRateLimiting() *ControllerBuilder {
 func (cb *ControllerBuilder) withRecorder(ks kubernetes.Interface) *ControllerBuilder {
 	glog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	// eventBroadcaster.StartLogging(glog.Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: ks.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 	cb.Controller.recorder = recorder
