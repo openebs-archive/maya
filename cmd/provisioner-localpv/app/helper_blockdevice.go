@@ -234,15 +234,15 @@ func (p *Provisioner) removeFinalizer(blkDevOpts *HelperBlockDeviceOptions) erro
 
 	bdc, err := blockdeviceclaim.NewKubeClient().
 		WithNamespace(p.namespace).
-		Get(blkDevOpts.name, metav1.GetOptions{})
+		Get(blkDevOpts.bdcName, metav1.GetOptions{})
 	if err != nil {
-		return errors.Errorf("unable to get BDC %s for removing finalizer", blkDevOpts.name)
+		return errors.Errorf("unable to get BDC %s for removing finalizer", blkDevOpts.bdcName)
 	}
 
 	// edit the finalizer in the copy of the BDC
 	bdc.Finalizers = util.RemoveString(bdc.Finalizers, LocalPVFinalizer)
 
-	// patch the BDC with the new finalizer array
+	// udpate the BDC with the new finalizer array
 	_, err = blockdeviceclaim.NewKubeClient().
 		WithNamespace(p.namespace).
 		Update(bdc)
