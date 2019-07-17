@@ -177,7 +177,7 @@ func MergeMaps(maps ...map[string]interface{}) map[string]interface{} {
 }
 
 // RemoveString removes all occurrences of a string from slice
-// and returns the update the slice
+// and returns a new updated slice
 func RemoveString(slice []string, s string) (result []string) {
 	for _, item := range slice {
 		if item != s {
