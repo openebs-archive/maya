@@ -253,6 +253,7 @@ func (c *Controller) handleDeletion(cspc *apis.CStorPoolCluster, namespace strin
 
 	// iterate over the bdcs and remove the finalizer
 	for _, bdc := range bdcList.Items {
+		bdc := bdc
 		err = c.removeBDCFinalizer(&bdc, v1alpha1.CSPCFinalizer)
 		if err != nil {
 			return errors.Wrapf(err, "failed to remove finalizer on bdcs and cspc")
