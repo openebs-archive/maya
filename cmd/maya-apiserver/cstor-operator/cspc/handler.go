@@ -297,6 +297,14 @@ func (c *Controller) removeCSPCFinalizer(cspcObj *apis.CStorPoolCluster, finaliz
 		return nil
 	}
 
+	// if the cspc object does not contain the finalizer string set
+	// by cstor operator then we will return nil. This will avoid an
+	// un-necessary API call.
+	if !util.ContainsString(cspcObj.Finalizers, finalizer) {
+		glog.V(2).Infof("finalizer %s is already removed", finalizer)
+		return nil
+	}
+
 	cspcObj.Finalizers = util.RemoveString(cspcObj.Finalizers, finalizer)
 
 	_, err := v1alpha1.NewKubeClient().
@@ -305,5 +313,6 @@ func (c *Controller) removeCSPCFinalizer(cspcObj *apis.CStorPoolCluster, finaliz
 	if err != nil {
 		return errors.Wrapf(err, "failed to remove finalizers from cspc %v", cspcObj.Name)
 	}
+	glog.Infof("finalizer %s is successfully removed from cspc %s", finalizer, cspcObj.Name)
 	return nil
 }
