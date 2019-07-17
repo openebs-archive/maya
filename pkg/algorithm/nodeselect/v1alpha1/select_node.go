@@ -326,6 +326,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 				WithLabels(labels).
 				WithBlockDeviceName(bdName).
 				WithHostName(hostName).
+				WithFinalizer(spcv1alpha1.SPCFinalizer).
 				WithCapacity(capacity).
 				WithOwnerReference(spc).
 				Build()
