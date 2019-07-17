@@ -53,6 +53,10 @@ type patchFunc func(cs *clientset.Clientset, name string, pt types.PatchType, pa
 type delFn func(cs *clientset.Clientset, name string,
 	opts *metav1.DeleteOptions) error
 
+// deleteCollectionFn is a typed function that abstracts
+// deletion of csp's collection
+type deleteCollectionFn func(cli *clientset.Clientset, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
+
 // Kubeclient enables kubernetes API operations
 // on CStorPool instance
 type Kubeclient struct {
@@ -61,12 +65,13 @@ type Kubeclient struct {
 	// make kubernetes API calls
 	clientset *clientset.Clientset
 	// functions useful during mocking
-	getClientset getClientsetFunc
-	list         listFunc
-	get          getFunc
-	create       createFunc
-	patch        patchFunc
-	del          delFn
+	getClientset  getClientsetFunc
+	list          listFunc
+	get           getFunc
+	create        createFunc
+	patch         patchFunc
+	del           delFn
+	delCollection deleteCollectionFn
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -130,6 +135,14 @@ func (k *Kubeclient) withDefaults() {
 				Delete(name, opts)
 		}
 	}
+	if k.delCollection == nil {
+		k.delCollection = func(cs *clientset.Clientset, listOpts metav1.ListOptions,
+			deleteOpts *metav1.DeleteOptions) error {
+			return cs.OpenebsV1alpha1().
+				CStorPools().
+				DeleteCollection(deleteOpts, listOpts)
+		}
+	}
 }
 
 // WithClientset sets the kubernetes clientset against
@@ -174,6 +187,19 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.CStorPoolList, error) 
 		return nil, errors.Wrap(err, "failed to list cstor pool")
 	}
 	return k.list(cs, opts)
+}
+
+// DeleteCollection deletes a collection of csp objects.
+func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to delete the collection of csps having label %s",
+			listOpts.LabelSelector,
+		)
+	}
+	return k.delCollection(cli, listOpts, deleteOpts)
 }
 
 // Get returns an CStorPool instance from kubernetes cluster

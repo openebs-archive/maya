@@ -23,7 +23,9 @@ import (
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha2"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/pkg/errors"
@@ -31,6 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/kubernetes/pkg/util/slice"
 )
 
 var (
@@ -108,6 +111,19 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 		glog.Errorf("Validation of spc failed:%s", err)
 		return nil
 	}
+	// spc finalizers should be removed only after deleting csp and removing
+	// finalizer on bdc which is added by spc
+	if isSPCDeletetionCandidate(spc) {
+		err = c.cleanUpSPCChild(spc)
+		runtime.HandleError(
+			errors.Wrapf(
+				err,
+				"failed to cleanup storagepoolclaim %s related things",
+				spc.Name,
+			),
+		)
+		return nil
+	}
 	pendingPoolCount, err := c.getPendingPoolCount(spc)
 	if err != nil {
 		return err
@@ -132,6 +148,23 @@ func (c *Controller) create(pendingPoolCount int, spc *apis.StoragePoolClaim) er
 	}
 	glog.V(4).Infof("Lease acquired successfully on storagepoolclaim %s ", spc.Name)
 	defer newSpcLease.Release()
+	// patch spc with finalizers
+	if !isSPCHasFinalizer(spc, spcv1alpha1.SPCFinalizer) {
+		spc, err = spcv1alpha1.AddOrRemoveSPCFinalizer(
+			spc,
+			spcv1alpha1.SPCFinalizer,
+			spcv1alpha1.AddSPCFinalizer,
+		)
+		if err != nil {
+			runtime.HandleError(
+				errors.Wrapf(
+					err,
+					"pool provisioning failed to add finalizer on storagepoolclaim %s",
+					spc.Name,
+				),
+			)
+		}
+	}
 	for poolCount := 1; poolCount <= pendingPoolCount; poolCount++ {
 		glog.Infof("Provisioning pool %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, spc.Name)
 		err = c.CreateStoragePool(spc)
@@ -140,6 +173,57 @@ func (c *Controller) create(pendingPoolCount int, spc *apis.StoragePoolClaim) er
 		}
 	}
 	return nil
+}
+
+// cleanUPSPCChild will remove pool related resources and finalizers on BDC
+func (c *Controller) cleanUpSPCChild(spc *apis.StoragePoolClaim) error {
+	// Delete csp related to spc
+	err := DeleteCSPList(spc.Name)
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete csp belongs to spc %s", spc.Name)
+	}
+	namespace := env.Get(env.OpenEBSNamespace)
+	err = blockdeviceclaim.RemoveFinalizersOnBDCList(
+		namespace,
+		string(apis.StoragePoolClaimCPK)+"="+spc.Name,
+		spcv1alpha1.SPCFinalizer,
+	)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to remove finalizer on blockdeviceclaims related spc %s",
+			spc.Name,
+		)
+	}
+	_, err = spcv1alpha1.AddOrRemoveSPCFinalizer(
+		spc,
+		spcv1alpha1.SPCFinalizer,
+		spcv1alpha1.RemoveSPCFinalizer,
+	)
+	if err != nil {
+		return errors.Wrapf(err, "failed to remove finalizer on spc %s", spc.Name)
+	}
+	return nil
+}
+
+// TODO: Need to move to corresponding cstor pool package
+
+// DeleteCSPList deletes the list of csp related to spc
+func DeleteCSPList(spcName string) error {
+	cspClient := csp.NewKubeClient()
+	err := cspClient.DeleteCollection(
+		metav1.ListOptions{
+			LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcName,
+		},
+		&metav1.DeleteOptions{},
+	)
+	if k8serror.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete collection csps related to spc %s", spcName)
+	}
+	return errors.Errorf("Deleted cstorpools related to spc %s", spcName)
 }
 
 // validate validates the spc configuration before creation of pool.
@@ -341,4 +425,15 @@ func isAutoProvisioning(spc *apis.StoragePoolClaim) bool {
 // isManualProvisioning returns true if the spc is auto provisioning type.
 func isManualProvisioning(spc *apis.StoragePoolClaim) bool {
 	return spc.Spec.BlockDevices.BlockDeviceList != nil
+}
+
+// isSPCDeletionCandidate return true when deletion timestamp & finalizer is
+// available on spc
+func isSPCDeletetionCandidate(spc *apis.StoragePoolClaim) bool {
+	return spc.ObjectMeta.DeletionTimestamp != nil &&
+		isSPCHasFinalizer(spc, spcv1alpha1.SPCFinalizer)
+}
+
+func isSPCHasFinalizer(spc *apis.StoragePoolClaim, finalizer string) bool {
+	return slice.ContainsString(spc.ObjectMeta.Finalizers, finalizer, nil)
 }

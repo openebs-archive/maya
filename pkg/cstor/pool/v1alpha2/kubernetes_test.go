@@ -71,6 +71,16 @@ func fakeDeleteOk(cs *clientset.Clientset, name string,
 	return nil
 }
 
+func fakeDeleteCollectionOk(cs *clientset.Clientset, listOpts metav1.ListOptions,
+	deleteOpts *metav1.DeleteOptions) error {
+	return nil
+}
+
+func fakeDeleteCollectionErr(cs *clientset.Clientset, listOpts metav1.ListOptions,
+	deleteOpts *metav1.DeleteOptions) error {
+	return errors.New("fake error")
+}
+
 func fakeDeleteErr(cs *clientset.Clientset, name string,
 	opt *metav1.DeleteOptions) error {
 	return errors.New("some error")
@@ -183,12 +193,12 @@ func TestGetClientOrCached(t *testing.T) {
 	}{
 		// Positive tests
 		"When clientset is nil": {&Kubeclient{nil,
-			fakeGetClientsetNil, fakeListOk, fakeGetOk, fakeCreateOk, fakePatchOk, fakeDeleteOk}, false},
+			fakeGetClientsetNil, fakeListOk, fakeGetOk, fakeCreateOk, fakePatchOk, fakeDeleteOk, fakeDeleteCollectionOk}, false},
 		"When clientset is not nil": {&Kubeclient{&clientset.Clientset{},
-			fakeGetClientsetOk, fakeListOk, fakeGetOk, fakeCreateOk, fakePatchOk, fakeDeleteOk}, false},
+			fakeGetClientsetOk, fakeListOk, fakeGetOk, fakeCreateOk, fakePatchOk, fakeDeleteOk, nil}, false},
 		// Negative tests
 		"When getting clientset throws error": {&Kubeclient{nil,
-			fakeGetClientsetErr, fakeListOk, fakeGetOk, fakeCreateOk, fakePatchOk, fakeDeleteOk}, true},
+			fakeGetClientsetErr, fakeListOk, fakeGetOk, fakeCreateOk, fakePatchOk, fakeDeleteOk, fakeDeleteCollectionErr}, true},
 	}
 
 	for name, mock := range tests {

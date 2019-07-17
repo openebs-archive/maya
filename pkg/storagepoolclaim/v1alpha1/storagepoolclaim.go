@@ -21,7 +21,24 @@ import (
 	"time"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/kubernetes/pkg/util/slice"
+)
+
+const (
+	// SPCFinalizer represents the finalizer on spc
+	SPCFinalizer = "storagepoolclaim.openebs.io/finalizer"
+)
+
+// SPCFinalizerOps represents supporeted operations on finalizers
+type SPCFinalizerOps string
+
+const (
+	//AddSPCFinalizer add finalizer on spc
+	AddSPCFinalizer SPCFinalizerOps = "Add"
+	//RemoveSPCFinalizer removes finalizer on spc
+	RemoveSPCFinalizer SPCFinalizerOps = "Remove"
 )
 
 // SupportedDiskTypes is a map containing the valid disk type
@@ -231,4 +248,29 @@ func (l *SPCList) GetPoolUIDs() []string {
 		uids = append(uids, string(pool.GetUID()))
 	}
 	return uids
+}
+
+// AddOrRemoveSPCFinalizer adds or remove finalizer on spc
+func AddOrRemoveSPCFinalizer(spc *apis.StoragePoolClaim, finalizer string, operation SPCFinalizerOps) (*apis.StoragePoolClaim, error) {
+	switch operation {
+	case AddSPCFinalizer:
+		spc.Finalizers = append(spc.Finalizers, finalizer)
+	case RemoveSPCFinalizer:
+		spc.Finalizers = slice.RemoveString(spc.Finalizers, finalizer, nil)
+	default:
+		return nil, errors.Errorf("invalid option %s provided to perform update on finalizers", operation)
+	}
+
+	//TODO: use patch instead of update call
+	newSPC, err := NewKubeClient().Update(spc)
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to update storagepoolclaim %s operation %s on finalizer %s",
+			spc.Name,
+			operation,
+			finalizer,
+		)
+	}
+	return newSPC, nil
 }

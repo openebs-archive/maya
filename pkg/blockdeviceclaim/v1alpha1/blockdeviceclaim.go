@@ -18,6 +18,9 @@ package v1alpha1
 
 import (
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/util/slice"
 )
 
 // BlockDeviceClaim encapsulates BlockDeviceClaim api object.
@@ -117,4 +120,24 @@ func (bdcl *BlockDeviceClaimList) GetBlockDeviceNamesByNode() map[string][]strin
 		newNodeBDList[bdc.Spec.HostName] = append(newNodeBDList[bdc.Spec.HostName], bdc.Spec.BlockDeviceName)
 	}
 	return newNodeBDList
+}
+
+// RemoveFinalizersOnBDCList removes the given finalizer from the all BDC
+// belongs to provided label
+func RemoveFinalizersOnBDCList(namespace, label, finalizer string) error {
+	bdcClient := NewKubeClient().WithNamespace(namespace)
+	bdcObjList, err := bdcClient.List(metav1.ListOptions{LabelSelector: label})
+	for _, bdcObj := range bdcObjList.Items {
+		bdcObj := bdcObj
+		// If BDC doesn't contain finalizer continue
+		if !slice.ContainsString(bdcObj.Finalizers, finalizer, nil) {
+			continue
+		}
+		bdcObj.Finalizers = slice.RemoveString(bdcObj.Finalizers, finalizer, nil)
+		_, err = bdcClient.Update(&bdcObj)
+		if err != nil {
+			return errors.Wrapf(err, "failed to remove finalizer from BDC %v", bdcObj.Name)
+		}
+	}
+	return nil
 }
