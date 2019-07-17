@@ -143,10 +143,12 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 	}
 
 	if !cspc.DeletionTimestamp.IsZero() {
-		// if returns error, we need to reque the request;
-		// else will return from sync method to avoid further reconcilation
-		// of object
-		return c.handleDeletion(cspc, openebsNameSpace)
+		// if returns error, we will log the error instead of re-queueing
+		err = c.handleDeletion(cspc, openebsNameSpace)
+		if err != nil {
+			glog.Errorf("Could not remove finalizers: %s", err.Error())
+		}
+		return nil
 	}
 
 	pendingPoolCount, err := pc.AlgorithmConfig.GetPendingPoolCount()
