@@ -83,6 +83,13 @@ type patchFn func(
 	pt types.PatchType,
 	data []byte, subresources ...string) (*apisv1alpha1.CStorPoolCluster, error)
 
+// updateFn is a typed function that abstracts
+// update of CStorPoolCluster
+type updateFn func(
+	cli *clientset.Clientset,
+	namespace string,
+	cspc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error)
+
 // Kubeclient enables kubernetes API operations
 // on CStorPoolCluster instance
 type Kubeclient struct {
@@ -102,6 +109,7 @@ type Kubeclient struct {
 	del                 deleteFn
 	delCollection       deleteCollectionFn
 	patch               patchFn
+	update              updateFn
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -181,6 +189,14 @@ func (k *Kubeclient) WithDefaults() {
 			pt types.PatchType,
 			data []byte, subresources ...string) (*apisv1alpha1.CStorPoolCluster, error) {
 			return cli.OpenebsV1alpha1().CStorPoolClusters(namespace).Patch(name, pt, data, subresources...)
+		}
+	}
+	if k.update == nil {
+		k.update = func(
+			cli *clientset.Clientset,
+			namespace string,
+			cspc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
+			return cli.OpenebsV1alpha1().CStorPoolClusters(namespace).Update(cspc)
 		}
 	}
 }
@@ -309,4 +325,16 @@ func (k *Kubeclient) Patch(
 		return nil, errors.Wrapf(err, "failed to patch cspc: {%s}", name)
 	}
 	return k.patch(cli, k.namespace, name, pt, data, subresources...)
+}
+
+// Update updates the cspc in specified namespace in kubernetes cluster
+func (k *Kubeclient) Update(cspc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
+	if cspc == nil {
+		return nil, errors.New("failed to update cspc: nil cspc object")
+	}
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update cspc {%s} in namespace {%s}", cspc.Name, cspc.Namespace)
+	}
+	return k.update(cli, k.namespace, cspc)
 }

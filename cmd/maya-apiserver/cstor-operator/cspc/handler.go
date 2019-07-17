@@ -19,11 +19,10 @@ package cspc
 import (
 	"fmt"
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	"github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
-	"github.com/openebs/maya/pkg/kubernetes/strategicmerge"
 	"github.com/openebs/maya/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"time"
 
 	"github.com/golang/glog"
@@ -243,27 +242,27 @@ func (c *Controller) getUsedBDCs(cspc *apis.CStorPoolCluster, namespace string) 
 	return bdcList, nil
 }
 
-// handleDeletion is used to perform operation when the delete timestamp is set
-// on the object
+// handleDeletion is used to remove finalizers on the associated BDCs
+// and CSPC when the delete timestamp is set on the cspc object
 func (c *Controller) handleDeletion(cspc *apis.CStorPoolCluster, namespace string) error {
 	// get all the BDCs associated with the cspc
 	bdcList, err := c.getUsedBDCs(cspc, namespace)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to remove finalizer on bdcs and cspc")
 	}
 
-	// iterate over the bdc and remove the finalizer
+	// iterate over the bdcs and remove the finalizer
 	for _, bdc := range bdcList.Items {
-		err := c.removeBDCFinalizer(&bdc, v1alpha1.CSPCFinalizer)
+		err = c.removeBDCFinalizer(&bdc, v1alpha1.CSPCFinalizer)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to remove finalizer on bdcs and cspc")
 		}
 	}
 
 	// remove finalizer on cspc
 	err = c.removeCSPCFinalizer(cspc, v1alpha1.CSPCFinalizer)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to remove finalizer on cspc object")
 	}
 
 	// if finalizer is removed successfully, then object will
@@ -283,7 +282,9 @@ func (c *Controller) removeBDCFinalizer(bdcObj *ndmapis.BlockDeviceClaim, finali
 	// and tried to remove the first finalizer using patch operation , it was not working. The
 	// patch operation didn't return any error but the object was not getting patched.
 	// using Update() it was possible to remove the finalizer on the BDC
-	_, err := c.ndmclientset.OpenebsV1alpha1().BlockDeviceClaims(bdcObj.Namespace).Update(bdcObj)
+	_, err := blockdeviceclaim.NewKubeClient().
+		WithNamespace(bdcObj.Namespace).
+		Update(bdcObj)
 	if err != nil {
 		return errors.Wrapf(err, "failed to remove finalizer from BDC %v", bdcObj.Name)
 	}
@@ -296,17 +297,11 @@ func (c *Controller) removeCSPCFinalizer(cspcObj *apis.CStorPoolCluster, finaliz
 		return nil
 	}
 
-	cspcCopy := cspcObj.DeepCopy()
-	cspcCopy.Finalizers = util.RemoveString(cspcCopy.Finalizers, finalizer)
-	patchBytes, err := strategicmerge.GetPatchData(cspcObj, cspcCopy)
+	cspcObj.Finalizers = util.RemoveString(cspcObj.Finalizers, finalizer)
 
-	if err != nil {
-		return errors.Wrapf(err, "failed to get patch bytes from cspc %v", cspcObj.Name)
-	}
-
-	_, err = v1alpha1.NewKubeClient().
+	_, err := v1alpha1.NewKubeClient().
 		WithNamespace(cspcObj.Namespace).
-		Patch(cspcObj.Name, types.MergePatchType, patchBytes)
+		Update(cspcObj)
 	if err != nil {
 		return errors.Wrapf(err, "failed to remove finalizers from cspc %v", cspcObj.Name)
 	}
