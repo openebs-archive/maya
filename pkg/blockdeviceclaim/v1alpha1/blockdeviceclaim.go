@@ -127,6 +127,13 @@ func (bdcl *BlockDeviceClaimList) GetBlockDeviceNamesByNode() map[string][]strin
 func RemoveFinalizersOnBDCList(namespace, label, finalizer string) error {
 	bdcClient := NewKubeClient().WithNamespace(namespace)
 	bdcObjList, err := bdcClient.List(metav1.ListOptions{LabelSelector: label})
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to list BDC related to label %s",
+			label,
+		)
+	}
 	for _, bdcObj := range bdcObjList.Items {
 		bdcObj := bdcObj
 		// If BDC doesn't contain finalizer continue
