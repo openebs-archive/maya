@@ -49,6 +49,9 @@ type CStorVolumeClaimSpec struct {
 	// Capacity represents the actual resources of the underlying
 	// cstor volume.
 	Capacity corev1.ResourceList `json:"capacity"`
+	// ReplicaCount represents the actual replica count for the underlying
+	// cstor volume
+	ReplicaCount int `json:"replicaCount"`
 	// CStorVolumeRef has the information about where CstorVolumeClaim
 	// is created from.
 	CStorVolumeRef *corev1.ObjectReference `json:"cstorVolumeRef,omitempty"`
@@ -57,8 +60,8 @@ type CStorVolumeClaimSpec struct {
 // CStorVolumeClaimPublish contains info related to attachment of a volume to a node.
 // i.e. NodeId etc.
 type CStorVolumeClaimPublish struct {
-	// NodeId contains publish info related to attachment of a volume to a node.
-	NodeId string `json:"nodeId,omitempty"`
+	// NodeID contains publish info related to attachment of a volume to a node.
+	NodeID string `json:"nodeId,omitempty"`
 }
 
 // CStorVolumeClaimPhase represents the current phase of CStorVolumeClaim.
