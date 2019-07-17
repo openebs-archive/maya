@@ -266,6 +266,9 @@ func TestRemoveString(t *testing.T) {
 		"nil array and empty string":        {nil, "", nil},
 	}
 	for name, test := range tests {
+		// pinning the values
+		name := name
+		test := test
 		t.Run(name, func(t *testing.T) {
 			newSlice := RemoveString(test.actual, test.removeValue)
 			if !reflect.DeepEqual(newSlice, test.expected) {
