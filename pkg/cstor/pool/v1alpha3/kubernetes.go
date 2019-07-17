@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -41,6 +42,10 @@ type listFn func(cli *clientset.Clientset, opts metav1.ListOptions) (*apis.CStor
 // deletion of cstor pool
 type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.CStorPool, error)
 
+// deleteCollectionFn is a typed function that abstracts
+// deletion of csp's collection
+type deleteCollectionFn func(cli *clientset.Clientset, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
+
 // Kubeclient enables kubernetes API operations
 // on cstor storage pool instance
 type Kubeclient struct {
@@ -50,9 +55,10 @@ type Kubeclient struct {
 	clientset *clientset.Clientset
 
 	// functions useful during mocking
-	getClientset getClientsetFn
-	list         listFn
-	del          deleteFn
+	getClientset  getClientsetFn
+	list          listFn
+	del           deleteFn
+	delCollection deleteCollectionFn
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -79,6 +85,14 @@ func (k *Kubeclient) withDefaults() {
 	if k.del == nil {
 		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.CStorPool, error) {
 			return nil, cli.OpenebsV1alpha1().CStorPools().Delete(name, opts)
+		}
+	}
+	if k.delCollection == nil {
+		k.delCollection = func(cs *clientset.Clientset, listOpts metav1.ListOptions,
+			deleteOpts *metav1.DeleteOptions) error {
+			return cs.OpenebsV1alpha1().
+				CStorPools().
+				DeleteCollection(deleteOpts, listOpts)
 		}
 	}
 }
@@ -158,4 +172,17 @@ func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) (*apis.CSto
 		return nil, err
 	}
 	return k.del(cli, name, opts)
+}
+
+// DeleteCollection deletes a collection of csp objects.
+func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to delete the collection of csps having label %s",
+			listOpts.LabelSelector,
+		)
+	}
+	return k.delCollection(cli, listOpts, deleteOpts)
 }

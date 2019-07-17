@@ -17,7 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/golang/glog"
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
+	"github.com/pkg/errors"
 )
 
 // BlockDeviceClaim encapsulates BlockDeviceClaim api object.
@@ -86,6 +89,43 @@ func (bdc *BlockDeviceClaim) HasLabel(key, value string) bool {
 		return val == value
 	}
 	return false
+}
+
+// HasFinalizer is a predicate to filter out based on provided
+// finalizer being present on the object.
+func HasFinalizer(finalizer string) Predicate {
+	return func(bdc *BlockDeviceClaim) bool {
+		return bdc.HasFinalizer(finalizer)
+	}
+}
+
+// HasFinalizer returns true if the provided finalizer is present on the object.
+func (bdc *BlockDeviceClaim) HasFinalizer(finalizer string) bool {
+	finalizersList := bdc.Object.GetFinalizers()
+	return util.ContainsString(finalizersList, finalizer)
+}
+
+// RemoveFinalizer removes the given finalizer from the object.
+func (bdc *BlockDeviceClaim) RemoveFinalizer(finalizer string) error {
+	if len(bdc.Object.Finalizers) == 0 {
+		glog.V(2).Infof("no finalizer present on BDC %s", bdc.Object.Name)
+		return nil
+	}
+
+	if !bdc.HasFinalizer(finalizer) {
+		glog.V(2).Infof("finalizer %s is already removed on BDC %s", finalizer, bdc.Object.Name)
+		return nil
+	}
+
+	bdc.Object.Finalizers = util.RemoveString(bdc.Object.Finalizers, finalizer)
+
+	_, err := NewKubeClient().
+		WithNamespace(bdc.Object.Namespace).
+		Update(bdc.Object)
+	if err != nil {
+		return errors.Wrap(err, "failed to update object while removing finalizer")
+	}
+	return nil
 }
 
 // IsStatus is predicate to filter out BDC instances based on argument provided

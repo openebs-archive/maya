@@ -18,10 +18,18 @@ package v1alpha1
 
 import (
 	"fmt"
+	"github.com/golang/glog"
+	"github.com/openebs/maya/pkg/util"
+	"github.com/pkg/errors"
 	"time"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
+)
+
+const (
+	// SPCFinalizer represents the finalizer on spc
+	SPCFinalizer = "storagepoolclaim.openebs.io/finalizer"
 )
 
 // SupportedDiskTypes is a map containing the valid disk type
@@ -76,6 +84,61 @@ func HasAnnotation(key, value string) Predicate {
 		}
 		return false
 	}
+}
+
+// HasFinalizer is a predicate to filter out based on provided
+// finalizer being present on the object.
+func HasFinalizer(finalizer string) Predicate {
+	return func(spc *SPC) bool {
+		return spc.HasFinalizer(finalizer)
+	}
+}
+
+// HasFinalizer returns true if the provided finalizer is present on the object.
+func (spc *SPC) HasFinalizer(finalizer string) bool {
+	finalizersList := spc.Object.GetFinalizers()
+	return util.ContainsString(finalizersList, finalizer)
+}
+
+// RemoveFinalizer removes the given finalizer from the object.
+func (spc *SPC) RemoveFinalizer(finalizer string) error {
+	if len(spc.Object.Finalizers) == 0 {
+		glog.V(2).Infof("no finalizer present on SPC %s", spc.Object.Name)
+		return nil
+	}
+
+	if !spc.HasFinalizer(finalizer) {
+		glog.V(2).Infof("finalizer %s is already removed on SPC %s", finalizer, spc.Object.Name)
+		return nil
+	}
+
+	spc.Object.Finalizers = util.RemoveString(spc.Object.Finalizers, finalizer)
+
+	_, err := NewKubeClient().
+		Update(spc.Object)
+	if err != nil {
+		return errors.Wrapf(err, "failed to remove finalizers from SPC %s", spc.Object.Name)
+	}
+	return nil
+}
+
+// AddFinalizer adds the given finalizer to the object.
+func (spc *SPC) AddFinalizer(finalizer string) error {
+	if spc.HasFinalizer(finalizer) {
+		glog.V(2).Infof("finalizer %s is already present on SPC %s", finalizer, spc.Object.Name)
+		return nil
+	}
+
+	spc.Object.Finalizers = append(spc.Object.Finalizers, finalizer)
+
+	_, err := NewKubeClient().
+		Update(spc.Object)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to update SPC while adding finalizers")
+	}
+
+	return nil
 }
 
 // Filter will filter the csp instances if all the predicates succeed against that spc.
