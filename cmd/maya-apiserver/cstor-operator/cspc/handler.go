@@ -18,6 +18,11 @@ package cspc
 
 import (
 	"fmt"
+	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
+	"github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"time"
 
 	"github.com/golang/glog"
@@ -137,6 +142,15 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 		return nil
 	}
 
+	if !cspc.DeletionTimestamp.IsZero() {
+		// if returns error, we will log the error instead of re-queueing
+		err = c.handleDeletion(cspc, openebsNameSpace)
+		if err != nil {
+			glog.Errorf("Could not remove finalizers: %s", err.Error())
+		}
+		return nil
+	}
+
 	pendingPoolCount, err := pc.AlgorithmConfig.GetPendingPoolCount()
 	if err != nil {
 		message := fmt.Sprintf("Could not sync CSPC : failed to get pending pool count: {%s}", err.Error())
@@ -217,5 +231,91 @@ func (pc *PoolConfig) createDeployForCSP(csp *apis.NewTestCStorPool) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not create deployment for csp {%s}", csp.Name)
 	}
+	return nil
+}
+
+// getUsedBDCs returns BDCList that is associated with the given cspc
+func (c *Controller) getUsedBDCs(cspc *apis.CStorPoolCluster, namespace string) (*ndmapis.BlockDeviceClaimList, error) {
+	bdcList, err := c.ndmclientset.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+		List(metav1.ListOptions{LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + cspc.Name})
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not list BDCs for CSPC %v", cspc.Name)
+	}
+	return bdcList, nil
+}
+
+// handleDeletion is used to remove finalizers on the associated BDCs
+// and CSPC when the delete timestamp is set on the cspc object
+func (c *Controller) handleDeletion(cspc *apis.CStorPoolCluster, namespace string) error {
+	// get all the BDCs associated with the cspc
+	bdcList, err := c.getUsedBDCs(cspc, namespace)
+	if err != nil {
+		return errors.Wrapf(err, "failed to remove finalizer on bdcs and cspc")
+	}
+
+	// iterate over the bdcs and remove the finalizer
+	for _, bdc := range bdcList.Items {
+		bdc := bdc
+		err = c.removeBDCFinalizer(&bdc, v1alpha1.CSPCFinalizer)
+		if err != nil {
+			return errors.Wrapf(err, "failed to remove finalizer on bdcs and cspc")
+		}
+	}
+
+	// remove finalizer on cspc
+	err = c.removeCSPCFinalizer(cspc, v1alpha1.CSPCFinalizer)
+	if err != nil {
+		return errors.Wrapf(err, "failed to remove finalizer on cspc object")
+	}
+
+	// if finalizer is removed successfully, then object will
+	// be removed and no need to reconcile further
+	return nil
+}
+
+// removeBDCFinalizer removes the given finalizer from the BDC
+func (c *Controller) removeBDCFinalizer(bdcObj *ndmapis.BlockDeviceClaim, finalizer string) error {
+	if len(bdcObj.Finalizers) == 0 {
+		return nil
+	}
+
+	bdcObj.Finalizers = util.RemoveString(bdcObj.Finalizers, finalizer)
+
+	// Update is used instead of patch, because when there were 2 finalizers in the object
+	// and tried to remove the first finalizer using patch operation , it was not working. The
+	// patch operation didn't return any error but the object was not getting patched.
+	// using Update() it was possible to remove the finalizer on the BDC
+	_, err := blockdeviceclaim.NewKubeClient().
+		WithNamespace(bdcObj.Namespace).
+		Update(bdcObj)
+	if err != nil {
+		return errors.Wrapf(err, "failed to remove finalizer from BDC %v", bdcObj.Name)
+	}
+	return nil
+}
+
+// removeCSPCFinalizer will remove finalizer on cspc
+func (c *Controller) removeCSPCFinalizer(cspcObj *apis.CStorPoolCluster, finalizer string) error {
+	if len(cspcObj.Finalizers) == 0 {
+		return nil
+	}
+
+	// if the cspc object does not contain the finalizer string set
+	// by cstor operator then we will return nil. This will avoid an
+	// un-necessary API call.
+	if !util.ContainsString(cspcObj.Finalizers, finalizer) {
+		glog.V(2).Infof("finalizer %s is already removed", finalizer)
+		return nil
+	}
+
+	cspcObj.Finalizers = util.RemoveString(cspcObj.Finalizers, finalizer)
+
+	_, err := v1alpha1.NewKubeClient().
+		WithNamespace(cspcObj.Namespace).
+		Update(cspcObj)
+	if err != nil {
+		return errors.Wrapf(err, "failed to remove finalizers from cspc %v", cspcObj.Name)
+	}
+	glog.Infof("finalizer %s is successfully removed from cspc %s", finalizer, cspcObj.Name)
 	return nil
 }
