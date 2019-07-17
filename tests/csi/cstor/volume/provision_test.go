@@ -66,10 +66,16 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 			annotations[string(apis.CASTypeKey)] = string(apis.CstorVolume)
 			annotations[string(apis.CASConfigKey)] = CASConfig
 
+			parameters := map[string]string{
+				"replicacount":     "1",
+				"storagePoolClaim": spcObj.Name,
+			}
+
 			By("building a storageclass")
 			scObj, err = sc.NewBuilder().
 				WithGenerateName(scName).
 				WithAnnotations(annotations).
+				WithParametersNew(parameters).
 				WithProvisioner(openebsProvisioner).Build()
 			Expect(err).ShouldNot(HaveOccurred(),
 				"while building storageclass obj with prefix {%s}", scName)

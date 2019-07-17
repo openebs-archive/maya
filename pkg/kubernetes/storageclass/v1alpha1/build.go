@@ -57,6 +57,28 @@ func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 	return b
 }
 
+// WithParametersNew resets existing parameters if any with
+// ones that are provided here
+func (b *Builder) WithParametersNew(parameters map[string]string) *Builder {
+	if len(parameters) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build cstorvolume object: no new parameters"),
+		)
+		return b
+	}
+
+	// copy of original map
+	newparameters := map[string]string{}
+	for key, value := range parameters {
+		newparameters[key] = value
+	}
+
+	// override
+	b.sc.object.Parameters = newparameters
+	return b
+}
+
 // WithProvisioner sets the Provisioner field of storageclass with provided argument.
 func (b *Builder) WithProvisioner(provisioner string) *Builder {
 	if len(provisioner) == 0 {
