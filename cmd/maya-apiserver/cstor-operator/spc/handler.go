@@ -23,7 +23,9 @@ import (
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/pkg/errors"
@@ -103,7 +105,26 @@ func (c *Controller) enqueueSpc(spc interface{}) {
 
 // synSpc is the function which tries to converge to a desired state for the spc.
 func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
-	err := validate(spc)
+
+	if !spc.DeletionTimestamp.IsZero() {
+		err := handleSPCDeletion(spc)
+		if err != nil {
+			glog.Errorf("Failed to sync spc:%s", err.Error())
+		}
+		return nil
+	}
+
+	gotSPC, err := spcv1alpha1.BuilderForAPIObject(spc).Spc.AddFinalizer(spcv1alpha1.SPCFinalizer)
+
+	if err != nil {
+		glog.Errorf("Failed to add finalizer on CSPC %s:%s", spc.Name, err.Error())
+		return nil
+	}
+
+	// assinging the latest spc object
+	spc = gotSPC
+
+	err = validate(spc)
 	if err != nil {
 		glog.Errorf("Validation of spc failed:%s", err)
 		return nil
@@ -118,6 +139,112 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 			return err
 		}
 	}
+	return nil
+}
+
+// handleSPCDeletion handles deletion of a SPC resource by deleting
+// the associated CSP resource to it, removing the SPC finalizer
+// on BDC(s) used and then removing the SPC finalizer on SPC resource
+// itself.
+
+// It is necessary that SPC resource has the SPC finalizer on it in order to
+// execute the handler.
+func handleSPCDeletion(spc *apis.StoragePoolClaim) error {
+	err := deleteAssociatedCSP(spc)
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to handle spc deletion")
+	}
+
+	if spcv1alpha1.BuilderForAPIObject(spc).Spc.HasFinalizer(spcv1alpha1.SPCFinalizer) {
+		err := removeSPCFinalizer(spc)
+		if err != nil {
+			return errors.Wrapf(err, "failed to handle spc deletion")
+		}
+	}
+
+	return nil
+}
+
+// deleteAssociatedCSP deletes the CSP resource(s) belonging to the given SPC resource.
+// If no CSP resource exists for the SPC, then a levelled info log is logged and function
+// returns.
+func deleteAssociatedCSP(spc *apis.StoragePoolClaim) error {
+	err := csp.KubeClient().DeleteCollection(
+		metav1.ListOptions{
+			LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name,
+		},
+		&metav1.DeleteOptions{},
+	)
+
+	if k8serror.IsNotFound(err) {
+		glog.V(2).Infof("Associated CSP(s) of storagepoolclaim %s is already deleted:%s", spc.Name, err.Error())
+		return nil
+	}
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete associated CSP(s):%s", err.Error())
+	}
+	glog.Infof("Associated CSP(s) of storagepoolclaim deleted successfully for storagepoolclaim %s", spc.Name)
+	return nil
+}
+
+// removeSPCFinalizer removes SPC finalizers on associated
+// BDC resources and SPC object itself.
+func removeSPCFinalizer(spc *apis.StoragePoolClaim) error {
+	cspList, err := csp.KubeClient().List(metav1.ListOptions{
+		LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name,
+	})
+
+	if err != nil {
+		return errors.Wrap(err, "failed to remove SPC finalizer on associated resources")
+	}
+
+	if len(cspList.Items) > 0 {
+		return errors.Wrap(err, "failed to remove SPC finalizer on associated resources as "+
+			"CSP(s) still exists for storagepoolclaim")
+	}
+
+	err = removeSPCFinalizerOnAssociatedBDC(spc)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to remove SPC finalizer on associated resources")
+	}
+
+	err = spcv1alpha1.BuilderForAPIObject(spc).Spc.RemoveFinalizer(spcv1alpha1.SPCFinalizer)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to remove SPC finalizer on associated resources")
+	}
+	return nil
+}
+
+// removeSPCFinalizerOnAssociatedBDC removes SPC finalizer on associated BDC resource(s)
+func removeSPCFinalizerOnAssociatedBDC(spc *apis.StoragePoolClaim) error {
+	namespace := env.Get(env.OpenEBSNamespace)
+
+	if strings.TrimSpace(namespace) == "" {
+		return errors.New("failed to remove SPC finalizer on BDC resources:" +
+			"could not get openebs namespace from environment variable")
+	}
+
+	bdcList, err := bdc.NewKubeClient().WithNamespace(namespace).List(
+		metav1.ListOptions{
+			LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name,
+		})
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to remove SPC finalizer on BDC resources")
+	}
+
+	for _, bdcObj := range bdcList.Items {
+		bdcObj := bdcObj
+		err := bdc.BuilderForAPIObject(&bdcObj).BDC.RemoveFinalizer(spcv1alpha1.SPCFinalizer)
+		if err != nil {
+			return errors.Wrapf(err, "failed to remove SPC finalizer on BDC %s", bdcObj.Name)
+		}
+	}
+
 	return nil
 }
 

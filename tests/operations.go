@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
+	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
@@ -39,7 +40,7 @@ import (
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
-	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
+	"github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/tests/artifacts"
@@ -80,6 +81,7 @@ type Operations struct {
 	UnstructClient *unstruct.Kubeclient
 	DeployClient   *deploy.Kubeclient
 	BDClient       *bd.Kubeclient
+	BDCClient      *bdc.Kubeclient
 	kubeConfigPath string
 }
 
@@ -184,6 +186,9 @@ func (ops *Operations) withDefaults() {
 	}
 	if ops.NodeClient == nil {
 		ops.NodeClient = node.NewKubeClient(node.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.BDCClient == nil {
+		ops.BDCClient = bdc.NewKubeClient(bdc.WithKubeConfigPath(ops.kubeConfigPath))
 	}
 }
 
@@ -498,6 +503,71 @@ func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) 
 		time.Sleep(5 * time.Second)
 	}
 	return cspCount
+}
+
+// GetBDCCount gets BDC resource count based on provided list option.
+func (ops *Operations) GetBDCCount(listOptions metav1.ListOptions, expectedBDCCount int, namespace string) int {
+	var bdcCount int
+	for i := 0; i < maxRetry; i++ {
+		bdcAPIList, err := ops.BDCClient.WithNamespace(namespace).List(listOptions)
+		Expect(err).To(BeNil())
+		bdcCount = len(bdcAPIList.Items)
+		if bdcCount == expectedBDCCount {
+			return bdcCount
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return bdcCount
+}
+
+// IsSPCNotExists returns true if the spc with provided name does not exists.
+func (ops *Operations) IsSPCNotExists(spcName string) bool {
+	for i := 0; i < maxRetry; i++ {
+		_, err := ops.SCClient.Get(spcName, metav1.GetOptions{})
+		if k8serrors.IsNotFound(err) {
+			return true
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return false
+}
+
+// IsSPCFinalizerExistsOnSPC returns true if the spc with provided name contains the spc finalizer.
+func (ops *Operations) IsSPCFinalizerExistsOnSPC(spcName, spcFinalizer string) bool {
+	for i := 0; i < maxRetry; i++ {
+		gotSPC, err := ops.SPCClient.Get(spcName, metav1.GetOptions{})
+		Expect(err).To(BeNil())
+		for _, finalizer := range gotSPC.Finalizers {
+			if finalizer == spcFinalizer {
+				return true
+			}
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return false
+}
+
+// IsSPCFinalizerExistsOnBDCs returns true if the all the BDCs( selected by provided list options)
+// has spc finalizer on it.
+func (ops *Operations) IsSPCFinalizerExistsOnBDCs(listOptions metav1.ListOptions, spcFinalizer string) bool {
+	for i := 0; i < maxRetry; i++ {
+		spcFinalizerPresent := true
+		gotBDCList, err := ops.BDCClient.List(listOptions)
+		Expect(err).To(BeNil())
+		for _, BDCObj := range gotBDCList.Items {
+			BDCObj := BDCObj
+			if !bdc.BuilderForAPIObject(&BDCObj).BDC.HasFinalizer(spcFinalizer) {
+				spcFinalizerPresent = false
+			}
+		}
+		if !spcFinalizerPresent {
+			time.Sleep(5 * time.Second)
+		} else {
+			return true
+		}
+
+	}
+	return false
 }
 
 // GetHealthyCSPCountEventually gets healthy csp based on spcName

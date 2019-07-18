@@ -44,7 +44,6 @@ func init() {
 var ops *tests.Operations
 
 var _ = BeforeSuite(func() {
-
 	ops = tests.NewOperations(tests.WithKubeConfigPath(cstor.KubeConfigPath)).VerifyOpenebs(1)
 
 })
