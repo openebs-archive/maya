@@ -75,6 +75,8 @@ func TestIsCstorSparsePool(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			os.Unsetenv(string(CreateDefaultStorageConfig))
 			errDef := os.Setenv(string(CreateDefaultStorageConfig), mock.defConf)
@@ -99,43 +101,57 @@ func TestIsCstorSparsePool(t *testing.T) {
 func TestCstorSparsePoolSpc070(t *testing.T) {
 	tests := map[string]struct {
 		value    string
+		defConf  string
 		expected int
 		iserr    bool
 	}{
 		"with 1": {
 			value:    "1",
+			defConf:  "true",
 			expected: 2,
 			iserr:    false,
 		},
 		"with true": {
 			value:    "true",
+			defConf:  "true",
 			expected: 2,
 			iserr:    false,
 		},
 		"with 0": {
 			value:    "0",
+			defConf:  "true",
 			expected: 0,
 			iserr:    false,
 		},
 		"with false": {
 			value:    "false",
+			defConf:  "true",
 			expected: 0,
 			iserr:    false,
 		},
 		"with junk": {
 			value:    "junk",
+			defConf:  "true",
 			expected: 0,
 			iserr:    false,
 		},
 		"with special chars": {
 			value:    "abc:123-123",
+			defConf:  "true",
 			expected: 0,
 			iserr:    false,
 		},
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
+			os.Unsetenv(string(CreateDefaultStorageConfig))
+			errDef := os.Setenv(string(CreateDefaultStorageConfig), mock.defConf)
+			if errDef != nil {
+				t.Fatalf("Test '%s' failed %+v", name, errDef)
+			}
 			os.Unsetenv(string(DefaultCstorSparsePool))
 			err := os.Setenv(string(DefaultCstorSparsePool), mock.value)
 			if err != nil {
