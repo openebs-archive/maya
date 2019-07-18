@@ -119,26 +119,27 @@ func (spc *SPC) RemoveFinalizer(finalizer string) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to remove finalizers from SPC %s", spc.Object.Name)
 	}
+	glog.Infof("Finalizer %s removed successfully from SPC %s", finalizer, spc.Object.Name)
 	return nil
 }
 
 // AddFinalizer adds the given finalizer to the object.
-func (spc *SPC) AddFinalizer(finalizer string) error {
+func (spc *SPC) AddFinalizer(finalizer string) (*apis.StoragePoolClaim, error) {
 	if spc.HasFinalizer(finalizer) {
 		glog.V(2).Infof("finalizer %s is already present on SPC %s", finalizer, spc.Object.Name)
-		return nil
+		return spc.Object, nil
 	}
 
 	spc.Object.Finalizers = append(spc.Object.Finalizers, finalizer)
 
-	_, err := NewKubeClient().
+	spcAPIObj, err := NewKubeClient().
 		Update(spc.Object)
 
 	if err != nil {
-		return errors.Wrap(err, "failed to update SPC while adding finalizers")
+		return nil, errors.Wrap(err, "failed to update SPC while adding finalizers")
 	}
-
-	return nil
+	glog.Infof("Finalizer %s added on storagepoolclaim %s", finalizer, spc.Object.Name)
+	return spcAPIObj, nil
 }
 
 // Filter will filter the csp instances if all the predicates succeed against that spc.

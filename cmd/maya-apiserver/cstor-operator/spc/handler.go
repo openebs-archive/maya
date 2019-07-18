@@ -109,14 +109,17 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 	if !spc.DeletionTimestamp.IsZero() {
 		err := handleSPCDeletion(spc)
 		if err != nil {
-			glog.Errorf("failed to sync spc:%s", err.Error())
+			glog.Errorf("Failed to sync spc:%s", err.Error())
 		}
 		return nil
 	}
-	err := spcv1alpha1.BuilderForAPIObject(spc).Spc.AddFinalizer(spcv1alpha1.SPCFinalizer)
+
+	gotSPC, err := spcv1alpha1.BuilderForAPIObject(spc).Spc.AddFinalizer(spcv1alpha1.SPCFinalizer)
+	// assinging the latest spc object
+	spc = gotSPC
 
 	if err != nil {
-		glog.Errorf("failed to add finalizer on CSPC %s:%s", spc.Name, err.Error())
+		glog.Errorf("Failed to add finalizer on CSPC %s:%s", spc.Name, err.Error())
 		return nil
 	}
 
@@ -179,9 +182,9 @@ func deleteAssociatedCSP(spc *apis.StoragePoolClaim) error {
 	}
 
 	if err != nil {
-		return errors.Wrapf(err, "Failed to delete associated CSP(s):%s", err.Error())
+		return errors.Wrapf(err, "failed to delete associated CSP(s):%s", err.Error())
 	}
-
+	glog.Infof("Associated CSP(s) of storagepoolclaim deleted successfully for storagepoolclaim %s", spc.Name)
 	return nil
 }
 
@@ -220,7 +223,8 @@ func removeSPCFinalizerOnAssociatedBDC(spc *apis.StoragePoolClaim) error {
 	namespace := env.Get(env.OpenEBSNamespace)
 
 	if strings.TrimSpace(namespace) == "" {
-		return errors.New("failed to remove SPC finalizer on BDC resources")
+		return errors.New("failed to remove SPC finalizer on BDC resources:" +
+			"could not get openebs namespace from environment variable")
 	}
 
 	bdcList, err := bdc.NewKubeClient().WithNamespace(namespace).List(

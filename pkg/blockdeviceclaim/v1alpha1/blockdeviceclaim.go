@@ -125,6 +125,7 @@ func (bdc *BlockDeviceClaim) RemoveFinalizer(finalizer string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to update object while removing finalizer")
 	}
+	glog.Infof("Finalizer %s removed successfully from BDC %s", finalizer, bdc.Object.Name)
 	return nil
 }
 
