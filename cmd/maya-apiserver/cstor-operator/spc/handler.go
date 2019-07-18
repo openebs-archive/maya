@@ -115,13 +115,14 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 	}
 
 	gotSPC, err := spcv1alpha1.BuilderForAPIObject(spc).Spc.AddFinalizer(spcv1alpha1.SPCFinalizer)
-	// assinging the latest spc object
-	spc = gotSPC
 
 	if err != nil {
 		glog.Errorf("Failed to add finalizer on CSPC %s:%s", spc.Name, err.Error())
 		return nil
 	}
+
+	// assinging the latest spc object
+	spc = gotSPC
 
 	err = validate(spc)
 	if err != nil {
