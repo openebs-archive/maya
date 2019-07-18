@@ -178,9 +178,8 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 		return
 	}
 	// Enqueue spc only when there is a pending pool to be created.
-	if c.isPoolPending(spc) {
-		c.enqueueSpc(newSpc)
-	}
+	c.enqueueSpc(newSpc)
+
 }
 
 // deleteSpc is the delete event handler for spc.

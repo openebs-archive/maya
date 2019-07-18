@@ -328,6 +328,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 				WithHostName(hostName).
 				WithCapacity(capacity).
 				WithOwnerReference(spc).
+				WithFinalizer(spcv1alpha1.SPCFinalizer).
 				Build()
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to build block device claim for bd {%s}", bdName)

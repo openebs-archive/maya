@@ -19,6 +19,7 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
+	"github.com/openebs/maya/tests/artifacts"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -39,6 +40,12 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 			Expect(err).To(BeNil())
 			cspCount := ops.GetHealthyCSPCount(spcObj.Name, 3)
 			Expect(cspCount).To(Equal(3))
+
+			Expect(ops.IsSPCFinalizerExistsOnSPC(spcObj.Name, spc.SPCFinalizer)).To(BeTrue())
+
+			Expect(ops.IsSPCFinalizerExistsOnBDCs(metav1.ListOptions{
+				LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcObj.Name,
+			}, spc.SPCFinalizer)).To(BeTrue())
 		})
 	})
 
@@ -94,9 +101,14 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 		It("should delete the spc", func() {
 			_, err := ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil())
+			bdcCount := ops.GetBDCCount(
+				metav1.ListOptions{
+					LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcObj.Name},
+				0, string(artifacts.OpenebsNamespace))
+			Expect(bdcCount).To(BeZero())
+			Expect(ops.IsSPCExists(spcObj.Name)).To(BeTrue())
 		})
 	})
-
 })
 
 var _ = Describe("MIRRORED SPARSE SPC", func() {
