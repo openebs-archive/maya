@@ -61,7 +61,7 @@ reclaimPolicy: Delete
 // LocalPVArtifacts returns the default Local PV storage
 // class related artifacts corresponding to latest version
 func LocalPVArtifacts() (list artifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(localPVSCs{})...)
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamlsIf(localPVSCs{}, IsDefaultStorageConfigEnabled)...)
 	return
 }
 

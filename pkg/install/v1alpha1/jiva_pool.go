@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2018-2019 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ provisioner: openebs.io/provisioner-iscsi
 // JivaPoolArtifacts returns the default jiva pool and storage
 // class related artifacts corresponding to latest version
 func JivaPoolArtifacts() (list artifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(jivaPools{})...)
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamlsIf(jivaPools{}, IsDefaultStorageConfigEnabled)...)
 	return
 }
 

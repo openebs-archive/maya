@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2018-2019 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,36 +26,49 @@ import (
 func TestIsCstorSparsePool(t *testing.T) {
 	tests := map[string]struct {
 		value     string
+		defConf   string
 		isenabled bool
 		iserr     bool
 	}{
+		"with true, default config false": {
+			value:     "true",
+			defConf:   "false",
+			isenabled: false,
+			iserr:     false,
+		},
 		"with true": {
 			value:     "true",
+			defConf:   "true",
 			isenabled: true,
 			iserr:     false,
 		},
 		"with 1": {
 			value:     "1",
+			defConf:   "true",
 			isenabled: true,
 			iserr:     false,
 		},
 		"with false": {
 			value:     "false",
+			defConf:   "true",
 			isenabled: false,
 			iserr:     false,
 		},
 		"with 0": {
 			value:     "0",
+			defConf:   "true",
 			isenabled: false,
 			iserr:     false,
 		},
 		"with junk": {
 			value:     "junk",
+			defConf:   "true",
 			isenabled: false,
 			iserr:     false,
 		},
 		"with special chars": {
 			value:     "abc:123-123",
+			defConf:   "true",
 			isenabled: false,
 			iserr:     true,
 		},
@@ -63,14 +76,20 @@ func TestIsCstorSparsePool(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
+			os.Unsetenv(string(CreateDefaultStorageConfig))
+			errDef := os.Setenv(string(CreateDefaultStorageConfig), mock.defConf)
+			if errDef != nil {
+				t.Fatalf("Test '%s' failed %+v", name, errDef)
+			}
 			os.Unsetenv(string(DefaultCstorSparsePool))
 			err := os.Setenv(string(DefaultCstorSparsePool), mock.value)
 			if err != nil {
 				t.Fatalf("Test '%s' failed %+v", name, err)
 			}
 			actual := IsCstorSparsePoolEnabled()
+			actualStgConfig := IsDefaultStorageConfigEnabled()
 			if actual != mock.isenabled {
-				t.Fatalf("Test '%s' failed: expected '%t' actual '%t' ", name, actual, mock.isenabled)
+				t.Fatalf("Test '%s' failed: expected '%t' actual '%t' : storage-config '%t' ", name, actual, mock.isenabled, actualStgConfig)
 			}
 			os.Unsetenv(string(DefaultCstorSparsePool))
 		})

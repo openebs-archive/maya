@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2018-2019 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ func TestEnvInstallCount(t *testing.T) {
 	tests := map[string]struct {
 		expectedCount int
 	}{
-		"101": {19},
+		"101": {20},
 	}
 
 	for name, mock := range tests {
