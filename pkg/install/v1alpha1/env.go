@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2018-2019 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,4 +28,11 @@ const (
 	// installed/configured else for "false" it will
 	// not be configured
 	DefaultCstorSparsePool menv.ENVKey = "OPENEBS_IO_INSTALL_DEFAULT_CSTOR_SPARSE_POOL"
+
+	// CreateDefaultStorageConfig is the environment
+	// variable that flags if default storage pools and/or storage
+	// classes should be created.
+	//
+	// Default is "true"
+	CreateDefaultStorageConfig menv.ENVKey = "OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG"
 )

@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2018-2019 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,12 +17,6 @@ limitations under the License.
 // TODO
 // Rename this file by removing the version suffix information
 package v1alpha1
-
-import (
-	"strconv"
-
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
-)
 
 const cstorSparsePoolYamls = `
 ---
@@ -80,13 +74,6 @@ spec:
     poolType: striped
 ---
 `
-
-// IsCstorSparsePoolEnabled reads from env variable to check whether cstor sparse pool
-// should be created by default or not.
-func IsCstorSparsePoolEnabled() (enabled bool) {
-	enabled, _ = strconv.ParseBool(menv.Get(DefaultCstorSparsePool))
-	return
-}
 
 // CstorSparsePoolArtifacts returns sparse pool artifacts corresponding to
 // latest version if cstor sparse pool creation is enabled
