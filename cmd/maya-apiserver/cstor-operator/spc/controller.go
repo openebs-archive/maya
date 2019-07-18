@@ -177,7 +177,7 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 		c.recorder.Event(spc, corev1.EventTypeWarning, "Update", message)
 		return
 	}
-	// Enqueue spc only when there is a pending pool to be created.
+	// Enqueueing in no-pending-pool case also to handle any miss in delete timestamps to remove finalizer on SPC/BDCs
 	c.enqueueSpc(newSpc)
 
 }

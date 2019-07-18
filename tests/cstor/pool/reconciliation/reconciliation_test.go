@@ -106,7 +106,7 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 					LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcObj.Name},
 				0, string(artifacts.OpenebsNamespace))
 			Expect(bdcCount).To(BeZero())
-			Expect(ops.IsSPCExists(spcObj.Name)).To(BeTrue())
+			Expect(ops.IsSPCNotExists(spcObj.Name)).To(BeTrue())
 		})
 	})
 })

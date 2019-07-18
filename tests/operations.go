@@ -520,8 +520,8 @@ func (ops *Operations) GetBDCCount(listOptions metav1.ListOptions, expectedBDCCo
 	return bdcCount
 }
 
-// IsSPCExists returns true if the spc with provided name exists
-func (ops *Operations) IsSPCExists(spcName string) bool {
+// IsSPCNotExists returns true if the spc with provided name does not exists.
+func (ops *Operations) IsSPCNotExists(spcName string) bool {
 	for i := 0; i < maxRetry; i++ {
 		_, err := ops.SCClient.Get(spcName, metav1.GetOptions{})
 		if k8serrors.IsNotFound(err) {
