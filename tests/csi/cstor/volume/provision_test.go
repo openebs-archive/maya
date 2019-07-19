@@ -18,17 +18,17 @@ package volume
 
 import (
 	"strconv"
-	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
+	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
-	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
+	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
-	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
+	k8svolume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/openebs/maya/tests/cstor"
 	corev1 "k8s.io/api/core/v1"
@@ -63,23 +63,15 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 			Expect(cspCount).To(Equal(cstor.PoolCount),
 				"while checking healthy cstor pool count")
 
-			By("building a CAS Config with generated SPC name")
-			CASConfig := strings.Replace(openebsCASConfigValue,
-				"$spcName", spcObj.Name, 1)
-			CASConfig = strings.Replace(CASConfig,
-				"$count", strconv.Itoa(cstor.ReplicaCount), 1)
-			annotations[string(apis.CASTypeKey)] = string(apis.CstorVolume)
-			annotations[string(apis.CASConfigKey)] = CASConfig
-
+			By("building SC parameters with generated SPC name")
 			parameters := map[string]string{
-				"replicaCount":     "1",
+				"replicaCount":     strconv.Itoa(cstor.ReplicaCount),
 				"storagePoolClaim": spcObj.Name,
 			}
 
 			By("building a storageclass")
 			scObj, err = sc.NewBuilder().
 				WithGenerateName(scName).
-				WithAnnotations(annotations).
 				WithParametersNew(parameters).
 				WithProvisioner(openebsProvisioner).Build()
 			Expect(err).ShouldNot(HaveOccurred(),
@@ -137,40 +129,59 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 			Expect(status).To(Equal(true),
 				"while checking status equal to bound")
 
-			By("building a busybox app pod using above csi cstor volume")
-			podObj, err = pod.NewBuilder().
+			By("building a busybox app pod deployment using above csi cstor volume")
+			deployObj, err := deploy.NewBuilder().
 				WithName(appName).
 				WithNamespace(nsObj.Name).
-				WithContainerBuilder(
-					container.NewBuilder().
-						WithName("busybox").
-						WithImage("busybox").
-						WithCommandNew(
-							[]string{
-								"sh",
-								"-c",
-								"date > /mnt/cstore1/date.txt; sync; sleep 5; sync; tail -f /dev/null;",
+				WithLabelsNew(
+					map[string]string{
+						"app": "busybox",
+					},
+				).
+				WithSelectorMatchLabelsNew(
+					map[string]string{
+						"app": "busybox",
+					},
+				).
+				WithPodTemplateSpecBuilder(
+					pts.NewBuilder().
+						WithLabelsNew(
+							map[string]string{
+								"app": "busybox",
 							},
 						).
-						WithVolumeMountsNew(
-							[]corev1.VolumeMount{
-								corev1.VolumeMount{
-									Name:      "datavol1",
-									MountPath: "/mnt/cstore1",
-								},
-							},
+						WithContainerBuilders(
+							container.NewBuilder().
+								WithImage("busybox").
+								WithName("busybox").
+								WithImagePullPolicy(corev1.PullIfNotPresent).
+								WithCommandNew(
+									[]string{
+										"sh",
+										"-c",
+										"date > /mnt/cstore1/date.txt; sync; sleep 5; sync; tail -f /dev/null;",
+									},
+								).
+								WithVolumeMountsNew(
+									[]corev1.VolumeMount{
+										corev1.VolumeMount{
+											Name:      "datavol1",
+											MountPath: "/mnt/cstore1",
+										},
+									},
+								),
+						).
+						WithVolumeBuilders(
+							k8svolume.NewBuilder().
+								WithName("datavol1").
+								WithPVCSource(pvcObj.Name),
 						),
 				).
-				WithVolumeBuilder(
-					volume.NewBuilder().
-						WithName("datavol1").
-						WithPVCSource(pvcName),
-				).
 				Build()
-			Expect(err).ShouldNot(HaveOccurred(), "while building pod {%s}", appName)
 
-			By("creating pod with above pvc as volume")
-			podObj, err = ops.PodClient.WithNamespace(nsObj.Name).Create(podObj)
+			Expect(err).ShouldNot(HaveOccurred(), "while building app deployement {%s}", appName)
+
+			deployObj, err = ops.DeployClient.WithNamespace(nsObj.Name).Create(deployObj)
 			Expect(err).ShouldNot(
 				HaveOccurred(),
 				"while creating pod {%s} in namespace {%s}",
@@ -179,7 +190,8 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 			)
 
 			By("verifying target pod count as 1 once the app has been deployed")
-			pvcObj, err = ops.PVCClient.WithNamespace(nsObj.Name).Get(pvcObj.Name, metav1.GetOptions{})
+			pvcObj, err = ops.PVCClient.WithNamespace(nsObj.Name).
+				Get(pvcObj.Name, metav1.GetOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while getting pvc {%s} in namespace {%s}",
@@ -193,17 +205,37 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 			Expect(controllerPodCount).To(Equal(1),
 				"while checking controller pod count")
 
-			By("verifying app pod is running")
-			status = ops.IsPodRunningEventually(nsObj.Name, appName)
-			Expect(status).To(Equal(true), "while checking status of pod {%s}", appName)
+			By("verifying cstorvolume replica count")
+			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, targetVolumeLabel, cstor.ReplicaCount)
+			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
 
-			By("deleting application pod")
+			By("verifying app pod is running")
+			appPod, err := ops.PodClient.WithNamespace(nsObj.Name).
+				List(metav1.ListOptions{
+					LabelSelector: "app=busybox",
+				},
+				)
+			Expect(err).ShouldNot(HaveOccurred(), "while verifying application pod")
+
+			status = ops.IsPodRunningEventually(nsObj.Name, appPod.Items[0].Name)
+			Expect(status).To(Equal(true), "while checking status of pod {%s}", appPod.Items[0].Name)
+
+			By("restarting application to remount the volume again")
 			err = ops.PodClient.WithNamespace(nsObj.Name).
-				Delete(podObj.Name, &metav1.DeleteOptions{})
+				Delete(appPod.Items[0].Name, &metav1.DeleteOptions{})
+			Expect(err).ShouldNot(HaveOccurred(), "while restarting application pod")
+
+			By("verifying app pod is running again")
+			status = ops.IsPodRunningEventually(nsObj.Name, appPod.Items[0].Name)
+			Expect(status).To(Equal(true), "while checking status of pod {%s}", appPod.Items[0].Name)
+
+			By("deleting application deployment")
+			err = ops.DeployClient.WithNamespace(nsObj.Name).
+				Delete(deployObj.Name, &metav1.DeleteOptions{})
 			Expect(err).ShouldNot(HaveOccurred(), "while deleting application pod")
 
 			By("deleting above pvc")
-			err := ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
+			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting pvc {%s} in namespace {%s}",
@@ -226,6 +258,7 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 			cvCount := ops.GetCstorVolumeCountEventually(
 				openebsNamespace, CstorVolumeLabel, 0)
 			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
+
 		})
 	})
 
