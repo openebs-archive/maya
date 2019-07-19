@@ -126,8 +126,8 @@ var (
 )
 
 func getDeploymentDetails(labels, namespace string) (
-	deployName string,
-	containerName string,
+	deployName,
+	containerName,
 	version string,
 	err error,
 ) {
@@ -158,7 +158,7 @@ func getDeploymentDetails(labels, namespace string) (
 }
 
 func patchDelpoyment(
-	deployName string,
+	deployName,
 	namespace string,
 	pt types.PatchType,
 	data []byte,
@@ -212,7 +212,8 @@ func main() {
 		pvLabel         = "openebs.io/persistent-volume=" + pvName
 		replicaLabel    = "openebs.io/replica=jiva-replica," + pvLabel
 		controllerLabel = "openebs.io/controller=jiva-controller," + pvLabel
-		ns              = ""
+		ns              string
+		err             error
 	)
 
 	// verifying whether the pvc is deployed with DeployInOpenebsNamespace cas config
@@ -220,6 +221,10 @@ func main() {
 		&metav1.ListOptions{
 			LabelSelector: pvLabel,
 		})
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	if len(deployInOpenebs.Items) > 0 {
 		ns = openebsNamespace
 	} else {
@@ -284,6 +289,10 @@ func main() {
 		metav1.ListOptions{
 			LabelSelector: pvLabel,
 		})
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	// controllerServiceObj := controllerServiceList.Items[0]
 	controllerServiceName := controllerServiceList.Items[0].Name
 	controllerServiceVersion := controllerServiceList.Items[0].Labels["openebs.io/version"]
@@ -315,6 +324,10 @@ func main() {
 			types.StrategicMergePatchType,
 			[]byte(replicaPatch),
 		)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 		fmt.Println(replicaDeployName, " patched")
 	} else {
 		fmt.Printf("replica deployment already in %s version\n", upgradeVersion)
@@ -343,6 +356,10 @@ func main() {
 			types.StrategicMergePatchType,
 			[]byte(controllerPatch),
 		)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 		fmt.Println(controllerDeployName, " patched")
 	} else {
 		fmt.Printf("controller deployment already in %s version", upgradeVersion)
