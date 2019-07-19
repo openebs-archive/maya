@@ -216,7 +216,7 @@ func (b *Builder) WithRaidGroups(raidGroup []apis.RaidGroup) *Builder {
 		return b
 	}
 
-	b.CSP.Object.Spec.RaidGroup = raidGroup
+	b.CSP.Object.Spec.RaidGroups = raidGroup
 	return b
 }
 

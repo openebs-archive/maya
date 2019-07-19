@@ -32,12 +32,16 @@ import (
 	pcreate "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/create"
 	pdestroy "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/destroy"
 	pdetach "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/detach"
+	pdump "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/dump"
 	pexport "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/export"
+	pget "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/get"
 	pimport "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/import"
+	plabelclear "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/labelclear"
 	poffline "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/offline"
 	ponline "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/online"
-	pproperty "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/property"
 	premove "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/remove"
+	preplace "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/replace"
+	pset "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/set"
 	pstatus "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/status"
 )
 
@@ -46,9 +50,14 @@ func NewVolumeClone() *vclone.VolumeClone {
 	return &vclone.VolumeClone{}
 }
 
-// NewPoolProperty returns new instance of object PoolProperty
-func NewPoolProperty() *pproperty.PoolProperty {
-	return &pproperty.PoolProperty{}
+// NewPoolSetProperty returns new instance of object PoolSProperty
+func NewPoolSetProperty() *pset.PoolSProperty {
+	return &pset.PoolSProperty{}
+}
+
+// NewPoolGetProperty returns new instance of object PoolGProperty
+func NewPoolGetProperty() *pget.PoolGProperty {
+	return &pget.PoolGProperty{}
 }
 
 // NewPoolOffline returns new instance of object PoolOffline
@@ -149,4 +158,19 @@ func NewVolumeSnapshotSend() *vsnapshotsend.VolumeSnapshotSend {
 // NewVolumeSnapshotRecv returns new instance of object VolumeSnapshotRecv
 func NewVolumeSnapshotRecv() *vsnapshotrecv.VolumeSnapshotRecv {
 	return &vsnapshotrecv.VolumeSnapshotRecv{}
+}
+
+// NewPoolLabelClear returns new instance of object PoolLabelClear
+func NewPoolLabelClear() *plabelclear.PoolLabelClear {
+	return &plabelclear.PoolLabelClear{}
+}
+
+// NewPoolDiskReplace returns new instance of object PoolDiskReplace
+func NewPoolDiskReplace() *preplace.PoolDiskReplace {
+	return &preplace.PoolDiskReplace{}
+}
+
+// NewPoolDump returns new instance of object PoolDump
+func NewPoolDump() *pdump.PoolDump {
+	return &pdump.PoolDump{}
 }

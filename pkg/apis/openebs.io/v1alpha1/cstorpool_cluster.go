@@ -134,7 +134,8 @@ type CStorPoolClusterBlockDevice struct {
 
 // CStorPoolClusterStatus is for handling status of pool.
 type CStorPoolClusterStatus struct {
-	Phase string `json:"phase"`
+	Phase    string                `json:"phase"`
+	Capacity CStorPoolCapacityAttr `json:"capacity"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -14,35 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package pproperty
+package pstatus
 
 // PredicateFunc defines data-type for validation function
-type PredicateFunc func(*PoolProperty) bool
+type PredicateFunc func(*PoolDump) bool
 
-// IsPropListSet method check if the PropList field of PoolProperty object is set.
-func IsPropListSet() PredicateFunc {
-	return func(p *PoolProperty) bool {
-		return len(p.PropList) != 0
-	}
-}
-
-// IsOpSet method check if the OpSet field of PoolProperty object is set.
-func IsOpSet() PredicateFunc {
-	return func(p *PoolProperty) bool {
-		return p.OpSet
-	}
-}
-
-// IsPoolSet method check if the Pool field of PoolProperty object is set.
+// IsPoolSet method check if the Pool field of PoolDump object is set.
 func IsPoolSet() PredicateFunc {
-	return func(p *PoolProperty) bool {
+	return func(p *PoolDump) bool {
 		return len(p.Pool) != 0
 	}
 }
 
-// IsCommandSet method check if the Command field of PoolProperty object is set.
+// IsCommandSet method check if the Command field of PoolDump object is set.
 func IsCommandSet() PredicateFunc {
-	return func(p *PoolProperty) bool {
+	return func(p *PoolDump) bool {
 		return len(p.Command) != 0
 	}
 }

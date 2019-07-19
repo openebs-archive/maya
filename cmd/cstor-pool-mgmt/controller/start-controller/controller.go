@@ -31,7 +31,6 @@ import (
 
 	backupcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/backup-controller"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
-	poolcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/pool-controller"
 	replicacontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/replica-controller"
 	restorecontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/restore"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
@@ -39,6 +38,13 @@ import (
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	"github.com/openebs/maya/pkg/signals"
+
+	poolcontroller1 "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/pool-controller"
+	//poolcontroller2 "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/new-pool-controller"
+	poolcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/new-pool-controller"
+	//// for v1alpha2
+	//clientset2 "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset"
+	//informers2 "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/informer/externalversions"
 )
 
 const (
@@ -69,6 +75,12 @@ func StartControllers(kubeconfig string) {
 		glog.Fatalf("Error building openebs clientset: %s", err.Error())
 	}
 
+	//TODO: Remove below code
+	//openebsClient2, err := clientset.NewForConfig(cfg)
+	//if err != nil {
+	//	glog.Fatalf("Error building openebs clientset: %s", err.Error())
+	//}
+
 	common.Init()
 
 	// Blocking call for checking status of zrepl running in cstor-pool container.
@@ -92,8 +104,17 @@ func StartControllers(kubeconfig string) {
 
 	// NewSharedInformerFactory constructs a new instance of k8s sharedInformerFactory.
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, getSyncInterval())
+
 	// openebsInformerFactory constructs a new instance of openebs sharedInformerFactory.
 	openebsInformerFactory := informers.NewSharedInformerFactory(openebsClient, getSyncInterval())
+
+	// openebsInformerFactory2 constructs a new instance of openebs sharedInformerFactory.
+	//openebsInformerFactory2 := informers.NewSharedInformerFactory(openebsClient2, getSyncInterval())
+
+	//TODO: Remove below code
+	//// Instantiate the cStor Pool and VolumeReplica controllers.
+	cStorPoolController1 := poolcontroller1.NewCStorPoolController(kubeClient, openebsClient, kubeInformerFactory,
+		openebsInformerFactory)
 
 	// Instantiate the cStor Pool and VolumeReplica controllers.
 	cStorPoolController := poolcontroller.NewCStorPoolController(kubeClient, openebsClient, kubeInformerFactory,
@@ -112,9 +133,21 @@ func StartControllers(kubeconfig string) {
 
 	go kubeInformerFactory.Start(stopCh)
 	go openebsInformerFactory.Start(stopCh)
+	//go openebsInformerFactory2.Start(stopCh)
 
 	// Waitgroup for starting pool and VolumeReplica controller goroutines.
 	var wg sync.WaitGroup
+	//TODO: Remove below code
+	wg.Add(NumRoutinesThatFollow)
+
+	// Run controller for cStorPool.
+	go func() {
+		if err = cStorPoolController1.Run(NumThreads, stopCh); err != nil {
+			glog.Fatalf("Error running CStorPool controller: %s", err.Error())
+		}
+		wg.Done()
+	}()
+
 	wg.Add(NumRoutinesThatFollow)
 
 	// Run controller for cStorPool.
