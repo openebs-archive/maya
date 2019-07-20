@@ -16,9 +16,11 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
+	"text/template"
 	"time"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
@@ -31,130 +33,88 @@ import (
 )
 
 var (
-	replicaPatch = `{
-		"metadata": {
-		   "labels": {
-			  "openebs.io/version": "@upgrade_version@",
-			  "openebs.io/persistent-volume": "@pv_name@",
-			  "openebs.io/replica": "jiva-replica"
-		   }
-		},
-		"spec": {
-			"selector": {
-				"matchLabels":{
-					"openebs.io/persistent-volume": "@pv_name@",
-					"openebs.io/replica": "jiva-replica"
-				}
-			},
-		   "template": {
-			   "metadata": {
-				   "labels": {
-					   "openebs.io/version": "@upgrade_version@",
-					   "openebs.io/persistent-volume": "@pv_name@",
-					   "openebs.io/replica": "jiva-replica"
-				   }
-			   },
-			  "spec": {
-				 "containers": [
-					{
-					   "name": "@r_name@",
-					   "image": "@replica_image@:@upgrade_version@"
-					}
-				 ],
-				 "affinity": {
-					 "podAntiAffinity": {
-						 "requiredDuringSchedulingIgnoredDuringExecution": [
-							 {
-								 "labelSelector": {
-									 "matchLabels": {
-										 "openebs.io/persistent-volume": "@pv_name@",
-										 "openebs.io/replica": "jiva-replica"
-									 }
-								 },
-					 "topologyKey": "kubernetes.io/hostname"
-							 }
-						 ]
-					 }
-				 }
-			  }
-		   }
-		}
-	 }`
-
-	controllerPatch = `{
-		"metadata": {
-		   "labels": {
-			  "openebs.io/version": "@upgrade_version@"
-		   }
-		},
-		"spec": {
-		   "template": {
-			   "metadata": {
-				   "labels":{
-					   "openebs.io/version": "@upgrade_version@"
-				   }
-			   },
-			  "spec": {
-				 "containers": [
-					{
-					   "name": "@c_name@",
-					   "image": "@controller_image@:@upgrade_version@"
-					},
-					{
-					   "name": "maya-volume-exporter",
-					   "image": "@m_exporter_image@:@upgrade_version@"
-					}
-				 ]
-			  }
-		   }
-		}
-	 }`
-
-	servicePatch = `{
-		"metadata": {
-		   "labels": {
-			  "openebs.io/version": "@upgrade_version@"
-		   }
-		}
-	 }`
-
 	kubeConfigPath = "/home/user/.kube/config"
-
-	deployClient  = deploy.NewKubeClient(deploy.WithKubeConfigPath(kubeConfigPath))
-	serviceClient = svc.NewKubeClient(svc.WithKubeConfigPath(kubeConfigPath))
-	pvClient      = pv.NewKubeClient(pv.WithKubeConfigPath(kubeConfigPath))
+	deployClient   = deploy.NewKubeClient(deploy.WithKubeConfigPath(kubeConfigPath))
+	serviceClient  = svc.NewKubeClient(svc.WithKubeConfigPath(kubeConfigPath))
+	pvClient       = pv.NewKubeClient(pv.WithKubeConfigPath(kubeConfigPath))
 )
 
-func getDeploymentDetails(labels, namespace string) (
-	deployName,
-	containerName,
-	version string,
-	err error,
-) {
+type replicaPatchDetails struct {
+	Version, PVName, ReplicaContainerName, ReplicaImage string
+}
+
+type controllerPatchDetails struct {
+	Version, ControllerContainerName, ControllerImage, MExporterImage string
+}
+
+func getOpenEBSVersion(d *appsv1.Deployment) (string, error) {
+	if d.Labels["openebs.io/version"] == "" {
+		return "", errors.Errorf("missing openebs version")
+	}
+	return d.Labels["openebs.io/version"], nil
+}
+
+func getDeployment(labels, namespace string) (*appsv1.Deployment, error) {
 	deployList, err := deployClient.WithNamespace(namespace).List(
 		&metav1.ListOptions{
 			LabelSelector: labels,
 		})
 	if err != nil {
-		return "", "", "", err
+		return nil, err
 	}
-	if len(deployList.Items) == 1 {
-		deployName = deployList.Items[0].Name
-		version = deployList.Items[0].Labels["openebs.io/version"]
-		if deployName == "" {
-			return "", "", "", errors.New("empty deployment name")
-		}
-		if len(deployList.Items[0].Spec.Template.Spec.Containers) == 0 {
-			return "", "", "", errors.New("empty container list")
-		}
-		containerName = deployList.Items[0].Spec.Template.Spec.Containers[0].Name
-		if containerName == "" {
-			return "", "", "", errors.New("empty container name")
-		}
-	} else {
-		return "", "", "", errors.New("deployment missing")
+	if len(deployList.Items) == 0 {
+		return nil, errors.Errorf("no deployments found for %s", labels)
 	}
-	return deployName, containerName, version, nil
+	return &(deployList.Items[0]), nil
+}
+
+func getReplicaPatchDetails(d *appsv1.Deployment) (
+	*replicaPatchDetails,
+	error,
+) {
+	rd := &replicaPatchDetails{}
+	// verify delpoyment name
+	if d.Name == "" {
+		return nil, errors.New("missing deployment name")
+	}
+	name, err := getContainerName(d)
+	if err != nil {
+		return nil, err
+	}
+	rd.ReplicaContainerName = name
+	image, err := getBaseImage(d, rd.ReplicaContainerName)
+	if err != nil {
+		return nil, err
+	}
+	rd.ReplicaImage = image
+	return rd, nil
+}
+
+func getControllerPatchDetails(d *appsv1.Deployment) (
+	*controllerPatchDetails,
+	error,
+) {
+	rd := &controllerPatchDetails{}
+	// verify delpoyment name
+	if d.Name == "" {
+		return nil, errors.New("missing deployment name")
+	}
+	name, err := getContainerName(d)
+	if err != nil {
+		return nil, err
+	}
+	rd.ControllerContainerName = name
+	image, err := getBaseImage(d, rd.ControllerContainerName)
+	if err != nil {
+		return nil, err
+	}
+	rd.ControllerImage = image
+	image, err = getBaseImage(d, "maya-volume-exporter")
+	if err != nil {
+		return nil, err
+	}
+	rd.MExporterImage = image
+	return rd, nil
 }
 
 func patchDelpoyment(
@@ -192,6 +152,20 @@ func patchDelpoyment(
 	return nil
 }
 
+func getContainerName(d *appsv1.Deployment) (string, error) {
+	containerList := d.Spec.Template.Spec.Containers
+	// verify length of container list
+	if len(containerList) == 0 {
+		return "", errors.New("missing container")
+	}
+	name := containerList[0].Name
+	// verify replica container name
+	if name == "" {
+		return "", errors.New("missing container name")
+	}
+	return name, nil
+}
+
 func getBaseImage(deployObj *appsv1.Deployment, name string) (string, error) {
 	for _, con := range deployObj.Spec.Template.Spec.Containers {
 		if con.Name == name {
@@ -205,7 +179,7 @@ func main() {
 	// inputs required for the upgrade
 	upgradeVersion := "1.0.0"
 	currentVersion := "0.9.0"
-	pvName := "pvc-e9c1b919-aa19-11e9-bea9-54e1ad5e8320"
+	pvName := "pvc-8399fbcd-ab15-11e9-afd4-54e1ad5e8320"
 	openebsNamespace := "openebs"
 
 	var (
@@ -237,10 +211,12 @@ func main() {
 	}
 
 	// fetching replica deployment details
-	replicaDeployName, replicaContainer, replicaVersion, err := getDeploymentDetails(
-		replicaLabel,
-		ns,
-	)
+	replicaDeployObj, err := getDeployment(replicaLabel, ns)
+	if err != nil {
+		fmt.Println("failed to get replica deployment")
+		os.Exit(1)
+	}
+	replicaVersion, err := getOpenEBSVersion(replicaDeployObj)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -254,22 +230,26 @@ func main() {
 		)
 		os.Exit(1)
 	}
-	replicaDeployObj, err := deployClient.WithNamespace(ns).Get(replicaDeployName)
+	replicaDetails, err := getReplicaPatchDetails(replicaDeployObj)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	replicaDetails.PVName = pvName
+	replicaDetails.Version = upgradeVersion
 
 	// fetching controller deployment details
-	controllerDeployName, controllerContainer, controllerVersion, err := getDeploymentDetails(
-		controllerLabel,
-		ns,
-	)
+	controllerDeployObj, err := getDeployment(controllerLabel, ns)
+	if err != nil {
+		fmt.Println("failed to get controller deployment")
+		os.Exit(1)
+	}
+	controllerVersion, err := getOpenEBSVersion(controllerDeployObj)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	if controllerVersion != currentVersion && controllerVersion != upgradeVersion {
+	if (controllerVersion != currentVersion) && (controllerVersion != upgradeVersion) {
 		fmt.Printf(
 			"controller version %s is neither %s nor %s",
 			controllerVersion,
@@ -278,11 +258,12 @@ func main() {
 		)
 		os.Exit(1)
 	}
-	controllerDeployObj, err := deployClient.WithNamespace(ns).Get(controllerDeployName)
+	controllerDetails, err := getControllerPatchDetails(controllerDeployObj)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	controllerDetails.Version = upgradeVersion
 
 	// fetching controller service details
 	controllerServiceList, err := serviceClient.WithNamespace(ns).List(
@@ -306,20 +287,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	var buffer bytes.Buffer
+
 	// replica patch
 	if replicaVersion == currentVersion {
-		replicaBaseImage, err := getBaseImage(replicaDeployObj, replicaContainer)
+		tmpl, err := template.ParseFiles("jiva-replica-patch.tpl.json")
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		replicaPatch = strings.ReplaceAll(replicaPatch, "@upgrade_version@", upgradeVersion)
-		replicaPatch = strings.ReplaceAll(replicaPatch, "@pv_name@", pvName)
-		replicaPatch = strings.ReplaceAll(replicaPatch, "@r_name@", replicaContainer)
-		replicaPatch = strings.ReplaceAll(replicaPatch, "@replica_image@", replicaBaseImage)
-
+		err = tmpl.Execute(&buffer, *replicaDetails)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		replicaPatch := buffer.String()
 		err = patchDelpoyment(
-			replicaDeployName,
+			replicaDeployObj.Name,
 			ns,
 			types.StrategicMergePatchType,
 			[]byte(replicaPatch),
@@ -328,30 +312,29 @@ func main() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		fmt.Println(replicaDeployName, " patched")
+		fmt.Println(replicaDeployObj.Name, " patched")
 	} else {
 		fmt.Printf("replica deployment already in %s version\n", upgradeVersion)
 	}
 
+	buffer.Reset()
+
 	// controller patch
 	if controllerVersion == currentVersion {
-		controllerBaseImage, err := getBaseImage(controllerDeployObj, controllerContainer)
+		tmpl, err := template.ParseFiles("jiva-target-patch.tpl.json")
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		mExpoerterBaseImage, err := getBaseImage(controllerDeployObj, "maya-volume-exporter")
+		err = tmpl.Execute(&buffer, *controllerDetails)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		controllerPatch = strings.ReplaceAll(controllerPatch, "@upgrade_version@", upgradeVersion)
-		controllerPatch = strings.ReplaceAll(controllerPatch, "@c_name@", controllerContainer)
-		controllerPatch = strings.ReplaceAll(controllerPatch, "@controller_image@", controllerBaseImage)
-		controllerPatch = strings.ReplaceAll(controllerPatch, "@m_exporter_image@", mExpoerterBaseImage)
+		controllerPatch := buffer.String()
 
 		err = patchDelpoyment(
-			controllerDeployName,
+			controllerDeployObj.Name,
 			ns,
 			types.StrategicMergePatchType,
 			[]byte(controllerPatch),
@@ -360,15 +343,24 @@ func main() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		fmt.Println(controllerDeployName, " patched")
+		fmt.Println(controllerDeployObj.Name, " patched")
 	} else {
 		fmt.Printf("controller deployment already in %s version", upgradeVersion)
 	}
 
 	// service patch
 	if controllerServiceVersion == currentVersion {
-		servicePatch = strings.ReplaceAll(servicePatch, "@upgrade_version@", upgradeVersion)
-
+		tmpl, err := template.ParseFiles("jiva-target-svc-patch.tpl.json")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		err = tmpl.Execute(&buffer, upgradeVersion)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		servicePatch := buffer.String()
 		_, err = serviceClient.WithNamespace(ns).Patch(
 			controllerServiceName,
 			types.StrategicMergePatchType,

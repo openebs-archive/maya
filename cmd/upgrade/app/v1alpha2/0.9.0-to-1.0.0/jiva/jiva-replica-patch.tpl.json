@@ -1,0 +1,49 @@
+{
+    "metadata": {
+       "labels": {
+          "openebs.io/version": "{{.Version}}",
+          "openebs.io/persistent-volume": "{{.PVName}}",
+          "openebs.io/replica": "jiva-replica"
+       }
+    },
+    "spec": {
+        "selector": {
+            "matchLabels":{
+                "openebs.io/persistent-volume": "{{.PVName}}",
+                "openebs.io/replica": "jiva-replica"
+            }
+        },
+       "template": {
+           "metadata": {
+               "labels": {
+                   "openebs.io/version": "{{.Version}}",
+                   "openebs.io/persistent-volume": "{{.PVName}}",
+                   "openebs.io/replica": "jiva-replica"
+               }
+           },
+          "spec": {
+             "containers": [
+                {
+                   "name": "{{.ReplicaContainerName}}",
+                   "image": "{{.ReplicaImage}}:{{.Version}}"
+                }
+             ],
+             "affinity": {
+                 "podAntiAffinity": {
+                     "requiredDuringSchedulingIgnoredDuringExecution": [
+                         {
+                             "labelSelector": {
+                                 "matchLabels": {
+                                     "openebs.io/persistent-volume": "{{.PVName}}",
+                                     "openebs.io/replica": "jiva-replica"
+                                 }
+                             },
+                 "topologyKey": "kubernetes.io/hostname"
+                         }
+                     ]
+                 }
+             }
+          }
+       }
+    }
+ }

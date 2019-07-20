@@ -1,0 +1,28 @@
+{
+   "metadata": {
+      "labels": {
+        "openebs.io/version": "{{.Version}}"
+      }
+   },
+   "spec": {
+      "template": {
+         "metadata": {
+            "labels":{
+               "openebs.io/version": "{{.Version}}"
+            }
+         },
+        "spec": {
+          "containers": [
+            {
+               "name": "{{.ControllerContainerName}}",
+               "image": "{{.ControllerImage}}:{{.Version}}"
+            },
+            {
+               "name": "maya-volume-exporter",
+               "image": "{{.MExporterImage}}:{{.Version}}"
+            }
+          ]
+        }
+      }
+   }
+ }
