@@ -37,10 +37,13 @@ import (
 )
 
 var (
+	upgradeVersion = "1.0.0"
+	currentVersion = "0.9.0"
+
 	replicaPatchTemplate = `{
 		"metadata": {
 		   "labels": {
-			  "openebs.io/version": "{{.Version}}",
+			  "openebs.io/version": "{{.UpgradeVersion}}",
 			  "openebs.io/persistent-volume": "{{.PVName}}",
 			  "openebs.io/replica": "jiva-replica"
 		   }
@@ -55,7 +58,7 @@ var (
 		   "template": {
 			   "metadata": {
 				   "labels": {
-					   "openebs.io/version": "{{.Version}}",
+					   "openebs.io/version": "{{.UpgradeVersion}}",
 					   "openebs.io/persistent-volume": "{{.PVName}}",
 					   "openebs.io/replica": "jiva-replica"
 				   }
@@ -64,7 +67,7 @@ var (
 				 "containers": [
 					{
 					   "name": "{{.ReplicaContainerName}}",
-					   "image": "{{.ReplicaImage}}:{{.Version}}"
+					   "image": "{{.ReplicaImage}}:{{.UpgradeVersion}}"
 					}
 				 ],
 				 "affinity": {
@@ -90,25 +93,25 @@ var (
 	targetPatchTemplate = `{
 		"metadata": {
 		   "labels": {
-			 "openebs.io/version": "{{.Version}}"
+			 "openebs.io/version": "{{.UpgradeVersion}}"
 		   }
 		},
 		"spec": {
 		   "template": {
 			  "metadata": {
 				 "labels":{
-					"openebs.io/version": "{{.Version}}"
+					"openebs.io/version": "{{.UpgradeVersion}}"
 				 }
 			  },
 			 "spec": {
 			   "containers": [
 				 {
 					"name": "{{.ControllerContainerName}}",
-					"image": "{{.ControllerImage}}:{{.Version}}"
+					"image": "{{.ControllerImage}}:{{.UpgradeVersion}}"
 				 },
 				 {
 					"name": "maya-volume-exporter",
-					"image": "{{.MExporterImage}}:{{.Version}}"
+					"image": "{{.MExporterImage}}:{{.UpgradeVersion}}"
 				 }
 			   ]
 			 }
@@ -124,17 +127,29 @@ var (
 		}
 	 }`
 
+	buffer bytes.Buffer
+
 	deployClient  = deploy.NewKubeClient()
 	serviceClient = svc.NewKubeClient()
 	pvClient      = pv.NewKubeClient()
 )
 
 type replicaPatchDetails struct {
-	Version, PVName, ReplicaContainerName, ReplicaImage string
+	UpgradeVersion, PVName, ReplicaContainerName, ReplicaImage string
 }
 
 type controllerPatchDetails struct {
-	Version, ControllerContainerName, ControllerImage, MExporterImage string
+	UpgradeVersion, ControllerContainerName, ControllerImage, MExporterImage string
+}
+
+type replicaDetails struct {
+	patchDetails  *replicaPatchDetails
+	version, name string
+}
+
+type controllerDetails struct {
+	patchDetails  *controllerPatchDetails
+	version, name string
 }
 
 func getOpenEBSVersion(d *appsv1.Deployment) (string, error) {
@@ -265,12 +280,129 @@ func getBaseImage(deployObj *appsv1.Deployment, name string) (string, error) {
 	return "", errors.Errorf("image not found for %s", name)
 }
 
+func getReplica(replicaLabel, namespace string) (*replicaDetails, error) {
+	replicaObj := &replicaDetails{}
+	deployObj, err := getDeployment(replicaLabel, namespace)
+	if err != nil {
+		return nil, errors.Errorf("failed to get replica deployment")
+	}
+	if deployObj.Name == "" {
+		return nil, errors.Errorf("missing deployment name for replica")
+	}
+	replicaObj.name = deployObj.Name
+	version, err := getOpenEBSVersion(deployObj)
+	if err != nil {
+		return nil, err
+	}
+	if (version != currentVersion) && (version != upgradeVersion) {
+		return nil, errors.Errorf(
+			"replica version %s is neither %s nor %s\n",
+			version,
+			currentVersion,
+			upgradeVersion,
+		)
+	}
+	replicaObj.version = version
+	patchDetails, err := getReplicaPatchDetails(deployObj)
+	if err != nil {
+		return nil, err
+	}
+	replicaObj.patchDetails = patchDetails
+	replicaObj.patchDetails.UpgradeVersion = upgradeVersion
+	return replicaObj, nil
+}
+
+func getController(controllerLabel, namespace string) (*controllerDetails, error) {
+	controllerObj := &controllerDetails{}
+	deployObj, err := getDeployment(controllerLabel, namespace)
+	if err != nil {
+		return nil, err
+	}
+	if deployObj.Name == "" {
+		return nil, errors.Errorf("missing deployment name for controller")
+	}
+	controllerObj.name = deployObj.Name
+	version, err := getOpenEBSVersion(deployObj)
+	if err != nil {
+		return nil, err
+	}
+	if (version != currentVersion) && (version != upgradeVersion) {
+		return nil, errors.Errorf(
+			"controller version %s is neither %s nor %s\n",
+			version,
+			currentVersion,
+			upgradeVersion,
+		)
+	}
+	controllerObj.version = version
+	patchDetails, err := getControllerPatchDetails(deployObj)
+	if err != nil {
+		return nil, err
+	}
+	controllerObj.patchDetails = patchDetails
+	controllerObj.patchDetails.UpgradeVersion = upgradeVersion
+	return controllerObj, nil
+}
+
+func patchReplica(replicaObj *replicaDetails, namespace string) error {
+	if replicaObj.version == currentVersion {
+		tmpl, err := template.New("replicaPatch").Parse(replicaPatchTemplate)
+		if err != nil {
+			return err
+		}
+		err = tmpl.Execute(&buffer, replicaObj.patchDetails)
+		if err != nil {
+			return err
+		}
+		replicaPatch := buffer.String()
+		err = patchDelpoyment(
+			replicaObj.name,
+			namespace,
+			types.StrategicMergePatchType,
+			[]byte(replicaPatch),
+		)
+		if err != nil {
+			return err
+		}
+		fmt.Println(replicaObj.name, " patched")
+	} else {
+		fmt.Printf("replica deployment already in %s version\n", upgradeVersion)
+	}
+	return nil
+}
+
+func patchController(controllerObj *controllerDetails, namespace string) error {
+	if controllerObj.version == currentVersion {
+		tmpl, err := template.New("controllerPatch").Parse(targetPatchTemplate)
+		if err != nil {
+			return err
+		}
+		err = tmpl.Execute(&buffer, controllerObj.patchDetails)
+		if err != nil {
+			return err
+		}
+		controllerPatch := buffer.String()
+
+		err = patchDelpoyment(
+			controllerObj.name,
+			namespace,
+			types.StrategicMergePatchType,
+			[]byte(controllerPatch),
+		)
+		if err != nil {
+			return err
+		}
+		fmt.Println(controllerObj.name, " patched")
+	} else {
+		fmt.Printf("controller deployment already in %s version\n", upgradeVersion)
+	}
+	return nil
+}
+
 func main() {
 	// inputs required for the upgrade
 	pvName := os.Args[1]
 	openebsNamespace := os.Args[2]
-	upgradeVersion := "1.0.0"
-	currentVersion := "0.9.0"
 
 	var (
 		pvLabel         = "openebs.io/persistent-volume=" + pvName
@@ -295,9 +427,11 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	// check whether pvc pods are openebs namespace or not
 	if len(deployInOpenebs.Items) > 0 {
 		ns = openebsNamespace
 	} else {
+		// if pvc pods are not in openebs namespace take the namespace of pvc
 		if err != nil {
 			fmt.Println("namespace missing", pvObj)
 			os.Exit(1)
@@ -306,60 +440,19 @@ func main() {
 	}
 
 	// fetching replica deployment details
-	replicaDeployObj, err := getDeployment(replicaLabel, ns)
-	if err != nil {
-		fmt.Println("failed to get replica deployment")
-		os.Exit(1)
-	}
-	replicaVersion, err := getOpenEBSVersion(replicaDeployObj)
+	replicaObj, err := getReplica(replicaLabel, ns)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	if (replicaVersion != currentVersion) && (replicaVersion != upgradeVersion) {
-		fmt.Printf(
-			"replica version %s is neither %s nor %s\n",
-			replicaVersion,
-			currentVersion,
-			upgradeVersion,
-		)
-		os.Exit(1)
-	}
-	replicaDetails, err := getReplicaPatchDetails(replicaDeployObj)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	replicaDetails.PVName = pvName
-	replicaDetails.Version = upgradeVersion
+	replicaObj.patchDetails.PVName = pvName
 
 	// fetching controller deployment details
-	controllerDeployObj, err := getDeployment(controllerLabel, ns)
-	if err != nil {
-		fmt.Println("failed to get controller deployment")
-		os.Exit(1)
-	}
-	controllerVersion, err := getOpenEBSVersion(controllerDeployObj)
+	controllerObj, err := getController(controllerLabel, ns)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	if (controllerVersion != currentVersion) && (controllerVersion != upgradeVersion) {
-		fmt.Printf(
-			"controller version %s is neither %s nor %s\n",
-			controllerVersion,
-			currentVersion,
-			upgradeVersion,
-		)
-		os.Exit(1)
-	}
-	controllerDetails, err := getControllerPatchDetails(controllerDeployObj)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	controllerDetails.Version = upgradeVersion
-
 	// fetching controller service details
 	controllerServiceList, err := serviceClient.WithNamespace(ns).List(
 		metav1.ListOptions{
@@ -371,8 +464,10 @@ func main() {
 	}
 	// controllerServiceObj := controllerServiceList.Items[0]
 	controllerServiceName := controllerServiceList.Items[0].Name
-	controllerServiceVersion := controllerServiceList.Items[0].Labels["openebs.io/version"]
-	if controllerServiceVersion != currentVersion && controllerServiceVersion != upgradeVersion {
+	controllerServiceVersion := controllerServiceList.Items[0].
+		Labels["openebs.io/version"]
+	if controllerServiceVersion != currentVersion &&
+		controllerServiceVersion != upgradeVersion {
 		fmt.Printf(
 			"controller service version %s is neither %s nor %s\n",
 			controllerServiceVersion,
@@ -382,66 +477,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	var buffer bytes.Buffer
-
 	// replica patch
-	if replicaVersion == currentVersion {
-		tmpl, err := template.New("replicaPatch").Parse(replicaPatchTemplate)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		err = tmpl.Execute(&buffer, *replicaDetails)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		replicaPatch := buffer.String()
-		err = patchDelpoyment(
-			replicaDeployObj.Name,
-			ns,
-			types.StrategicMergePatchType,
-			[]byte(replicaPatch),
-		)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		fmt.Println(replicaDeployObj.Name, " patched")
-	} else {
-		fmt.Printf("replica deployment already in %s version\n", upgradeVersion)
+	err = patchReplica(replicaObj, ns)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
-
 	buffer.Reset()
 
 	// controller patch
-	if controllerVersion == currentVersion {
-		tmpl, err := template.New("controllerPatch").Parse(targetPatchTemplate)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		err = tmpl.Execute(&buffer, *controllerDetails)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		controllerPatch := buffer.String()
-
-		err = patchDelpoyment(
-			controllerDeployObj.Name,
-			ns,
-			types.StrategicMergePatchType,
-			[]byte(controllerPatch),
-		)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		fmt.Println(controllerDeployObj.Name, " patched")
-	} else {
-		fmt.Printf("controller deployment already in %s version\n", upgradeVersion)
+	err = patchController(controllerObj, ns)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
+	buffer.Reset()
 
 	// service patch
 	if controllerServiceVersion == currentVersion {
@@ -469,8 +519,6 @@ func main() {
 	} else {
 		fmt.Printf("controller service already in %s version\n", upgradeVersion)
 	}
-
-	buffer.Reset()
 
 	fmt.Println("Upgrade Successful for", pvName)
 }
