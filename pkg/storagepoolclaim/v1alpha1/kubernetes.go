@@ -46,9 +46,9 @@ type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOpt
 type updateFn func(cli *clientset.Clientset, spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error)
 
 // making spc clientset singleton
-var(
-	spc_clientset *clientset.Clientset
-	once	sync.Once
+var (
+	spcClientset	*clientset.Clientset
+	once		sync.Once
 )
 
 // Kubeclient enables kubernetes API operations
@@ -82,21 +82,21 @@ type KubeclientBuildOption func(*Kubeclient)
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *clientset.Clientset, err error) {
-			if spc_clientset != nil {
-				return spc_clientset, nil
+			if spcClientset != nil {
+				return spcClientset, nil
 			}
 			config, err := client.New().GetConfigForPathOrDirect()
 			if err != nil {
 				return nil, err
 			}
-			spcClientset, err := clientset.NewForConfig(config)
+			spcCS, err := clientset.NewForConfig(config)
 			if err != nil {
 				return nil, err
 			}
 			once.Do(func() {
-				spc_clientset = spcClientset
+				spcClientset = spcCS
 			})
-			return spc_clientset, nil
+			return spcClientset, nil
 		}
 	}
 	if k.getClientsetForPath == nil {

@@ -17,22 +17,23 @@ limitations under the License.
 package v1alpha1
 
 import (
-        metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// PreUpgradeAction is of string type
 // Once the preupgrade checks are done, one of the below actions will be taken
 type PreUpgradeAction string
 
 const (
-	// Add the label to disable reconciler in controller
+	// DisableReconciler is an action to add the label DisableReconciler
 	// Note: Not used as part of 1.1 preupgrade
-	DisableReconciler	PreUpgradeAction = "DisableReconciler"
+	DisableReconciler PreUpgradeAction = "DisableReconciler"
 
 	// Continue the preupgrade tasks
-	Continue		PreUpgradeAction = "Continue"
+	Continue PreUpgradeAction = "Continue"
 
 	// Abort running preupgrade tasks
-	Abort			PreUpgradeAction = "Abort"
+	Abort PreUpgradeAction = "Abort"
 )
 
 // 1.1 preupgrade need to contine only if SPC doesn't have SPCFinalizer on it
@@ -65,7 +66,7 @@ func (Spc *SPC) performPreUpgradeOnAssociatedBDCs() error {
 // set finalizer on SPC
 func performPreUpgrade(Spc *SPC) error {
 	err := Spc.performPreUpgradeOnAssociatedBDCs()
-	if (err != nil) {
+	if err != nil {
 		return err
 	}
 	_, err = Spc.AddFinalizer(SPCFinalizer)
@@ -84,9 +85,9 @@ func (Spc *SPC) preUpgrade() error {
 	return err
 }
 
-// Perform 1.1 preupgrade tasks for all SPCs
+// PreUpgrade performs 1.1 preupgrade tasks for all SPCs
 func PreUpgrade() error {
-	spcList, _ := NewKubeClient().List(metav1.ListOptions {})
+	spcList, _ := NewKubeClient().List(metav1.ListOptions{})
 	for _, obj := range spcList.Items {
 		obj := obj
 		Spc := SPC{&obj}

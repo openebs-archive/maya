@@ -69,7 +69,7 @@ type updateFn func(cli *clientset.Clientset, namespace string, bdc *apis.BlockDe
 
 // make ndm clientset as singleton
 var (
-	ndm_clientset	*clientset.Clientset
+	ndmClientset	*clientset.Clientset
 	once		sync.Once
 )
 
@@ -104,21 +104,21 @@ type KubeclientBuildOption func(*Kubeclient)
 func (k *Kubeclient) WithDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *clientset.Clientset, err error) {
-			if ndm_clientset != nil {
-				return ndm_clientset, nil
+			if ndmClientset != nil {
+				return ndmClientset, nil
 			}
 			config, err := kclient.New().GetConfigForPathOrDirect()
 			if err != nil {
 				return nil, err
 			}
-			ndmClientset, err := clientset.NewForConfig(config)
+			ndmCS, err := clientset.NewForConfig(config)
 			if err != nil {
 				return nil, err
 			}
 			once.Do(func() {
-				ndm_clientset = ndmClientset
+				ndmClientset = ndmCS
 			})
-			return ndm_clientset, nil
+			return ndmClientset, nil
 		}
 	}
 	if k.getClientsetForPath == nil {

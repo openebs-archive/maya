@@ -23,8 +23,8 @@ import (
 	"github.com/pkg/errors"
 	"time"
 
-	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -146,16 +146,16 @@ func (spc *SPC) AddFinalizer(finalizer string) (*apis.StoragePoolClaim, error) {
 	return spcAPIObj, nil
 }
 
-func (Spc *SPC) addSPCFinalizerOnAssociatedBDCs() error {
-        namespace := env.Get(env.OpenEBSNamespace)
+func (spc *SPC) addSPCFinalizerOnAssociatedBDCs() error {
+	namespace := env.Get(env.OpenEBSNamespace)
 
 	bdcList, err := bdc.NewKubeClient().WithNamespace(namespace).List(
 		metav1.ListOptions{
-			LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + Spc.Object.Name,
+			LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Object.Name,
 		})
 
 	if err != nil {
-		return errors.Wrapf(err, "failed to get bdclist for %s to add SPC finalizer", Spc.Object.Name)
+		return errors.Wrapf(err, "failed to get bdclist for %s to add SPC finalizer", spc.Object.Name)
 	}
 
 	for _, bdcObj := range bdcList.Items {
