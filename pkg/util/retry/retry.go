@@ -30,38 +30,38 @@ type Model struct {
 
 // Times ...
 func Times(retry uint) *Model {
-	Model := Model{}
-	return Model.Times(retry)
+	model := Model{}
+	return model.Times(retry)
 }
 
 // Times ...
-func (Model *Model) Times(retry uint) *Model {
-	Model.retry = retry
-	return Model
+func (model *Model) Times(retry uint) *Model {
+	model.retry = retry
+	return model
 }
 
 // Wait ...
 func Wait(waitTime time.Duration) *Model {
-	Model := Model{}
-	return Model.Wait(waitTime)
+	model := Model{}
+	return model.Wait(waitTime)
 }
 
 // Wait ...
-func (Model *Model) Wait(waitTime time.Duration) *Model {
-	Model.waitTime = waitTime
-	return Model
+func (model *Model) Wait(waitTime time.Duration) *Model {
+	model.waitTime = waitTime
+	return model
 }
 
 // Try ...
-func (Model Model) Try(action Action) error {
+func (model Model) Try(action Action) error {
 	if action == nil {
 		return fmt.Errorf("no action specified")
 	}
 
 	var err error
-	for attempt := uint(0); (0 == attempt || nil != err) && attempt <= Model.retry; attempt++ {
-		if attempt > 0 && Model.waitTime > 0 {
-			time.Sleep(Model.waitTime)
+	for attempt := uint(0); (0 == attempt || nil != err) && attempt <= model.retry; attempt++ {
+		if attempt > 0 && model.waitTime > 0 {
+			time.Sleep(model.waitTime)
 		}
 
 		err = action(attempt)
