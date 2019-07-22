@@ -82,12 +82,12 @@ func Update(csp *apis.NewTestCStorPool) error {
 			isObjChanged = true
 		}
 	}
-	/*
-		TODO revisit for day 2 ops
-		if er := addNewVdevFromCSP(csp); er != nil {
-			err = ErrorWrapf(err, "Failed to execute add operation.. %s", er.Error())
-		}
-	*/
+
+	//TODO revisit for day 2 ops
+	if er := addNewVdevFromCSP(csp); er != nil {
+		err = ErrorWrapf(err, "Failed to execute add operation.. %s", er.Error())
+	}
+
 	if isObjChanged {
 		if _, er := OpenEBSClient.
 			OpenebsV1alpha1().
