@@ -17,9 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"sync"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sync"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
@@ -47,8 +47,8 @@ type updateFn func(cli *clientset.Clientset, spc *apis.StoragePoolClaim) (*apis.
 
 // making spc clientset singleton
 var (
-	spcClientset	*clientset.Clientset
-	once		sync.Once
+	spcClientset *clientset.Clientset
+	once         sync.Once
 )
 
 // Kubeclient enables kubernetes API operations

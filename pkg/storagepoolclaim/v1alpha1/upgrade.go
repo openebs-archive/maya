@@ -47,10 +47,10 @@ func (Spc *SPC) getPreUpgradeAction() (PreUpgradeAction, error) {
 type preUpgradeFn func(*SPC) error
 
 // Table of functions that need to be executed for particular PreUpgradeAction
-var performPreUpgradeFn = map[PreUpgradeAction]preUpgradeFn {
-	DisableReconciler:	noop,
-	Continue:		performPreUpgrade,
-	Abort:			noop,
+var performPreUpgradeFn = map[PreUpgradeAction]preUpgradeFn{
+	DisableReconciler: noop,
+	Continue:          performPreUpgrade,
+	Abort:             noop,
 }
 
 func noop(*SPC) error {

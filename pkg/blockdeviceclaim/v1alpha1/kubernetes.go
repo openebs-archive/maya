@@ -17,9 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"sync"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
@@ -69,8 +69,8 @@ type updateFn func(cli *clientset.Clientset, namespace string, bdc *apis.BlockDe
 
 // make ndm clientset as singleton
 var (
-	ndmClientset	*clientset.Clientset
-	once		sync.Once
+	ndmClientset *clientset.Clientset
+	once         sync.Once
 )
 
 // Kubeclient enables kubernetes API operations
