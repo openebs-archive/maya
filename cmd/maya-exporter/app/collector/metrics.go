@@ -256,8 +256,8 @@ func Metrics(cas string) metrics {
 		isClientConnected: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
-				Name:      "client_status",
-				Help:      "Initiator/Client status connected to jiva target: (0, 1): {Not Connected, Connected} ",
+				Name:      "iscsi_initiator_login_status",
+				Help:      "iSCSI Initiator to jiva target login status: (0, 1): {Not Logged In, Logged In}",
 			},
 		),
 	}
