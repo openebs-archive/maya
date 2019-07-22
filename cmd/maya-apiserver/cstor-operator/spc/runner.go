@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
-//	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
 // Run will set up the event handlers for types we are interested in, as well
@@ -45,8 +44,8 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	}
 
 	glog.Info("Checking for preupgrade tasks")
-	err := c.perform_preupgrade_tasks()
-	if (err != nil) {
+	err := c.performPreupgradeTasks()
+	if err != nil {
 		return fmt.Errorf("failure in preupgrade tasks: %v", err)
 	}
 

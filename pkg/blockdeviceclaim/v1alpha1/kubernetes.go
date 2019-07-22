@@ -67,6 +67,7 @@ type patchFn func(cli *clientset.Clientset, namespace, name string, pt types.Pat
 // block device claim
 type updateFn func(cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error)
 
+// make ndm clientset as singleton
 var (
 	ndm_clientset	*clientset.Clientset
 	once		sync.Once

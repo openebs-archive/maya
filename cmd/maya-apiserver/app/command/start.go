@@ -126,12 +126,6 @@ func NewCmdStart() *cobra.Command {
 	return cmd
 }
 
-func check_preupgrade_steps() {
-	// check for version of CRs that are managed by this process
-	// to be same as current process version.
-	// if not, perform upgrade steps
-}
-
 // Run does tasks related to mayaserver.
 func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 	glog.Infof("Initializing maya-apiserver...")
@@ -185,8 +179,6 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 
 	// Output the header that the server has started
 	glog.Info("Maya api server started! Log data will stream in below:\n")
-
-	check_preupgrade_steps()
 
 	// start storage pool controller
 	go func() {

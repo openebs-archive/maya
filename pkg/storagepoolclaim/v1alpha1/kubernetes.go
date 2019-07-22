@@ -45,6 +45,7 @@ type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOpt
 
 type updateFn func(cli *clientset.Clientset, spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error)
 
+// making spc clientset singleton
 var(
 	spc_clientset *clientset.Clientset
 	once	sync.Once

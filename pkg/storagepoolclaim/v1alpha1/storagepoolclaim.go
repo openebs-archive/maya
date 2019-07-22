@@ -162,7 +162,7 @@ func (Spc *SPC) addSPCFinalizerOnAssociatedBDCs() error {
 		bdcObj := bdcObj
 		_, err := bdc.BuilderForAPIObject(&bdcObj).BDC.AddFinalizer(SPCFinalizer)
 		if err != nil {
-			return errors.Wrapf(err, "failed to add SPC finalizer on BDC %s", bdcObj.Name)
+			return errors.Wrap(err, "failed to add SPC finalizer on BDC")
 		}
 	}
 	return nil
@@ -322,84 +322,3 @@ func (l *SPCList) GetPoolUIDs() []string {
 	}
 	return uids
 }
-/*
-type ActionOnSPC func() error
-
-func check_for_upgrade_tasks(Spc *SPC) ActionOnSPC {
-	return check_for_upgrade_tasks() error {
-		Spc.check_for_upgrade_tasks()
-	}
-}
-
-func (l *SPCList) for_each_item(actionList ...ActionOnSPC) error {
-	for _, pool := range l.ObjectList.Items {
-		Spc := BuilderForAPIObject(&pool).Spc
-		for _, f := range actionList {
-			err := f(Spc)()
-			if err != nil {
-				return err
-			}
-		}
-	}
-}
-
-func (l *SPCList) check_for_upgrade_tasks() {
-	l.for_each_item(perform_preupgrade_tasks)
-}
-
-func (l *SPCList) check_for_upgrade_tasks() {
-	for _, pool := range l.ObjectList.Items {
-		Spc := BuilderForAPIObject(&pool).Spc
-		Spc.check_for_upgrade_tasks()
-	}
-}
-
-type {
-	DISABLE_RECONCILER	PRE_UPGRADE_VERIFICATION_RESULT
-	YES			PRE_UPGRADE_VERIFICATION_RESULT
-	NO			PRE_UPGRADE_VERIFICATION_RESULT
-}
-
-func (Spc *SPC) check_for_upgrade_tasks() {
-	res, err := Spc.requires_preupgrade()
-	pre_upgrade_fn[res](Spc)
-}
-
-// May be worth to consider deletion timestamp, reconcilation disabled cases
-// whenever needed based on release
-// And, this function is almost same for every release.
-// Release specific steps will not be added or verified here
-// Sometimes, we may need to return disable-reconcile here
-func (Spc *SPC) requires_preupgrade() {
-	// if not a valid version to do preupgrade
-	if !Spc.ValidVersionForPreUpgrade() {
-		return NO, err
-	}
-	// if already upgraded
-	if !Spc.Upgraded() {
-		return NO, nil
-	}
-	// if already preupgraded
-	if !Spc.PreUpgraded() {
-		return NO, nil
-	}
-//	if !Spc.DeletionTimeStamp.IsZero() {
-//		return NO, nil
-//	}
-//	if Spc.HasDisableReconcilation() {
-//		return NO
-//	}
-}
-
-func perform_preupgrade(Spc *SPC) {
-	if Spc.HasFinalizer(finalizer) {
-		return nil
-	}
-	bdc.AddFinalizer()
-	ndm.NewKubeClient()
-}
-
-func nothing_to_preupgrade(Spc *SPC) {
-	return nil
-}
-*/

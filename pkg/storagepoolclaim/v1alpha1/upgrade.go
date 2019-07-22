@@ -20,18 +20,23 @@ import (
         metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Once the preupgrade checks are done, one of the below actions will be taken
 type PreUpgradeAction string
 
 const (
+	// Add the label to disable reconciler in controller
+	// Note: Not used as part of 1.1 preupgrade
 	DisableReconciler	PreUpgradeAction = "DisableReconciler"
+
+	// Continue the preupgrade tasks
 	Continue		PreUpgradeAction = "Continue"
+
+	// Abort running preupgrade tasks
 	Abort			PreUpgradeAction = "Abort"
 )
 
-func (Spc *SPC) validVersionForPreUpgrade() {
-}
-
-func (Spc *SPC) requiresPreUpgrade() (PreUpgradeAction, error) {
+// 1.1 preupgrade need to contine only if SPC doesn't have SPCFinalizer on it
+func (Spc *SPC) getPreUpgradeAction() (PreUpgradeAction, error) {
 	if Spc.HasFinalizer(SPCFinalizer) {
 		return Abort, nil
 	}
@@ -40,6 +45,7 @@ func (Spc *SPC) requiresPreUpgrade() (PreUpgradeAction, error) {
 
 type preUpgradeFn func(*SPC) error
 
+// Table of functions that need to be executed for particular PreUpgradeAction
 var performPreUpgradeFn = map[PreUpgradeAction]preUpgradeFn {
 	DisableReconciler:	noop,
 	Continue:		performPreUpgrade,
@@ -54,6 +60,9 @@ func (Spc *SPC) performPreUpgradeOnAssociatedBDCs() error {
 	return Spc.addSPCFinalizerOnAssociatedBDCs()
 }
 
+// As part of 1.1 preupgrade,
+// Set finalizers on all BDCs of this SPC
+// set finalizer on SPC
 func performPreUpgrade(Spc *SPC) error {
 	err := Spc.performPreUpgradeOnAssociatedBDCs()
 	if (err != nil) {
@@ -63,8 +72,11 @@ func performPreUpgrade(Spc *SPC) error {
 	return err
 }
 
+// Perform 1.1 preupgrade tasks for given SPC
+// get preupgrade fn to execute
+// Execute the fn
 func (Spc *SPC) preUpgrade() error {
-	res, err := Spc.requiresPreUpgrade()
+	res, err := Spc.getPreUpgradeAction()
 	if err != nil {
 		return err
 	}
@@ -72,12 +84,16 @@ func (Spc *SPC) preUpgrade() error {
 	return err
 }
 
+// Perform 1.1 preupgrade tasks for all SPCs
 func PreUpgrade() error {
 	spcList, _ := NewKubeClient().List(metav1.ListOptions {})
 	for _, obj := range spcList.Items {
 		obj := obj
 		Spc := SPC{&obj}
-		Spc.preUpgrade()
+		err := Spc.preUpgrade()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
