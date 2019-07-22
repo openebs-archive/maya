@@ -31,13 +31,102 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
+
+	// auth plugins
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 var (
-	kubeConfigPath = "/home/user/.kube/config"
-	deployClient   = deploy.NewKubeClient(deploy.WithKubeConfigPath(kubeConfigPath))
-	serviceClient  = svc.NewKubeClient(svc.WithKubeConfigPath(kubeConfigPath))
-	pvClient       = pv.NewKubeClient(pv.WithKubeConfigPath(kubeConfigPath))
+	replicaPatchTemplate = `{
+		"metadata": {
+		   "labels": {
+			  "openebs.io/version": "{{.Version}}",
+			  "openebs.io/persistent-volume": "{{.PVName}}",
+			  "openebs.io/replica": "jiva-replica"
+		   }
+		},
+		"spec": {
+			"selector": {
+				"matchLabels":{
+					"openebs.io/persistent-volume": "{{.PVName}}",
+					"openebs.io/replica": "jiva-replica"
+				}
+			},
+		   "template": {
+			   "metadata": {
+				   "labels": {
+					   "openebs.io/version": "{{.Version}}",
+					   "openebs.io/persistent-volume": "{{.PVName}}",
+					   "openebs.io/replica": "jiva-replica"
+				   }
+			   },
+			  "spec": {
+				 "containers": [
+					{
+					   "name": "{{.ReplicaContainerName}}",
+					   "image": "{{.ReplicaImage}}:{{.Version}}"
+					}
+				 ],
+				 "affinity": {
+					 "podAntiAffinity": {
+						 "requiredDuringSchedulingIgnoredDuringExecution": [
+							 {
+								 "labelSelector": {
+									 "matchLabels": {
+										 "openebs.io/persistent-volume": "{{.PVName}}",
+										 "openebs.io/replica": "jiva-replica"
+									 }
+								 },
+					 "topologyKey": "kubernetes.io/hostname"
+							 }
+						 ]
+					 }
+				 }
+			  }
+		   }
+		}
+	 }`
+
+	targetPatchTemplate = `{
+		"metadata": {
+		   "labels": {
+			 "openebs.io/version": "{{.Version}}"
+		   }
+		},
+		"spec": {
+		   "template": {
+			  "metadata": {
+				 "labels":{
+					"openebs.io/version": "{{.Version}}"
+				 }
+			  },
+			 "spec": {
+			   "containers": [
+				 {
+					"name": "{{.ControllerContainerName}}",
+					"image": "{{.ControllerImage}}:{{.Version}}"
+				 },
+				 {
+					"name": "maya-volume-exporter",
+					"image": "{{.MExporterImage}}:{{.Version}}"
+				 }
+			   ]
+			 }
+		   }
+		}
+	  }`
+
+	servicePatchTemplate = `{
+		"metadata": {
+		   "labels": {
+			  "openebs.io/version": "{{.}}"
+		   }
+		}
+	 }`
+
+	deployClient  = deploy.NewKubeClient()
+	serviceClient = svc.NewKubeClient()
+	pvClient      = pv.NewKubeClient()
 )
 
 type replicaPatchDetails struct {
@@ -297,7 +386,7 @@ func main() {
 
 	// replica patch
 	if replicaVersion == currentVersion {
-		tmpl, err := template.ParseFiles("jiva-replica-patch.tpl.json")
+		tmpl, err := template.New("replicaPatch").Parse(replicaPatchTemplate)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -327,7 +416,7 @@ func main() {
 
 	// controller patch
 	if controllerVersion == currentVersion {
-		tmpl, err := template.ParseFiles("jiva-target-patch.tpl.json")
+		tmpl, err := template.New("controllerPatch").Parse(targetPatchTemplate)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -356,7 +445,7 @@ func main() {
 
 	// service patch
 	if controllerServiceVersion == currentVersion {
-		tmpl, err := template.ParseFiles("jiva-target-svc-patch.tpl.json")
+		tmpl, err := template.New("servicePatch").Parse(servicePatchTemplate)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -383,5 +472,5 @@ func main() {
 
 	buffer.Reset()
 
-	fmt.Println("Upgrade Complete")
+	fmt.Println("Upgrade Successful for", pvName)
 }
