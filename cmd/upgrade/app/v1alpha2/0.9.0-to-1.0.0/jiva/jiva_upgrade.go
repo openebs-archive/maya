@@ -27,6 +27,7 @@ import (
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pv "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
+	retry "github.com/openebs/maya/pkg/util/retry"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -123,9 +124,6 @@ func patchDelpoyment(
 	pt types.PatchType,
 	data []byte,
 ) error {
-	var (
-		retries = 60
-	)
 	_, err := deployClient.WithNamespace(namespace).Patch(
 		deployName,
 		pt,
@@ -134,20 +132,23 @@ func patchDelpoyment(
 	if err != nil {
 		return err
 	}
-	for {
-		retries = retries - 1
-		rolloutStatus, err := deployClient.WithNamespace(namespace).
-			RolloutStatus(deployName)
-		if err != nil {
-			return err
-		}
-		time.Sleep(5 * time.Second)
-		if retries == 0 || rolloutStatus.IsRolledout {
+
+	err = retry.
+		Times(60).
+		Wait(5 * time.Second).
+		Try(func(attempt uint) error {
+			rolloutStatus, err := deployClient.WithNamespace(namespace).
+				RolloutStatus(deployName)
+			if err != nil {
+				return err
+			}
 			if !rolloutStatus.IsRolledout {
 				return errors.Errorf("failed to rollout %s", rolloutStatus.Message)
 			}
-			break
-		}
+			return nil
+		})
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -177,10 +178,10 @@ func getBaseImage(deployObj *appsv1.Deployment, name string) (string, error) {
 
 func main() {
 	// inputs required for the upgrade
+	pvName := os.Args[1]
+	openebsNamespace := os.Args[2]
 	upgradeVersion := "1.0.0"
 	currentVersion := "0.9.0"
-	pvName := "pvc-8399fbcd-ab15-11e9-afd4-54e1ad5e8320"
-	openebsNamespace := "openebs"
 
 	var (
 		pvLabel         = "openebs.io/persistent-volume=" + pvName
@@ -189,6 +190,12 @@ func main() {
 		ns              string
 		err             error
 	)
+
+	pvObj, err := pvClient.Get(pvName, metav1.GetOptions{})
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	// verifying whether the pvc is deployed with DeployInOpenebsNamespace cas config
 	deployInOpenebs, err := deployClient.WithNamespace(openebsNamespace).List(
@@ -202,9 +209,8 @@ func main() {
 	if len(deployInOpenebs.Items) > 0 {
 		ns = openebsNamespace
 	} else {
-		pvObj, err := pvClient.Get(pvName, metav1.GetOptions{})
 		if err != nil {
-			fmt.Println("namespace missing")
+			fmt.Println("namespace missing", pvObj)
 			os.Exit(1)
 		}
 		ns = pvObj.Spec.ClaimRef.Namespace
@@ -223,7 +229,7 @@ func main() {
 	}
 	if (replicaVersion != currentVersion) && (replicaVersion != upgradeVersion) {
 		fmt.Printf(
-			"replica version %s is neither %s nor %s",
+			"replica version %s is neither %s nor %s\n",
 			replicaVersion,
 			currentVersion,
 			upgradeVersion,
@@ -251,7 +257,7 @@ func main() {
 	}
 	if (controllerVersion != currentVersion) && (controllerVersion != upgradeVersion) {
 		fmt.Printf(
-			"controller version %s is neither %s nor %s",
+			"controller version %s is neither %s nor %s\n",
 			controllerVersion,
 			currentVersion,
 			upgradeVersion,
@@ -279,7 +285,7 @@ func main() {
 	controllerServiceVersion := controllerServiceList.Items[0].Labels["openebs.io/version"]
 	if controllerServiceVersion != currentVersion && controllerServiceVersion != upgradeVersion {
 		fmt.Printf(
-			"controller service version %s is neither %s nor %s",
+			"controller service version %s is neither %s nor %s\n",
 			controllerServiceVersion,
 			currentVersion,
 			upgradeVersion,
@@ -345,7 +351,7 @@ func main() {
 		}
 		fmt.Println(controllerDeployObj.Name, " patched")
 	} else {
-		fmt.Printf("controller deployment already in %s version", upgradeVersion)
+		fmt.Printf("controller deployment already in %s version\n", upgradeVersion)
 	}
 
 	// service patch
@@ -372,8 +378,10 @@ func main() {
 		}
 		fmt.Println(controllerServiceName, "patched")
 	} else {
-		fmt.Printf("controller service already in %s version", upgradeVersion)
+		fmt.Printf("controller service already in %s version\n", upgradeVersion)
 	}
+
+	buffer.Reset()
 
 	fmt.Println("Upgrade Complete")
 }
