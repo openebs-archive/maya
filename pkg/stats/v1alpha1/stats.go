@@ -95,6 +95,9 @@ type VolumeStats struct {
 	Replicas []Replica `json:"Replicas"`
 	// Target status is the status of the target (RW/RO)
 	TargetStatus TargetMode `json:"Status"`
+	// IsClientConnected is the status of initiator whether it
+	// is connected to target or not.
+	IsClientConnected bool `json:"IsClientConnected"`
 }
 
 // Replica is used to store the info about the replicas
