@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"sync"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -44,9 +45,15 @@ type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOpt
 
 type updateFn func(cli *clientset.Clientset, spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error)
 
+var(
+	spc_clientset *clientset.Clientset
+	once	sync.Once
+)
+
 // Kubeclient enables kubernetes API operations
 // on cstor storage pool instance
 type Kubeclient struct {
+
 	// clientset refers to cstor storage pool's
 	// clientset that will be responsible to
 	// make kubernetes API calls
@@ -74,11 +81,21 @@ type KubeclientBuildOption func(*Kubeclient)
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *clientset.Clientset, err error) {
+			if spc_clientset != nil {
+				return spc_clientset, nil
+			}
 			config, err := client.New().GetConfigForPathOrDirect()
 			if err != nil {
 				return nil, err
 			}
-			return clientset.NewForConfig(config)
+			spcClientset, err := clientset.NewForConfig(config)
+			if err != nil {
+				return nil, err
+			}
+			once.Do(func() {
+				spc_clientset = spcClientset
+			})
+			return spc_clientset, nil
 		}
 	}
 	if k.getClientsetForPath == nil {

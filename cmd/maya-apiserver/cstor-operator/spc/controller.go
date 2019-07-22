@@ -27,6 +27,7 @@ import (
 	listers "github.com/openebs/maya/pkg/client/generated/listers/openebs.io/v1alpha1"
 	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
 	corev1 "k8s.io/api/core/v1"
+	spc_pkg "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -147,6 +148,27 @@ func (cb *ControllerBuilder) Build() (*Controller, error) {
 		return nil, err
 	}
 	return cb.Controller, nil
+}
+/*
+func (c *Controller)SPCNewKubeClient() *spc_apis.Kubeclient {
+	return spc_apis.NewKubeClient(
+		spc_apis.WithKubeClient(c.clientset),
+	)
+}
+
+func (c *Controller)check_for_preupgrade_tasks() error {
+	kc := c.SPCNewKubeClient()
+	spc_apis.Upgrade(c.kubeclientset, c.clientset, c.ndmclientset)
+
+	apis_spcList := kc.List()
+	SpcList := spc_apis.NewListBuilder().WithAPIList(apis_spcList).SpcList
+	SpcList.check_for_upgrade_tasks(c)
+}
+*/
+
+func (c *Controller) perform_preupgrade_tasks() error {
+	spc_pkg.PreUpgrade()
+	return nil
 }
 
 // addSpc is the add event handler for spc

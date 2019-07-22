@@ -18,7 +18,7 @@ package v1alpha1
 
 import (
 	"strings"
-
+	"sync"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
@@ -67,6 +67,11 @@ type patchFn func(cli *clientset.Clientset, namespace, name string, pt types.Pat
 // block device claim
 type updateFn func(cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error)
 
+var (
+	ndm_clientset	*clientset.Clientset
+	once		sync.Once
+)
+
 // Kubeclient enables kubernetes API operations
 // on block device instance
 type Kubeclient struct {
@@ -98,11 +103,21 @@ type KubeclientBuildOption func(*Kubeclient)
 func (k *Kubeclient) WithDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *clientset.Clientset, err error) {
+			if ndm_clientset != nil {
+				return ndm_clientset, nil
+			}
 			config, err := kclient.New().GetConfigForPathOrDirect()
 			if err != nil {
 				return nil, err
 			}
-			return clientset.NewForConfig(config)
+			ndmClientset, err := clientset.NewForConfig(config)
+			if err != nil {
+				return nil, err
+			}
+			once.Do(func() {
+				ndm_clientset = ndmClientset
+			})
+			return ndm_clientset, nil
 		}
 	}
 	if k.getClientsetForPath == nil {
