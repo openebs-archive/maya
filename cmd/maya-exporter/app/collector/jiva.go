@@ -119,6 +119,11 @@ func (j *jiva) parse(volStats v1.VolumeStats, metrics *metrics) stats {
 	url = strings.TrimPrefix(url, protocol)
 	stats.address = url
 	stats.iqn = jivaIQN + volStats.Name
+	if volStats.IsClientConnected {
+		stats.isClientConnected = 1
+	} else {
+		stats.isClientConnected = 0
+	}
 
 	return stats
 }
