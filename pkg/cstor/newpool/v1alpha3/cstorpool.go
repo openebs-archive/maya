@@ -69,6 +69,20 @@ func (csp *CStorPool) HasAnnotation(key, value string) bool {
 	return false
 }
 
+// HasNodeName is predicate to filter out based on
+// node name of CSP instances.
+func HasNodeName(nodeName string) Predicate {
+	return func(csp *CStorPool) bool {
+		return csp.HasNodeName(nodeName)
+	}
+}
+
+// HasNodeName returns true if the CSP belongs
+// to the provided node name.
+func (csp *CStorPool) HasNodeName(nodeName string) bool {
+	return csp.Object.Spec.HostName == nodeName
+}
+
 // HasLabel is predicate to filter out labeled
 // CSP instances
 func HasLabel(key, value string) Predicate {

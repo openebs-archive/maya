@@ -159,6 +159,16 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 		return nil
 	}
 
+	if pendingPoolCount < 0 {
+		err = pc.DownScalePool()
+		if err != nil {
+			message := fmt.Sprintf("Could not downscale pool: %s", err.Error())
+			c.recorder.Event(cspc, corev1.EventTypeWarning, "PoolDownScale", message)
+			glog.Errorf("Could not downscale pool for CSPC %s: %s", cspc.Name, err.Error())
+			return nil
+		}
+	}
+
 	if pendingPoolCount > 0 {
 		err = pc.create(pendingPoolCount, cspc)
 		if err != nil {
@@ -180,6 +190,11 @@ func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
 
 	if len(cspList) > 0 {
 		pc.createDeployForCSPList(cspList)
+	}
+
+	if pendingPoolCount == 0 {
+		glog.V(2).Infof("Handling pool operations for CSPC %s if any", cspc.Name)
+		pc.handleOperations()
 	}
 
 	return nil

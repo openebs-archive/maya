@@ -60,7 +60,6 @@ func addRaidGroup(csp *apis.NewTestCStorPool, r apis.RaidGroup) error {
 	return err
 }
 
-/*
 // addNewVdevFromCSP will add new disk, which is not being used in pool, from csp to given pool
 func addNewVdevFromCSP(csp *apis.NewTestCStorPool) error {
 	var err error
@@ -98,7 +97,6 @@ func addNewVdevFromCSP(csp *apis.NewTestCStorPool) error {
 
 	return err
 }
-*/
 
 /*
 func removePoolVdev(csp *apis.NewTestCStorPool, bdev apis.CStorPoolClusterBlockDevice) error {

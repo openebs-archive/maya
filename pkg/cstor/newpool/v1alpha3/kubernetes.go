@@ -51,6 +51,10 @@ type getFn func(cli *clientset.Clientset, namespace, name string, opts metav1.Ge
 // creation of csp
 type createFn func(cli *clientset.Clientset, namespace string, csp *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error)
 
+// updateFn is a typed function that abstracts
+// updating of csp
+type updateFn func(cli *clientset.Clientset, namespace string, csp *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error)
+
 // deleteFn is a typed function that abstracts
 // deletion of csps
 type deleteFn func(cli *clientset.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error
@@ -80,6 +84,7 @@ type Kubeclient struct {
 	get                 getFn
 	create              createFn
 	del                 deleteFn
+	update              updateFn
 	delCollection       deleteCollectionFn
 	patch               patchFn
 }
@@ -138,6 +143,11 @@ func (k *Kubeclient) WithDefaults() {
 	if k.patch == nil {
 		k.patch = func(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.NewTestCStorPool, error) {
 			return cli.OpenebsV1alpha1().NewTestCStorPools(namespace).Patch(name, pt, data, subresources...)
+		}
+	}
+	if k.update == nil {
+		k.update = func(cli *clientset.Clientset, namespace string, csp *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error) {
+			return cli.OpenebsV1alpha1().NewTestCStorPools(namespace).Update(csp)
 		}
 	}
 }
@@ -263,4 +273,16 @@ func (k *Kubeclient) Patch(name string, pt types.PatchType, data []byte, subreso
 		return nil, errors.Wrapf(err, "failed to patch csp: {%s}", name)
 	}
 	return k.patch(cli, k.namespace, name, pt, data, subresources...)
+}
+
+// Update updates the csp  if present in kubernetes cluster
+func (k *Kubeclient) Update(csp *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error) {
+	if csp == nil {
+		return nil, errors.New("failed to update csp : nil csp object")
+	}
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to patch csp: {%s}", csp.Name)
+	}
+	return k.update(cli, k.namespace, csp)
 }
