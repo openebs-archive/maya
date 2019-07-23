@@ -354,6 +354,29 @@ spec:
       description: Restore status
       type: string
 ---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: upgradetasks.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1alpha1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: upgradetasks
+    # singular name to be used as an alias on the CLI and for display
+    singular: upgradetask
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: UpgradeTask
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - utask
+---
 `
 
 // OpenEBSCRDArtifacts returns the CRDs required for latest version
