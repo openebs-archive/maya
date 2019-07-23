@@ -13,12 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package main
+
+package v1alpha1
 
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strings"
 	"text/template"
 	"time"
@@ -241,10 +241,10 @@ func patchDelpoyment(
 		Times(60).
 		Wait(5 * time.Second).
 		Try(func(attempt uint) error {
-			rolloutStatus, err := deployClient.WithNamespace(namespace).
+			rolloutStatus, err1 := deployClient.WithNamespace(namespace).
 				RolloutStatus(deployName)
 			if err != nil {
-				return err
+				return err1
 			}
 			if !rolloutStatus.IsRolledout {
 				return errors.Errorf("failed to rollout %s", rolloutStatus.Message)
@@ -399,10 +399,7 @@ func patchController(controllerObj *controllerDetails, namespace string) error {
 	return nil
 }
 
-func main() {
-	// inputs required for the upgrade
-	pvName := os.Args[1]
-	openebsNamespace := os.Args[2]
+func jivaUpgrade(pvName, openebsNamespace string) error {
 
 	var (
 		pvLabel         = "openebs.io/persistent-volume=" + pvName
@@ -414,8 +411,7 @@ func main() {
 
 	pvObj, err := pvClient.Get(pvName, metav1.GetOptions{})
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 
 	// verifying whether the pvc is deployed with DeployInOpenebsNamespace cas config
@@ -424,17 +420,15 @@ func main() {
 			LabelSelector: pvLabel,
 		})
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 	// check whether pvc pods are openebs namespace or not
 	if len(deployInOpenebs.Items) > 0 {
 		ns = openebsNamespace
 	} else {
 		// if pvc pods are not in openebs namespace take the namespace of pvc
-		if err != nil {
-			fmt.Println("namespace missing", pvObj)
-			os.Exit(1)
+		if pvObj.Spec.ClaimRef.Namespace == "" {
+			return errors.Errorf("namespace missing for pv %s", pvName)
 		}
 		ns = pvObj.Spec.ClaimRef.Namespace
 	}
@@ -442,16 +436,14 @@ func main() {
 	// fetching replica deployment details
 	replicaObj, err := getReplica(replicaLabel, ns)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 	replicaObj.patchDetails.PVName = pvName
 
 	// fetching controller deployment details
 	controllerObj, err := getController(controllerLabel, ns)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 	// fetching controller service details
 	controllerServiceList, err := serviceClient.WithNamespace(ns).List(
@@ -459,8 +451,7 @@ func main() {
 			LabelSelector: pvLabel,
 		})
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 	// controllerServiceObj := controllerServiceList.Items[0]
 	controllerServiceName := controllerServiceList.Items[0].Name
@@ -468,28 +459,25 @@ func main() {
 		Labels["openebs.io/version"]
 	if controllerServiceVersion != currentVersion &&
 		controllerServiceVersion != upgradeVersion {
-		fmt.Printf(
+		return errors.Errorf(
 			"controller service version %s is neither %s nor %s\n",
 			controllerServiceVersion,
 			currentVersion,
 			upgradeVersion,
 		)
-		os.Exit(1)
 	}
 
 	// replica patch
 	err = patchReplica(replicaObj, ns)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 	buffer.Reset()
 
 	// controller patch
 	err = patchController(controllerObj, ns)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 	buffer.Reset()
 
@@ -497,13 +485,11 @@ func main() {
 	if controllerServiceVersion == currentVersion {
 		tmpl, err := template.New("servicePatch").Parse(servicePatchTemplate)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 		err = tmpl.Execute(&buffer, upgradeVersion)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 		servicePatch := buffer.String()
 		_, err = serviceClient.WithNamespace(ns).Patch(
@@ -512,8 +498,7 @@ func main() {
 			[]byte(servicePatch),
 		)
 		if err != nil {
-			fmt.Println("Patch failed")
-			fmt.Println(err)
+			return err
 		}
 		fmt.Println(controllerServiceName, "patched")
 	} else {
@@ -521,4 +506,5 @@ func main() {
 	}
 
 	fmt.Println("Upgrade Successful for", pvName)
+	return nil
 }
