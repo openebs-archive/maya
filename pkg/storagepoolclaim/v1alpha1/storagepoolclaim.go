@@ -23,6 +23,10 @@ import (
 	"github.com/pkg/errors"
 	"time"
 
+	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -140,6 +144,28 @@ func (spc *SPC) AddFinalizer(finalizer string) (*apis.StoragePoolClaim, error) {
 	}
 	glog.Infof("Finalizer %s added on storagepoolclaim %s", finalizer, spc.Object.Name)
 	return spcAPIObj, nil
+}
+
+func (spc *SPC) addSPCFinalizerOnAssociatedBDCs() error {
+	namespace := env.Get(env.OpenEBSNamespace)
+
+	bdcList, err := bdc.NewKubeClient().WithNamespace(namespace).List(
+		metav1.ListOptions{
+			LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Object.Name,
+		})
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to get bdclist for %s to add SPC finalizer", spc.Object.Name)
+	}
+
+	for _, bdcObj := range bdcList.Items {
+		bdcObj := bdcObj
+		_, err := bdc.BuilderForAPIObject(&bdcObj).BDC.AddFinalizer(SPCFinalizer)
+		if err != nil {
+			return errors.Wrap(err, "failed to add SPC finalizer on BDC")
+		}
+	}
+	return nil
 }
 
 // Filter will filter the csp instances if all the predicates succeed against that spc.
