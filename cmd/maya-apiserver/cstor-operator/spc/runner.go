@@ -42,6 +42,13 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	if ok := cache.WaitForCacheSync(stopCh, c.spcSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
+
+	glog.Info("Checking for preupgrade tasks")
+	err := c.performPreupgradeTasks()
+	if err != nil {
+		return fmt.Errorf("failure in preupgrade tasks: %v", err)
+	}
+
 	glog.Info("Starting SPC workers")
 	// Launch worker to process SPC resources
 	// Threadiness will decide the number of workers you want to launch to process work items from queue

@@ -27,13 +27,14 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 
 	When("We apply sparse-striped-auto spc yaml with maxPool count equal to 3 on a k8s cluster having at least 3 capable node", func() {
 		It("pool resources count should be 3 with no error and healthy status", func() {
-			spcObj = spc.NewBuilder().
+			Spc = spc.NewBuilder().
 				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(3).
 				WithOverProvisioning(false).
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
-				Build().Object
+				Build()
+			spcObj = Spc.Object
 
 			// Create a storage pool claim
 			_, err := ops.SPCClient.Create(spcObj)
@@ -46,6 +47,14 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 			Expect(ops.IsSPCFinalizerExistsOnBDCs(metav1.ListOptions{
 				LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcObj.Name,
 			}, spc.SPCFinalizer)).To(BeTrue())
+		})
+	})
+
+	When("Remove finalizer", func() {
+		It("make sure finalizer comes back as part of reconcilation", func() {
+			err := Spc.RemoveFinalizer(spc.SPCFinalizer)
+			Expect(err).To(BeNil())
+			Expect(ops.IsSPCFinalizerExistsOnSPC(spcObj.Name, spc.SPCFinalizer)).To(BeTrue())
 		})
 	})
 

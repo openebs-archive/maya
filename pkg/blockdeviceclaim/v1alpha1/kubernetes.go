@@ -17,9 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"strings"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
+	"sync"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
@@ -67,6 +67,12 @@ type patchFn func(cli *clientset.Clientset, namespace, name string, pt types.Pat
 // block device claim
 type updateFn func(cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error)
 
+// make ndm clientset as singleton
+var (
+	ndmClientset *clientset.Clientset
+	once         sync.Once
+)
+
 // Kubeclient enables kubernetes API operations
 // on block device instance
 type Kubeclient struct {
@@ -98,11 +104,21 @@ type KubeclientBuildOption func(*Kubeclient)
 func (k *Kubeclient) WithDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *clientset.Clientset, err error) {
+			if ndmClientset != nil {
+				return ndmClientset, nil
+			}
 			config, err := kclient.New().GetConfigForPathOrDirect()
 			if err != nil {
 				return nil, err
 			}
-			return clientset.NewForConfig(config)
+			ndmCS, err := clientset.NewForConfig(config)
+			if err != nil {
+				return nil, err
+			}
+			once.Do(func() {
+				ndmClientset = ndmCS
+			})
+			return ndmClientset, nil
 		}
 	}
 	if k.getClientsetForPath == nil {

@@ -105,6 +105,28 @@ func (bdc *BlockDeviceClaim) HasFinalizer(finalizer string) bool {
 	return util.ContainsString(finalizersList, finalizer)
 }
 
+// AddFinalizer adds the given finalizer to the object.
+func (bdc *BlockDeviceClaim) AddFinalizer(finalizer string) (*ndm.BlockDeviceClaim, error) {
+	if bdc.HasFinalizer(finalizer) {
+		glog.V(2).Infof("finalizer %s is already present on BDC %s", finalizer, bdc.Object.Name)
+		return bdc.Object, nil
+	}
+
+	bdc.Object.Finalizers = append(bdc.Object.Finalizers, finalizer)
+
+	bdcAPIObj, err := NewKubeClient().
+		WithNamespace(bdc.Object.Namespace).
+		Update(bdc.Object)
+
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update bdc %s while adding finalizer %s",
+			bdc.Object.Name, finalizer)
+	}
+
+	glog.Infof("Finalizer %s added on blockdeviceclaim %s", finalizer, bdc.Object.Name)
+	return bdcAPIObj, nil
+}
+
 // RemoveFinalizer removes the given finalizer from the object.
 func (bdc *BlockDeviceClaim) RemoveFinalizer(finalizer string) error {
 	if len(bdc.Object.Finalizers) == 0 {
