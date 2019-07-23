@@ -151,7 +151,7 @@ func isRaidGroupPresentOnCSP(group *apis.RaidGroup, csp *apis.NewTestCStorPool) 
 }
 
 // getAddedBlockDevicesInGroup returns the added block device list
-func getAddedBlockDevicesInGroup(groupOnCSPC *apis.RaidGroup, groupOnCSP *apis.RaidGroup) ([]string, error) {
+func getAddedBlockDevicesInGroup(groupOnCSPC, groupOnCSP *apis.RaidGroup) ([]string, error) {
 	var addedBlockDevices []string
 
 	// bdPresentOnCSP is a map whose key is block devices
