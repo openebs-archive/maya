@@ -44,7 +44,7 @@ type Builder struct {
 // NewBuilder returns an empty instance of the Builder object
 func NewBuilder() *Builder {
 	return &Builder{
-		BDC:  &BlockDeviceClaim{&ndm.BlockDeviceClaim{}},
+		BDC:  &BlockDeviceClaim{&ndm.BlockDeviceClaim{}, ""},
 		errs: []error{},
 	}
 }
@@ -62,9 +62,14 @@ func BuilderForObject(BlockDeviceClaim *BlockDeviceClaim) *Builder {
 // device claim api object.
 func BuilderForAPIObject(bdc *ndm.BlockDeviceClaim) *Builder {
 	return &Builder{
-		BDC:  &BlockDeviceClaim{bdc},
+		BDC:  &BlockDeviceClaim{bdc, ""},
 		errs: []error{},
 	}
+}
+
+func (b *Builder) WithConfigPath(configpath string) *Builder {
+	b.BDC.configPath = configpath
+	return b
 }
 
 // Build returns the BlockDeviceClaim instance

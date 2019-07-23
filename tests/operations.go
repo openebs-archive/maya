@@ -82,7 +82,7 @@ type Operations struct {
 	DeployClient   *deploy.Kubeclient
 	BDClient       *bd.Kubeclient
 	BDCClient      *bdc.Kubeclient
-	kubeConfigPath string
+	KubeConfigPath string
 }
 
 // OperationsOptions abstracts creating an
@@ -93,7 +93,7 @@ type OperationsOptions func(*Operations)
 // against operations instance
 func WithKubeConfigPath(path string) OperationsOptions {
 	return func(ops *Operations) {
-		ops.kubeConfigPath = path
+		ops.KubeConfigPath = path
 	}
 }
 
@@ -142,53 +142,53 @@ func (o *Options) WithCommand(cmd ...string) *Options {
 func (ops *Operations) withDefaults() {
 	var err error
 	if ops.KubeClient == nil {
-		ops.KubeClient = kubeclient.New(kubeclient.WithKubeConfigPath(ops.kubeConfigPath))
+		ops.KubeClient = kubeclient.New(kubeclient.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.NSClient == nil {
-		ops.NSClient = ns.NewKubeClient(ns.WithKubeConfigPath(ops.kubeConfigPath))
+		ops.NSClient = ns.NewKubeClient(ns.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.SCClient == nil {
-		ops.SCClient = sc.NewKubeClient(sc.WithKubeConfigPath(ops.kubeConfigPath))
+		ops.SCClient = sc.NewKubeClient(sc.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.PodClient == nil {
-		ops.PodClient = pod.NewKubeClient(pod.WithKubeConfigPath(ops.kubeConfigPath))
+		ops.PodClient = pod.NewKubeClient(pod.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.PVCClient == nil {
-		ops.PVCClient = pvc.NewKubeClient(pvc.WithKubeConfigPath(ops.kubeConfigPath))
+		ops.PVCClient = pvc.NewKubeClient(pvc.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.SnapClient == nil {
-		ops.SnapClient = snap.NewKubeClient(snap.WithKubeConfigPath(ops.kubeConfigPath))
+		ops.SnapClient = snap.NewKubeClient(snap.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.SPCClient == nil {
-		ops.SPCClient = spc.NewKubeClient(spc.WithKubeConfigPath(ops.kubeConfigPath))
+		ops.SPCClient = spc.NewKubeClient(spc.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.CSPClient == nil {
-		ops.CSPClient, err = csp.KubeClient().WithKubeConfigPath(ops.kubeConfigPath)
+		ops.CSPClient, err = csp.KubeClient().WithKubeConfigPath(ops.KubeConfigPath)
 		Expect(err).To(BeNil(), "while initilizing csp client")
 	}
 	if ops.CVClient == nil {
-		ops.CVClient = cv.NewKubeclient(cv.WithKubeConfigPath(ops.kubeConfigPath))
+		ops.CVClient = cv.NewKubeclient(cv.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.CVRClient == nil {
-		ops.CVRClient = cvr.NewKubeclient(cvr.WithKubeConfigPath(ops.kubeConfigPath))
+		ops.CVRClient = cvr.NewKubeclient(cvr.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.URClient == nil {
-		ops.URClient = result.NewKubeClient(result.WithKubeConfigPath(ops.kubeConfigPath))
+		ops.URClient = result.NewKubeClient(result.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.UnstructClient == nil {
-		ops.UnstructClient = unstruct.NewKubeClient(unstruct.WithKubeConfigPath(ops.kubeConfigPath))
+		ops.UnstructClient = unstruct.NewKubeClient(unstruct.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.DeployClient == nil {
-		ops.DeployClient = deploy.NewKubeClient(deploy.WithKubeConfigPath(ops.kubeConfigPath))
+		ops.DeployClient = deploy.NewKubeClient(deploy.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.BDClient == nil {
-		ops.BDClient = bd.NewKubeClient(bd.WithKubeConfigPath(ops.kubeConfigPath))
+		ops.BDClient = bd.NewKubeClient(bd.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.NodeClient == nil {
-		ops.NodeClient = node.NewKubeClient(node.WithKubeConfigPath(ops.kubeConfigPath))
+		ops.NodeClient = node.NewKubeClient(node.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.BDCClient == nil {
-		ops.BDCClient = bdc.NewKubeClient(bdc.WithKubeConfigPath(ops.kubeConfigPath))
+		ops.BDCClient = bdc.NewKubeClient(bdc.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 }
 
@@ -526,6 +526,21 @@ func (ops *Operations) IsSPCNotExists(spcName string) bool {
 		_, err := ops.SCClient.Get(spcName, metav1.GetOptions{})
 		if k8serrors.IsNotFound(err) {
 			return true
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return false
+}
+
+// IsFinalizerExists returns true if the object with provided name contains the finalizer.
+func (ops *Operations) IsFinalizerExistsOnBDC(bdcName string, finalizer string) bool {
+	for i := 0; i < maxRetry; i++ {
+		bdcObj, err := ops.BDCClient.Get(bdcName, metav1.GetOptions{})
+		Expect(err).To(BeNil())
+		for _, f := range bdcObj.Finalizers {
+			if f == finalizer {
+				return true
+			}
 		}
 		time.Sleep(5 * time.Second)
 	}

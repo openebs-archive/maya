@@ -19,6 +19,7 @@ package localpv
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openebs/maya/tests/artifacts"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
@@ -27,6 +28,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
+	localpv_app "github.com/openebs/maya/cmd/provisioner-localpv/app"
 )
 
 var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
@@ -64,7 +67,7 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 			)
 
 			By("creating above pvc")
-			_, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(pvcObj)
+			pvcObj, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(pvcObj)
 			Expect(err).To(
 				BeNil(),
 				"while creating pvc {%s} in namespace {%s}",
@@ -85,6 +88,7 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 				WithSelectorMatchLabelsNew(labelselector).
 				WithPodTemplateSpecBuilder(
 					pts.NewBuilder().
+						WithLabelsNew(labelselector).
 						WithContainerBuildersNew(
 							container.NewBuilder().
 								WithName("busybox").
@@ -134,7 +138,27 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV", func() {
 
 		})
 	})
+		When("remove finalizer", func() {
+			It("finalizer should come back after provisioner restart", func() {
+				bdcName := "bdc-pvc-" + string(pvcObj.GetUID())
+				bdcObj, err := ops.BDCClient.WithNamespace(string(artifacts.OpenebsNamespace)).Get(bdcName,
+					metav1.GetOptions{})
+				Expect(err).To(BeNil())
 
+				err = blockdeviceclaim.BuilderForAPIObject(bdcObj).WithConfigPath(ops.KubeConfigPath)
+					.BDC.RemoveFinalizer(localpv_app.LocalPVFinalizer)
+				Expect(err).To(BeNil())
+
+				podList, err := ops.PodClient.
+					WithNamespace(string(artifacts.OpenebsNamespace)).
+					List(metav1.ListOptions{LabelSelector: LocalPVProvisionerLabelSelector})
+				Expect(err).To(BeNil())
+				err = ops.PodClient.Delete(podList.Items[0].Name, &metav1.DeleteOptions{})
+				Expect(err).To(BeNil())
+
+				Expect(ops.IsFinalizerExistsOnBDC(bdcName, localpv_app.LocalPVFinalizer)).To(BeTrue())
+			})
+		})
 	When("deployment is deleted", func() {
 		It("should not have any deployment or running pod", func() {
 
@@ -232,6 +256,7 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 				WithSelectorMatchLabelsNew(existingLabelselector).
 				WithPodTemplateSpecBuilder(
 					pts.NewBuilder().
+						WithLabelsNew(existingLabelselector).
 						WithContainerBuildersNew(
 							container.NewBuilder().
 								WithName("busybox").
@@ -321,6 +346,7 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV", func() {
 				WithSelectorMatchLabelsNew(labelselector).
 				WithPodTemplateSpecBuilder(
 					pts.NewBuilder().
+						WithLabelsNew(labelselector).
 						WithContainerBuildersNew(
 							container.NewBuilder().
 								WithName("busybox").
