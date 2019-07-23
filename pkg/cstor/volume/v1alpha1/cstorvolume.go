@@ -18,6 +18,13 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
+const (
+	//IoWaitTime is the time interval for which the IO has to be stopped before doing snapshot operation
+	IoWaitTime = 10
+	//TotalWaitTime is the max time duration to wait for doing snapshot operation on all the replicas
+	TotalWaitTime = 60
+)
+
 // CStorVolume a wrapper for CStorVolume object
 type CStorVolume struct {
 	// actual cstorvolume object

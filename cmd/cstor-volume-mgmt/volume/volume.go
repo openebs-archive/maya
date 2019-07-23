@@ -26,6 +26,7 @@ import (
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	cvapis "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -207,10 +208,12 @@ func ResizeVolume(cStorVolume *apis.CStorVolume) error {
 		return errors.Errorf("storage details not found on file %s", util.IstgtConfPath)
 	}
 	//TODO: Size comparision is required between CV and istgt.conf to avoid less
-	// capacity changes
+	// capacity changes and unnecessary calls to istgt
 
 	// send resize command to istgt and read the response
-	resp, err := UnixSockVar.SendCommand(util.IstgtResizeCmd)
+	resizeCmd := buildResizeCommand(cStorVolume)
+	glog.Infof("[DEBUG] Resize command %s", resizeCmd)
+	resp, err := UnixSockVar.SendCommand(resizeCmd)
 	glog.Infof("[Debug] Response from resize {%s}", resp)
 	if err != nil {
 		return errors.Wrapf(
@@ -231,6 +234,16 @@ func ResizeVolume(cStorVolume *apis.CStorVolume) error {
 	}
 	glog.Infof("[Debug] Updated the '%s' file with capacity '%s'", util.IstgtConfPath, updateStorageVal)
 	return nil
+}
+
+// TODO: Move to CStorVolumePackage
+func buildResizeCommand(cstorVolume *apis.CStorVolume) string {
+	return fmt.Sprintf("%s %s %s %v %v", util.IstgtResizeCmd,
+		cstorVolume.Name,
+		cstorVolume.Spec.Capacity,
+		cvapis.IoWaitTime,
+		cvapis.TotalWaitTime,
+	)
 }
 
 // CheckValidVolume checks for validity of CStorVolume resource.
