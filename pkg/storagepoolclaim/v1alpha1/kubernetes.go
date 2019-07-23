@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sync"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
@@ -44,9 +45,16 @@ type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOpt
 
 type updateFn func(cli *clientset.Clientset, spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error)
 
+// making spc clientset singleton
+var (
+	spcClientset *clientset.Clientset
+	once         sync.Once
+)
+
 // Kubeclient enables kubernetes API operations
 // on cstor storage pool instance
 type Kubeclient struct {
+
 	// clientset refers to cstor storage pool's
 	// clientset that will be responsible to
 	// make kubernetes API calls
@@ -74,11 +82,21 @@ type KubeclientBuildOption func(*Kubeclient)
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *clientset.Clientset, err error) {
+			if spcClientset != nil {
+				return spcClientset, nil
+			}
 			config, err := client.New().GetConfigForPathOrDirect()
 			if err != nil {
 				return nil, err
 			}
-			return clientset.NewForConfig(config)
+			spcCS, err := clientset.NewForConfig(config)
+			if err != nil {
+				return nil, err
+			}
+			once.Do(func() {
+				spcClientset = spcCS
+			})
+			return spcClientset, nil
 		}
 	}
 	if k.getClientsetForPath == nil {

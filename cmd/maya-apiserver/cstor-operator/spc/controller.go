@@ -26,6 +26,7 @@ import (
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	listers "github.com/openebs/maya/pkg/client/generated/listers/openebs.io/v1alpha1"
 	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
+	spc_apis "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -147,6 +148,10 @@ func (cb *ControllerBuilder) Build() (*Controller, error) {
 		return nil, err
 	}
 	return cb.Controller, nil
+}
+
+func (c *Controller) performPreupgradeTasks() error {
+	return spc_apis.PreUpgrade()
 }
 
 // addSpc is the add event handler for spc

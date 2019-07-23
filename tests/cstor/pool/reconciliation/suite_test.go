@@ -22,6 +22,7 @@ import (
 	"github.com/openebs/maya/tests/cstor"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 
 	// auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -30,6 +31,7 @@ import (
 var (
 	spcName = "sparse-pool-claim"
 	spcObj  *apis.StoragePoolClaim
+	Spc     *spc.SPC
 )
 
 func TestSource(t *testing.T) {
