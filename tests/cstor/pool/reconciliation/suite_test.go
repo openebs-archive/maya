@@ -31,7 +31,7 @@ import (
 var (
 	spcName = "sparse-pool-claim"
 	spcObj  *apis.StoragePoolClaim
-	Spc *spc.SPC
+	Spc     *spc.SPC
 )
 
 func TestSource(t *testing.T) {
