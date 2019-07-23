@@ -17,28 +17,33 @@ limitations under the License.
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
-	upgrade090to100 "github.com/openebs/maya/pkg/upgrade/0.9.0-1.0.0/v1alpha1"
+	log "github.com/golang/glog"
+	upgrade "github.com/openebs/maya/cmd/upgrade/app/v1alpha1"
 )
 
 func main() {
-	from := os.Args[1]
-	to := os.Args[2]
-	kind := os.Args[3]
-	name := os.Args[4]
-	openebsNamespace := os.Args[5]
+	err := flag.Set("logtostderr", "true")
+	if err != nil {
+		fmt.Printf("failed to upgrade: %s", err)
+		os.Exit(1)
+	}
+	configPath := flag.String("config-path", "/etc/config/upgrade", "path to upgrade config file.")
+	defer log.Flush()
+	flag.Parse()
 
-	switch from + "-" + to {
-	case "0.9.0-1.0.0":
-		err := upgrade090to100.Exec(kind, name, openebsNamespace)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	default:
-		fmt.Printf("Invalid from version %s or to version %s", from, to)
+	u, err := upgrade.NewUpgradeForConfigPath(*configPath)
+	if err != nil {
+		log.Errorf("failed to upgrade: %+v", err)
+		os.Exit(1)
+	}
+
+	err = u.Run()
+	if err != nil {
+		log.Errorf("failed to upgrade: %+v", err)
 		os.Exit(1)
 	}
 	os.Exit(0)

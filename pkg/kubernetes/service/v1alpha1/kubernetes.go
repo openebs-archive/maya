@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -64,6 +65,15 @@ type createFn func(
 	namespace string,
 ) (*corev1.Service, error)
 
+// patchFn is a typed function that abstracts patch of service instances
+type patchFn func(
+	cli *kubernetes.Clientset,
+	name, namespace string,
+	pt types.PatchType,
+	data []byte,
+	subresources ...string,
+) (*corev1.Service, error)
+
 // Kubeclient enables kubernetes API operations on service instance
 type Kubeclient struct {
 	// clientset refers to kubernetes clientset. It is responsible to
@@ -81,6 +91,7 @@ type Kubeclient struct {
 	get                 getFn
 	del                 delFn
 	create              createFn
+	patch               patchFn
 }
 
 // KubeclientBuildOption defines the abstraction to build a kubeclient instance
@@ -159,6 +170,20 @@ func defaultCreate(
 		Create(service)
 }
 
+// defaultPatch is the default implementation to patch
+// a service instance in kubernetes cluster
+func defaultPatch(
+	cli *kubernetes.Clientset,
+	name, namespace string,
+	pt types.PatchType,
+	data []byte,
+	subresources ...string,
+) (*corev1.Service, error) {
+	return cli.CoreV1().
+		Services(namespace).
+		Patch(name, pt, data, subresources...)
+}
+
 // withDefaults sets the default options of kubeclient instance
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
@@ -179,6 +204,9 @@ func (k *Kubeclient) withDefaults() {
 	if k.create == nil {
 		k.create = defaultCreate
 	}
+	if k.patch == nil {
+		k.patch = defaultPatch
+	}
 }
 
 // WithClientset sets the kubernetes client against the kubeclient instance
@@ -193,6 +221,12 @@ func WithNamespace(namespace string) KubeclientBuildOption {
 	return func(k *Kubeclient) {
 		k.namespace = namespace
 	}
+}
+
+// WithNamespace set namespace in kubeclient object
+func (k *Kubeclient) WithNamespace(namespace string) *Kubeclient {
+	k.namespace = namespace
+	return k
 }
 
 // WithKubeConfigPath sets the kubeConfig path
@@ -300,4 +334,19 @@ func (k *Kubeclient) Create(service *corev1.Service) (*corev1.Service, error) {
 		)
 	}
 	return k.create(cli, service, k.namespace)
+}
+
+// Patch patches service object for given name
+func (k *Kubeclient) Patch(
+	name string,
+	pt types.PatchType,
+	data []byte,
+	subresources ...string,
+) (*corev1.Service, error) {
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+
+	return k.patch(cli, name, k.namespace, pt, data, subresources...)
 }

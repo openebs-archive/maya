@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors.
+Copyright 2019 The OpenEBS Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,32 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package v1alpha1
 
 import (
-	"fmt"
-	"os"
-
-	upgrade090to100 "github.com/openebs/maya/pkg/upgrade/0.9.0-1.0.0/v1alpha1"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 )
 
-func main() {
-	from := os.Args[1]
-	to := os.Args[2]
-	kind := os.Args[3]
-	name := os.Args[4]
-	openebsNamespace := os.Args[5]
+// Exec ...
+func Exec(kind, name, openebsNamespace string) error {
 
-	switch from + "-" + to {
-	case "0.9.0-1.0.0":
-		err := upgrade090to100.Exec(kind, name, openebsNamespace)
+	switch kind {
+	case "jivaVolume":
+		err := jivaUpgrade(name, openebsNamespace)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 	default:
-		fmt.Printf("Invalid from version %s or to version %s", from, to)
-		os.Exit(1)
+		return errors.Errorf("Invalid kind for upgrade")
 	}
-	os.Exit(0)
+	return nil
 }

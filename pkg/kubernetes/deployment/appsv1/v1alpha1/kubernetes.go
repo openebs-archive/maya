@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -43,6 +44,14 @@ type getFn func(
 	opts *metav1.GetOptions,
 ) (*appsv1.Deployment, error)
 
+// listFn is a typed function that abstracts listing
+// deployment instances from kubernetes cluster
+type listFn func(
+	cli *kubernetes.Clientset,
+	namespace string,
+	opts *metav1.ListOptions,
+) (*appsv1.DeploymentList, error)
+
 // createFn is a typed function that abstracts
 // creating a deployment instance in kubernetes cluster
 type createFn func(
@@ -59,6 +68,16 @@ type deleteFn func(
 	name string,
 	opts *metav1.DeleteOptions,
 ) error
+
+// patchFn is a typed function that abstracts
+// patching a deployment from kubernetes cluster
+type patchFn func(
+	cli *kubernetes.Clientset,
+	name, namespace string,
+	pt types.PatchType,
+	data []byte,
+	subresources ...string,
+) (*appsv1.Deployment, error)
 
 // rolloutStatusFn is a typed function that abstracts
 // fetching rollout status of a deployment instance from
@@ -95,6 +114,17 @@ func defaultGet(
 	return cli.AppsV1().Deployments(namespace).Get(name, *opts)
 }
 
+// defaultList is the default implementation to list
+// deployment instances from kubernetes cluster
+func defaultList(
+	cli *kubernetes.Clientset,
+	namespace string,
+	opts *metav1.ListOptions,
+) (*appsv1.DeploymentList, error) {
+
+	return cli.AppsV1().Deployments(namespace).List(*opts)
+}
+
 // defaultCreate is the default implementation to create
 // a deployment instance in kubernetes cluster
 func defaultCreate(
@@ -116,6 +146,16 @@ func defaultDel(
 ) error {
 
 	return cli.AppsV1().Deployments(namespace).Delete(name, opts)
+}
+
+func defaultPatch(
+	cli *kubernetes.Clientset,
+	name, namespace string,
+	pt types.PatchType,
+	data []byte,
+	subresources ...string,
+) (*appsv1.Deployment, error) {
+	return cli.AppsV1().Deployments(namespace).Patch(name, pt, data, subresources...)
 }
 
 // defaultRolloutStatus is the default implementation to
@@ -150,8 +190,10 @@ type Kubeclient struct {
 	getClientset        getClientsetFn
 	getClientsetForPath getClientsetForPathFn
 	get                 getFn
+	list                listFn
 	create              createFn
 	del                 deleteFn
+	patch               patchFn
 	rolloutStatus       rolloutStatusFn
 	rolloutStatusf      rolloutStatusfFn
 }
@@ -167,31 +209,30 @@ func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = defaultGetClientset
 	}
-
 	if k.getClientsetForPath == nil {
 		k.getClientsetForPath = defaultGetClientsetForPath
 	}
-
 	if k.get == nil {
 		k.get = defaultGet
 	}
-
+	if k.list == nil {
+		k.list = defaultList
+	}
 	if k.create == nil {
 		k.create = defaultCreate
 	}
-
 	if k.del == nil {
 		k.del = defaultDel
 	}
-
+	if k.patch == nil {
+		k.patch = defaultPatch
+	}
 	if k.rolloutStatus == nil {
 		k.rolloutStatus = defaultRolloutStatus
 	}
-
 	if k.rolloutStatusf == nil {
 		k.rolloutStatusf = defaultRolloutStatusf
 	}
-
 }
 
 // WithClientset sets the kubernetes client against the kubeclient instance
@@ -267,6 +308,30 @@ func (k *Kubeclient) Get(name string) (*appsv1.Deployment, error) {
 	}
 
 	return k.get(cli, name, k.namespace, &metav1.GetOptions{})
+}
+
+// List returns deployment object for given name
+func (k *Kubeclient) List(opts *metav1.ListOptions) (*appsv1.DeploymentList, error) {
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	return k.list(cli, k.namespace, opts)
+}
+
+// Patch patches deployment object for given name
+func (k *Kubeclient) Patch(
+	name string,
+	pt types.PatchType,
+	data []byte,
+	subresources ...string,
+) (*appsv1.Deployment, error) {
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+
+	return k.patch(cli, name, k.namespace, pt, data, subresources...)
 }
 
 // GetRaw returns deployment object for given name
