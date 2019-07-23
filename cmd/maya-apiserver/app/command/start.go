@@ -79,7 +79,7 @@ General Options :
 const gracefulTimeout = 5 * time.Second
 
 // EnableCSPCController is a flag to control launching of CSPC controller
-const EnableCSPCController = false
+const EnableCSPCController = true
 
 // CmdStartOptions is a cli implementation that runs a maya apiserver.
 // The command will not end unless a shutdown message is sent on the
