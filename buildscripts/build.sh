@@ -111,7 +111,7 @@ mkdir -p ${MAIN_GOPATH}/bin/
 
 # Copy our OS/Arch to the bin/ directory
 DEV_PLATFORM="./bin/${PNAME}/$(go env GOOS)_$(go env GOARCH)"
-for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f); do
+for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 2 -type f); do
     cp ${F} bin/${PNAME}/
     cp ${F} ${MAIN_GOPATH}/bin/
 done
