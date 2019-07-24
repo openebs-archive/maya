@@ -67,6 +67,7 @@ func BuilderForAPIObject(bdc *ndm.BlockDeviceClaim) *Builder {
 	}
 }
 
+// WithConfigPath sets the path for k8s config
 func (b *Builder) WithConfigPath(configpath string) *Builder {
 	b.BDC.configPath = configpath
 	return b

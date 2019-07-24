@@ -532,8 +532,8 @@ func (ops *Operations) IsSPCNotExists(spcName string) bool {
 	return false
 }
 
-// IsFinalizerExists returns true if the object with provided name contains the finalizer.
-func (ops *Operations) IsFinalizerExistsOnBDC(bdcName string, finalizer string) bool {
+// IsFinalizerExistsOnBDC returns true if the object with provided name contains the finalizer.
+func (ops *Operations) IsFinalizerExistsOnBDC(bdcName, finalizer string) bool {
 	for i := 0; i < maxRetry; i++ {
 		bdcObj, err := ops.BDCClient.Get(bdcName, metav1.GetOptions{})
 		Expect(err).To(BeNil())
