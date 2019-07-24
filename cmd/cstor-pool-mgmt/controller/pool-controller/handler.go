@@ -162,6 +162,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 	return string(apis.CStorPoolStatusInvalid), nil
 }
 
+// GetDevPath gets the path from given deviceID
 func GetDevPath(devid string) string {
 	lastindex := strings.LastIndexByte(devid, '/')
 	if lastindex == -1 {
@@ -256,6 +257,8 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 	}
 
 	devPath := GetDevPath(devIDList[0])
+
+	// Trigger import with dev path
 	status, importPoolErr = c.triggerImportPool(cStorPoolGot, false, devPath)
 	if status == string(apis.CStorPoolStatusOnline) {
 		return status, nil

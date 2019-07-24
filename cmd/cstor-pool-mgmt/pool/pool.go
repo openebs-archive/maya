@@ -67,6 +67,9 @@ var RunnerVar util.Runner
 // ImportPool imports cStor pool if already present.
 func ImportPool(cStorPool *apis.CStorPool, cachefileFlag bool, devPath string) error {
 	var importAttr []string
+
+	// import takes either cachefile or devPath, not both.
+	// here, prioritizing devPath
 	if devPath != "" {
 		importAttr = importPoolBuilder(cStorPool, false, devPath)
 	} else {
@@ -79,7 +82,7 @@ func ImportPool(cStorPool *apis.CStorPool, cachefileFlag bool, devPath string) e
 		return err
 	}
 
-	glog.Info("Importing Pool Successful with %v %v", cachefileFlag, devPath)
+	glog.Infof("Importing Pool Successful with %v %v", cachefileFlag, devPath)
 	return nil
 }
 
