@@ -41,6 +41,9 @@ func (Spc *SPC) getPreUpgradeAction() (PreUpgradeAction, error) {
 	if Spc.HasFinalizer(SPCFinalizer) {
 		return Abort, nil
 	}
+	if !Spc.Object.DeletionTimestamp.IsZero() {
+		return Abort, nil
+	}
 	return Continue, nil
 }
 

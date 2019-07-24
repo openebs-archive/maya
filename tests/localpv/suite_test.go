@@ -32,10 +32,11 @@ import (
 )
 
 var (
-	kubeConfigPath string
-	namespace      = "localpv-ns"
-	namespaceObj   *corev1.Namespace
-	err            error
+	kubeConfigPath                  string
+	namespace                       = "localpv-ns"
+	namespaceObj                    *corev1.Namespace
+	err                             error
+	LocalPVProvisionerLabelSelector = "openebs.io/component-name=openebs-localpv-provisioner"
 )
 
 func TestSource(t *testing.T) {
