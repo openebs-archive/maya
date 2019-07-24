@@ -35,6 +35,19 @@ const (
 	PoolRaidz2 PoolType = "raidz2"
 )
 
+var (
+	// SupportedPRaidType is a map holding the supported raid configurations
+	// Value of the keys --
+	// 1. In case of striped this is the minimum number of disk required.
+	// 2. In all other cases this is the exact number of disks required.
+	SupportedPRaidType = map[PoolType]int{
+		PoolStriped:  1,
+		PoolMirrored: 2,
+		PoolRaidz:    3,
+		PoolRaidz2:   6,
+	}
+)
+
 // +genclient
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

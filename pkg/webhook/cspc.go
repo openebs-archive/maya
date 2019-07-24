@@ -1,0 +1,146 @@
+/*
+Copyright 2019 The OpenEBS Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package webhook
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/golang/glog"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/pkg/errors"
+	"k8s.io/api/admission/v1beta1"
+	"net/http"
+)
+
+// validateCSPC validates CSPC spec for Create, Update and Delete operation of the object.
+func (wh *webhook) validateCSPC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+	req := ar.Request
+	response := &v1beta1.AdmissionResponse{}
+	// validates only if requested operation is CREATE or DELETE
+	if req.Operation == v1beta1.Create {
+		glog.V(5).Infof("Admission webhook create request for type %s", req.Kind.Kind)
+		return wh.validateCSPCCreateRequest(req)
+	} else if req.Operation == v1beta1.Update {
+		glog.V(5).Infof("Admission webhook update request for type %s", req.Kind.Kind)
+		return wh.validateCSPCUpdateRequest(req)
+	} else if req.Operation == v1beta1.Delete {
+		glog.V(5).Infof("Admission webhook delete request for type %s", req.Kind.Kind)
+		return wh.validateCSPCDeleteRequest(req)
+	}
+	glog.V(2).Info("Admission wehbook for PVC not " +
+		"configured for operations other than DELETE and CREATE")
+	return response
+}
+
+// validateCSPCCreateRequest validates CSPC create request
+func (wh *webhook) validateCSPCCreateRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+	response := NewAdmissionResponse().SetAllowed().WithResultAsSuccess(http.StatusAccepted).AR
+	var cspc apis.CStorPoolCluster
+	err := json.Unmarshal(req.Object.Raw, &cspc)
+	if err != nil {
+		glog.Errorf("Could not unmarshal raw object: %v, %v", err, req.Object.Raw)
+		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusBadRequest).AR
+		return response
+	}
+	if ok, msg := cspcValidation(&cspc); !ok {
+		err := errors.Errorf("invalid cspc specification: %s", msg)
+		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusUnprocessableEntity).AR
+		return response
+	}
+	return response
+}
+
+func cspcValidation(cspc *apis.CStorPoolCluster) (bool, string) {
+	if len(cspc.Spec.Pools) == 0 {
+		return false, fmt.Sprintf("pools in cspc should have at least one item")
+	}
+
+	for _, pool := range cspc.Spec.Pools {
+		pool := pool // pin it
+		ok, msg := poolSpecValidation(&pool)
+		if !ok {
+			return false, fmt.Sprintf("invalid pool spec: %s", msg)
+		}
+	}
+	return true, ""
+}
+
+func poolSpecValidation(pool *apis.PoolSpec) (bool, string) {
+	if pool.NodeSelector == nil || len(pool.NodeSelector) == 0 {
+		return false, "nodeselector should not be empty"
+	}
+	if len(pool.RaidGroups) == 0 {
+		return false, "at least one raid group should be present on pool spec"
+	}
+	// TODO : Add validation for pool config
+	// Pool config will require mutating webhooks also.
+	for _, raidGroup := range pool.RaidGroups {
+		raidGroup := raidGroup // pin it
+		ok, msg := raidGroupValidation(&raidGroup, &pool.PoolConfig)
+		if !ok {
+			return false, msg
+		}
+	}
+
+	return true, ""
+}
+
+func raidGroupValidation(raidGroup *apis.RaidGroup, pool *apis.PoolConfig) (bool, string) {
+	if raidGroup.Type == "" && pool.DefaultRaidGroupType == "" {
+		return false, fmt.Sprintf("any one type at raid group or default raid group type be specified ")
+	}
+	if _, ok := apis.SupportedPRaidType[apis.PoolType(raidGroup.Type)]; !ok {
+		return false, fmt.Sprintf("unsupported raid type '%s' specified", apis.PoolType(raidGroup.Type))
+	}
+
+	if len(raidGroup.BlockDevices) == 0 {
+		return false, fmt.Sprintf("number of block devices honouring raid type should be specified")
+	}
+
+	if raidGroup.Type != "stripe" {
+		if len(raidGroup.BlockDevices) != apis.SupportedPRaidType[apis.PoolType(raidGroup.Type)] {
+			return false, fmt.Sprintf("number of block devices honouring raid type should be specified")
+		}
+	} else {
+		if len(raidGroup.BlockDevices) < apis.SupportedPRaidType[apis.PoolType(raidGroup.Type)] {
+			return false, fmt.Sprintf("number of block devices honouring raid type should be specified")
+		}
+	}
+	return true, ""
+}
+
+func blockDeviceValidation(bd *apis.CStorPoolClusterBlockDevice) (bool, string) {
+	if bd.BlockDeviceName == "" {
+		return false, fmt.Sprint("block device name cannot be empty")
+	}
+	return true, ""
+}
+
+// validateCSPCDeleteRequest validates CSPC delete request
+// TODO: CSPC delete protection
+func (wh *webhook) validateCSPCDeleteRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+	response := &v1beta1.AdmissionResponse{}
+	response.Allowed = true
+	// TODO: Implement for delete validations
+	return response
+}
+
+// validateCSPCUpdateRequest validates CSPC update request
+// Note : Validation aspects for CSPC create and update are the same.
+func (wh *webhook) validateCSPCUpdateRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+	return wh.validateCSPCCreateRequest(req)
+}

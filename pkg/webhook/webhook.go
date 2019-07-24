@@ -303,17 +303,31 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 	req := ar.Request
 	response := &v1beta1.AdmissionResponse{}
 	response.Allowed = true
-
-	// validates only if request kind is pvc
-	if req.Kind.Kind != "PersistentVolumeClaim" {
+	glog.Info("Admission webhook request received")
+	switch req.Kind.Kind {
+	case "PersistentVolumeClaim":
+		return wh.validatePVC(ar)
+	case "CStorPoolCluster":
+		glog.Infof("Admission webhook request for type %s", req.Kind.Kind)
+		return wh.validateCSPC(ar)
+	default:
+		glog.V(2).Infof("Admission webhook not configured for type %s", req.Kind.Kind)
 		return response
 	}
+}
+
+func (wh *webhook) validatePVC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+	req := ar.Request
+	response := &v1beta1.AdmissionResponse{}
+	response.Allowed = true
 	// validates only if requested operation is CREATE or DELETE
 	if req.Operation == v1beta1.Create {
 		return wh.validatePVCCreateRequest(req)
 	} else if req.Operation == v1beta1.Delete {
 		return wh.validatePVCDeleteRequest(req)
 	}
+	glog.V(2).Info("Admission wehbook for PVC module not " +
+		"configured for operations other than DELETE and CREATE")
 	return response
 }
 
