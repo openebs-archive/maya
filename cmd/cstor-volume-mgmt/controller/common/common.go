@@ -84,6 +84,11 @@ const (
 	AlreadyPresent EventReason = "AlreadyPresent"
 	// MessageResourceAlreadyPresent holds message for corresponding already present resource.
 	MessageResourceAlreadyPresent EventReason = "Resource already present"
+
+	// SuccessUpdated holds status for corresponding updated resource.
+	SuccessUpdated EventReason = "Updated"
+	// MessageResourceUpdated holds message for corresponding updated resource.
+	MessageResourceUpdated EventReason = "Resource updated successfully"
 )
 
 const (

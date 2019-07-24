@@ -105,6 +105,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 	operation common.QueueOperation,
 	cStorVolumeGot *apis.CStorVolume,
 ) (common.CStorVolumeStatus, error) {
+	var eventMessage string
 	glog.V(4).Infof(
 		"%v event received for volume : %v ",
 		operation,
@@ -139,10 +140,12 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 			statusPhase := common.CStorVolumeStatus(cStorVolumeGot.Status.Phase)
 			err = c.resizeVolume(cStorVolumeGot)
 			if err != nil {
-				eventMessage := fmt.Sprintf(
-					"failed to resize cstorvolume %s with capacity %s",
+				eventMessage = fmt.Sprintf(
+					"failed to resize cstorvolume %s with capacity %s error %v",
 					cStorVolumeGot.Name,
-					cStorVolumeGot.Spec.Capacity)
+					cStorVolumeGot.Spec.Capacity,
+					err,
+				)
 				c.recorder.Event(cStorVolumeGot, corev1.EventTypeWarning, string(common.FailureUpdate), eventMessage)
 				return statusPhase, pkg_errors.Wrapf(
 					err,
@@ -150,7 +153,21 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 					cStorVolumeGot.Name,
 				)
 			}
+			//TODO: Build Builder for conditions
+			//conditionStatus := apis.CStorVolumeCondition{
+			//	Type:    apis.CStorVolumeResizing,
+			//	Status:  apis.ConditionSuccess,
+			//	Reason:  string(apis.CStorVolumeResizing),
+			//	Message: msg,
+			//}
 			_, err := c.updateCVSubResource(cStorVolumeGot, apis.CStorVolumeResizing, apis.ConditionSuccess)
+			if err == nil {
+				eventMessage = fmt.Sprintf(
+					"successfully resized volume %s to %s",
+					cStorVolumeGot.Name,
+					cStorVolumeGot.Spec.Capacity)
+				c.recorder.Event(cStorVolumeGot, corev1.EventTypeNormal, string(common.SuccessUpdated), eventMessage)
+			}
 			return statusPhase, err
 		}
 		// update the status capacity of cstorvolume caller of this code
@@ -173,16 +190,22 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 					"failed to resize cstorvolume %s with capacity %s",
 					cStorVolumeGot.Name,
 					cStorVolumeGot.Spec.Capacity)
-				c.recorder.Event(cStorVolumeGot, corev1.EventTypeWarning, string(common.FailureUpdate), eventMessage)
+				c.recorder.Event(cStorVolumeGot, corev1.EventTypeNormal, string(common.SuccessUpdated), eventMessage)
 			}
 			newCStorVolume, err := c.updateCVSubResource(cStorVolumeGot, apis.CStorVolumeResizing, apis.ConditionSuccess)
 			if err != nil {
 				glog.Errorf(
-					"failed to update cstorvolume %s",
+					"failed to update cstorvolume %s Error: %v",
 					cStorVolumeGot.Name,
+					err,
 				)
 			} else {
 				cStorVolumeGot = newCStorVolume
+				eventMessage := fmt.Sprintf(
+					"successfully resized volume %s to %s",
+					cStorVolumeGot.Name,
+					cStorVolumeGot.Spec.Capacity)
+				c.recorder.Event(cStorVolumeGot, corev1.EventTypeNormal, string(common.FailureUpdate), eventMessage)
 			}
 		}
 		volStatus, err := volume.GetVolumeStatus(cStorVolumeGot)
@@ -381,20 +404,21 @@ func (c *CStorVolumeController) updateCVSubResource(
 	cStorVolume *apis.CStorVolume,
 	condType apis.CStorVolumeConditionType,
 	condStatus apis.ConditionStatus) (*apis.CStorVolume, error) {
+	cvCopy := cStorVolume.DeepCopy()
 	cvBuilder := cstorvolume.
-		BuilderFromAPI(cStorVolume).
+		BuilderFromAPI(cvCopy).
 		WithConditionStatus(condType, condStatus)
-	obj, err := cvBuilder.Build()
+	cvObj, err := cvBuilder.Build()
 	if err != nil {
 		return nil, err
 	}
 
 	newCVObj, err := c.clientset.
 		OpenebsV1alpha1().
-		CStorVolumes(cStorVolume.Namespace).
-		UpdateStatus(obj)
+		CStorVolumes(cvCopy.Namespace).
+		Update(cvObj)
 	if err != nil {
-		return nil, pkg_errors.Wrapf(err, "failed to update status of cstorvolume %s", cStorVolume.Name)
+		return nil, pkg_errors.Wrapf(err, "failed to update status of cstorvolume %s", cvCopy.Name)
 	}
 	return newCVObj, nil
 }

@@ -27,6 +27,7 @@ import (
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cvapis "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
+	v1_strings "github.com/openebs/maya/pkg/string/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -213,9 +214,9 @@ func ResizeVolume(cStorVolume *apis.CStorVolume) error {
 	// send resize command to istgt and read the response
 	resizeCmd := buildResizeCommand(cStorVolume)
 	glog.Infof("[DEBUG] Resize command %s", resizeCmd)
-	resp, err := UnixSockVar.SendCommand(resizeCmd)
-	glog.Infof("[Debug] Response from resize {%s}", resp)
-	if err != nil {
+	sockResp, err := UnixSockVar.SendCommand(resizeCmd)
+	glog.Infof("[Debug] Response from resize {%s}", sockResp)
+	if err != nil || v1_strings.MakeList(sockResp...).Contains("ERR") {
 		return errors.Wrapf(
 			err,
 			"failed to execute istgt %s command on cstorvolume %s",
