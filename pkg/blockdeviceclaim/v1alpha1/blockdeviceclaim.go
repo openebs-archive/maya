@@ -26,7 +26,7 @@ import (
 // BlockDeviceClaim encapsulates BlockDeviceClaim api object.
 type BlockDeviceClaim struct {
 	// actual block device claim object
-	Object     *ndm.BlockDeviceClaim
+	Object *ndm.BlockDeviceClaim
 
 	// kubeconfig path
 	configPath string
