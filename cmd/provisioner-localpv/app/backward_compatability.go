@@ -39,7 +39,7 @@ func addLocalPVFinalizerOnAssociatedBDCs(kubeClient *clientset.Clientset) error 
 			LabelSelector: string(mconfig.CASTypeKey) + "=local-device",
 		})
 	if err != nil {
-		return err.Wrap(err, "failed to list localpv based pv(s)")
+		return errors.Wrap(err, "failed to list localpv based pv(s)")
 	}
 
 	for _, pvObj := range pvList.Items {
@@ -48,7 +48,7 @@ func addLocalPVFinalizerOnAssociatedBDCs(kubeClient *clientset.Clientset) error 
 		bdcObj, err := blockdeviceclaim.NewKubeClient().WithNamespace(getOpenEBSNamespace()).
 			Get(bdcName, metav1.GetOptions{})
 		if err != nil {
-			return err.Wrapf(err, "failed to get bdc %v", bdcName)
+			return errors.Wrapf(err, "failed to get bdc %v", bdcName)
 		}
 
 		// Add finalizer only if deletionTimestamp is not set
@@ -59,7 +59,7 @@ func addLocalPVFinalizerOnAssociatedBDCs(kubeClient *clientset.Clientset) error 
 		// Add finalizer on associated BDC
 		_, err = blockdeviceclaim.BuilderForAPIObject(bdcObj).BDC.AddFinalizer(LocalPVFinalizer)
 		if err != nil {
-			return err.Wrapf(err, "failed to add localpv finalizer on BDC %v",
+			return errors.Wrapf(err, "failed to add localpv finalizer on BDC %v",
 				bdcObj.Name)
 		}
 	}
