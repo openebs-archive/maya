@@ -77,7 +77,7 @@ CSTOR_VOLUME_MGMT_REPO_NAME?=cstor-volume-mgmt
 M_EXPORTER_REPO_NAME?=m-exporter
 ADMISSION_SERVER_REPO_NAME?=admission-server
 M_APISERVER_REPO_NAME?=m-apiserver
-M_APISERVER_REPO_NAME?=m-apiserver
+M_UPGRADE_REPO_NAME?=m-upgrade
 
 ifeq (${IMAGE_TAG}, )
   IMAGE_TAG = ci
@@ -370,7 +370,7 @@ deploy-images:
 	@DIMAGE="openebs/cstor-pool-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/cstor-volume-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/admission-server" ./buildscripts/push
-	@DIMAGE="openebs/m-upgrade" ./buildscripts/push
+	@DIMAGE="${HUB_USER}/${M_UPGRADE_REPO_NAME}" ./buildscripts/push
 	@DIMAGE="openebs/provisioner-localpv" ./buildscripts/push
 
 .PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image testv

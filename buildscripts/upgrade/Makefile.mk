@@ -17,12 +17,13 @@ upgrade:
 # build upgrade image
 .PHONY: upgrade-image
 upgrade-image: upgrade
-	@echo "----------------------------"
-	@echo "--> ${UPGRADE} image        "
-	@echo "openebs/m-upgrade:${IMAGE_TAG}"
-	@echo "----------------------------"
+	@echo "-----------------------------------------------"
+	@echo "--> ${UPGRADE} image                           "
+	@echo "${HUB_USER}/${M_UPGRADE_REPO_NAME}:${IMAGE_TAG}"
+	@echo "-----------------------------------------------"
 	@cp bin/${UPGRADE}/${UPGRADE} buildscripts/${UPGRADE}/
-	@cd buildscripts/${UPGRADE} && sudo docker build -t openebs/m-upgrade:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/${UPGRADE} && \
+	 sudo docker build -t "${HUB_USER}/${M_UPGRADE_REPO_NAME}:${IMAGE_TAG}" --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/${UPGRADE}/${UPGRADE}
 
 # cleanup upgrade build
