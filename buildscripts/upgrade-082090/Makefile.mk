@@ -17,12 +17,12 @@ upgrade-082090:
 	@echo "----------------------------"
 	@echo "--> ${UPGRADE-082090}       "
 	@echo "----------------------------"
-	#PNAME is the sub-folder in ./bin where binary will be placed. 
-	#CTLNAME indicates the folder/pkg under cmd that needs to be built. 
-	#The output binary will be: ./bin/${PNAME}/<os-arch>/${CTLNAME}
-	#In this case as the binary is a sub directory under cmd, the binary
-	# will be: ./bin/upgrade-082090/<os-arch>/upgrade/upgrade-082090
-	#A copy of the binary will also be placed under: ./bin/upgrade-082090/
+	@# PNAME is the sub-folder in ./bin where binary will be placed. 
+	@# CTLNAME indicates the folder/pkg under cmd that needs to be built. 
+	@# The output binary will be: ./bin/${PNAME}/<os-arch>/${CTLNAME}
+	@# In this case as the binary is a sub directory under cmd, the binary
+	@# will be: ./bin/upgrade-082090/<os-arch>/upgrade/upgrade-082090
+	@# A copy of the binary will also be placed under: ./bin/upgrade-082090/
 	@PNAME=${UPGRADE-082090} CTLNAME="upgrade/${UPGRADE-082090}" CGO_ENABLED=0 sh -c "'$(PWD)/buildscripts/build.sh'"
 
 # build upgrade image
@@ -32,7 +32,7 @@ upgrade-image-082090: upgrade-082090
 	@echo "--> ${UPGRADE-082090} image     "
 	@echo "openebs/m-upgrade:${IMAGE_TAG}  "
 	@echo "--------------------------------"
-	#The binary is renamed as upgrade to keep it in sync with the upgrade image.
+	@# The binary is renamed as upgrade to keep it in sync with the upgrade image.
 	@cp bin/${UPGRADE-082090}/${UPGRADE-082090} buildscripts/${UPGRADE-082090}/upgrade
 	@cd buildscripts/${UPGRADE-082090} && sudo docker build -t openebs/m-upgrade:${UPGRADE-082090-TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/${UPGRADE-082090}/upgrade
