@@ -24,15 +24,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
-
 	pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mKube "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
-
-	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clientset "k8s.io/client-go/kubernetes"
 )
 
 var (
@@ -59,39 +53,6 @@ func StartProvisioner() (*cobra.Command, error) {
 	_ = flag.CommandLine.Parse([]string{})
 
 	return cmd, nil
-}
-
-// This function performs the preupgrade related tasks for 1.0 to 1.1
-// Add localpv finalizer on the BDCs that are used by PVs provisioned from localpv provisioner
-func performPreupgradeTasks(kubeClient *clientset.Clientset) error {
-	pvList, err := kubeClient.CoreV1().PersistentVolumes().List(
-		metav1.ListOptions{
-			LabelSelector: string(mconfig.CASTypeKey) + "=local-device",
-		})
-	if err != nil {
-		return errors.Wrap(err, "failed to list localpv based pv(s)")
-	}
-
-	for _, pvObj := range pvList.Items {
-		bdcName := "bdc-" + pvObj.Name
-
-		bdcObj, err := blockdeviceclaim.NewKubeClient().WithNamespace(getOpenEBSNamespace()).
-			Get(bdcName, metav1.GetOptions{})
-		if err != nil {
-			return errors.Wrapf(err, "failed to get bdc %v", bdcName)
-		}
-
-		// Add finalizer only if deletionTimestamp is not set
-		if !bdcObj.DeletionTimestamp.IsZero() {
-			continue
-		}
-		_, err = blockdeviceclaim.BuilderForAPIObject(bdcObj).BDC.AddFinalizer(LocalPVFinalizer)
-		if err != nil {
-			return errors.Wrapf(err, "failed to add localpv finalizer on BDC %v",
-				bdcObj.Name)
-		}
-	}
-	return nil
 }
 
 // Start will initialize and run the dynamic provisioner daemon
