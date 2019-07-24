@@ -154,6 +154,7 @@ spec:
         {{- end }}
       poolSpec:
         poolType: {{$blockDeviceIdList.poolType}}
+        cacheFile: {{$blockDeviceIdList.poolCacheFile}}
         overProvisioning: false
     status:
       phase: Init

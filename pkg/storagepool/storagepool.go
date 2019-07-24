@@ -98,6 +98,7 @@ func (v *casPoolOperation) Create() (*v1alpha1.CasPool, error) {
 			string(v1alpha1.NodeNameCTP):          v.pool.NodeName,
 			string(v1alpha1.PoolTypeCTP):          v.pool.PoolType,
 			string(v1alpha1.BlockDeviceIDListCTP): v.pool.DeviceID,
+			string(v1alpha1.PoolCacheFileCTP):     v.pool.PoolCacheFile,
 		},
 	)
 	if err != nil {
