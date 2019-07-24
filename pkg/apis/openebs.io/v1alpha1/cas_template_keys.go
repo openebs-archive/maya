@@ -129,6 +129,8 @@ const (
 	PoolTypeCTP StoragePoolTLPProperty = "poolType"
 	// InitPhaseCTP is the init phase for the cstorpool CR that will be ceated
 	InitPhaseCTP StoragePoolTLPProperty = "phase"
+	// PoolCacheFileCTP is the cache file used in case of imporitng pool
+	PoolCacheFileCTP StoragePoolTLPProperty = "poolCacheFile"
 )
 
 // VolumeTLPProperty is used to define properties that comes
