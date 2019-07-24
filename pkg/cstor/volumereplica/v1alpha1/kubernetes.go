@@ -21,8 +21,8 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
-
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	types "k8s.io/apimachinery/pkg/types"
 )
 
 // getClientsetFn is a typed function that
@@ -59,6 +59,15 @@ type delFn func(
 	opts *metav1.DeleteOptions,
 ) error
 
+// patchFn is a typed function that abstracts patch of
+// cstorvolume replica instances
+type patchFn func(
+	cli *clientset.Clientset,
+	name, namespace string,
+	pt types.PatchType,
+	data []byte,
+) (*apis.CStorVolumeReplica, error)
+
 // createFn is a typed function that abstracts create of
 // cstorvolume replica instances
 type createFn func(
@@ -87,6 +96,7 @@ type Kubeclient struct {
 	list                listFn
 	del                 delFn
 	create              createFn
+	patch               patchFn
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -101,6 +111,19 @@ func defaultGetClientset() (clients *clientset.Clientset, err error) {
 		return nil, err
 	}
 	return clientset.NewForConfig(config)
+}
+
+// defaultPatch is the default implementation to
+// patch cstorvolume replica instance
+func defaultPatch(
+	cli *clientset.Clientset,
+	name, namespace string,
+	pt types.PatchType,
+	data []byte,
+) (*apis.CStorVolumeReplica, error) {
+	return cli.OpenebsV1alpha1().
+		CStorVolumeReplicas(namespace).
+		Patch(name, pt, data)
 }
 
 // defaultGetClientsetForPath is the default implementation to
@@ -202,6 +225,10 @@ func (k *Kubeclient) withDefaults() {
 		k.create = defaultCreate
 	}
 
+	if k.patch == nil {
+		k.patch = defaultPatch
+	}
+
 }
 
 // WithKubeClient sets the kubernetes client against
@@ -218,6 +245,13 @@ func WithNamespace(namespace string) KubeclientBuildOption {
 	return func(k *Kubeclient) {
 		k.namespace = namespace
 	}
+}
+
+// WithNamespace sets the kubernetes client against
+// the provided namespace
+func (k *Kubeclient) WithNamespace(namespace string) *Kubeclient {
+	k.namespace = namespace
+	return k
 }
 
 // WithKubeConfigPath sets the kubernetes client against
@@ -296,6 +330,19 @@ func (k *Kubeclient) Delete(name string) error {
 		return err
 	}
 	return k.del(cli, name, k.namespace, &metav1.DeleteOptions{})
+}
+
+// Patch patches the cstorvolume replica resource
+func (k *Kubeclient) Patch(
+	name, namespace string,
+	pt types.PatchType,
+	data []byte,
+) (*apis.CStorVolumeReplica, error) {
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	return k.patch(cli, name, k.namespace, pt, data)
 }
 
 // Create creates cstorvolumereplica resource for given object
