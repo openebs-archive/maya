@@ -18,16 +18,16 @@ package v1alpha3
 
 import (
 	"fmt"
+
 	"github.com/pkg/errors"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-
-	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // getClientsetFn is a typed function that
@@ -36,15 +36,39 @@ type getClientsetFn func() (clientset *clientset.Clientset, err error)
 
 // listFn is a typed function that abstracts
 // listing of cstor pool
-type listFn func(cli *clientset.Clientset, opts metav1.ListOptions) (*apis.CStorPoolList, error)
+type listFn func(
+	cli *clientset.Clientset,
+	opts metav1.ListOptions,
+) (*apis.CStorPoolList, error)
+
+type getFn func(
+	cli *clientset.Clientset,
+	name string,
+	opts metav1.GetOptions,
+) (*apis.CStorPool, error)
 
 // deleteFn is a typed function that abstracts
 // deletion of cstor pool
-type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.CStorPool, error)
+type deleteFn func(
+	cli *clientset.Clientset,
+	name string,
+	opts *metav1.DeleteOptions,
+) (*apis.CStorPool, error)
 
 // deleteCollectionFn is a typed function that abstracts
 // deletion of csp's collection
-type deleteCollectionFn func(cli *clientset.Clientset, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
+type deleteCollectionFn func(
+	cli *clientset.Clientset,
+	listOpts metav1.ListOptions,
+	deleteOpts *metav1.DeleteOptions,
+) error
+
+type patchFn func(
+	cli *clientset.Clientset,
+	name string,
+	pt types.PatchType,
+	data []byte,
+) (*apis.CStorPool, error)
 
 // Kubeclient enables kubernetes API operations
 // on cstor storage pool instance
@@ -56,44 +80,89 @@ type Kubeclient struct {
 
 	// functions useful during mocking
 	getClientset  getClientsetFn
+	get           getFn
 	list          listFn
 	del           deleteFn
 	delCollection deleteCollectionFn
+	patch         patchFn
 }
 
 // KubeclientBuildOption defines the abstraction
 // to build a kubeclient instance
 type KubeclientBuildOption func(*Kubeclient)
 
+func defaultGetClientset() (clients *clientset.Clientset, err error) {
+	config, err := kclient.New().Config()
+	if err != nil {
+		return nil, err
+	}
+	return clientset.NewForConfig(config)
+}
+
+func defaultList(
+	cli *clientset.Clientset,
+	opts metav1.ListOptions,
+) (*apis.CStorPoolList, error) {
+	return cli.OpenebsV1alpha1().CStorPools().List(opts)
+}
+
+func defaultGet(
+	cli *clientset.Clientset,
+	name string,
+	opts metav1.GetOptions,
+) (*apis.CStorPool, error) {
+	return cli.OpenebsV1alpha1().CStorPools().Get(name, opts)
+}
+
+func defaultDel(
+	cli *clientset.Clientset,
+	name string,
+	opts *metav1.DeleteOptions,
+) (*apis.CStorPool, error) {
+	return nil, cli.OpenebsV1alpha1().CStorPools().Delete(name, opts)
+}
+
+func defaultDelCollection(
+	cs *clientset.Clientset,
+	listOpts metav1.ListOptions,
+	deleteOpts *metav1.DeleteOptions,
+) error {
+	return cs.OpenebsV1alpha1().
+		CStorPools().
+		DeleteCollection(deleteOpts, listOpts)
+}
+
+func defaultPatch(
+	cli *clientset.Clientset,
+	name string,
+	pt types.PatchType,
+	data []byte,
+) (*apis.CStorPool, error) {
+	return cli.OpenebsV1alpha1().
+		CStorPools().
+		Patch(name, pt, data)
+}
+
 // withDefaults sets the default options
 // of kubeclient instance
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
-		k.getClientset = func() (clients *clientset.Clientset, err error) {
-			config, err := kclient.New().Config()
-			if err != nil {
-				return nil, err
-			}
-			return clientset.NewForConfig(config)
-		}
+		k.getClientset = defaultGetClientset
+	}
+	if k.get == nil {
+		k.get = defaultGet
 	}
 	if k.list == nil {
-		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*apis.CStorPoolList, error) {
-			return cli.OpenebsV1alpha1().CStorPools().List(opts)
-		}
+		k.list = defaultList
 	}
 	if k.del == nil {
-		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.CStorPool, error) {
-			return nil, cli.OpenebsV1alpha1().CStorPools().Delete(name, opts)
-		}
+		k.del = defaultDel
 	}
 	if k.delCollection == nil {
-		k.delCollection = func(cs *clientset.Clientset, listOpts metav1.ListOptions,
-			deleteOpts *metav1.DeleteOptions) error {
-			return cs.OpenebsV1alpha1().
-				CStorPools().
-				DeleteCollection(deleteOpts, listOpts)
-		}
+		k.delCollection = defaultDelCollection
+	}
+	if k.patch == nil {
+		k.patch = defaultPatch
 	}
 }
 
@@ -154,6 +223,19 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 	return k.clientset, nil
 }
 
+// Get returns cstor pool
+// instances present in kubernetes cluster
+func (k *Kubeclient) Get(
+	name string,
+	opts metav1.GetOptions,
+) (*apis.CStorPool, error) {
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	return k.get(cli, name, opts)
+}
+
 // List returns a list of cstor pool
 // instances present in kubernetes cluster
 func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.CStorPoolList, error) {
@@ -185,4 +267,18 @@ func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *m
 		)
 	}
 	return k.delCollection(cli, listOpts, deleteOpts)
+}
+
+// Patch patches a cstor pool
+// instances present in kubernetes cluster
+func (k *Kubeclient) Patch(
+	name string,
+	pt types.PatchType,
+	data []byte,
+) (*apis.CStorPool, error) {
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	return k.patch(cli, name, pt, data)
 }
