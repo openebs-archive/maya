@@ -127,53 +127,53 @@ func HasFinalizer(finalizer string) Predicate {
 }
 
 // HasFinalizer returns true if the provided finalizer is present on the object.
-func (cspc *CSPC) HasFinalizer(finalizer string) bool {
-	finalizersList := cspc.object.GetFinalizers()
+func (c *CSPC) HasFinalizer(finalizer string) bool {
+	finalizersList := c.object.GetFinalizers()
 	return util.ContainsString(finalizersList, finalizer)
 }
 
 // RemoveFinalizer removes the given finalizer from the object.
-func (cspc *CSPC) RemoveFinalizer(finalizer string) error {
-	if len(cspc.object.Finalizers) == 0 {
-		glog.V(2).Infof("no finalizer present on CSPC %s", cspc.object.Name)
+func (c *CSPC) RemoveFinalizer(finalizer string) error {
+	if len(c.object.Finalizers) == 0 {
+		glog.V(2).Infof("no finalizer present on CSPC %s", c.object.Name)
 		return nil
 	}
 
-	if !cspc.HasFinalizer(finalizer) {
-		glog.V(2).Infof("finalizer %s is already removed on CSPC %s", finalizer, cspc.object.Name)
+	if !c.HasFinalizer(finalizer) {
+		glog.V(2).Infof("finalizer %s is already removed on CSPC %s", finalizer, c.object.Name)
 		return nil
 	}
 
-	cspc.object.Finalizers = util.RemoveString(cspc.object.Finalizers, finalizer)
+	c.object.Finalizers = util.RemoveString(c.object.Finalizers, finalizer)
 
-	_, err := NewKubeClient(WithKubeConfigPath(cspc.configPath)).
-		WithNamespace(cspc.object.Namespace).
-		Update(cspc.object)
+	_, err := NewKubeClient(WithKubeConfigPath(c.configPath)).
+		WithNamespace(c.object.Namespace).
+		Update(c.object)
 	if err != nil {
 		return errors.Wrap(err, "failed to update object while removing finalizer")
 	}
-	glog.Infof("Finalizer %s removed successfully from CSPC %s", finalizer, cspc.object.Name)
+	glog.Infof("Finalizer %s removed successfully from CSPC %s", finalizer, c.object.Name)
 	return nil
 }
 
 // AddFinalizer adds the given finalizer to the object.
-func (cspc *CSPC) AddFinalizer(finalizer string) (*apisv1alpha1.CStorPoolCluster, error) {
-	if cspc.HasFinalizer(finalizer) {
-		glog.V(2).Infof("finalizer %s is already present on CSPC %s", finalizer, cspc.object.Name)
-		return cspc.object, nil
+func (c *CSPC) AddFinalizer(finalizer string) (*apisv1alpha1.CStorPoolCluster, error) {
+	if c.HasFinalizer(finalizer) {
+		glog.V(2).Infof("finalizer %s is already present on CSPC %s", finalizer, c.object.Name)
+		return c.object, nil
 	}
 
-	cspc.object.Finalizers = append(cspc.object.Finalizers, finalizer)
+	c.object.Finalizers = append(c.object.Finalizers, finalizer)
 
-	cspcAPIObj, err := NewKubeClient(WithKubeConfigPath(cspc.configPath)).
-		WithNamespace(cspc.object.Namespace).
-		Update(cspc.object)
+	cspcAPIObj, err := NewKubeClient(WithKubeConfigPath(c.configPath)).
+		WithNamespace(c.object.Namespace).
+		Update(c.object)
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to update CSPC %s while adding finalizer %s",
-			cspc.object.Name, finalizer)
+			c.object.Name, finalizer)
 	}
 
-	glog.Infof("Finalizer %s added on CSPC %s", finalizer, cspc.object.Name)
+	glog.Infof("Finalizer %s added on CSPC %s", finalizer, c.object.Name)
 	return cspcAPIObj, nil
 }
