@@ -392,6 +392,24 @@ func TestIsOnlyStatusChange(t *testing.T) {
 	}
 }
 
+func TestGetDevPath(t *testing.T) {
+	testGetDevPath := map[string]string{
+		"abcd":             "abcd",
+		"/dev":             "",
+		"/dev/":            "/dev",
+		"/dev/disk":        "/dev",
+		"/dev/disk/":       "/dev/disk",
+		"/dev/by-id/disk":  "/dev/by-id",
+		"/dev/by-id/disk/": "/dev/by-id/disk",
+	}
+	for ip, op := range testGetDevPath {
+		obtainedOutput := GetDevPath(ip)
+		if obtainedOutput != op {
+			t.Fatalf("IP:%v, OP:%v, Got:%v", ip, op, obtainedOutput)
+		}
+	}
+}
+
 // TestIsEmptyStatus is to check if status is empty.
 func TestIsEmptyStatus(t *testing.T) {
 	deletionTimeStamp := metav1.Now()

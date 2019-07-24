@@ -65,25 +65,35 @@ const (
 var RunnerVar util.Runner
 
 // ImportPool imports cStor pool if already present.
-func ImportPool(cStorPool *apis.CStorPool, cachefileFlag bool) error {
-	importAttr := importPoolBuilder(cStorPool, cachefileFlag)
+func ImportPool(cStorPool *apis.CStorPool, cachefileFlag bool, devPath string) error {
+	var importAttr []string
+	if devPath != "" {
+		importAttr = importPoolBuilder(cStorPool, false, devPath)
+	} else {
+		importAttr = importPoolBuilder(cStorPool, cachefileFlag, "")
+	}
+
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, importAttr...)
 	if err != nil {
-		glog.Errorf("Unable to import pool: %v, %v", err.Error(), string(stdoutStderr))
+		glog.Errorf("Unable to import pool with devPath: %v, %v %v", err.Error(), string(stdoutStderr), devPath)
 		return err
 	}
-	glog.Info("Importing Pool Successful")
+
+	glog.Info("Importing Pool Successful with %v %v", cachefileFlag, devPath)
 	return nil
 }
 
 // importPoolBuilder is to build pool import command.
-func importPoolBuilder(cStorPool *apis.CStorPool, cachefileFlag bool) []string {
+func importPoolBuilder(cStorPool *apis.CStorPool, cachefileFlag bool, devPath string) []string {
 	// populate pool import attributes.
 	var importAttr []string
 	importAttr = append(importAttr, "import")
 	if cStorPool.Spec.PoolSpec.CacheFile != "" && cachefileFlag {
 		importAttr = append(importAttr, "-c", cStorPool.Spec.PoolSpec.CacheFile,
 			"-o", cStorPool.Spec.PoolSpec.CacheFile)
+	}
+	if devPath != "" {
+		importAttr = append(importAttr, "-d", devPath)
 	}
 	importAttr = append(importAttr, string(PoolPrefix)+string(cStorPool.ObjectMeta.UID))
 	return importAttr
