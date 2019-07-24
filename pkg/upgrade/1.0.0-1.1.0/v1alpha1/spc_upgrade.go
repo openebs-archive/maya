@@ -29,7 +29,9 @@ func spcUpgrade(spcName, openebsNamespace string) error {
 	cspList, err := cspClient.List(metav1.ListOptions{
 		LabelSelector: spcLabel,
 	})
-
+	if err != nil {
+		return err
+	}
 	for _, cspObj := range cspList.Items {
 		if cspObj.Name == "" {
 			return errors.Errorf("missing csp name")

@@ -160,7 +160,8 @@ var (
 
 // Exec ...
 func Exec(kind, name, openebsNamespace string) error {
-
+	// TODO
+	// verify openebs namespace and check maya-apiserver version
 	switch kind {
 	case "jivaVolume":
 		err := jivaUpgrade(name, openebsNamespace)
