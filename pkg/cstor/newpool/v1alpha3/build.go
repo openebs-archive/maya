@@ -220,6 +220,19 @@ func (b *Builder) WithRaidGroups(raidGroup []apis.RaidGroup) *Builder {
 	return b
 }
 
+// WithFinalizer sets the finalizer field in the BDC
+func (b *Builder) WithFinalizer(finalizers ...string) *Builder {
+	if len(finalizers) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build CSP object: missing finalizer"),
+		)
+		return b
+	}
+	b.CSP.Object.Finalizers = append(b.CSP.Object.Finalizers, finalizers...)
+	return b
+}
+
 // WithOwnerReference sets the OwnerReference field in CSP with required
 //fields
 func (b *Builder) WithOwnerReference(spc *apis.StoragePoolClaim) *Builder {

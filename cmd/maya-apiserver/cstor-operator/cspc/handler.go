@@ -19,10 +19,14 @@ package cspc
 import (
 	"fmt"
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	"github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	apiscspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
 	"time"
 
 	"github.com/golang/glog"
@@ -120,25 +124,42 @@ func (c *Controller) enqueueCSPC(cspc interface{}) {
 }
 
 // synSpc is the function which tries to converge to a desired state for the cspc.
-func (c *Controller) syncCSPC(cspc *apis.CStorPoolCluster) error {
-	//err := validate(cspc)
-	//if err != nil {
-	//	glog.Errorf("Validation of cspc failed:%s", err)
-	//	return nil
-	//}
+func (c *Controller) syncCSPC(cspcGot *apis.CStorPoolCluster) error {
+
 	openebsNameSpace := env.Get(env.OpenEBSNamespace)
 	if openebsNameSpace == "" {
 		message := fmt.Sprint("Could not sync CSPC: got empty namespace for openebs from env variable")
-		c.recorder.Event(cspc, corev1.EventTypeWarning, "Getting Namespace", message)
-		glog.Errorf("Could not sync CSPC {%s}: got empty namespace for openebs from env variable", cspc.Name)
+		c.recorder.Event(cspcGot, corev1.EventTypeWarning, "Getting Namespace", message)
+		glog.Errorf("Could not sync CSPC {%s}: got empty namespace for openebs from env variable", cspcGot.Name)
 		return nil
 	}
 
-	pc, err := c.NewPoolConfig(cspc, openebsNameSpace)
+	pc, err := c.NewPoolConfig(cspcGot, openebsNameSpace)
 	if err != nil {
 		message := fmt.Sprintf("Could not sync CSPC : failed to get pool config: {%s}", err.Error())
-		c.recorder.Event(cspc, corev1.EventTypeWarning, "Creating Pool Config", message)
-		glog.Errorf("Could not sync CSPC {%s}: failed to get pool config: {%s}", cspc.Name, err.Error())
+		c.recorder.Event(cspcGot, corev1.EventTypeWarning, "Creating Pool Config", message)
+		glog.Errorf("Could not sync CSPC {%s}: failed to get pool config: {%s}", cspcGot.Name, err.Error())
+		return nil
+	}
+
+	// If CSPC is deleted -- handle the deletion.
+	if !cspcGot.DeletionTimestamp.IsZero() {
+		err := pc.handleCSPCDeletion()
+		if err != nil {
+			glog.Errorf("Failed to sync CSPC for deletion:%s", err.Error())
+		}
+		return nil
+	}
+
+	cspcBuilderObj, err := apiscspc.BuilderForAPIObject(cspcGot).Build()
+	if err != nil {
+		glog.Errorf("Failed to build CSPC api object %s", cspcGot.Name)
+		return nil
+	}
+
+	cspc, err := cspcBuilderObj.AddFinalizer(apiscspc.CSPCFinalizer)
+	if err != nil {
+		glog.Errorf("Failed to add finalizer on CSPC %s:%s", cspcGot.Name, err.Error())
 		return nil
 	}
 
@@ -332,5 +353,116 @@ func (c *Controller) removeCSPCFinalizer(cspcObj *apis.CStorPoolCluster, finaliz
 		return errors.Wrapf(err, "failed to remove finalizers from cspc %v", cspcObj.Name)
 	}
 	glog.Infof("finalizer %s is successfully removed from cspc %s", finalizer, cspcObj.Name)
+	return nil
+}
+
+// handleCSPCDeletion handles deletion of a CSPC resource by deleting
+// the associated CSP resource to it, removing the CSPC finalizer
+// on BDC(s) used and then removing the CSPC finalizer on CSPC resource
+// itself.
+
+// It is necessary that CSPC resource has the CSPC finalizer on it in order to
+// execute the handler.
+func (pc *PoolConfig) handleCSPCDeletion() error {
+	err := pc.deleteAssociatedCSP()
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to handle CSPC deletion")
+	}
+
+	cspcBuilderObj, err := apiscspc.BuilderForAPIObject(pc.AlgorithmConfig.CSPC).Build()
+	if err != nil {
+		glog.Errorf("Failed to build CSPC api object %s", pc.AlgorithmConfig.CSPC.Name)
+		return nil
+	}
+
+	if cspcBuilderObj.HasFinalizer(apiscspc.CSPCFinalizer) {
+		err := pc.removeCSPCFinalizer()
+		if err != nil {
+			return errors.Wrapf(err, "failed to handle CSPC %s deletion", pc.AlgorithmConfig.CSPC.Name)
+		}
+	}
+
+	return nil
+}
+
+// deleteAssociatedCSP deletes the CSP resource(s) belonging to the given CSPC resource.
+// If no CSP resource exists for the CSPC, then a levelled info log is logged and function
+// returns.
+func (pc *PoolConfig) deleteAssociatedCSP() error {
+	err := apiscsp.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).DeleteCollection(
+		metav1.ListOptions{
+			LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + pc.AlgorithmConfig.CSPC.Name,
+		},
+		&metav1.DeleteOptions{},
+	)
+
+	if k8serror.IsNotFound(err) {
+		glog.V(2).Infof("Associated CSP(s) of CSPC %s is already deleted:%s", pc.AlgorithmConfig.CSPC.Name, err.Error())
+		return nil
+	}
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete associated CSP(s):%s", err.Error())
+	}
+	glog.Infof("Associated CSP(s) of CSPC %s deleted successfully ", pc.AlgorithmConfig.CSPC.Name)
+	return nil
+}
+
+// removeSPCFinalizer removes CSPC finalizers on associated
+// BDC resources and CSPC object itself.
+func (pc *PoolConfig) removeCSPCFinalizer() error {
+	cspList, err := apiscsp.NewKubeClient().List(metav1.ListOptions{
+		LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + pc.AlgorithmConfig.CSPC.Name,
+	})
+
+	if err != nil {
+		return errors.Wrap(err, "failed to remove CSPC finalizer on associated resources")
+	}
+
+	if len(cspList.Items) > 0 {
+		return errors.Wrap(err, "failed to remove CSPC finalizer on associated resources as "+
+			"CSP(s) still exists for CSPC")
+	}
+
+	err = pc.removeSPCFinalizerOnAssociatedBDC()
+
+	if err != nil {
+		return errors.Wrap(err, "failed to remove CSPC finalizer on associated resources")
+	}
+
+	cspcBuilderObj, err := apiscspc.BuilderForAPIObject(pc.AlgorithmConfig.CSPC).Build()
+	if err != nil {
+		glog.Errorf("Failed to build CSPC api object %s", pc.AlgorithmConfig.CSPC.Name)
+		return nil
+	}
+
+	err = cspcBuilderObj.RemoveFinalizer(apiscspc.CSPCFinalizer)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to remove CSPC finalizer on associated resources")
+	}
+	return nil
+}
+
+// removeSPCFinalizerOnAssociatedBDC removes CSPC finalizer on associated BDC resource(s)
+func (pc *PoolConfig) removeSPCFinalizerOnAssociatedBDC() error {
+	bdcList, err := bdc.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).List(
+		metav1.ListOptions{
+			LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + pc.AlgorithmConfig.CSPC.Name,
+		})
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to remove CSPC finalizer on BDC resources")
+	}
+
+	for _, bdcObj := range bdcList.Items {
+		bdcObj := bdcObj
+		err := bdc.BuilderForAPIObject(&bdcObj).BDC.RemoveFinalizer(apiscspc.CSPCFinalizer)
+		if err != nil {
+			return errors.Wrapf(err, "failed to remove CSPC finalizer on BDC %s", bdcObj.Name)
+		}
+	}
+
 	return nil
 }
