@@ -78,7 +78,6 @@ M_EXPORTER_REPO_NAME?=m-exporter
 ADMISSION_SERVER_REPO_NAME?=admission-server
 M_APISERVER_REPO_NAME?=m-apiserver
 M_APISERVER_REPO_NAME?=m-apiserver
-M_UPGRADE_REPO_NAME?=m-upgrade
 
 ifeq (${IMAGE_TAG}, )
   IMAGE_TAG = ci
@@ -102,12 +101,13 @@ WEBHOOK=admission-server
 POOL_MGMT=cstor-pool-mgmt
 VOLUME_MGMT=cstor-volume-mgmt
 EXPORTER=maya-exporter
-UPGRADE=upgrade
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
 include ./buildscripts/provisioner-localpv/Makefile.mk
+include ./buildscripts/upgrade/Makefile.mk
+include ./buildscripts/upgrade-082090/Makefile.mk
 
 all: compile-tests mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image upgrade-image provisioner-localpv-image
 
@@ -122,14 +122,13 @@ initialize: bootstrap
 deps:
 	dep ensure
 
-clean:
+clean: cleanup-upgrade
 	go clean -testcache
 	rm -rf bin
 	rm -rf ${GOPATH}/bin/${MAYACTL}
 	rm -rf ${GOPATH}/bin/${APISERVER}
 	rm -rf ${GOPATH}/bin/${POOL_MGMT}
 	rm -rf ${GOPATH}/bin/${VOLUME_MGMT}
-	rm -rf ${GOPATH}/bin/${UPGRADE}
 	rm -rf ${GOPATH}/pkg/*
 
 release:
@@ -374,21 +373,4 @@ deploy-images:
 	@DIMAGE="openebs/m-upgrade" ./buildscripts/push
 	@DIMAGE="openebs/provisioner-localpv" ./buildscripts/push
 
-# build upgrade binary
-upgrade:
-	@echo "----------------------------"
-	@echo "--> ${UPGRADE}      "
-	@echo "----------------------------"
-	@PNAME=${UPGRADE} CTLNAME=${UPGRADE} CGO_ENABLED=0 sh -c "'$(PWD)/buildscripts/build.sh'"
-
-# build upgrade image
-upgrade-image: upgrade
-	@echo "----------------------------"
-	@echo -n "--> ${UPGRADE} image "
-	@echo "${HUB_USER}/${M_UPGRADE_REPO_NAME}:${IMAGE_TAG}"
-	@echo "----------------------------"
-	@cp bin/${UPGRADE}/${UPGRADE} buildscripts/${UPGRADE}/
-	@cd buildscripts/${UPGRADE} && sudo docker build -t ${HUB_USER}/${M_UPGRADE_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
-	@rm buildscripts/${UPGRADE}/${UPGRADE}
-
-.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image upgrade upgrade-image testv
+.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image testv
