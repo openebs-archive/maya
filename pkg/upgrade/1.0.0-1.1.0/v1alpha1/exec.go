@@ -20,10 +20,13 @@ import (
 	"bytes"
 
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
+	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
+	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pv "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -150,8 +153,43 @@ var (
 		}
 	  }`
 
+	cstorTargetPatchTemplate = `{
+		"metadata": {
+		   "labels": {
+			  "openebs.io/version": "{{.UpgradeVersion}}"
+		   }
+		},
+		"spec": {
+		   "template": {
+			  "metadata": {
+				 "labels": {
+					"openebs.io/version": "{{.UpgradeVersion}}"
+				 }
+			  },
+			  "spec": {
+				 "containers": [
+					{
+					   "name": "cstor-istgt",
+					   "image": "{{.IstgtImage}}:{{.UpgradeVersion}}"
+					},
+					{
+					   "name": "maya-volume-exporter",
+					   "image": "{{.MExporterImage}}:{{.UpgradeVersion}}"
+					},
+					{
+					   "name": "cstor-volume-mgmt",
+					   "image": "{{.VolumeMgmtImage}}:{{.UpgradeVersion}}"
+					}
+				 ]
+			  }
+		   }
+		}
+	 }`
+
 	buffer bytes.Buffer
 
+	cvClient      = cv.NewKubeclient()
+	cvrClient     = cvr.NewKubeclient()
 	deployClient  = deploy.NewKubeClient()
 	serviceClient = svc.NewKubeClient()
 	pvClient      = pv.NewKubeClient()
@@ -160,21 +198,52 @@ var (
 
 // Exec ...
 func Exec(kind, name, openebsNamespace string) error {
-	// TODO
 	// verify openebs namespace and check maya-apiserver version
+	mayaLabels := "name=maya-apiserver"
+	mayaDeploy, err := deployClient.WithNamespace(openebsNamespace).
+		List(
+			&metav1.ListOptions{
+				LabelSelector: mayaLabels,
+			},
+		)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get maya-apiserver deployment")
+	}
+	if len(mayaDeploy.Items) == 0 {
+		return errors.Errorf(
+			"failed to get maya-apiserver deployment in %s",
+			openebsNamespace,
+		)
+	}
+	if len(mayaDeploy.Items) > 1 {
+		return errors.Errorf("control plane upgrade is not complete try after some time")
+	}
+	if mayaDeploy.Items[0].Labels["openebs.io/version"] != upgradeVersion {
+		return errors.Errorf(
+			"maya-apiserver deployment is in %s but required version is %s",
+			mayaDeploy.Items[0].Labels["openebs.io/version"],
+			openebsNamespace,
+		)
+	}
+
 	switch kind {
 	case "jivaVolume":
-		err := jivaUpgrade(name, openebsNamespace)
+		err = jivaUpgrade(name, openebsNamespace)
 		if err != nil {
 			return err
 		}
 	case "storagePoolClaim":
-		err := spcUpgrade(name, openebsNamespace)
+		err = spcUpgrade(name, openebsNamespace)
 		if err != nil {
 			return err
 		}
 	case "cstorPool":
-		err := cspUpgrade(name, openebsNamespace)
+		err = cspUpgrade(name, openebsNamespace)
+		if err != nil {
+			return err
+		}
+	case "cstorVolume":
+		err = cstorVolumeUpgrade(name, openebsNamespace)
 		if err != nil {
 			return err
 		}

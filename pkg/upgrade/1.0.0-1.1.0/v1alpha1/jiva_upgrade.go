@@ -253,6 +253,7 @@ func patchReplica(replicaObj *replicaDetails, namespace string) error {
 			return err
 		}
 		replicaPatch := buffer.String()
+		buffer.Reset()
 		err = patchDelpoyment(
 			replicaObj.name,
 			namespace,
@@ -280,7 +281,7 @@ func patchController(controllerObj *controllerDetails, namespace string) error {
 			return err
 		}
 		controllerPatch := buffer.String()
-
+		buffer.Reset()
 		err = patchDelpoyment(
 			controllerObj.name,
 			namespace,
@@ -297,38 +298,65 @@ func patchController(controllerObj *controllerDetails, namespace string) error {
 	return nil
 }
 
+func getPVCDeploymentsNamespace(
+	pvName,
+	pvLabel,
+	openebsNamespace string) (ns string, err error) {
+	pvObj, err := pvClient.Get(pvName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	// verifying whether the pvc is deployed with DeployInOpenebsNamespace cas config
+	deployList, err := deployClient.WithNamespace(openebsNamespace).List(
+		&metav1.ListOptions{
+			LabelSelector: pvLabel,
+		})
+	if err != nil {
+		return "", err
+	}
+	// check whether pvc pods are openebs namespace or not
+	if len(deployList.Items) > 0 {
+		ns = openebsNamespace
+		return ns, nil
+	}
+	// if pvc pods are not in openebs namespace take the namespace of pvc
+	if pvObj.Spec.ClaimRef.Namespace == "" {
+		return "", errors.Errorf("namespace missing for pv %s", pvName)
+	}
+	ns = pvObj.Spec.ClaimRef.Namespace
+	// check for pv deployments in pv refclaim namespace
+	deployList, err = deployClient.WithNamespace(ns).List(
+		&metav1.ListOptions{
+			LabelSelector: pvLabel,
+		})
+	if err != nil {
+		return "", err
+	}
+	if len(deployList.Items) == 0 {
+		return "", errors.Errorf(
+			"failed to get deployments for pv %s in %s or %s namespace",
+			pvName,
+			openebsNamespace,
+			ns,
+		)
+	}
+	return ns, nil
+}
+
 func jivaUpgrade(pvName, openebsNamespace string) error {
 
 	var (
 		pvLabel         = "openebs.io/persistent-volume=" + pvName
 		replicaLabel    = "openebs.io/replica=jiva-replica," + pvLabel
 		controllerLabel = "openebs.io/controller=jiva-controller," + pvLabel
+		serviceLabel    = "openebs.io/controller-service=jiva-controller-svc," + pvLabel
 		ns              string
 		err             error
 	)
 
-	pvObj, err := pvClient.Get(pvName, metav1.GetOptions{})
+	ns, err = getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
 	if err != nil {
 		return err
-	}
-
-	// verifying whether the pvc is deployed with DeployInOpenebsNamespace cas config
-	deployInOpenebs, err := deployClient.WithNamespace(openebsNamespace).List(
-		&metav1.ListOptions{
-			LabelSelector: pvLabel,
-		})
-	if err != nil {
-		return err
-	}
-	// check whether pvc pods are openebs namespace or not
-	if len(deployInOpenebs.Items) > 0 {
-		ns = openebsNamespace
-	} else {
-		// if pvc pods are not in openebs namespace take the namespace of pvc
-		if pvObj.Spec.ClaimRef.Namespace == "" {
-			return errors.Errorf("namespace missing for pv %s", pvName)
-		}
-		ns = pvObj.Spec.ClaimRef.Namespace
 	}
 
 	// fetching replica deployment details
@@ -343,64 +371,22 @@ func jivaUpgrade(pvName, openebsNamespace string) error {
 	if err != nil {
 		return err
 	}
-	// fetching controller service details
-	controllerServiceList, err := serviceClient.WithNamespace(ns).List(
-		metav1.ListOptions{
-			LabelSelector: pvLabel,
-		})
-	if err != nil {
-		return err
-	}
-	// controllerServiceObj := controllerServiceList.Items[0]
-	controllerServiceName := controllerServiceList.Items[0].Name
-	controllerServiceVersion := controllerServiceList.Items[0].
-		Labels["openebs.io/version"]
-	if controllerServiceVersion != currentVersion &&
-		controllerServiceVersion != upgradeVersion {
-		return errors.Errorf(
-			"controller service version %s is neither %s nor %s\n",
-			controllerServiceVersion,
-			currentVersion,
-			upgradeVersion,
-		)
-	}
 
 	// replica patch
 	err = patchReplica(replicaObj, ns)
 	if err != nil {
 		return err
 	}
-	buffer.Reset()
 
 	// controller patch
 	err = patchController(controllerObj, ns)
 	if err != nil {
 		return err
 	}
-	buffer.Reset()
 
-	// service patch
-	if controllerServiceVersion == currentVersion {
-		tmpl, err := template.New("servicePatch").Parse(openebsVersionPatchTemplate)
-		if err != nil {
-			return err
-		}
-		err = tmpl.Execute(&buffer, upgradeVersion)
-		if err != nil {
-			return err
-		}
-		servicePatch := buffer.String()
-		_, err = serviceClient.WithNamespace(ns).Patch(
-			controllerServiceName,
-			types.StrategicMergePatchType,
-			[]byte(servicePatch),
-		)
-		if err != nil {
-			return err
-		}
-		fmt.Println(controllerServiceName, "patched")
-	} else {
-		fmt.Printf("controller service already in %s version\n", upgradeVersion)
+	err = patchService(serviceLabel, ns)
+	if err != nil {
+		return err
 	}
 
 	fmt.Println("Upgrade Successful for", pvName)
