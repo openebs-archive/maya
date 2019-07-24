@@ -25,6 +25,7 @@ import (
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pv "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
+	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -193,36 +194,38 @@ var (
 	deployClient  = deploy.NewKubeClient()
 	serviceClient = svc.NewKubeClient()
 	pvClient      = pv.NewKubeClient()
+	podClient     = pod.NewKubeClient()
 	cspClient     = csp.KubeClient()
 )
 
 // Exec ...
 func Exec(kind, name, openebsNamespace string) error {
+	// TODO
 	// verify openebs namespace and check maya-apiserver version
 	mayaLabels := "name=maya-apiserver"
-	mayaDeploy, err := deployClient.WithNamespace(openebsNamespace).
+	mayaPods, err := podClient.WithNamespace(openebsNamespace).
 		List(
-			&metav1.ListOptions{
+			metav1.ListOptions{
 				LabelSelector: mayaLabels,
 			},
 		)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get maya-apiserver deployment")
 	}
-	if len(mayaDeploy.Items) == 0 {
+	if len(mayaPods.Items) == 0 {
 		return errors.Errorf(
 			"failed to get maya-apiserver deployment in %s",
 			openebsNamespace,
 		)
 	}
-	if len(mayaDeploy.Items) > 1 {
+	if len(mayaPods.Items) > 1 {
 		return errors.Errorf("control plane upgrade is not complete try after some time")
 	}
-	if mayaDeploy.Items[0].Labels["openebs.io/version"] != upgradeVersion {
+	if mayaPods.Items[0].Labels["openebs.io/version"] != upgradeVersion {
 		return errors.Errorf(
 			"maya-apiserver deployment is in %s but required version is %s",
-			mayaDeploy.Items[0].Labels["openebs.io/version"],
-			openebsNamespace,
+			mayaPods.Items[0].Labels["openebs.io/version"],
+			upgradeVersion,
 		)
 	}
 

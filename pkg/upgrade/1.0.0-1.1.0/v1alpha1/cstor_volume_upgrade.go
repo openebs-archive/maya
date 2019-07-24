@@ -123,7 +123,7 @@ func patchTargetDeploy(d *appsv1.Deployment, ns string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(d.Name, " patched")
+		fmt.Printf("target deployment %s patched\n", d.Name)
 	} else {
 		fmt.Printf("target deployment already in %s version\n", upgradeVersion)
 	}
@@ -171,7 +171,7 @@ func patchCV(pvLabel, namespace string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(cvObject.Items[0].Name, " patched")
+		fmt.Printf("cstorvolume %s patched\n", cvObject.Items[0].Name)
 	} else {
 		fmt.Printf("cstorvolume already in %s version\n", upgradeVersion)
 	}
@@ -212,7 +212,7 @@ func patchCVR(cvrName, namespace string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(cvrObject.Name, " patched")
+		fmt.Printf("cstorvolumereplica %s patched\n", cvrObject.Name)
 	} else {
 		fmt.Printf("cstorvolume replica already in %s version\n", upgradeVersion)
 	}
@@ -261,7 +261,7 @@ func patchService(targetServiceLabel, namespace string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(targetServiceName, "patched")
+		fmt.Printf("targetservice %s patched\n", targetServiceName)
 	} else {
 		fmt.Printf("service already in %s version\n", upgradeVersion)
 	}
