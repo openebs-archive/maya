@@ -27,6 +27,9 @@ import (
 type BlockDeviceClaim struct {
 	// actual block device claim object
 	Object *ndm.BlockDeviceClaim
+
+	// kubeconfig path
+	configPath string
 }
 
 // BlockDeviceClaimList encapsulates BlockDeviceClaimList api object
@@ -114,7 +117,7 @@ func (bdc *BlockDeviceClaim) AddFinalizer(finalizer string) (*ndm.BlockDeviceCla
 
 	bdc.Object.Finalizers = append(bdc.Object.Finalizers, finalizer)
 
-	bdcAPIObj, err := NewKubeClient().
+	bdcAPIObj, err := NewKubeClient(WithKubeConfigPath(bdc.configPath)).
 		WithNamespace(bdc.Object.Namespace).
 		Update(bdc.Object)
 
@@ -141,7 +144,7 @@ func (bdc *BlockDeviceClaim) RemoveFinalizer(finalizer string) error {
 
 	bdc.Object.Finalizers = util.RemoveString(bdc.Object.Finalizers, finalizer)
 
-	_, err := NewKubeClient().
+	_, err := NewKubeClient(WithKubeConfigPath(bdc.configPath)).
 		WithNamespace(bdc.Object.Namespace).
 		Update(bdc.Object)
 	if err != nil {

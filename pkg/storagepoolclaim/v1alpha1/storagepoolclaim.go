@@ -160,6 +160,9 @@ func (spc *SPC) addSPCFinalizerOnAssociatedBDCs() error {
 
 	for _, bdcObj := range bdcList.Items {
 		bdcObj := bdcObj
+		if !bdcObj.DeletionTimestamp.IsZero() {
+			continue
+		}
 		_, err := bdc.BuilderForAPIObject(&bdcObj).BDC.AddFinalizer(SPCFinalizer)
 		if err != nil {
 			return errors.Wrap(err, "failed to add SPC finalizer on BDC")
