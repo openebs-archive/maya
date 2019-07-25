@@ -80,21 +80,52 @@ var RunnerVar util.Runner
 
 // ImportPool imports cStor pool if already present.
 func ImportPool(cStorPool *apis.CStorPool, importOptions *ImportOptions) (string, error) {
-	var importAttr []string
+	importAttr := importPoolBuilder(cStorPool, importOptions)
 
-	importAttr = importPoolBuilder(cStorPool, importOptions)
-
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, importAttr...)
-	if err != nil {
-		glog.Errorf("Unable to import pool: %v, %v devpath: %v cacheflag: %v", err.Error(),
-			string(stdoutStderr), importOptions.DevPath, importOptions.CachefileFlag)
-		return string(stdoutStderr), err
+	stdoutStderr, err2 := RunnerVar.RunCombinedOutput(zpool.PoolOperator, importAttr...)
+	if err2 != nil {
+		glog.Errorf("Unable to import pool: %v, %v devpath: %v cacheflag: %v importAttr: %v",
+			err2.Error(), string(stdoutStderr), importOptions.DevPath,
+			importOptions.CachefileFlag, importAttr)
+		return string(stdoutStderr), err2
 	}
 
-	glog.Infof("Import command successful with %v %v dontimport: %v", importOptions.CachefileFlag,
-		importOptions.DevPath, importOptions.dontImport)
+	glog.Infof("Import command successful with %v %v dontimport: %v importattr: %v out: %v",
+		importOptions.CachefileFlag, importOptions.DevPath, importOptions.dontImport,
+		importAttr, string(stdoutStderr))
+
+	poolName := string(PoolPrefix)+string(cStorPool.ObjectMeta.UID)
+	statusPoolStr := []string{"status", poolName}
+	stdoutStderr1, err1 := RunnerVar.RunCombinedOutput(zpool.PoolOperator, statusPoolStr...)
+	if err1 != nil {
+		glog.Errorf("Unable to get pool status: %v %v", string(stdoutStderr1), statusPoolStr)
+		return "", err1
+	}
+	glog.Infof("pool status: %v", string(stdoutStderr1))
 	return string(stdoutStderr), nil
 }
+
+// Important learning:
+
+// Below builder will build options something like:
+// "import" "-c" "/tmp/pool1.cache" "-o" "cachefile=/tmp/pool1.cache"
+
+// if this line
+// `importAttr = append(importAttr, "-o", "cachefile="+cStorPool.Spec.PoolSpec.CacheFile)`
+// is changed to
+// `importAttr = append(importAttr, "-o cachefile=", cStorPool.Spec.PoolSpec.CacheFile)`
+
+// options will be built like:
+// "-o cachefile=" "/tmp/pool1.cache"
+
+// With above thing, `getopt` of zpool treats it as:
+// - ` cachefile` as parameter which is wrong (look at <space> at the start)
+// - empty value for it, as after '=' nothing is there
+// - `/tmp/pool1.cache` as pool name
+
+// Conclusion:
+// - append every word, i.e., the one with spaces around it
+// - don't append if there are no spaces around it
 
 // importPoolBuilder is to build pool import command.
 func importPoolBuilder(cStorPool *apis.CStorPool, importOptions *ImportOptions) []string {
@@ -116,7 +147,7 @@ func importPoolBuilder(cStorPool *apis.CStorPool, importOptions *ImportOptions) 
 		importAttr = append(importAttr, "-c", cStorPool.Spec.PoolSpec.CacheFile)
 	}
 
-	importAttr = append(importAttr, "-o cachefile=", cStorPool.Spec.PoolSpec.CacheFile)
+	importAttr = append(importAttr, "-o", "cachefile="+cStorPool.Spec.PoolSpec.CacheFile)
 
 	if devPath != "" {
 		importAttr = append(importAttr, "-d", devPath)
