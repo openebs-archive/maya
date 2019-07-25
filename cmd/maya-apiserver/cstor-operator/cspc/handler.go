@@ -273,7 +273,7 @@ func (pc *PoolConfig) handleCSPCDeletion() error {
 
 	cspcBuilderObj, err := apiscspc.BuilderForAPIObject(pc.AlgorithmConfig.CSPC).Build()
 	if err != nil {
-		glog.Errorf("Failed to build CSPC api object %s", pc.AlgorithmConfig.CSPC.Name)
+		glog.Errorf("Failed to build CSPC api object %s:%s", pc.AlgorithmConfig.CSPC.Name,err.Error())
 		return nil
 	}
 
