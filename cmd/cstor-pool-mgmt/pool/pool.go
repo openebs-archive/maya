@@ -61,6 +61,7 @@ const (
 	PoolPrefix PoolNamePrefix = "cstor-"
 )
 
+// ImportOptions contains the options to build import command
 type ImportOptions struct {
 	// CachefileFlag option to use cachefile for import
 	CachefileFlag bool
@@ -148,10 +149,7 @@ func checkForPoolExistence(cStorPool *apis.CStorPool, blockDeviceList []string) 
 	importOptions.dontImport = true
 	stdoutStderr, _ := ImportPool(cStorPool, &importOptions)
 	glog.Infof("checkForPoolExistence output: %v", stdoutStderr)
-	if strings.Contains(stdoutStderr, string(PoolPrefix)+string(cStorPool.ObjectMeta.UID)) {
-		return true
-	}
-	return false
+	return strings.Contains(stdoutStderr, string(PoolPrefix)+string(cStorPool.ObjectMeta.UID))
 }
 
 // CreatePool creates a new cStor pool.
