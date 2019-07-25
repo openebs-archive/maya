@@ -31,161 +31,10 @@ import (
 )
 
 var (
-	upgradeVersion = "1.1.0-RC1"
-	currentVersion = "1.0.0"
-
-	replicaPatchTemplate = `{
-		"metadata": {
-		   "labels": {
-			  "openebs.io/version": "{{.UpgradeVersion}}",
-			  "openebs.io/persistent-volume": "{{.PVName}}",
-			  "openebs.io/replica": "jiva-replica"
-		   }
-		},
-		"spec": {
-			"selector": {
-				"matchLabels":{
-					"openebs.io/persistent-volume": "{{.PVName}}",
-					"openebs.io/replica": "jiva-replica"
-				}
-			},
-		   "template": {
-			   "metadata": {
-				   "labels": {
-					   "openebs.io/version": "{{.UpgradeVersion}}",
-					   "openebs.io/persistent-volume": "{{.PVName}}",
-					   "openebs.io/replica": "jiva-replica"
-				   }
-			   },
-			  "spec": {
-				 "containers": [
-					{
-					   "name": "{{.ReplicaContainerName}}",
-					   "image": "{{.ReplicaImage}}:{{.UpgradeVersion}}"
-					}
-				 ],
-				 "affinity": {
-					 "podAntiAffinity": {
-						 "requiredDuringSchedulingIgnoredDuringExecution": [
-							 {
-								 "labelSelector": {
-									 "matchLabels": {
-										 "openebs.io/persistent-volume": "{{.PVName}}",
-										 "openebs.io/replica": "jiva-replica"
-									 }
-								 },
-					 "topologyKey": "kubernetes.io/hostname"
-							 }
-						 ]
-					 }
-				 }
-			  }
-		   }
-		}
-	 }`
-
-	targetPatchTemplate = `{
-		"metadata": {
-		   "labels": {
-			 "openebs.io/version": "{{.UpgradeVersion}}"
-		   }
-		},
-		"spec": {
-		   "template": {
-			  "metadata": {
-				 "labels":{
-					"openebs.io/version": "{{.UpgradeVersion}}"
-				 }
-			  },
-			 "spec": {
-			   "containers": [
-				 {
-					"name": "{{.ControllerContainerName}}",
-					"image": "{{.ControllerImage}}:{{.UpgradeVersion}}"
-				 },
-				 {
-					"name": "maya-volume-exporter",
-					"image": "{{.MExporterImage}}:{{.UpgradeVersion}}"
-				 }
-			   ]
-			 }
-		   }
-		}
-	  }`
-
-	openebsVersionPatchTemplate = `{
-		"metadata": {
-		   "labels": {
-			  "openebs.io/version": "{{.}}"
-		   }
-		}
-	 }`
-
-	cspDeployPatchTemplate = `{
-		"metadata": {
-		   "labels": {
-			  "openebs.io/version": "{{.UpgradeVersion}}"
-		   }
-		},
-		"spec": {
-		   "template": {
-			  "metadata": {
-				 "labels": {
-					"openebs.io/version": "{{.UpgradeVersion}}"
-				 }
-			  },
-			  "spec": {
-				 "containers": [
-					{
-					   "name": "cstor-pool",
-					   "image": "{{.PoolImage}}:{{.UpgradeVersion}}"
-					},
-					{
-					  "name": "cstor-pool-mgmt",
-					  "image": "{{.PoolMgmtImage}}:{{.UpgradeVersion}}"
-					},
-					{
-					  "name": "maya-exporter",
-					  "image": "{{.MExporterImage}}:{{.UpgradeVersion}}"
-					}
-				]
-			  }
-		   }
-		}
-	  }`
-
-	cstorTargetPatchTemplate = `{
-		"metadata": {
-		   "labels": {
-			  "openebs.io/version": "{{.UpgradeVersion}}"
-		   }
-		},
-		"spec": {
-		   "template": {
-			  "metadata": {
-				 "labels": {
-					"openebs.io/version": "{{.UpgradeVersion}}"
-				 }
-			  },
-			  "spec": {
-				 "containers": [
-					{
-					   "name": "cstor-istgt",
-					   "image": "{{.IstgtImage}}:{{.UpgradeVersion}}"
-					},
-					{
-					   "name": "maya-volume-exporter",
-					   "image": "{{.MExporterImage}}:{{.UpgradeVersion}}"
-					},
-					{
-					   "name": "cstor-volume-mgmt",
-					   "image": "{{.VolumeMgmtImage}}:{{.UpgradeVersion}}"
-					}
-				 ]
-			  }
-		   }
-		}
-	 }`
+	upgradeVersion = ""
+	currentVersion = ""
+	urlPrefix      = ""
+	imageTag       = ""
 
 	buffer bytes.Buffer
 
@@ -199,9 +48,15 @@ var (
 )
 
 // Exec ...
-func Exec(kind, name, openebsNamespace string) error {
-	// TODO
+func Exec(fromVersion, toVersion, kind, name,
+	openebsNamespace, urlprefix, imagetag string) error {
+
 	// verify openebs namespace and check maya-apiserver version
+	upgradeVersion = toVersion
+	currentVersion = fromVersion
+	urlPrefix = urlprefix
+	imageTag = imagetag
+
 	mayaLabels := "name=maya-apiserver"
 	mayaPods, err := podClient.WithNamespace(openebsNamespace).
 		List(

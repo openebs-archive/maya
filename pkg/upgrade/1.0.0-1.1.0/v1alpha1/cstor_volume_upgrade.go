@@ -27,7 +27,7 @@ import (
 )
 
 type cstorTargetPatchDetails struct {
-	UpgradeVersion, IstgtImage, MExporterImage, VolumeMgmtImage string
+	UpgradeVersion, ImageTag, IstgtImage, MExporterImage, VolumeMgmtImage string
 }
 
 func verifyCSPVersion(pvLabel, namespace string) error {
@@ -37,7 +37,7 @@ func verifyCSPVersion(pvLabel, namespace string) error {
 		},
 	)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to list cvr for %s", pvLabel)
 	}
 	for _, cvrObj := range cvrList.Items {
 		cspName := cvrObj.Labels["cstorpool.openebs.io/name"]
@@ -47,7 +47,7 @@ func verifyCSPVersion(pvLabel, namespace string) error {
 		cspDeployObj, err := deployClient.WithNamespace(namespace).
 			Get(cspName)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to get deployment for csp %s", cspName)
 		}
 		if cspDeployObj.Labels["openebs.io/version"] != upgradeVersion {
 			return errors.Errorf(
@@ -82,6 +82,11 @@ func getTargetDeployPatchDetails(
 		return nil, err
 	}
 	patchDetails.VolumeMgmtImage = volumeMgmtImage
+	if imageTag != "" {
+		patchDetails.ImageTag = imageTag
+	} else {
+		patchDetails.ImageTag = upgradeVersion
+	}
 	return patchDetails, nil
 }
 
@@ -101,7 +106,7 @@ func patchTargetDeploy(d *appsv1.Deployment, ns string) error {
 	if version == currentVersion {
 		tmpl, err := template.New("targetPatch").Parse(cstorTargetPatchTemplate)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to create template for cstor target deployment patch")
 		}
 		patchDetails, err := getTargetDeployPatchDetails(d)
 		if err != nil {
@@ -110,7 +115,7 @@ func patchTargetDeploy(d *appsv1.Deployment, ns string) error {
 		patchDetails.UpgradeVersion = upgradeVersion
 		err = tmpl.Execute(&buffer, patchDetails)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to populate template for cstor target deployment patch")
 		}
 		replicaPatch := buffer.String()
 		buffer.Reset()
@@ -121,7 +126,7 @@ func patchTargetDeploy(d *appsv1.Deployment, ns string) error {
 			[]byte(replicaPatch),
 		)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to patch target deployment %s", d.Name)
 		}
 		fmt.Printf("target deployment %s patched\n", d.Name)
 	} else {
@@ -154,11 +159,11 @@ func patchCV(pvLabel, namespace string) error {
 	if version == currentVersion {
 		tmpl, err := template.New("cvPatch").Parse(openebsVersionPatchTemplate)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to create template for cstorvolume patch")
 		}
 		err = tmpl.Execute(&buffer, upgradeVersion)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to populate template for cstorvolume patch")
 		}
 		cvPatch := buffer.String()
 		buffer.Reset()
@@ -169,7 +174,7 @@ func patchCV(pvLabel, namespace string) error {
 			[]byte(cvPatch),
 		)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to patch cstorvolume %s", cvObject.Items[0].Name)
 		}
 		fmt.Printf("cstorvolume %s patched\n", cvObject.Items[0].Name)
 	} else {
@@ -195,11 +200,11 @@ func patchCVR(cvrName, namespace string) error {
 	if version == currentVersion {
 		tmpl, err := template.New("cvPatch").Parse(openebsVersionPatchTemplate)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to create template for cstorvolumereplica patch")
 		}
 		err = tmpl.Execute(&buffer, upgradeVersion)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to populate template for cstorvolumereplica patch")
 		}
 		cvPatch := buffer.String()
 		buffer.Reset()
@@ -210,60 +215,11 @@ func patchCVR(cvrName, namespace string) error {
 			[]byte(cvPatch),
 		)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to patch cstorvolumereplica %s", cvrObject.Name)
 		}
 		fmt.Printf("cstorvolumereplica %s patched\n", cvrObject.Name)
 	} else {
 		fmt.Printf("cstorvolume replica already in %s version\n", upgradeVersion)
-	}
-	return nil
-}
-
-func patchService(targetServiceLabel, namespace string) error {
-	targetServiceObj, err := serviceClient.WithNamespace(namespace).List(
-		metav1.ListOptions{
-			LabelSelector: targetServiceLabel,
-		},
-	)
-	if err != nil {
-		return err
-	}
-	targetServiceName := targetServiceObj.Items[0].Name
-	if targetServiceName == "" {
-		return errors.Errorf("missing service name")
-	}
-	version := targetServiceObj.Items[0].
-		Labels["openebs.io/version"]
-	if version != currentVersion && version != upgradeVersion {
-		return errors.Errorf(
-			"service version %s is neither %s nor %s\n",
-			version,
-			currentVersion,
-			upgradeVersion,
-		)
-	}
-	if version == currentVersion {
-		tmpl, err := template.New("servicePatch").Parse(openebsVersionPatchTemplate)
-		if err != nil {
-			return err
-		}
-		err = tmpl.Execute(&buffer, upgradeVersion)
-		if err != nil {
-			return err
-		}
-		servicePatch := buffer.String()
-		buffer.Reset()
-		_, err = serviceClient.WithNamespace(namespace).Patch(
-			targetServiceName,
-			types.StrategicMergePatchType,
-			[]byte(servicePatch),
-		)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("targetservice %s patched\n", targetServiceName)
-	} else {
-		fmt.Printf("service already in %s version\n", upgradeVersion)
 	}
 	return nil
 }
