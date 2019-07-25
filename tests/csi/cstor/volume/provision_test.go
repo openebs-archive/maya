@@ -225,7 +225,17 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 				Delete(appPod.Items[0].Name, &metav1.DeleteOptions{})
 			Expect(err).ShouldNot(HaveOccurred(), "while restarting application pod")
 
+			By("verifying app pod is terminated properly")
+			status = ops.IsPodDeletedEventually(nsObj.Name, appPod.Items[0].Name)
+			Expect(status).To(Equal(true), "while checking termination of pod {%s}", appPod.Items[0].Name)
+
 			By("verifying app pod is running again")
+			appPod, err = ops.PodClient.WithNamespace(nsObj.Name).
+				List(metav1.ListOptions{
+					LabelSelector: "app=busybox",
+				},
+				)
+			Expect(err).ShouldNot(HaveOccurred(), "while verifying application pod")
 			status = ops.IsPodRunningEventually(nsObj.Name, appPod.Items[0].Name)
 			Expect(status).To(Equal(true), "while checking status of pod {%s}", appPod.Items[0].Name)
 
