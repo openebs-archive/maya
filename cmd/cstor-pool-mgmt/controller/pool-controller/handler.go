@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -162,16 +161,6 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 	return string(apis.CStorPoolStatusInvalid), nil
 }
 
-// GetDevPath gets the path from given deviceID
-func GetDevPath(devid string) string {
-	lastindex := strings.LastIndexByte(devid, '/')
-	if lastindex == -1 {
-		lastindex = len(devid)
-	}
-	devid_bytes := []rune(devid)
-	return string(devid_bytes[0:lastindex])
-}
-
 // cStorPoolAddEvent does import of pool, and, if it fails, attemps to create pool based on CSP CR state
 func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (string, error) {
 	if pool.ImportedCStorPools == nil {
@@ -240,9 +229,11 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 	}
 	var importPoolErr error
 	var status string
+	var importOptions pool.ImportOptions
 	cachefileFlags := []bool{true, false}
 	for _, cachefileFlag := range cachefileFlags {
-		status, importPoolErr = c.triggerImportPool(cStorPoolGot, cachefileFlag, "")
+		importOptions.CachefileFlag = cachefileFlag
+		status, importPoolErr = c.triggerImportPool(cStorPoolGot, &importOptions)
 		if status == string(apis.CStorPoolStatusOnline) {
 			return status, nil
 		}
@@ -256,10 +247,11 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
 	}
 
-	devPath := GetDevPath(devIDList[0])
-
+	devPath := pool.GetDevPath(devIDList[0])
 	// Trigger import with dev path
-	status, importPoolErr = c.triggerImportPool(cStorPoolGot, false, devPath)
+	importOptions.CachefileFlag = false
+	importOptions.DevPath = devPath
+	status, importPoolErr = c.triggerImportPool(cStorPoolGot, &importOptions)
 	if status == string(apis.CStorPoolStatusOnline) {
 		return status, nil
 	}
@@ -289,13 +281,6 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageImproperPoolStatus))
 			return string(apis.CStorPoolStatusOffline), err
 		}
-		err = pool.LabelClear(devIDList)
-		if err != nil {
-			glog.Errorf(err.Error(), cStorPoolGot.GetUID())
-		} else {
-			glog.Infof("Label clear successful: %v", string(cStorPoolGot.GetUID()))
-		}
-
 		// CreatePool is to create cstor pool.
 		err = pool.CreatePool(cStorPoolGot, devIDList)
 		if err != nil {
@@ -388,8 +373,8 @@ func (c *CStorPoolController) removeFinalizer(cStorPoolGot *apis.CStorPool) erro
 	return nil
 }
 
-func (c *CStorPoolController) triggerImportPool(cStorPoolGot *apis.CStorPool, cachefileFlag bool, devPath string) (string, error) {
-	status, importPoolErr := c.importPool(cStorPoolGot, cachefileFlag, devPath)
+func (c *CStorPoolController) triggerImportPool(cStorPoolGot *apis.CStorPool, importOptions *pool.ImportOptions) (string, error) {
+	status, importPoolErr := c.importPool(cStorPoolGot, importOptions)
 	if status == string(apis.CStorPoolStatusOnline) {
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
 		common.SyncResources.IsImported = true
@@ -403,8 +388,8 @@ func (c *CStorPoolController) triggerImportPool(cStorPoolGot *apis.CStorPool, ca
 	return status, importPoolErr
 }
 
-func (c *CStorPoolController) importPool(cStorPoolGot *apis.CStorPool, cachefileFlag bool, devPath string) (string, error) {
-	err := pool.ImportPool(cStorPoolGot, cachefileFlag, devPath)
+func (c *CStorPoolController) importPool(cStorPoolGot *apis.CStorPool, importOptions *pool.ImportOptions) (string, error) {
+	_, err := pool.ImportPool(cStorPoolGot, importOptions)
 	if err == nil {
 		err = pool.SetCachefile(cStorPoolGot)
 		if err != nil {
