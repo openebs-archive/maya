@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
+	pool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
@@ -28,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
-	pool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 )
 
 // TestGetPoolResource checks if pool resource created is successfully got.
