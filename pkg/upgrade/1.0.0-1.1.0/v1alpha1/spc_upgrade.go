@@ -30,7 +30,7 @@ func spcUpgrade(spcName, openebsNamespace string) error {
 		LabelSelector: spcLabel,
 	})
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to list csp for spc %s", spcName)
 	}
 	for _, cspObj := range cspList.Items {
 		if cspObj.Name == "" {

@@ -27,7 +27,7 @@ import (
 )
 
 type cspDeployPatchDetails struct {
-	UpgradeVersion, PoolImage, PoolMgmtImage, MExporterImage string
+	UpgradeVersion, ImageTag, PoolImage, PoolMgmtImage, MExporterImage string
 }
 
 func getCSPDeployPatchDetails(
@@ -49,6 +49,11 @@ func getCSPDeployPatchDetails(
 	patchDetails.PoolImage = cstorPoolImage
 	patchDetails.PoolMgmtImage = cstorPoolMgmtImage
 	patchDetails.MExporterImage = MExporterImage
+	if imageTag != "" {
+		patchDetails.ImageTag = imageTag
+	} else {
+		patchDetails.ImageTag = upgradeVersion
+	}
 	return patchDetails, nil
 }
 
@@ -62,7 +67,7 @@ func cspUpgrade(cspName, openebsNamespace string) error {
 
 	cspObj, err := cspClient.Get(cspName, metav1.GetOptions{})
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get csp %s", cspName)
 	}
 	cspVersion := cspObj.Labels["openebs.io/version"]
 	if (cspVersion != currentVersion) && (cspVersion != upgradeVersion) {
@@ -76,7 +81,7 @@ func cspUpgrade(cspName, openebsNamespace string) error {
 	cspLabel := "openebs.io/cstor-pool=" + cspName
 	cspDeployObj, err := getDeployment(cspLabel, openebsNamespace)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get deployment for csp %s", cspName)
 	}
 	if cspDeployObj.Name == "" {
 		return errors.Errorf("missing deployment name for csp %s", cspName)
@@ -96,11 +101,11 @@ func cspUpgrade(cspName, openebsNamespace string) error {
 	if cspVersion == currentVersion {
 		tmpl, err := template.New("cspPatch").Parse(openebsVersionPatchTemplate)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to create template for csp patch")
 		}
 		err = tmpl.Execute(&buffer, upgradeVersion)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to populate template for csp patch")
 		}
 		cspPatch := buffer.String()
 		buffer.Reset()
@@ -110,7 +115,7 @@ func cspUpgrade(cspName, openebsNamespace string) error {
 			[]byte(cspPatch),
 		)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to patch csp %s", cspName)
 		}
 		fmt.Printf("patched csp %s\n", cspName)
 	} else {
@@ -125,11 +130,11 @@ func cspUpgrade(cspName, openebsNamespace string) error {
 		patchDetails.UpgradeVersion = upgradeVersion
 		tmpl, err := template.New("cspDeployPatch").Parse(cspDeployPatchTemplate)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to create template for csp deployment patch")
 		}
 		err = tmpl.Execute(&buffer, patchDetails)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to populate template for csp deployment patch")
 		}
 		cspDeployPatch := buffer.String()
 		buffer.Reset()
@@ -140,7 +145,7 @@ func cspUpgrade(cspName, openebsNamespace string) error {
 			[]byte(cspDeployPatch),
 		)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to patch deployment %s", cspDeployObj.Name)
 		}
 		fmt.Printf("patched csp deployment %s\n", cspName)
 	} else {

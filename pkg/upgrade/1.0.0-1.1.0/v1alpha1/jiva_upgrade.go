@@ -18,12 +18,9 @@ package v1alpha1
 
 import (
 	"fmt"
-	"strings"
 	"text/template"
-	"time"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
-	retry "github.com/openebs/maya/pkg/util/retry"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -33,11 +30,11 @@ import (
 )
 
 type replicaPatchDetails struct {
-	UpgradeVersion, PVName, ReplicaContainerName, ReplicaImage string
+	UpgradeVersion, ImageTag, PVName, ReplicaContainerName, ReplicaImage string
 }
 
 type controllerPatchDetails struct {
-	UpgradeVersion, ControllerContainerName, ControllerImage, MExporterImage string
+	UpgradeVersion, ImageTag, ControllerContainerName, ControllerImage, MExporterImage string
 }
 
 type replicaDetails struct {
@@ -50,32 +47,11 @@ type controllerDetails struct {
 	version, name string
 }
 
-func getOpenEBSVersion(d *appsv1.Deployment) (string, error) {
-	if d.Labels["openebs.io/version"] == "" {
-		return "", errors.Errorf("missing openebs version")
-	}
-	return d.Labels["openebs.io/version"], nil
-}
-
-func getDeployment(labels, namespace string) (*appsv1.Deployment, error) {
-	deployList, err := deployClient.WithNamespace(namespace).List(
-		&metav1.ListOptions{
-			LabelSelector: labels,
-		})
-	if err != nil {
-		return nil, err
-	}
-	if len(deployList.Items) == 0 {
-		return nil, errors.Errorf("no deployments found for %s", labels)
-	}
-	return &(deployList.Items[0]), nil
-}
-
 func getReplicaPatchDetails(d *appsv1.Deployment) (
 	*replicaPatchDetails,
 	error,
 ) {
-	rd := &replicaPatchDetails{}
+	patchDetails := &replicaPatchDetails{}
 	// verify delpoyment name
 	if d.Name == "" {
 		return nil, errors.New("missing deployment name")
@@ -84,20 +60,25 @@ func getReplicaPatchDetails(d *appsv1.Deployment) (
 	if err != nil {
 		return nil, err
 	}
-	rd.ReplicaContainerName = name
-	image, err := getBaseImage(d, rd.ReplicaContainerName)
+	patchDetails.ReplicaContainerName = name
+	image, err := getBaseImage(d, patchDetails.ReplicaContainerName)
 	if err != nil {
 		return nil, err
 	}
-	rd.ReplicaImage = image
-	return rd, nil
+	patchDetails.ReplicaImage = image
+	if imageTag != "" {
+		patchDetails.ImageTag = imageTag
+	} else {
+		patchDetails.ImageTag = upgradeVersion
+	}
+	return patchDetails, nil
 }
 
 func getControllerPatchDetails(d *appsv1.Deployment) (
 	*controllerPatchDetails,
 	error,
 ) {
-	rd := &controllerPatchDetails{}
+	patchDetails := &controllerPatchDetails{}
 	// verify delpoyment name
 	if d.Name == "" {
 		return nil, errors.New("missing deployment name")
@@ -106,83 +87,30 @@ func getControllerPatchDetails(d *appsv1.Deployment) (
 	if err != nil {
 		return nil, err
 	}
-	rd.ControllerContainerName = name
-	image, err := getBaseImage(d, rd.ControllerContainerName)
+	patchDetails.ControllerContainerName = name
+	image, err := getBaseImage(d, patchDetails.ControllerContainerName)
 	if err != nil {
 		return nil, err
 	}
-	rd.ControllerImage = image
+	patchDetails.ControllerImage = image
 	image, err = getBaseImage(d, "maya-volume-exporter")
 	if err != nil {
 		return nil, err
 	}
-	rd.MExporterImage = image
-	return rd, nil
-}
-
-func patchDelpoyment(
-	deployName,
-	namespace string,
-	pt types.PatchType,
-	data []byte,
-) error {
-	_, err := deployClient.WithNamespace(namespace).Patch(
-		deployName,
-		pt,
-		data,
-	)
-	if err != nil {
-		return err
+	patchDetails.MExporterImage = image
+	if imageTag != "" {
+		patchDetails.ImageTag = imageTag
+	} else {
+		patchDetails.ImageTag = upgradeVersion
 	}
-
-	err = retry.
-		Times(60).
-		Wait(5 * time.Second).
-		Try(func(attempt uint) error {
-			rolloutStatus, err1 := deployClient.WithNamespace(namespace).
-				RolloutStatus(deployName)
-			if err != nil {
-				return err1
-			}
-			if !rolloutStatus.IsRolledout {
-				return errors.Errorf("failed to rollout %s", rolloutStatus.Message)
-			}
-			return nil
-		})
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func getContainerName(d *appsv1.Deployment) (string, error) {
-	containerList := d.Spec.Template.Spec.Containers
-	// verify length of container list
-	if len(containerList) == 0 {
-		return "", errors.New("missing container")
-	}
-	name := containerList[0].Name
-	// verify replica container name
-	if name == "" {
-		return "", errors.New("missing container name")
-	}
-	return name, nil
-}
-
-func getBaseImage(deployObj *appsv1.Deployment, name string) (string, error) {
-	for _, con := range deployObj.Spec.Template.Spec.Containers {
-		if con.Name == name {
-			return strings.Split(con.Image, ":")[0], nil
-		}
-	}
-	return "", errors.Errorf("image not found for %s", name)
+	return patchDetails, nil
 }
 
 func getReplica(replicaLabel, namespace string) (*replicaDetails, error) {
 	replicaObj := &replicaDetails{}
 	deployObj, err := getDeployment(replicaLabel, namespace)
 	if err != nil {
-		return nil, errors.Errorf("failed to get replica deployment")
+		return nil, errors.Wrapf(err, "failed to get replica deployment")
 	}
 	if deployObj.Name == "" {
 		return nil, errors.Errorf("missing deployment name for replica")
@@ -214,7 +142,7 @@ func getController(controllerLabel, namespace string) (*controllerDetails, error
 	controllerObj := &controllerDetails{}
 	deployObj, err := getDeployment(controllerLabel, namespace)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get controller deployment")
 	}
 	if deployObj.Name == "" {
 		return nil, errors.Errorf("missing deployment name for controller")
@@ -246,11 +174,11 @@ func patchReplica(replicaObj *replicaDetails, namespace string) error {
 	if replicaObj.version == currentVersion {
 		tmpl, err := template.New("replicaPatch").Parse(replicaPatchTemplate)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to create template for replica patch")
 		}
 		err = tmpl.Execute(&buffer, replicaObj.patchDetails)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to populate template for replica patch")
 		}
 		replicaPatch := buffer.String()
 		buffer.Reset()
@@ -261,7 +189,7 @@ func patchReplica(replicaObj *replicaDetails, namespace string) error {
 			[]byte(replicaPatch),
 		)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to patch replica deployment")
 		}
 		fmt.Println(replicaObj.name, " patched")
 	} else {
@@ -274,11 +202,11 @@ func patchController(controllerObj *controllerDetails, namespace string) error {
 	if controllerObj.version == currentVersion {
 		tmpl, err := template.New("controllerPatch").Parse(targetPatchTemplate)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to create template for controller patch")
 		}
 		err = tmpl.Execute(&buffer, controllerObj.patchDetails)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to populate template for controller patch")
 		}
 		controllerPatch := buffer.String()
 		buffer.Reset()
@@ -289,7 +217,7 @@ func patchController(controllerObj *controllerDetails, namespace string) error {
 			[]byte(controllerPatch),
 		)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to patch replica deployment")
 		}
 		fmt.Println(controllerObj.name, " patched")
 	} else {
@@ -356,7 +284,7 @@ func jivaUpgrade(pvName, openebsNamespace string) error {
 
 	ns, err = getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to get namespace for pvc deployments")
 	}
 
 	// fetching replica deployment details
