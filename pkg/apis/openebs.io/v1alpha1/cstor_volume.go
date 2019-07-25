@@ -105,6 +105,8 @@ const (
 	ConditionInProgress ConditionStatus = "InProgress"
 	// ConditionSuccess means corresponding condition is success
 	ConditionSuccess ConditionStatus = "Success"
+	// ConditionFailure means corresponding condition is failure
+	ConditionFailure ConditionStatus = "Failure"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

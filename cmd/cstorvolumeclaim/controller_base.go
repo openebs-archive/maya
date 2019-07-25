@@ -222,8 +222,9 @@ func (c *CVCController) updateCVC(oldObj, newObj interface{}) {
 		return
 	}
 
-	newSize := newCVC.Spec.Capacity[corev1.ResourceStorage]
-	oldSize := oldCVC.Spec.Capacity[corev1.ResourceStorage]
+	//newSize := newCVC.Spec.Capacity[corev1.ResourceStorage]
+	//oldSize := oldCVC.Spec.Capacity[corev1.ResourceStorage]
+
 	// We perform additional checks to avoid double processing of CVCs, as we will also receive Update event when:
 	// 1. Administrator/Users may introduce other changes(such as add labels, modify annotations, etc.)
 	//    unrelated to volume resize.
@@ -232,9 +233,9 @@ func (c *CVCController) updateCVC(oldObj, newObj interface{}) {
 	// We add the CVC into work queue when the new size is larger then the old size
 	// or when CVC status is not "Bound".
 
-	if newSize.Cmp(oldSize) > 0 || newCVC.Status.Phase != apis.CStorVolumeClaimPhaseBound {
-		c.enqueueCVC(newCVC)
-	}
+	//	if newSize.Cmp(oldSize) > 0 || newCVC.Status.Phase != apis.CStorVolumeClaimPhaseBound {
+	c.enqueueCVC(newCVC)
+	//	}
 }
 
 // deleteCVC is the delete event handler for CstorVolumeClaim

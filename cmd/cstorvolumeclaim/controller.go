@@ -191,7 +191,7 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 		return err
 	}
 
-	if c.cvcNeedResize(cvc, cv) {
+	if c.cvcNeedResize(cvc) {
 		err = c.resizeCVC(cvc, cv)
 	}
 	if err != nil {
@@ -393,7 +393,13 @@ func BaseLabels(cvc *apis.CStorVolumeClaim) map[string]string {
 }
 
 // cvcNeedResize returns true is a cvc requests a resize operation.
-func (c *CVCController) cvcNeedResize(cvc *apis.CStorVolumeClaim, cv *apis.CStorVolume) bool {
+func (c *CVCController) cvcNeedResize(cvc *apis.CStorVolumeClaim) bool {
+	cv, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cvc.Namespace).
+		Get(cvc.Name, metav1.GetOptions{})
+	if err != nil {
+		runtime.HandleError(fmt.Errorf("falied to get cv %s: %v", cvc.Name, err))
+		return false
+	}
 
 	actualSize, err := resource.ParseQuantity(cv.Spec.Capacity)
 	if err != nil {
@@ -410,7 +416,7 @@ func (c *CVCController) cvcNeedResize(cvc *apis.CStorVolumeClaim, cv *apis.CStor
 // 3. Mark cvc as resizing finished
 func (c *CVCController) resizeCVC(cvc *apis.CStorVolumeClaim, cv *apis.CStorVolume) error {
 	if updatedCVC, err := c.markCVCResizeInProgress(cvc); err != nil {
-		glog.Errorf("Mark cvc %q as resizing failed: %v", cvc.Name, err)
+		glog.Errorf("mark cvc %q as resizing failed: %v", cvc.Name, err)
 		return err
 	} else if updatedCVC != nil {
 		cvc = updatedCVC
