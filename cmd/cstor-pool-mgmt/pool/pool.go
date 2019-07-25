@@ -94,7 +94,7 @@ func ImportPool(cStorPool *apis.CStorPool, importOptions *ImportOptions) (string
 		importOptions.CachefileFlag, importOptions.DevPath, importOptions.dontImport,
 		importAttr, string(stdoutStderr))
 
-	poolName := string(PoolPrefix)+string(cStorPool.ObjectMeta.UID)
+	poolName := string(PoolPrefix) + string(cStorPool.ObjectMeta.UID)
 	statusPoolStr := []string{"status", poolName}
 	stdoutStderr1, err1 := RunnerVar.RunCombinedOutput(zpool.PoolOperator, statusPoolStr...)
 	if err1 != nil {
