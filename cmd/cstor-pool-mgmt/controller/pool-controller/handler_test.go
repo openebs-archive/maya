@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
+	pool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 )
 
 // TestGetPoolResource checks if pool resource created is successfully got.
@@ -403,7 +404,7 @@ func TestGetDevPath(t *testing.T) {
 		"/dev/by-id/disk/": "/dev/by-id/disk",
 	}
 	for ip, op := range testGetDevPath {
-		obtainedOutput := GetDevPath(ip)
+		obtainedOutput := pool.GetDevPath(ip)
 		if obtainedOutput != op {
 			t.Fatalf("IP:%v, OP:%v, Got:%v", ip, op, obtainedOutput)
 		}

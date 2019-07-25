@@ -177,6 +177,10 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 		return string(apis.CStorPoolStatusOffline), fmt.Errorf("Poolname/UID cannot be empty")
 	}
 
+	if cStorPoolGot.Spec.PoolSpec.CacheFile == "" {
+		cStorPoolGot.Spec.PoolSpec.CacheFile = "/tmp/pool1.cache"
+	}
+
 	/* 	If pool is already present.
 	Pool CR status is online. This means pool (main car) is running successfully,
 	but watcher container got restarted.

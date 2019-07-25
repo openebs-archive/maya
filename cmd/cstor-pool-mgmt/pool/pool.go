@@ -62,8 +62,15 @@ const (
 )
 
 type ImportOptions struct {
+	// CachefileFlag option to use cachefile for import
 	CachefileFlag bool
+
+	// DevPath is directory where pool devices resides
 	DevPath string
+
+	// dontImport, being true, makes sure `zpool import` command is built
+	// without pool name.
+	// This way, we know the existence of pool without importing pool
 	dontImport bool
 }
 
@@ -78,12 +85,13 @@ func ImportPool(cStorPool *apis.CStorPool, importOptions *ImportOptions) (string
 
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, importAttr...)
 	if err != nil {
-		glog.Errorf("Unable to import pool with devPath: %v, %v devpath: %v cachefile: %v", err.Error(),
+		glog.Errorf("Unable to import pool: %v, %v devpath: %v cacheflag: %v", err.Error(),
 			string(stdoutStderr), importOptions.DevPath, importOptions.CachefileFlag)
 		return string(stdoutStderr), err
 	}
 
-	glog.Infof("Import command successful with %v %v dontimport: %v", importOptions.CachefileFlag, importOptions.DevPath, importOptions.dontImport)
+	glog.Infof("Import command successful with %v %v dontimport: %v", importOptions.CachefileFlag,
+		importOptions.DevPath, importOptions.dontImport)
 	return string(stdoutStderr), nil
 }
 
@@ -104,13 +112,16 @@ func importPoolBuilder(cStorPool *apis.CStorPool, importOptions *ImportOptions) 
 
 	importAttr = append(importAttr, "import")
 	if cStorPool.Spec.PoolSpec.CacheFile != "" && cachefileFlag {
-		importAttr = append(importAttr, "-c", cStorPool.Spec.PoolSpec.CacheFile,
-			"-o", cStorPool.Spec.PoolSpec.CacheFile)
+		importAttr = append(importAttr, "-c", cStorPool.Spec.PoolSpec.CacheFile)
 	}
+
+	importAttr = append(importAttr, "-o cachefile=", cStorPool.Spec.PoolSpec.CacheFile)
+
 	if devPath != "" {
 		importAttr = append(importAttr, "-d", devPath)
 	}
 
+	// if dontImport is set to false, build `zpool import` with poolname so that pool gets imported
 	if importOptions.dontImport == false {
 		importAttr = append(importAttr, string(PoolPrefix)+string(cStorPool.ObjectMeta.UID))
 	}
@@ -131,11 +142,13 @@ func GetDevPath(devid string) string {
 func checkForPoolExistence(cStorPool *apis.CStorPool, blockDeviceList []string) bool {
 	var importOptions ImportOptions
 
+	// First device in the list is picked under assumption that all pool devices resides
+	// in same place.
 	importOptions.DevPath = GetDevPath(blockDeviceList[0])
 	importOptions.dontImport = true
 	stdoutStderr, _ := ImportPool(cStorPool, &importOptions)
 	glog.Infof("checkForPoolExistence output: %v", stdoutStderr)
-	if strings.Contains(stdoutStderr, string(PoolPrefix) + string(cStorPool.ObjectMeta.UID)) {
+	if strings.Contains(stdoutStderr, string(PoolPrefix)+string(cStorPool.ObjectMeta.UID)) {
 		return true
 	}
 	return false
