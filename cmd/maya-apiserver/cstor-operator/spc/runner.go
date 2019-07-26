@@ -31,7 +31,6 @@ import (
 // is closed, at which point it will shutdown the workqueue and wait for
 // workers to finish processing their current work items.
 func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
-	defer runtime.HandleCrash()
 	defer c.workqueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches

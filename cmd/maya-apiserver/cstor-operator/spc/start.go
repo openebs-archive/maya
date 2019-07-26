@@ -41,31 +41,42 @@ var (
 
 // Start starts the cstor-operator.
 func Start(controllerMtx *sync.RWMutex) error {
+	var err error
+	defer func() {
+		if err != nil {
+			glog.Fatal(err)
+		}
+	}()
+
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
 
 	// Get in cluster config
 	cfg, err := getClusterConfig(kubeconfig)
 	if err != nil {
-		return errors.Wrap(err, "error building kubeconfig")
+		err = errors.Wrap(err, "error building kubeconfig")
+		return err
 	}
 
 	// Building Kubernetes Clientset
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return errors.Wrap(err, "error building kubernetes clientset")
+		err = errors.Wrap(err, "error building kubernetes clientset")
+		return err
 	}
 
 	// Building OpenEBS Clientset
 	openebsClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		return errors.Wrap(err, "error building openebs clientset")
+		err = errors.Wrap(err, "error building openebs clientset")
+		return err
 	}
 
 	// Building NDM Clientset
 	ndmClient, err := ndmclientset.NewForConfig(cfg)
 	if err != nil {
-		return errors.Wrap(err, "error building ndm clientset")
+		err = errors.Wrap(err, "error building ndm clientset")
+		return err
 	}
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
@@ -91,14 +102,16 @@ func Start(controllerMtx *sync.RWMutex) error {
 	controllerMtx.Unlock()
 
 	if err != nil {
-		return errors.Wrapf(err, "error building controller instance")
+		err = errors.Wrapf(err, "error building controller instance")
+		return err
 	}
 
 	go kubeInformerFactory.Start(stopCh)
 	go spcInformerFactory.Start(stopCh)
 
 	// Threadiness defines the number of workers to be launched in Run function
-	return controller.Run(2, stopCh)
+	err = controller.Run(2, stopCh)
+	return err
 }
 
 // Cannot be unit tested
