@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
+	pool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
@@ -388,6 +389,24 @@ func TestIsOnlyStatusChange(t *testing.T) {
 		if obtainedOutput != ut.expectedOutput {
 			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedOutput,
 				obtainedOutput)
+		}
+	}
+}
+
+func TestGetDevPath(t *testing.T) {
+	testGetDevPath := map[string]string{
+		"abcd":             "abcd",
+		"/dev":             "",
+		"/dev/":            "/dev",
+		"/dev/disk":        "/dev",
+		"/dev/disk/":       "/dev/disk",
+		"/dev/by-id/disk":  "/dev/by-id",
+		"/dev/by-id/disk/": "/dev/by-id/disk",
+	}
+	for ip, op := range testGetDevPath {
+		obtainedOutput := pool.GetDevPath(ip)
+		if obtainedOutput != op {
+			t.Fatalf("IP:%v, OP:%v, Got:%v", ip, op, obtainedOutput)
 		}
 	}
 }
