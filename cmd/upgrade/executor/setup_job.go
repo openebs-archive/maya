@@ -40,6 +40,7 @@ func NewJob() *cobra.Command {
 
 	cmd.AddCommand(
 		NewUpgradeJivaVolumeJob(),
+		NewUpgradeCStorSPCJob(),
 	)
 
 	cmd.PersistentFlags().StringVarP(&options.fromVersion,

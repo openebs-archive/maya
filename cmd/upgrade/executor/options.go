@@ -31,6 +31,7 @@ type UpgradeOptions struct {
 	toVersionImageTag string
 	resourceKind      string
 	JivaVolumeOptions
+	cStorSPCOptions
 }
 
 var (
@@ -56,6 +57,16 @@ func (u *UpgradeOptions) RunPreFlightChecks(cmd *cobra.Command) error {
 
 	if len(strings.TrimSpace(u.resourceKind)) == 0 {
 		return errors.Errorf("Cannot execute upgrade job: resource details are missing")
+	}
+
+	return nil
+}
+
+// InitializeDefaults will ensure the default values for optional options are
+// set.
+func (u *UpgradeOptions) InitializeDefaults(cmd *cobra.Command) error {
+	if len(strings.TrimSpace(u.toVersionImageTag)) == 0 {
+		u.toVersionImageTag = u.toVersion
 	}
 
 	return nil

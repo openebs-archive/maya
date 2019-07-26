@@ -28,55 +28,55 @@ import (
 	upgrade100to110 "github.com/openebs/maya/pkg/upgrade/1.0.0-1.1.0/v1alpha1"
 )
 
-// JivaVolumeOptions stores information required for jiva volume upgrade
-type JivaVolumeOptions struct {
-	jivaPVName string
+// CStorSPCOptions stores information required for cstor SPC upgrade
+type cStorSPCOptions struct {
+	cstorSPCName string
 }
 
 var (
-	jivaVolumeUpgradeCmdHelpText = `
-This command upgrades the Jiva Persistent Volume
+	cstorSPCUpgradeCmdHelpText = `
+This command upgrades the cStor SPC 
 
-Usage: upgrade jiva-volume --volname <pv-name> --options...
+Usage: upgrade cstor-spc --spc-name <spc-name> --options...
 `
 )
 
-// NewUpgradeJivaVolumeJob upgrade a Jiva Volume
-func NewUpgradeJivaVolumeJob() *cobra.Command {
+// NewUpgradeCStorSPCJob upgrade a Jiva Volume
+func NewUpgradeCStorSPCJob() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "jiva-volume",
-		Short:   "Upgrade Jiva Volume",
-		Long:    jivaVolumeUpgradeCmdHelpText,
-		Example: `upgrade jiva-volume --pv-name <pv-name>`,
+		Use:     "cstor-spc",
+		Short:   "Upgrade cStor SPC",
+		Long:    cstorSPCUpgradeCmdHelpText,
+		Example: `upgrade cstor-spc --spc-name <spc-name>`,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
-			util.CheckErr(options.RunJivaVolumeUpgradeChecks(cmd), util.Fatal)
+			util.CheckErr(options.RunCStorSPCUpgradeChecks(cmd), util.Fatal)
 			util.CheckErr(options.InitializeDefaults(cmd), util.Fatal)
-			util.CheckErr(options.RunJivaVolumeUpgrade(cmd), util.Fatal)
+			util.CheckErr(options.RunCStorSPCUpgrade(cmd), util.Fatal)
 		},
 	}
 
-	options.resourceKind = "jivaVolume"
+	options.resourceKind = "storagePoolClaim"
 
-	cmd.Flags().StringVarP(&options.jivaPVName,
-		"pv-name", "",
-		options.jivaPVName,
-		"jiva persistent volume name to be upgraded, as obtained using: kubectl get pv")
+	cmd.Flags().StringVarP(&options.cstorSPCName,
+		"spc-name", "",
+		options.cstorSPCName,
+		"cstor SPC name to be upgraded. Run \"kubectl get spc\", to get spc-name")
 
 	return cmd
 }
 
-// RunJivaVolumeUpgradeChecks will ensure the sanity of the jiva upgrade options
-func (u *UpgradeOptions) RunJivaVolumeUpgradeChecks(cmd *cobra.Command) error {
-	if len(strings.TrimSpace(u.jivaPVName)) == 0 {
-		return errors.Errorf("Cannot execute upgrade job: jiva pv name is missing")
+// RunCStorSPCUpgradeChecks will ensure the sanity of the cstor SPC upgrade options
+func (u *UpgradeOptions) RunCStorSPCUpgradeChecks(cmd *cobra.Command) error {
+	if len(strings.TrimSpace(u.cstorSPCName)) == 0 {
+		return errors.Errorf("Cannot execute upgrade job: cstor spc name is missing")
 	}
 
 	return nil
 }
 
-// RunJivaVolumeUpgrade upgrades the given Jiva Volume.
-func (u *UpgradeOptions) RunJivaVolumeUpgrade(cmd *cobra.Command) error {
+// RunCStorSPCUpgrade upgrades the given Jiva Volume.
+func (u *UpgradeOptions) RunCStorSPCUpgrade(cmd *cobra.Command) error {
 
 	from := strings.Split(u.fromVersion, "-")[0]
 	to := strings.Split(u.toVersion, "-")[0]
@@ -85,23 +85,23 @@ func (u *UpgradeOptions) RunJivaVolumeUpgrade(cmd *cobra.Command) error {
 	case "0.9.0-1.0.0":
 		fmt.Println("Upgrading to 1.0.0")
 		err := upgrade090to100.Exec(u.resourceKind,
-			u.jivaPVName,
+			u.cstorSPCName,
 			u.openebsNamespace)
 		if err != nil {
 			fmt.Println(err)
-			return errors.Errorf("Failed to upgrade Jiva Volume %v:", u.jivaPVName)
+			return errors.Errorf("Failed to upgrade cStor SPC %v:", u.cstorSPCName)
 		}
 	case "1.0.0-1.1.0":
 		fmt.Println("Upgrading to 1.1.0")
 		err := upgrade100to110.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
-			u.jivaPVName,
+			u.cstorSPCName,
 			u.openebsNamespace,
 			u.imageURLPrefix,
 			u.toVersionImageTag)
 		if err != nil {
 			fmt.Println(err)
-			return errors.Errorf("Failed to upgrade Jiva Volume %v:", u.jivaPVName)
+			return errors.Errorf("Failed to upgrade cStor SPC %v:", u.cstorSPCName)
 		}
 	default:
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)
