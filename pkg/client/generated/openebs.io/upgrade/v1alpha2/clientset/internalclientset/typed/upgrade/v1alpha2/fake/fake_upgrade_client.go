@@ -24,17 +24,17 @@ import (
 	testing "k8s.io/client-go/testing"
 )
 
-type FakeUpgradeV1alpha2 struct {
+type FakeOpenebsV1alpha2 struct {
 	*testing.Fake
 }
 
-func (c *FakeUpgradeV1alpha2) UpgradeTasks(namespace string) v1alpha2.UpgradeTaskInterface {
+func (c *FakeOpenebsV1alpha2) UpgradeTasks(namespace string) v1alpha2.UpgradeTaskInterface {
 	return &FakeUpgradeTasks{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeUpgradeV1alpha2) RESTClient() rest.Interface {
+func (c *FakeOpenebsV1alpha2) RESTClient() rest.Interface {
 	var ret *rest.RESTClient
 	return ret
 }

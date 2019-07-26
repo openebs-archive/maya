@@ -54,7 +54,7 @@ type upgradeTasks struct {
 }
 
 // newUpgradeTasks returns a UpgradeTasks
-func newUpgradeTasks(c *UpgradeV1alpha2Client, namespace string) *upgradeTasks {
+func newUpgradeTasks(c *OpenebsV1alpha2Client, namespace string) *upgradeTasks {
 	return &upgradeTasks{
 		client: c.RESTClient(),
 		ns:     namespace,

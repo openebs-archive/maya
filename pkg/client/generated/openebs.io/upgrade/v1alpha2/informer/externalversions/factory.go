@@ -172,9 +172,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Upgrade() upgrade.Interface
+	Openebs() upgrade.Interface
 }
 
-func (f *sharedInformerFactory) Upgrade() upgrade.Interface {
+func (f *sharedInformerFactory) Openebs() upgrade.Interface {
 	return upgrade.New(f, f.namespace, f.tweakListOptions)
 }

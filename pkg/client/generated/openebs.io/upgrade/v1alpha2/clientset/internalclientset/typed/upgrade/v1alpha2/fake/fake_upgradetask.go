@@ -30,13 +30,13 @@ import (
 
 // FakeUpgradeTasks implements UpgradeTaskInterface
 type FakeUpgradeTasks struct {
-	Fake *FakeUpgradeV1alpha2
+	Fake *FakeOpenebsV1alpha2
 	ns   string
 }
 
-var upgradetasksResource = schema.GroupVersionResource{Group: "upgrade", Version: "v1alpha2", Resource: "upgradetasks"}
+var upgradetasksResource = schema.GroupVersionResource{Group: "openebs.io", Version: "v1alpha2", Resource: "upgradetasks"}
 
-var upgradetasksKind = schema.GroupVersionKind{Group: "upgrade", Version: "v1alpha2", Kind: "UpgradeTask"}
+var upgradetasksKind = schema.GroupVersionKind{Group: "openebs.io", Version: "v1alpha2", Kind: "UpgradeTask"}
 
 // Get takes name of the upgradeTask, and returns the corresponding upgradeTask object, and an error if there is any.
 func (c *FakeUpgradeTasks) Get(name string, options v1.GetOptions) (result *v1alpha2.UpgradeTask, err error) {

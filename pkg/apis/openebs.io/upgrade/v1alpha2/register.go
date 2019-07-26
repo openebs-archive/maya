@@ -17,23 +17,42 @@ limitations under the License.
 package v1alpha2
 
 import (
+	openebsio "github.com/openebs/maya/pkg/apis/openebs.io"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
 )
 
-var (
-	// SchemeGroupVersion defines the group version
-	// for upgrade
-	SchemeGroupVersion = schema.GroupVersion{Group: "openebs.io", Version: "v1alpha2"}
+// SchemeGroupVersion is group version used to register these objects
+var SchemeGroupVersion = schema.GroupVersion{Group: openebsio.GroupName, Version: "v1alpha2"}
 
-	// SchemeBuilder for upgrade
-	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
-
-	// AddToScheme function for upgrade is required by pkg/client/...
-	AddToScheme = SchemeBuilder.AddToScheme
-)
-
-// Resource is required by pkg/client/listers/...
+// Resource takes an unqualified resource and returns a Group qualified GroupResource
 func Resource(resource string) schema.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
+}
+
+var (
+	// SchemeBuilder is the scheme builder with scheme init functions to run for this API package
+	SchemeBuilder runtime.SchemeBuilder
+
+	localSchemeBuilder = &SchemeBuilder
+	// AddToScheme is a global function that registers this API group & version to a scheme
+	AddToScheme = localSchemeBuilder.AddToScheme
+)
+
+func init() {
+	// We only register manually written functions here. The registration of the
+	// generated functions takes place in the generated files. The separation
+	// makes the code compile even when the generated files are missing.
+	localSchemeBuilder.Register(addKnownTypes)
+}
+
+// Adds the list of known types to api.Scheme.
+func addKnownTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(SchemeGroupVersion,
+		&UpgradeTask{},
+		&UpgradeTaskList{},
+	)
+	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
+	return nil
 }

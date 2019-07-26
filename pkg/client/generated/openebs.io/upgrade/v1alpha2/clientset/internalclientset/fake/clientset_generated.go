@@ -20,8 +20,8 @@ package fake
 
 import (
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha2/clientset/internalclientset"
-	upgradev1alpha2 "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha2/clientset/internalclientset/typed/upgrade/v1alpha2"
-	fakeupgradev1alpha2 "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha2/clientset/internalclientset/typed/upgrade/v1alpha2/fake"
+	openebsv1alpha2 "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha2/clientset/internalclientset/typed/upgrade/v1alpha2"
+	fakeopenebsv1alpha2 "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha2/clientset/internalclientset/typed/upgrade/v1alpha2/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -71,12 +71,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// UpgradeV1alpha2 retrieves the UpgradeV1alpha2Client
-func (c *Clientset) UpgradeV1alpha2() upgradev1alpha2.UpgradeV1alpha2Interface {
-	return &fakeupgradev1alpha2.FakeUpgradeV1alpha2{Fake: &c.Fake}
+// OpenebsV1alpha2 retrieves the OpenebsV1alpha2Client
+func (c *Clientset) OpenebsV1alpha2() openebsv1alpha2.OpenebsV1alpha2Interface {
+	return &fakeopenebsv1alpha2.FakeOpenebsV1alpha2{Fake: &c.Fake}
 }
 
-// Upgrade retrieves the UpgradeV1alpha2Client
-func (c *Clientset) Upgrade() upgradev1alpha2.UpgradeV1alpha2Interface {
-	return &fakeupgradev1alpha2.FakeUpgradeV1alpha2{Fake: &c.Fake}
+// Openebs retrieves the OpenebsV1alpha2Client
+func (c *Clientset) Openebs() openebsv1alpha2.OpenebsV1alpha2Interface {
+	return &fakeopenebsv1alpha2.FakeOpenebsV1alpha2{Fake: &c.Fake}
 }

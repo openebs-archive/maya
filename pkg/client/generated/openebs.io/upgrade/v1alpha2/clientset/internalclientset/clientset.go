@@ -19,7 +19,7 @@ limitations under the License.
 package internalclientset
 
 import (
-	upgradev1alpha2 "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha2/clientset/internalclientset/typed/upgrade/v1alpha2"
+	openebsv1alpha2 "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha2/clientset/internalclientset/typed/upgrade/v1alpha2"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -27,27 +27,27 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	UpgradeV1alpha2() upgradev1alpha2.UpgradeV1alpha2Interface
+	OpenebsV1alpha2() openebsv1alpha2.OpenebsV1alpha2Interface
 	// Deprecated: please explicitly pick a version if possible.
-	Upgrade() upgradev1alpha2.UpgradeV1alpha2Interface
+	Openebs() openebsv1alpha2.OpenebsV1alpha2Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	upgradeV1alpha2 *upgradev1alpha2.UpgradeV1alpha2Client
+	openebsV1alpha2 *openebsv1alpha2.OpenebsV1alpha2Client
 }
 
-// UpgradeV1alpha2 retrieves the UpgradeV1alpha2Client
-func (c *Clientset) UpgradeV1alpha2() upgradev1alpha2.UpgradeV1alpha2Interface {
-	return c.upgradeV1alpha2
+// OpenebsV1alpha2 retrieves the OpenebsV1alpha2Client
+func (c *Clientset) OpenebsV1alpha2() openebsv1alpha2.OpenebsV1alpha2Interface {
+	return c.openebsV1alpha2
 }
 
-// Deprecated: Upgrade retrieves the default version of UpgradeClient.
+// Deprecated: Openebs retrieves the default version of OpenebsClient.
 // Please explicitly pick a version.
-func (c *Clientset) Upgrade() upgradev1alpha2.UpgradeV1alpha2Interface {
-	return c.upgradeV1alpha2
+func (c *Clientset) Openebs() openebsv1alpha2.OpenebsV1alpha2Interface {
+	return c.openebsV1alpha2
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -66,7 +66,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.upgradeV1alpha2, err = upgradev1alpha2.NewForConfig(&configShallowCopy)
+	cs.openebsV1alpha2, err = openebsv1alpha2.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.upgradeV1alpha2 = upgradev1alpha2.NewForConfigOrDie(c)
+	cs.openebsV1alpha2 = openebsv1alpha2.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -91,7 +91,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.upgradeV1alpha2 = upgradev1alpha2.New(c)
+	cs.openebsV1alpha2 = openebsv1alpha2.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs
