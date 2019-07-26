@@ -19,6 +19,7 @@ package v1alpha2
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
+	apicspsc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -46,6 +47,7 @@ func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 		WithRaidGroups(poolSpec.RaidGroups).
 		WithCSPCOwnerReference(ac.CSPC).
 		WithLabelsNew(csplabels).
+		WithFinalizer(apicspsc.CSPCFinalizer).
 		Build()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to build CSP object for node selector {%v}", poolSpec.NodeSelector)

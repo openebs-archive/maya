@@ -43,7 +43,7 @@ func fakeCSPCList(cspcNames []string) []*CSPC {
 	for _, name := range cspcNames {
 		cspc := apisv1alpha1.CStorPoolCluster{}
 		cspc.SetName(name)
-		plist = append(plist, &CSPC{&cspc})
+		plist = append(plist, &CSPC{&cspc, ""})
 	}
 	return plist
 }

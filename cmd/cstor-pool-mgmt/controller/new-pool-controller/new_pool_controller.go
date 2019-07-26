@@ -122,10 +122,6 @@ func NewCStorPoolController(
 			}
 			controller.enqueueCStorPool(csp)
 		},
-		DeleteFunc: func(obj interface{}) {
-			csp := obj.(*apis.NewTestCStorPool)
-			glog.Infof("cStorPool Resource deleted event: %v, %v", csp.ObjectMeta.Name, string(csp.ObjectMeta.UID))
-		},
 	})
 
 	return controller

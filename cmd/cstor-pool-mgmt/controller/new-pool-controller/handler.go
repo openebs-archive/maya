@@ -117,6 +117,7 @@ func (c *CStorPoolController) destroy(csp *apis.NewTestCStorPool) error {
 		phase = apis.CStorPoolStatusDeletionFailed
 		goto updatestatus
 	}
+	glog.Infof("Pool %s deleted successfully", csp.Name)
 	return nil
 
 updatestatus:
@@ -223,7 +224,6 @@ func (c *CStorPoolController) removeFinalizer(csp *apis.NewTestCStorPool) error 
 	if len(csp.Finalizers) == 0 {
 		return nil
 	}
-
 	csp.Finalizers = []string{}
 	_, err := c.clientset.
 		OpenebsV1alpha1().
