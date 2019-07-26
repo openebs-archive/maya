@@ -24,25 +24,25 @@ import (
 
 // UpgradeOptions stores information required for upgrade
 type UpgradeOptions struct {
-	resourceName      string
-	resourceKind      string
 	fromVersion       string
 	toVersion         string
-	namespace         string
+	openebsNamespace  string
 	imageURLPrefix    string
 	toVersionImageTag string
+	resourceKind      string
+	JivaVolumeOptions
 }
 
 var (
 	options = &UpgradeOptions{
-		namespace:      "openebs",
-		imageURLPrefix: "quay.io/openebs/",
+		openebsNamespace: "openebs",
+		imageURLPrefix:   "quay.io/openebs/",
 	}
 )
 
 // RunPreFlightChecks will ensure the sanity of the common upgrade options
 func (u *UpgradeOptions) RunPreFlightChecks(cmd *cobra.Command) error {
-	if len(strings.TrimSpace(u.namespace)) != 0 {
+	if len(strings.TrimSpace(u.openebsNamespace)) != 0 {
 		return errors.Errorf("Cannot execute upgrade job: namespace is missing")
 	}
 
@@ -53,5 +53,10 @@ func (u *UpgradeOptions) RunPreFlightChecks(cmd *cobra.Command) error {
 	if len(strings.TrimSpace(u.toVersion)) == 0 {
 		return errors.Errorf("Cannot execute upgrade job: to-version is missing")
 	}
+
+	if len(strings.TrimSpace(u.resourceKind)) == 0 {
+		return errors.Errorf("Cannot execute upgrade job: resource details are missing")
+	}
+
 	return nil
 }

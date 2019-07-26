@@ -45,27 +45,27 @@ func NewJob() *cobra.Command {
 	cmd.PersistentFlags().StringVarP(&options.fromVersion,
 		"from-version", "",
 		options.fromVersion,
-		"current version of the resource (pool or volume) being upgraded.")
+		"current version of the resource.")
 
 	cmd.PersistentFlags().StringVarP(&options.toVersion,
 		"to-version", "",
 		options.toVersion,
-		"new version to which resource (pool or volume) should be upgraded.")
+		"new version to which resource should be upgraded.")
 
-	cmd.PersistentFlags().StringVarP(&options.namespace,
+	cmd.PersistentFlags().StringVarP(&options.openebsNamespace,
 		"openebs-namespace", "",
-		options.namespace,
-		"namespace where openebs is installed.")
+		options.openebsNamespace,
+		"namespace where openebs components are installed.")
 
 	cmd.PersistentFlags().StringVarP(&options.imageURLPrefix,
 		"to-version-image-prefix", "",
 		options.imageURLPrefix,
-		"custom image prefix, when not using the default.")
+		"[optional] custom image prefix.")
 
 	cmd.PersistentFlags().StringVarP(&options.toVersionImageTag,
 		"to-version-image-tag", "",
 		options.toVersionImageTag,
-		"custom image tag, when not using the default.")
+		"[optional] custom image tag. If not specified, to-version will be used")
 
 	cmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 
@@ -79,6 +79,6 @@ func NewJob() *cobra.Command {
 func PreRun(cmd *cobra.Command, args []string) {
 	namespace := getOpenEBSNamespace()
 	if len(strings.TrimSpace(namespace)) == 0 {
-		options.namespace = namespace
+		options.openebsNamespace = namespace
 	}
 }
