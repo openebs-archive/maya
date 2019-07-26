@@ -29,9 +29,9 @@ import (
 	"github.com/Masterminds/sprig"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
-	poolselection "github.com/openebs/maya/pkg/algorithm/cstorpoolselect/v1alpha1"
+	poolselection "github.com/openebs/maya/pkg/algorithm/cstorpoolselect/v1alpha2"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
-	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha2"
+	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	v1alpha1 "github.com/openebs/maya/pkg/task/v1alpha1"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -720,6 +720,7 @@ func debugf(msg string, args interface{}) (err error) {
 	if args == nil {
 		return errors.Errorf("[Debug (Not for production)]Failed to get debug info, got empty args, msg: %s", msg)
 	}
+	glog.Infof("Printing: %+v\n", args)
 	glog.Infof("[Debug (Not for production)] %s", stringer.Yaml(msg, args))
 	return nil
 }
@@ -894,6 +895,5 @@ func randomize(list []string) []string {
 	for _, randomIdx := range perm {
 		res = append(res, list[randomIdx])
 	}
-
 	return res
 }

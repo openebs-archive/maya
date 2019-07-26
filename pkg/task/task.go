@@ -500,6 +500,8 @@ func (m *executor) ExecuteIt() (err error) {
 		err = m.getOEV1alpha1SP()
 	} else if m.MetaExec.isGetOEV1alpha1CSP() {
 		err = m.getOEV1alpha1CSP()
+	} else if m.MetaExec.isGetOEV1alpha1NCSP() {
+		err = m.getOEV1alpha1NCSP()
 	} else if m.MetaExec.isGetOEV1alpha1UR() {
 		err = m.getOEV1alpha1UR()
 	} else if m.MetaExec.isGetCoreV1PVC() {
@@ -1240,6 +1242,16 @@ func (m *executor) getOEV1alpha1CSP() error {
 	return nil
 }
 
+func (m *executor) getOEV1alpha1NCSP() error {
+	csp, err := m.getK8sClient().GetOEV1alpha1NCSPAsRaw(m.getTaskObjectName())
+	if err != nil {
+		return errors.Wrap(err, "failed to get csp")
+	}
+
+	util.SetNestedField(m.Values, csp, string(v1alpha1.CurrentJSONResultTLP))
+	return nil
+}
+
 // getOEV1alpha1UR will get the UpgradeResult
 // as specified in the RunTask
 func (m *executor) getOEV1alpha1UR() error {
@@ -1625,6 +1637,8 @@ func (m *executor) listK8sResources() (err error) {
 		op, err = kc.ListOEV1alpha1SPRaw(opts)
 	} else if m.MetaExec.isListOEV1alpha1CSP() {
 		op, err = kc.ListOEV1alpha1CSPRaw(opts)
+	} else if m.MetaExec.isListOEV1alpha1NCSP() {
+		op, err = kc.ListOEV1alpha1NCSPRaw(opts)
 	} else if m.MetaExec.isListOEV1alpha1CVR() {
 		op, err = kc.ListOEV1alpha1CVRRaw(opts)
 	} else if m.MetaExec.isListOEV1alpha1CV() {

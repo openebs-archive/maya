@@ -101,6 +101,9 @@ const (
 	// CstorPoolCRKK is a K8s CR of kind CStorPool
 	CStorPoolCRKK K8sKind = "CStorPool"
 
+	// NCStorPoolCRKK is a K8s CR of kind NewTestCStorPool
+	NCStorPoolCRKK K8sKind = "NewTestCStorPool"
+
 	// DiskCRKK is a K8s CR of kind Disk
 	DiskCRKK K8sKind = "Disk"
 
@@ -221,6 +224,11 @@ type K8sClient struct {
 	// NOTE: This property is useful to mock
 	// during unit testing
 	CStorPool *api_oe_v1alpha1.CStorPool
+
+	// NCStorPool refers to a K8s NCStorPool CRD object
+	// NOTE: This property is useful to mock
+	// during unit testing
+	NCStorPool *api_oe_v1alpha1.NewTestCStorPool
 
 	// CStorVolume refers to a K8s CStorVolume CRD object
 	// NOTE: This property is useful to mock
@@ -361,6 +369,12 @@ func (k *K8sClient) oeV1alpha1CSPOps() typed_oe_v1alpha1.CStorPoolInterface {
 	return k.oecs.OpenebsV1alpha1().CStorPools()
 }
 
+// oeV1alpha1NCSPOps is a utility function that provides a instance capable of
+// executing various OpenEBS nCStorPool related operations
+func (k *K8sClient) oeV1alpha1NCSPOps() typed_oe_v1alpha1.NewTestCStorPoolInterface {
+	return k.oecs.OpenebsV1alpha1().NewTestCStorPools(k.ns)
+}
+
 // GetOEV1alpha1CSP fetches the OpenEBS CStorPool specs based on
 // the provided name
 func (k *K8sClient) GetOEV1alpha1CSP(name string) (*api_oe_v1alpha1.CStorPool, error) {
@@ -369,6 +383,17 @@ func (k *K8sClient) GetOEV1alpha1CSP(name string) (*api_oe_v1alpha1.CStorPool, e
 	}
 
 	cspOps := k.oeV1alpha1CSPOps()
+	return cspOps.Get(name, mach_apis_meta_v1.GetOptions{})
+}
+
+// GetOEV1alpha1NCSP fetches the OpenEBS CStorPool specs based on
+// the provided name
+func (k *K8sClient) GetOEV1alpha1NCSP(name string) (*api_oe_v1alpha1.NewTestCStorPool, error) {
+	if k.NCStorPool != nil {
+		return k.NCStorPool, nil
+	}
+
+	cspOps := k.oeV1alpha1NCSPOps()
 	return cspOps.Get(name, mach_apis_meta_v1.GetOptions{})
 }
 
@@ -737,6 +762,16 @@ func (k *K8sClient) GetOEV1alpha1CSPAsRaw(name string) (result []byte, err error
 	return json.Marshal(csp)
 }
 
+// GetOEV1alpha1NCSPAsRaw fetches the OpenEBS nCSP with the provided name
+func (k *K8sClient) GetOEV1alpha1NCSPAsRaw(name string) (result []byte, err error) {
+	csp, err := k.GetOEV1alpha1NCSP(name)
+	if err != nil {
+		return
+	}
+
+	return json.Marshal(csp)
+}
+
 // podOps is a utility function that provides a instance capable of
 // executing various K8s pod related operations.
 func (k *K8sClient) podOps() typed_core_v1.PodInterface {
@@ -863,6 +898,20 @@ func (k *K8sClient) ListOEV1alpha1SPRaw(opts mach_apis_meta_v1.ListOptions) (res
 // provided options
 func (k *K8sClient) ListOEV1alpha1CSPRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
 	cspOps := k.oeV1alpha1CSPOps()
+	cspList, err := cspOps.List(opts)
+	if err != nil {
+		err = errors.WithStack(err)
+		return
+	}
+	result, err = json.Marshal(cspList)
+	err = errors.WithStack(err)
+	return
+}
+
+// ListOEV1alpha1NCSPRaw fetches a list of nCStorPool as per the
+// provided options
+func (k *K8sClient) ListOEV1alpha1NCSPRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+	cspOps := k.oeV1alpha1NCSPOps()
 	cspList, err := cspOps.List(opts)
 	if err != nil {
 		err = errors.WithStack(err)

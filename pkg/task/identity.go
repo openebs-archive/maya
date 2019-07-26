@@ -158,6 +158,10 @@ func (i taskIdentifier) isCstorPool() bool {
 	return i.identity.Kind == string(m_k8s_client.CStorPoolCRKK)
 }
 
+func (i taskIdentifier) isNCstorPool() bool {
+	return i.identity.Kind == string(m_k8s_client.NCStorPoolCRKK)
+}
+
 func (i taskIdentifier) isCstorVolume() bool {
 	return i.identity.Kind == string(m_k8s_client.CStorVolumeCRKK)
 }
@@ -192,6 +196,10 @@ func (i taskIdentifier) isOEV1alpha1BlockDevice() bool {
 
 func (i taskIdentifier) isOEV1alpha1CSP() bool {
 	return i.isOEV1alpha1() && i.isCstorPool()
+}
+
+func (i taskIdentifier) isOEV1alpha1NCSP() bool {
+	return i.isOEV1alpha1() && i.isNCstorPool()
 }
 
 func (i taskIdentifier) isExtnV1B1Deploy() bool {

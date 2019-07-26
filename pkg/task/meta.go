@@ -476,6 +476,10 @@ func (m *MetaExecutor) isGetOEV1alpha1CSP() bool {
 	return m.identifier.isOEV1alpha1CSP() && m.isGet()
 }
 
+func (m *MetaExecutor) isGetOEV1alpha1NCSP() bool {
+	return m.identifier.isOEV1alpha1NCSP() && m.isGet()
+}
+
 func (m *MetaExecutor) isGetOEV1alpha1CSV() bool {
 	return m.identifier.isOEV1alpha1CV() && m.isGet()
 }
@@ -562,6 +566,10 @@ func (m *MetaExecutor) isListOEV1alpha1SP() bool {
 
 func (m *MetaExecutor) isListOEV1alpha1CSP() bool {
 	return m.identifier.isOEV1alpha1CSP() && m.isList()
+}
+
+func (m *MetaExecutor) isListOEV1alpha1NCSP() bool {
+	return m.identifier.isOEV1alpha1NCSP() && m.isList()
 }
 
 func (m *MetaExecutor) isListOEV1alpha1CVR() bool {
