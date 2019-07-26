@@ -129,18 +129,21 @@ func NewCmdStart() *cobra.Command {
 	return cmd
 }
 
-func performPreInflightChecks() error {
+// This fn performs preflight checks related to m-api server
+// so that server can start properly
+func performPreflightChecks() error {
 	return checkForNDMrelatedCRDs()
 }
 
+// checks existence of NDM related CRDs
 func checkForNDMrelatedCRDs() error {
 	_, err := bdc.NewKubeClient().List(metav1.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("precheck for bdc failed: %v", err)
+		return errors.Errorf("precheck for bdc failed: %v", err)
 	}
 	_, err = bd.NewKubeClient().List(metav1.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("precheck for bd failed: %v", err)
+		return errors.Errorf("precheck for bd failed: %v", err)
 	}
 	return nil
 }
@@ -158,9 +161,10 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 
 	//TODO Setup Log Level
 
-	err := performPreInflightChecks()
+	// perform preflight checks
+	err := performPreflightChecks()
 	if err != nil {
-		return fmt.Errorf("preInflight checks failed: %v", err)
+		return errors.Errorf("preflight checks failed: %v", err)
 	}
 
 	// Setup Maya server
