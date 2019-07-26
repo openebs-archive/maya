@@ -34,6 +34,8 @@ import (
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/server"
 	"github.com/openebs/maya/cmd/maya-apiserver/cstor-operator/spc"
+	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
+	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	install "github.com/openebs/maya/pkg/install/v1alpha1"
@@ -41,6 +43,7 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -126,6 +129,22 @@ func NewCmdStart() *cobra.Command {
 	return cmd
 }
 
+func performPreInflightChecks() error {
+	return checkForNDMrelatedCRDs()
+}
+
+func checkForNDMrelatedCRDs() error {
+	_, err := bdc.NewKubeClient().List(metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("precheck for bdc failed: %v", err)
+	}
+	_, err = bd.NewKubeClient().List(metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("precheck for bd failed: %v", err)
+	}
+	return nil
+}
+
 // Run does tasks related to mayaserver.
 func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 	glog.Infof("Initializing maya-apiserver...")
@@ -139,8 +158,13 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 
 	//TODO Setup Log Level
 
+	err := performPreInflightChecks()
+	if err != nil {
+		return fmt.Errorf("preInflight checks failed: %v", err)
+	}
+
 	// Setup Maya server
-	if err := c.setupMayaServer(mconfig); err != nil {
+	if err = c.setupMayaServer(mconfig); err != nil {
 		return err
 	}
 	defer c.maya.Shutdown()

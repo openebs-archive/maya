@@ -31,7 +31,12 @@ import (
 // is closed, at which point it will shutdown the workqueue and wait for
 // workers to finish processing their current work items.
 func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
-	defer runtime.HandleCrash()
+	var err error
+	defer func() {
+		if err != nil {
+			glog.Fatal(err)
+		}
+	}()
 	defer c.workqueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches
@@ -40,13 +45,15 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	// Wait for the k8s caches to be synced before starting workers
 	glog.Info("Waiting for informer caches to sync")
 	if ok := cache.WaitForCacheSync(stopCh, c.spcSynced); !ok {
-		return fmt.Errorf("failed to wait for caches to sync")
+		err = fmt.Errorf("failed to wait for caches to sync")
+		return err
 	}
 
 	glog.Info("Checking for preupgrade tasks")
-	err := c.performPreupgradeTasks()
+	err = c.performPreupgradeTasks()
 	if err != nil {
-		return fmt.Errorf("failure in preupgrade tasks: %v", err)
+		err = fmt.Errorf("failure in preupgrade tasks: %v", err)
+		return err
 	}
 
 	glog.Info("Starting SPC workers")
