@@ -210,20 +210,20 @@ func (pc *PoolConfig) getCSPWithNodeName(nodeName string) (*apis.NewTestCStorPoo
 func (pc *PoolConfig) isBDUsable(bdName string) error {
 	bdObj, err := apisbd.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).Get(bdName, metav1.GetOptions{})
 	if err != nil {
-		errors.Wrapf(err, "could not get bd object %s", bdName)
+		return errors.Wrapf(err, "could not get bd object %s", bdName)
 	}
 	err = pc.AlgorithmConfig.ClaimBD(bdObj)
 	if err != nil {
-		errors.Wrapf(err, "failed to claim bd %s", bdName)
+		return errors.Wrapf(err, "failed to claim bd %s", bdName)
 
 	}
 	isBDUsable, err := pc.AlgorithmConfig.IsClaimedBDUsable(bdObj)
 	if err != nil {
-		errors.Wrapf(err, "bd %s cannot be used as could not get claim status", bdName)
+		return errors.Wrapf(err, "bd %s cannot be used as could not get claim status", bdName)
 	}
 
 	if !isBDUsable {
-		errors.Errorf("BD %s cannot be used as it is already claimed but not by cspc", bdName)
+		return errors.Errorf("BD %s cannot be used as it is already claimed but not by cspc", bdName)
 	}
 	return nil
 }
