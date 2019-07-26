@@ -37,12 +37,12 @@ type UpgradeTask struct {
 
 // UpgradeTaskSpec is the properties of an upgrade task
 type UpgradeTaskSpec struct {
-	FromVersion  string       `json:"fromVersion" protobuf:"bytes,1,name=fromVersion"`
-	ToVersion    string       `json:"toVersion" protobuf:"bytes,2,name=toVersion"`
-	Flags        Flags        `json:"flags,omitempty" protobuf:"bytes,3,name=flags"`
-	ResourceType ResourceType `json:"resourceType" protobuf:"bytes,4,name=resourceType"`
-	ImagePrefix  string       `json:"imagePrefix" protobuf:"bytes,5,name=imagePrefix"`
-	ImageTag     string       `json:"imageTag" protobuf:"bytes,6,name=imageTag"`
+	FromVersion  string `json:"fromVersion" protobuf:"bytes,1,name=fromVersion"`
+	ToVersion    string `json:"toVersion" protobuf:"bytes,2,name=toVersion"`
+	Flags        Flags  `json:"flags,omitempty" protobuf:"bytes,3,name=flags"`
+	ResourceSpec `json:",inline" protobuf:"bytes,4,name=resourceType"`
+	ImagePrefix  string `json:"imagePrefix" protobuf:"bytes,5,name=imagePrefix"`
+	ImageTag     string `json:"imageTag" protobuf:"bytes,6,name=imageTag"`
 }
 
 // Flags provides additional optional arguments
@@ -50,9 +50,9 @@ type Flags struct {
 	Timeout int `json:"timeout,omitempty" protobuf:"varint,1,opt,name=resourceType"`
 }
 
-// ResourceType is the type of resource which is to be upgraded.
+// ResourceSpec is the type of resource which is to be upgraded.
 // Exactly one of its members must be set.
-type ResourceType struct {
+type ResourceSpec struct {
 	JivaVolume       *JivaVolume       `json:"jivaVolume,omitempty" protobuf:"bytes,1,opt,name=jivaVolume"`
 	CStorVolume      *CStorVolume      `json:"cstorVolume,omitempty" protobuf:"bytes,2,opt,name=cstorVolume"`
 	CStorPool        *CStorPool        `json:"cstorPool,omitempty" protobuf:"bytes,3,opt,name=cstorPool"`
@@ -79,8 +79,8 @@ type CStorPool struct {
 
 // StoragePoolClaim is the ResourceType for storage pool claim
 type StoragePoolClaim struct {
-	PoolName string         `json:"poolName,omitempty" protobuf:"bytes,1,name=poolName"`
-	Flags    *ResourceFlags `json:"flags,omitempty" protobuf:"bytes,2,opt,name=flags"`
+	SPCName string         `json:"spcName,omitempty" protobuf:"bytes,1,name=spcName"`
+	Flags   *ResourceFlags `json:"flags,omitempty" protobuf:"bytes,2,opt,name=flags"`
 }
 
 // ResourceFlags provides additional options for a particular resource
@@ -103,12 +103,12 @@ type UpgradeDetailedStatuses struct {
 	Step          UpgradeStep `json:"step,omitempty" protobuf:"bytes,1,opt,name=step"`
 	StartTime     metav1.Time `json:"startTime,omitempty" protobuf:"bytes,2,opt,name=startTime"`
 	LastUpdatedAt metav1.Time `json:"lastUpdatedAt,omitempty" protobuf:"bytes,3,opt,name=lastUpdatedAt"`
-	State         State       `json:"state" protobuf:"bytes,4,opt,name=state"`
+	Status        `json:",inline" protobuf:"bytes,4,opt,name=state"`
 }
 
-// State represents the state of the step performed during the upgrade.
-type State struct {
-	Phase StatePhase `json:"phase,omitempty" protobuf:"bytes,1,opt,name=phase"`
+// Status represents the state of the step performed during the upgrade.
+type Status struct {
+	Phase StatusTypes `json:"phase,omitempty" protobuf:"bytes,1,opt,name=phase"`
 	// A human-readable message indicating details about why the volume
 	// is in this state
 	Message string `json:"message,omitempty" protobuf:"bytes,2,opt,name=message"`
@@ -133,16 +133,16 @@ const (
 	Rollback UpgradeStep = "ROLLBACK"
 )
 
-// StatePhase ...
-type StatePhase string
+// StatusTypes ...
+type StatusTypes string
 
 const (
-	// WaitingState ...
-	WaitingState StatePhase = "Waiting"
-	// ErroredState ...
-	ErroredState StatePhase = "Errored"
-	// CompletedState ...
-	CompletedState StatePhase = "Completed"
+	// WaitingStatus ...
+	WaitingStatus StatusTypes = "Waiting"
+	// ErroredStatus ...
+	ErroredStatus StatusTypes = "Errored"
+	// CompletedStatus ...
+	CompletedStatus StatusTypes = "Completed"
 )
 
 // UpgradePhase defines phase of a volume
