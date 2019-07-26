@@ -29,14 +29,14 @@ type UpgradeOptions struct {
 	fromVersion       string
 	toVersion         string
 	namespace         string
-	imageUrlPrefix    string
+	imageURLPrefix    string
 	toVersionImageTag string
 }
 
 var (
 	options = &UpgradeOptions{
 		namespace:      "openebs",
-		imageUrlPrefix: "quay.io/openebs/",
+		imageURLPrefix: "quay.io/openebs/",
 	}
 )
 

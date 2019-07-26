@@ -18,7 +18,7 @@ package executor
 
 import (
 	"flag"
-	"fmt"
+	//"fmt"
 	//"os"
 	"strings"
 
@@ -27,16 +27,11 @@ import (
 	//errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 )
 
-var (
-	cmdName = "upgrade"
-	usage   = fmt.Sprintf("%s", cmdName)
-)
-
 // NewJob will setup a new upgrade job
 func NewJob() *cobra.Command {
 	// Create a new command.
 	cmd := &cobra.Command{
-		Use:   usage,
+		Use:   "upgrade",
 		Short: "OpenEBS Upgrade Utility",
 		Long: `An utility to uggrade OpenEBS Storage Pools and Volumes,
 			run as a Kubernetes Job`,
@@ -62,9 +57,9 @@ func NewJob() *cobra.Command {
 		options.namespace,
 		"namespace where openebs is installed.")
 
-	cmd.PersistentFlags().StringVarP(&options.imageUrlPrefix,
+	cmd.PersistentFlags().StringVarP(&options.imageURLPrefix,
 		"to-version-image-prefix", "",
-		options.imageUrlPrefix,
+		options.imageURLPrefix,
 		"custom image prefix, when not using the default.")
 
 	cmd.PersistentFlags().StringVarP(&options.toVersionImageTag,

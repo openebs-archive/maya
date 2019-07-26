@@ -80,7 +80,7 @@ func (u *UpgradeOptions) RunJivaVolumeUpgrade(cmd *cobra.Command) error {
 	kind := u.resourceKind
 	name := u.resourceName
 	openebsNamespace := u.namespace
-	urlPrefix := u.imageUrlPrefix
+	urlPrefix := u.imageURLPrefix
 	imageTag := u.toVersionImageTag
 
 	fromVersion := strings.Split(from, "-")[0]
