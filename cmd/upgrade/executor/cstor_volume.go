@@ -30,7 +30,7 @@ import (
 
 // CStorVolumeOptions stores information required for cstor volume upgrade
 type CStorVolumeOptions struct {
-	cstorPVName string
+	pvName string
 }
 
 var (
@@ -58,9 +58,9 @@ func NewUpgradeCStorVolumeJob() *cobra.Command {
 
 	options.resourceKind = "cstorVolume"
 
-	cmd.Flags().StringVarP(&options.cstorPVName,
+	cmd.Flags().StringVarP(&options.cstorVolume.pvName,
 		"pv-name", "",
-		options.cstorPVName,
+		options.cstorVolume.pvName,
 		"cstor persistent volume name. Run \"kubectl get pv\" to get pv-name.")
 
 	return cmd
@@ -68,7 +68,7 @@ func NewUpgradeCStorVolumeJob() *cobra.Command {
 
 // RunCStorVolumeUpgradeChecks will ensure the sanity of the cstor upgrade options
 func (u *UpgradeOptions) RunCStorVolumeUpgradeChecks(cmd *cobra.Command) error {
-	if len(strings.TrimSpace(u.cstorPVName)) == 0 {
+	if len(strings.TrimSpace(u.cstorVolume.pvName)) == 0 {
 		return errors.Errorf("Cannot execute upgrade job: cstor pv name is missing")
 	}
 
@@ -85,23 +85,23 @@ func (u *UpgradeOptions) RunCStorVolumeUpgrade(cmd *cobra.Command) error {
 	case "0.9.0-1.0.0":
 		fmt.Println("Upgrading to 1.0.0")
 		err := upgrade090to100.Exec(u.resourceKind,
-			u.cstorPVName,
+			u.cstorVolume.pvName,
 			u.openebsNamespace)
 		if err != nil {
 			fmt.Println(err)
-			return errors.Errorf("Failed to upgrade CStor Volume %v:", u.cstorPVName)
+			return errors.Errorf("Failed to upgrade CStor Volume %v:", u.cstorVolume.pvName)
 		}
 	case "1.0.0-1.1.0":
 		fmt.Println("Upgrading to 1.1.0")
 		err := upgrade100to110.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
-			u.cstorPVName,
+			u.cstorVolume.pvName,
 			u.openebsNamespace,
 			u.imageURLPrefix,
 			u.toVersionImageTag)
 		if err != nil {
 			fmt.Println(err)
-			return errors.Errorf("Failed to upgrade CStor Volume %v:", u.cstorPVName)
+			return errors.Errorf("Failed to upgrade CStor Volume %v:", u.cstorVolume.pvName)
 		}
 	default:
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)

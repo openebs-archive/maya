@@ -30,9 +30,9 @@ type UpgradeOptions struct {
 	imageURLPrefix    string
 	toVersionImageTag string
 	resourceKind      string
-	JivaVolumeOptions
-	CStorSPCOptions
-	CStorVolumeOptions
+	jivaVolume        JivaVolumeOptions
+	cstorSPC          CStorSPCOptions
+	cstorVolume       CStorVolumeOptions
 }
 
 var (

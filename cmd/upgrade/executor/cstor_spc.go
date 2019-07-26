@@ -30,7 +30,7 @@ import (
 
 // CStorSPCOptions stores information required for cstor SPC upgrade
 type CStorSPCOptions struct {
-	cstorSPCName string
+	spcName string
 }
 
 var (
@@ -58,9 +58,9 @@ func NewUpgradeCStorSPCJob() *cobra.Command {
 
 	options.resourceKind = "storagePoolClaim"
 
-	cmd.Flags().StringVarP(&options.cstorSPCName,
+	cmd.Flags().StringVarP(&options.cstorSPC.spcName,
 		"spc-name", "",
-		options.cstorSPCName,
+		options.cstorSPC.spcName,
 		"cstor SPC name to be upgraded. Run \"kubectl get spc\", to get spc-name")
 
 	return cmd
@@ -68,7 +68,7 @@ func NewUpgradeCStorSPCJob() *cobra.Command {
 
 // RunCStorSPCUpgradeChecks will ensure the sanity of the cstor SPC upgrade options
 func (u *UpgradeOptions) RunCStorSPCUpgradeChecks(cmd *cobra.Command) error {
-	if len(strings.TrimSpace(u.cstorSPCName)) == 0 {
+	if len(strings.TrimSpace(u.cstorSPC.spcName)) == 0 {
 		return errors.Errorf("Cannot execute upgrade job: cstor spc name is missing")
 	}
 
@@ -85,23 +85,23 @@ func (u *UpgradeOptions) RunCStorSPCUpgrade(cmd *cobra.Command) error {
 	case "0.9.0-1.0.0":
 		fmt.Println("Upgrading to 1.0.0")
 		err := upgrade090to100.Exec(u.resourceKind,
-			u.cstorSPCName,
+			u.cstorSPC.spcName,
 			u.openebsNamespace)
 		if err != nil {
 			fmt.Println(err)
-			return errors.Errorf("Failed to upgrade cStor SPC %v:", u.cstorSPCName)
+			return errors.Errorf("Failed to upgrade cStor SPC %v:", u.cstorSPC.spcName)
 		}
 	case "1.0.0-1.1.0":
 		fmt.Println("Upgrading to 1.1.0")
 		err := upgrade100to110.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
-			u.cstorSPCName,
+			u.cstorSPC.spcName,
 			u.openebsNamespace,
 			u.imageURLPrefix,
 			u.toVersionImageTag)
 		if err != nil {
 			fmt.Println(err)
-			return errors.Errorf("Failed to upgrade cStor SPC %v:", u.cstorSPCName)
+			return errors.Errorf("Failed to upgrade cStor SPC %v:", u.cstorSPC.spcName)
 		}
 	default:
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)

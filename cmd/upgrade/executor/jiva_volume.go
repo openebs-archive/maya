@@ -30,7 +30,7 @@ import (
 
 // JivaVolumeOptions stores information required for jiva volume upgrade
 type JivaVolumeOptions struct {
-	jivaPVName string
+	pvName string
 }
 
 var (
@@ -58,9 +58,9 @@ func NewUpgradeJivaVolumeJob() *cobra.Command {
 
 	options.resourceKind = "jivaVolume"
 
-	cmd.Flags().StringVarP(&options.jivaPVName,
+	cmd.Flags().StringVarP(&options.jivaVolume.pvName,
 		"pv-name", "",
-		options.jivaPVName,
+		options.jivaVolume.pvName,
 		"jiva persistent volume name to be upgraded, as obtained using: kubectl get pv")
 
 	return cmd
@@ -68,7 +68,7 @@ func NewUpgradeJivaVolumeJob() *cobra.Command {
 
 // RunJivaVolumeUpgradeChecks will ensure the sanity of the jiva upgrade options
 func (u *UpgradeOptions) RunJivaVolumeUpgradeChecks(cmd *cobra.Command) error {
-	if len(strings.TrimSpace(u.jivaPVName)) == 0 {
+	if len(strings.TrimSpace(u.jivaVolume.pvName)) == 0 {
 		return errors.Errorf("Cannot execute upgrade job: jiva pv name is missing")
 	}
 
@@ -85,23 +85,23 @@ func (u *UpgradeOptions) RunJivaVolumeUpgrade(cmd *cobra.Command) error {
 	case "0.9.0-1.0.0":
 		fmt.Println("Upgrading to 1.0.0")
 		err := upgrade090to100.Exec(u.resourceKind,
-			u.jivaPVName,
+			u.jivaVolume.pvName,
 			u.openebsNamespace)
 		if err != nil {
 			fmt.Println(err)
-			return errors.Errorf("Failed to upgrade Jiva Volume %v:", u.jivaPVName)
+			return errors.Errorf("Failed to upgrade Jiva Volume %v:", u.jivaVolume.pvName)
 		}
 	case "1.0.0-1.1.0":
 		fmt.Println("Upgrading to 1.1.0")
 		err := upgrade100to110.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
-			u.jivaPVName,
+			u.jivaVolume.pvName,
 			u.openebsNamespace,
 			u.imageURLPrefix,
 			u.toVersionImageTag)
 		if err != nil {
 			fmt.Println(err)
-			return errors.Errorf("Failed to upgrade Jiva Volume %v:", u.jivaPVName)
+			return errors.Errorf("Failed to upgrade Jiva Volume %v:", u.jivaVolume.pvName)
 		}
 	default:
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)
