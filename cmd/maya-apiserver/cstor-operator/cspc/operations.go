@@ -86,7 +86,8 @@ func (pc *PoolConfig) addGroupToPool(cspcPoolSpec *apis.PoolSpec, csp *apis.NewT
 			for _, bd := range cspcRaidGroup.BlockDevices {
 				err := pc.isBDUsable(bd.BlockDeviceName)
 				if err != nil {
-					glog.Errorf("could not use bd %s for expanding pool %s:%s", bd.BlockDeviceName, csp.Name, err.Error())
+					glog.Errorf("could not use bd %s for expanding pool " +
+						"%s:%s", bd.BlockDeviceName, csp.Name, err.Error())
 					validGroup = false
 					break
 				}
@@ -127,18 +128,23 @@ func (pc *PoolConfig) addBlockDeviceToGroup(group *apis.RaidGroup, csp *apis.New
 			if len(group.BlockDevices) > len(groupOnCSP.BlockDevices) {
 				newBDs, err := getAddedBlockDevicesInGroup(group, &groupOnCSP)
 				if err != nil {
-					glog.V(2).Infof("Failed to get newly added block device on group {%+v}", group)
+					glog.V(2).Infof("Failed to get newly " +
+						"added block device on group {%+v}", group)
 				}
 				if len(newBDs) == 0 {
-					glog.V(2).Infof("No new block devices added for group {%+v} on csp %s", groupOnCSP, csp.Name)
+					glog.V(2).Infof("No new block devices " +
+						"added for group {%+v} on csp %s", groupOnCSP, csp.Name)
 				}
 				for _, bdName := range newBDs {
 					err := pc.isBDUsable(bdName)
 					if err != nil {
-						glog.Errorf("could not use bd %s for expanding pool %s:%s", bdName, csp.Name, err.Error())
+						glog.Errorf("could not use bd %s for " +
+							"expanding pool %s:%s", bdName, csp.Name, err.Error())
 						break
 					}
-					csp.Spec.RaidGroups[i].BlockDevices = append(csp.Spec.RaidGroups[i].BlockDevices, apis.CStorPoolClusterBlockDevice{BlockDeviceName: bdName})
+					csp.Spec.RaidGroups[i].BlockDevices =
+						append(csp.Spec.RaidGroups[i].BlockDevices,
+							apis.CStorPoolClusterBlockDevice{BlockDeviceName: bdName})
 				}
 
 			}
