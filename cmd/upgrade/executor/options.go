@@ -17,9 +17,9 @@ limitations under the License.
 package executor
 
 import (
-	"strings"
-	"github.com/spf13/cobra"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	"github.com/spf13/cobra"
+	"strings"
 )
 
 // UpgradeOptions stores information required for upgrade
@@ -41,7 +41,7 @@ var (
 )
 
 // RunPreFlightChecks will ensure the sanity of the common upgrade options
-func (u *UpgradeOptions) RunPreFlightChecks( cmd *cobra.Command ) error {
+func (u *UpgradeOptions) RunPreFlightChecks(cmd *cobra.Command) error {
 	if len(strings.TrimSpace(u.namespace)) != 0 {
 		return errors.Errorf("Cannot execute upgrade job: namespace is missing")
 	}

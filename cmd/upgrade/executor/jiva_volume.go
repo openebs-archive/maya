@@ -61,7 +61,7 @@ func NewUpgradeJivaVolumeJob() *cobra.Command {
 }
 
 // RunJivaVolumeUpgradeChecks will ensure the sanity of the common upgrade options
-func (u *UpgradeOptions) RunJivaVolumeUpgradeChecks( cmd *cobra.Command ) error {
+func (u *UpgradeOptions) RunJivaVolumeUpgradeChecks(cmd *cobra.Command) error {
 	if len(strings.TrimSpace(u.resourceName)) == 0 {
 		return errors.Errorf("Cannot execute upgrade job: jiva pv name is missing")
 	}
@@ -97,7 +97,7 @@ func (u *UpgradeOptions) RunJivaVolumeUpgrade(cmd *cobra.Command) error {
 		fmt.Println("Upgrading to 1.1.0")
 		err := upgrade100to110.Exec(from, to, kind, name, openebsNamespace, urlPrefix, imageTag)
 		if err != nil {
-			fmt.Println( err )
+			fmt.Println(err)
 			return errors.Errorf("Failed to upgrade Jiva Volume %v:", name)
 		}
 	default:
