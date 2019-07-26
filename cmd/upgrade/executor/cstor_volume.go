@@ -28,55 +28,55 @@ import (
 	upgrade100to110 "github.com/openebs/maya/pkg/upgrade/1.0.0-1.1.0/v1alpha1"
 )
 
-// CStorSPCOptions stores information required for cstor SPC upgrade
-type CStorSPCOptions struct {
-	cstorSPCName string
+// CStorVolumeOptions stores information required for cstor volume upgrade
+type CStorVolumeOptions struct {
+	cstorPVName string
 }
 
 var (
-	cstorSPCUpgradeCmdHelpText = `
-This command upgrades the cStor SPC 
+	cstorVolumeUpgradeCmdHelpText = `
+This command upgrades the CStor Persistent Volume
 
-Usage: upgrade cstor-spc --spc-name <spc-name> --options...
+Usage: upgrade cstor-volume --volname <pv-name> --options...
 `
 )
 
-// NewUpgradeCStorSPCJob upgrade a Jiva Volume
-func NewUpgradeCStorSPCJob() *cobra.Command {
+// NewUpgradeCStorVolumeJob upgrade a CStor Volume
+func NewUpgradeCStorVolumeJob() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "cstor-spc",
-		Short:   "Upgrade cStor SPC",
-		Long:    cstorSPCUpgradeCmdHelpText,
-		Example: `upgrade cstor-spc --spc-name <spc-name>`,
+		Use:     "cstor-volume",
+		Short:   "Upgrade CStor Volume",
+		Long:    cstorVolumeUpgradeCmdHelpText,
+		Example: `upgrade cstor-volume --pv-name <pv-name>`,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
-			util.CheckErr(options.RunCStorSPCUpgradeChecks(cmd), util.Fatal)
+			util.CheckErr(options.RunCStorVolumeUpgradeChecks(cmd), util.Fatal)
 			util.CheckErr(options.InitializeDefaults(cmd), util.Fatal)
-			util.CheckErr(options.RunCStorSPCUpgrade(cmd), util.Fatal)
+			util.CheckErr(options.RunCStorVolumeUpgrade(cmd), util.Fatal)
 		},
 	}
 
-	options.resourceKind = "storagePoolClaim"
+	options.resourceKind = "cstorVolume"
 
-	cmd.Flags().StringVarP(&options.cstorSPCName,
-		"spc-name", "",
-		options.cstorSPCName,
-		"cstor SPC name to be upgraded. Run \"kubectl get spc\", to get spc-name")
+	cmd.Flags().StringVarP(&options.cstorPVName,
+		"pv-name", "",
+		options.cstorPVName,
+		"cstor persistent volume name. Run \"kubectl get pv\" to get pv-name.")
 
 	return cmd
 }
 
-// RunCStorSPCUpgradeChecks will ensure the sanity of the cstor SPC upgrade options
-func (u *UpgradeOptions) RunCStorSPCUpgradeChecks(cmd *cobra.Command) error {
-	if len(strings.TrimSpace(u.cstorSPCName)) == 0 {
-		return errors.Errorf("Cannot execute upgrade job: cstor spc name is missing")
+// RunCStorVolumeUpgradeChecks will ensure the sanity of the cstor upgrade options
+func (u *UpgradeOptions) RunCStorVolumeUpgradeChecks(cmd *cobra.Command) error {
+	if len(strings.TrimSpace(u.cstorPVName)) == 0 {
+		return errors.Errorf("Cannot execute upgrade job: cstor pv name is missing")
 	}
 
 	return nil
 }
 
-// RunCStorSPCUpgrade upgrades the given Jiva Volume.
-func (u *UpgradeOptions) RunCStorSPCUpgrade(cmd *cobra.Command) error {
+// RunCStorVolumeUpgrade upgrades the given CStor Volume.
+func (u *UpgradeOptions) RunCStorVolumeUpgrade(cmd *cobra.Command) error {
 
 	from := strings.Split(u.fromVersion, "-")[0]
 	to := strings.Split(u.toVersion, "-")[0]
@@ -85,23 +85,23 @@ func (u *UpgradeOptions) RunCStorSPCUpgrade(cmd *cobra.Command) error {
 	case "0.9.0-1.0.0":
 		fmt.Println("Upgrading to 1.0.0")
 		err := upgrade090to100.Exec(u.resourceKind,
-			u.cstorSPCName,
+			u.cstorPVName,
 			u.openebsNamespace)
 		if err != nil {
 			fmt.Println(err)
-			return errors.Errorf("Failed to upgrade cStor SPC %v:", u.cstorSPCName)
+			return errors.Errorf("Failed to upgrade CStor Volume %v:", u.cstorPVName)
 		}
 	case "1.0.0-1.1.0":
 		fmt.Println("Upgrading to 1.1.0")
 		err := upgrade100to110.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
-			u.cstorSPCName,
+			u.cstorPVName,
 			u.openebsNamespace,
 			u.imageURLPrefix,
 			u.toVersionImageTag)
 		if err != nil {
 			fmt.Println(err)
-			return errors.Errorf("Failed to upgrade cStor SPC %v:", u.cstorSPCName)
+			return errors.Errorf("Failed to upgrade CStor Volume %v:", u.cstorPVName)
 		}
 	default:
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)

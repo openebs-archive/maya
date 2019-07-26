@@ -31,7 +31,8 @@ type UpgradeOptions struct {
 	toVersionImageTag string
 	resourceKind      string
 	JivaVolumeOptions
-	cStorSPCOptions
+	CStorSPCOptions
+	CStorVolumeOptions
 }
 
 var (
