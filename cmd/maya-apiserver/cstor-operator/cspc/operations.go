@@ -200,7 +200,9 @@ func getAddedBlockDevicesInGroup(groupOnCSPC, groupOnCSP *apis.RaidGroup) ([]str
 // getCSPWithNodeName returns a csp object with provided node name
 // TODO: Move to CSP package
 func (pc *PoolConfig) getCSPWithNodeName(nodeName string) (*apis.NewTestCStorPool, error) {
-	cspList, _ := apiscsp.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).
+	cspList, _ := apiscsp.
+		NewKubeClient().
+		WithNamespace(pc.AlgorithmConfig.Namespace).
 		List(metav1.ListOptions{LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + pc.AlgorithmConfig.CSPC.Name})
 
 	cspListBuilder := apiscsp.ListBuilderFromAPIList(cspList).WithFilter(apiscsp.HasNodeName(nodeName)).List()
@@ -214,7 +216,10 @@ func (pc *PoolConfig) getCSPWithNodeName(nodeName string) (*apis.NewTestCStorPoo
 // If BD has no BDC -- it is created
 // TODO: Move to algorithm package
 func (pc *PoolConfig) isBDUsable(bdName string) error {
-	bdObj, err := apisbd.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).Get(bdName, metav1.GetOptions{})
+	bdObj, err := apisbd.
+		NewKubeClient().
+		WithNamespace(pc.AlgorithmConfig.Namespace).
+		Get(bdName, metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "could not get bd object %s", bdName)
 	}
