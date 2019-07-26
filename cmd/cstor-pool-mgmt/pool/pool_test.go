@@ -411,7 +411,9 @@ func TestImportPool(t *testing.T) {
 	}
 	RunnerVar = TestRunner{}
 	for desc, ut := range testPoolResource {
-		obtainedErr := ImportPool(ut.test, ut.cachefileFlag)
+		var importOptions ImportOptions
+		importOptions.CachefileFlag = ut.cachefileFlag
+		_, obtainedErr := ImportPool(ut.test, &importOptions)
 		if ut.expectedError != obtainedErr {
 			t.Fatalf("desc:%v, Expected: %v, Got: %v", desc, ut.expectedError, obtainedErr)
 		}

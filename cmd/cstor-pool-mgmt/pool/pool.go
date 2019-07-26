@@ -61,36 +61,143 @@ const (
 	PoolPrefix PoolNamePrefix = "cstor-"
 )
 
+// ImportOptions contains the options to build import command
+type ImportOptions struct {
+	// CachefileFlag option to use cachefile for import
+	CachefileFlag bool
+
+	// DevPath is directory where pool devices resides
+	DevPath string
+
+	// dontImport, being true, makes sure `zpool import` command is built
+	// without pool name.
+	// This way, we know the existence of pool without importing pool
+	dontImport bool
+}
+
 // RunnerVar the runner variable for executing binaries.
 var RunnerVar util.Runner
 
 // ImportPool imports cStor pool if already present.
-func ImportPool(cStorPool *apis.CStorPool, cachefileFlag bool) error {
-	importAttr := importPoolBuilder(cStorPool, cachefileFlag)
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, importAttr...)
-	if err != nil {
-		glog.Errorf("Unable to import pool: %v, %v", err.Error(), string(stdoutStderr))
-		return err
+func ImportPool(cStorPool *apis.CStorPool, importOptions *ImportOptions) (string, error) {
+	importAttr := importPoolBuilder(cStorPool, importOptions)
+
+	stdoutStderr, err2 := RunnerVar.RunCombinedOutput(zpool.PoolOperator, importAttr...)
+	if err2 != nil {
+		glog.Errorf("Unable to import pool: %v, %v devpath: %v cacheflag: %v importAttr: %v",
+			err2.Error(), string(stdoutStderr), importOptions.DevPath,
+			importOptions.CachefileFlag, importAttr)
+		return string(stdoutStderr), err2
 	}
-	glog.Info("Importing Pool Successful")
-	return nil
+
+	glog.Infof("Import command successful with %v %v dontimport: %v importattr: %v out: %v",
+		importOptions.CachefileFlag, importOptions.DevPath, importOptions.dontImport,
+		importAttr, string(stdoutStderr))
+
+	poolName := string(PoolPrefix) + string(cStorPool.ObjectMeta.UID)
+	statusPoolStr := []string{"status", poolName}
+	stdoutStderr1, err1 := RunnerVar.RunCombinedOutput(zpool.PoolOperator, statusPoolStr...)
+	if err1 != nil {
+		glog.Errorf("Unable to get pool status: %v %v", string(stdoutStderr1), statusPoolStr)
+		return "", err1
+	}
+	glog.Infof("pool status: %v", string(stdoutStderr1))
+	return string(stdoutStderr), nil
 }
 
+// Important learning:
+
+// Below builder will build options something like:
+// "import" "-c" "/tmp/pool1.cache" "-o" "cachefile=/tmp/pool1.cache"
+
+// if this line
+// `importAttr = append(importAttr, "-o", "cachefile="+cStorPool.Spec.PoolSpec.CacheFile)`
+// is changed to
+// `importAttr = append(importAttr, "-o cachefile=", cStorPool.Spec.PoolSpec.CacheFile)`
+
+// options will be built like:
+// "-o cachefile=" "/tmp/pool1.cache"
+
+// With above thing, `getopt` of zpool treats it as:
+// - ` cachefile` as parameter which is wrong (look at <space> at the start)
+// - empty value for it, as after '=' nothing is there
+// - `/tmp/pool1.cache` as pool name
+
+// Conclusion:
+// - append every word, i.e., the one with spaces around it
+// - don't append if there are no spaces around it
+
 // importPoolBuilder is to build pool import command.
-func importPoolBuilder(cStorPool *apis.CStorPool, cachefileFlag bool) []string {
+func importPoolBuilder(cStorPool *apis.CStorPool, importOptions *ImportOptions) []string {
 	// populate pool import attributes.
 	var importAttr []string
+	var cachefileFlag bool
+	var devPath string
+
+	// import takes either cachefile or devPath, not both.
+	// here, prioritizing devPath. Using zero values for cachefileFlag and devPath
+	if importOptions.DevPath != "" {
+		devPath = importOptions.DevPath
+	} else {
+		cachefileFlag = importOptions.CachefileFlag
+	}
+
 	importAttr = append(importAttr, "import")
 	if cStorPool.Spec.PoolSpec.CacheFile != "" && cachefileFlag {
-		importAttr = append(importAttr, "-c", cStorPool.Spec.PoolSpec.CacheFile,
-			"-o", cStorPool.Spec.PoolSpec.CacheFile)
+		importAttr = append(importAttr, "-c", cStorPool.Spec.PoolSpec.CacheFile)
 	}
-	importAttr = append(importAttr, string(PoolPrefix)+string(cStorPool.ObjectMeta.UID))
+
+	importAttr = append(importAttr, "-o", "cachefile="+cStorPool.Spec.PoolSpec.CacheFile)
+
+	if devPath != "" {
+		importAttr = append(importAttr, "-d", devPath)
+	}
+
+	// if dontImport is set to false, build `zpool import` with poolname so that pool gets imported
+	if importOptions.dontImport == false {
+		importAttr = append(importAttr, string(PoolPrefix)+string(cStorPool.ObjectMeta.UID))
+	}
 	return importAttr
+}
+
+// GetDevPath gets the path from given deviceID
+func GetDevPath(devid string) string {
+	lastindex := strings.LastIndexByte(devid, '/')
+	if lastindex == -1 {
+		lastindex = len(devid)
+	}
+	devid_bytes := []rune(devid)
+	return string(devid_bytes[0:lastindex])
+}
+
+// CreatePool creates a new cStor pool.
+func checkForPoolExistence(cStorPool *apis.CStorPool, blockDeviceList []string) bool {
+	var importOptions ImportOptions
+
+	// First device in the list is picked under assumption that all pool devices resides
+	// in same place.
+	importOptions.DevPath = GetDevPath(blockDeviceList[0])
+	importOptions.dontImport = true
+	stdoutStderr, _ := ImportPool(cStorPool, &importOptions)
+	glog.Infof("checkForPoolExistence output: %v", stdoutStderr)
+	return strings.Contains(stdoutStderr, string(PoolPrefix)+string(cStorPool.ObjectMeta.UID))
 }
 
 // CreatePool creates a new cStor pool.
 func CreatePool(cStorPool *apis.CStorPool, blockDeviceList []string) error {
+	exists := checkForPoolExistence(cStorPool, blockDeviceList)
+	if exists == true {
+		glog.Errorf("pool %v exists, but failed to import", string(cStorPool.ObjectMeta.UID))
+		return errors.Errorf("pool %v exists, but failed to import", string(cStorPool.ObjectMeta.UID))
+	}
+
+	err := LabelClear(blockDeviceList)
+	if err != nil {
+		glog.Errorf(err.Error(), "label clear failed %v", cStorPool.GetUID())
+	} else {
+		glog.Infof("Label clear successful: %v", string(cStorPool.GetUID()))
+	}
+
 	createAttr := createPoolBuilder(cStorPool, blockDeviceList)
 	glog.V(4).Info("createAttr : ", createAttr)
 
@@ -356,6 +463,8 @@ func LabelClear(blockDevices []string) error {
 			glog.Errorf("Unable to clear label on blockdevice %v: %v, err = %v", bd,
 				string(stdoutStderr), err)
 			failLabelClear = true
+		} else {
+			glog.Infof("successfully cleared label on blockdevice %v", bd)
 		}
 	}
 	if failLabelClear {

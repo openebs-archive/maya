@@ -177,6 +177,10 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 		return string(apis.CStorPoolStatusOffline), fmt.Errorf("Poolname/UID cannot be empty")
 	}
 
+	if cStorPoolGot.Spec.PoolSpec.CacheFile == "" {
+		cStorPoolGot.Spec.PoolSpec.CacheFile = "/tmp/pool1.cache"
+	}
+
 	/* 	If pool is already present.
 	Pool CR status is online. This means pool (main car) is running successfully,
 	but watcher container got restarted.
@@ -229,19 +233,34 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 	}
 	var importPoolErr error
 	var status string
+	var importOptions pool.ImportOptions
 	cachefileFlags := []bool{true, false}
 	for _, cachefileFlag := range cachefileFlags {
-		status, importPoolErr = c.importPool(cStorPoolGot, cachefileFlag)
+		importOptions.CachefileFlag = cachefileFlag
+		status, importPoolErr = c.triggerImportPool(cStorPoolGot, &importOptions)
 		if status == string(apis.CStorPoolStatusOnline) {
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
-			common.SyncResources.IsImported = true
 			return status, nil
 		}
 		if importPoolErr != nil {
-			glog.Errorf("failed to handle add event: import succeded with failed operations %v", importPoolErr)
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureImported), string(common.FailureImportOperations))
 			return status, importPoolErr
 		}
+	}
+
+	devIDList, err := c.getDeviceIDs(cStorPoolGot)
+	if err != nil {
+		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
+	}
+
+	devPath := pool.GetDevPath(devIDList[0])
+	// Trigger import with dev path
+	importOptions.CachefileFlag = false
+	importOptions.DevPath = devPath
+	status, importPoolErr = c.triggerImportPool(cStorPoolGot, &importOptions)
+	if status == string(apis.CStorPoolStatusOnline) {
+		return status, nil
+	}
+	if importPoolErr != nil {
+		return status, importPoolErr
 	}
 
 	// make a check if initialImportedPoolVol is not empty, then notify cvr controller
@@ -252,10 +271,6 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 		common.SyncResources.IsImported = false
 	}
 
-	devIDList, err := c.getDeviceIDs(cStorPoolGot)
-	if err != nil {
-		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
-	}
 	// ValidatePool is to check if pool attributes are correct.
 	err = pool.ValidatePool(cStorPoolGot, devIDList)
 	if err != nil {
@@ -270,13 +285,6 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageImproperPoolStatus))
 			return string(apis.CStorPoolStatusOffline), err
 		}
-		err = pool.LabelClear(devIDList)
-		if err != nil {
-			glog.Errorf(err.Error(), cStorPoolGot.GetUID())
-		} else {
-			glog.Infof("Label clear successful: %v", string(cStorPoolGot.GetUID()))
-		}
-
 		// CreatePool is to create cstor pool.
 		err = pool.CreatePool(cStorPoolGot, devIDList)
 		if err != nil {
@@ -369,8 +377,23 @@ func (c *CStorPoolController) removeFinalizer(cStorPoolGot *apis.CStorPool) erro
 	return nil
 }
 
-func (c *CStorPoolController) importPool(cStorPoolGot *apis.CStorPool, cachefileFlag bool) (string, error) {
-	err := pool.ImportPool(cStorPoolGot, cachefileFlag)
+func (c *CStorPoolController) triggerImportPool(cStorPoolGot *apis.CStorPool, importOptions *pool.ImportOptions) (string, error) {
+	status, importPoolErr := c.importPool(cStorPoolGot, importOptions)
+	if status == string(apis.CStorPoolStatusOnline) {
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
+		common.SyncResources.IsImported = true
+		return status, nil
+	}
+	if importPoolErr != nil {
+		glog.Errorf("failed to handle add event: import succeded with failed operations %v", importPoolErr)
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureImported), string(common.FailureImportOperations))
+		return status, importPoolErr
+	}
+	return status, importPoolErr
+}
+
+func (c *CStorPoolController) importPool(cStorPoolGot *apis.CStorPool, importOptions *pool.ImportOptions) (string, error) {
+	_, err := pool.ImportPool(cStorPoolGot, importOptions)
 	if err == nil {
 		err = pool.SetCachefile(cStorPoolGot)
 		if err != nil {
