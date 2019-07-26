@@ -37,10 +37,12 @@ type UpgradeTask struct {
 
 // UpgradeTaskSpec is the properties of an upgrade task
 type UpgradeTaskSpec struct {
-	FromVersion  string       `json:"fromVersion,omitempty" protobuf:"bytes,1,name=fromVersion"`
-	ToVersion    string       `json:"toVersion,omitempty" protobuf:"bytes,2,name=toVersion"`
+	FromVersion  string       `json:"fromVersion" protobuf:"bytes,1,name=fromVersion"`
+	ToVersion    string       `json:"toVersion" protobuf:"bytes,2,name=toVersion"`
 	Flags        Flags        `json:"flags,omitempty" protobuf:"bytes,3,name=flags"`
-	ResourceType ResourceType `json:"resourceType,omitempty" protobuf:"bytes,4,name=resourceType"`
+	ResourceType ResourceType `json:"resourceType" protobuf:"bytes,4,name=resourceType"`
+	ImagePrefix  string       `json:"imagePrefix" protobuf:"bytes,5,name=imagePrefix"`
+	ImageTag     string       `json:"imageTag" protobuf:"bytes,6,name=imageTag"`
 }
 
 // Flags provides additional optional arguments
