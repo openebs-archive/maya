@@ -136,6 +136,7 @@ func (pc *PoolConfig) addBlockDeviceToGroup(group *apis.RaidGroup, csp *apis.New
 					err := pc.isBDUsable(bdName)
 					if err != nil {
 						glog.Errorf("could not use bd %s for expanding pool %s:%s", bdName, csp.Name, err.Error())
+						break
 					}
 					csp.Spec.RaidGroups[i].BlockDevices = append(csp.Spec.RaidGroups[i].BlockDevices, apis.CStorPoolClusterBlockDevice{BlockDeviceName: bdName})
 				}
