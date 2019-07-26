@@ -63,7 +63,7 @@ func (pc *PoolConfig) expandPool() error {
 		}
 
 		// Pool expansion for striped raid group
-		pc.expandStripedGroup(&pool, cspObj)
+		pc.expandExistingStripedGroup(&pool, cspObj)
 
 		_, err = apiscsp.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).Update(cspObj)
 		if err != nil {
@@ -100,12 +100,12 @@ func (pc *PoolConfig) addGroupToPool(cspcPoolSpec *apis.PoolSpec, csp *apis.NewT
 	return csp
 }
 
-// expandStripedGroup adds newly added block devices to the striped
+// expandExistingStripedGroup adds newly added block devices to the existing striped
 // groups present on CSP
-func (pc *PoolConfig) expandStripedGroup(cspcPoolSpec *apis.PoolSpec, csp *apis.NewTestCStorPool) {
+func (pc *PoolConfig) expandExistingStripedGroup(cspcPoolSpec *apis.PoolSpec, csp *apis.NewTestCStorPool) {
 	for _, cspcGroup := range cspcPoolSpec.RaidGroups {
 		cspcGroup := cspcGroup
-		if getRaidGroupType(cspcGroup, cspcPoolSpec) != "stripe" || !isRaidGroupPresentOnCSP(&cspcGroup, csp) {
+		if getRaidGroupType(cspcGroup, cspcPoolSpec) != string(apis.PoolStriped) || !isRaidGroupPresentOnCSP(&cspcGroup, csp) {
 			continue
 		}
 		pc.addBlockDeviceToGroup(&cspcGroup, csp)
@@ -126,11 +126,7 @@ func (pc *PoolConfig) addBlockDeviceToGroup(group *apis.RaidGroup, csp *apis.New
 		groupOnCSP := groupOnCSP
 		if isRaidGroupPresentOnCSP(group, csp) {
 			if len(group.BlockDevices) > len(groupOnCSP.BlockDevices) {
-				newBDs, err := getAddedBlockDevicesInGroup(group, &groupOnCSP)
-				if err != nil {
-					glog.V(2).Infof("Failed to get newly "+
-						"added block device on group {%+v}", group)
-				}
+				newBDs := getAddedBlockDevicesInGroup(group, &groupOnCSP)
 				if len(newBDs) == 0 {
 					glog.V(2).Infof("No new block devices "+
 						"added for group {%+v} on csp %s", groupOnCSP, csp.Name)
@@ -173,7 +169,7 @@ func isRaidGroupPresentOnCSP(group *apis.RaidGroup, csp *apis.NewTestCStorPool) 
 }
 
 // getAddedBlockDevicesInGroup returns the added block device list
-func getAddedBlockDevicesInGroup(groupOnCSPC, groupOnCSP *apis.RaidGroup) ([]string, error) {
+func getAddedBlockDevicesInGroup(groupOnCSPC, groupOnCSP *apis.RaidGroup) []string {
 	var addedBlockDevices []string
 
 	// bdPresentOnCSP is a map whose key is block devices
@@ -189,12 +185,7 @@ func getAddedBlockDevicesInGroup(groupOnCSPC, groupOnCSP *apis.RaidGroup) ([]str
 			addedBlockDevices = append(addedBlockDevices, bdCSPC.BlockDeviceName)
 		}
 	}
-
-	if len(addedBlockDevices) == 0 {
-		return []string{}, errors.Errorf("no addition of block device in the group %s", groupOnCSPC.Name)
-	}
-
-	return addedBlockDevices, nil
+	return addedBlockDevices
 }
 
 // getCSPWithNodeName returns a csp object with provided node name
