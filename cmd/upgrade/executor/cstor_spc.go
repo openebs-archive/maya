@@ -49,14 +49,13 @@ func NewUpgradeCStorSPCJob() *cobra.Command {
 		Long:    cstorSPCUpgradeCmdHelpText,
 		Example: `upgrade cstor-spc --spc-name <spc-name>`,
 		Run: func(cmd *cobra.Command, args []string) {
+			options.resourceKind = "storagePoolClaim"
 			util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
 			util.CheckErr(options.RunCStorSPCUpgradeChecks(cmd), util.Fatal)
 			util.CheckErr(options.InitializeDefaults(cmd), util.Fatal)
 			util.CheckErr(options.RunCStorSPCUpgrade(cmd), util.Fatal)
 		},
 	}
-
-	options.resourceKind = "storagePoolClaim"
 
 	cmd.Flags().StringVarP(&options.cstorSPC.spcName,
 		"spc-name", "",

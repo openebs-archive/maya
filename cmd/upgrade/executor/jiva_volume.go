@@ -49,14 +49,13 @@ func NewUpgradeJivaVolumeJob() *cobra.Command {
 		Long:    jivaVolumeUpgradeCmdHelpText,
 		Example: `upgrade jiva-volume --pv-name <pv-name>`,
 		Run: func(cmd *cobra.Command, args []string) {
+			options.resourceKind = "jivaVolume"
 			util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
 			util.CheckErr(options.RunJivaVolumeUpgradeChecks(cmd), util.Fatal)
 			util.CheckErr(options.InitializeDefaults(cmd), util.Fatal)
 			util.CheckErr(options.RunJivaVolumeUpgrade(cmd), util.Fatal)
 		},
 	}
-
-	options.resourceKind = "jivaVolume"
 
 	cmd.Flags().StringVarP(&options.jivaVolume.pvName,
 		"pv-name", "",

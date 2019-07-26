@@ -49,14 +49,13 @@ func NewUpgradeCStorVolumeJob() *cobra.Command {
 		Long:    cstorVolumeUpgradeCmdHelpText,
 		Example: `upgrade cstor-volume --pv-name <pv-name>`,
 		Run: func(cmd *cobra.Command, args []string) {
+			options.resourceKind = "cstorVolume"
 			util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
 			util.CheckErr(options.RunCStorVolumeUpgradeChecks(cmd), util.Fatal)
 			util.CheckErr(options.InitializeDefaults(cmd), util.Fatal)
 			util.CheckErr(options.RunCStorVolumeUpgrade(cmd), util.Fatal)
 		},
 	}
-
-	options.resourceKind = "cstorVolume"
 
 	cmd.Flags().StringVarP(&options.cstorVolume.pvName,
 		"pv-name", "",
