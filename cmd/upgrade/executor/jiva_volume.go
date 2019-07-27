@@ -17,9 +17,10 @@ limitations under the License.
 package executor
 
 import (
-	"fmt"
+	//"fmt"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 
@@ -80,18 +81,26 @@ func (u *UpgradeOptions) RunJivaVolumeUpgrade(cmd *cobra.Command) error {
 	from := strings.Split(u.fromVersion, "-")[0]
 	to := strings.Split(u.toVersion, "-")[0]
 
+	glog.V(4).Infof("Started upgrading %s{%s} from %s to %s",
+		u.resourceKind,
+		u.jivaVolume.pvName,
+		u.fromVersion,
+		u.toVersion)
+
 	switch from + "-" + to {
 	case "0.9.0-1.0.0":
-		fmt.Println("Upgrading to 1.0.0")
+		glog.Infof("Upgrading to 1.0.0")
 		err := upgrade090to100.Exec(u.resourceKind,
 			u.jivaVolume.pvName,
 			u.openebsNamespace)
 		if err != nil {
-			fmt.Println(err)
-			return errors.Errorf("Failed to upgrade Jiva Volume %v:", u.jivaVolume.pvName)
+			glog.Error(err)
+			return errors.Wrapf(err, "Failed to upgrade %s{%s}",
+				u.resourceKind,
+				u.jivaVolume.pvName)
 		}
 	case "1.0.0-1.1.0":
-		fmt.Println("Upgrading to 1.1.0")
+		glog.Infof("Upgrading to 1.1.0")
 		err := upgrade100to110.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
 			u.jivaVolume.pvName,
@@ -99,11 +108,14 @@ func (u *UpgradeOptions) RunJivaVolumeUpgrade(cmd *cobra.Command) error {
 			u.imageURLPrefix,
 			u.toVersionImageTag)
 		if err != nil {
-			fmt.Println(err)
-			return errors.Errorf("Failed to upgrade Jiva Volume %v:", u.jivaVolume.pvName)
+			glog.Error(err)
+			return errors.Wrapf(err, "Failed to upgrade %s{%s}",
+				u.resourceKind,
+				u.jivaVolume.pvName)
 		}
 	default:
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)
 	}
+	glog.Infof("Upgraded successfully")
 	return nil
 }

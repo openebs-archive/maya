@@ -44,7 +44,7 @@ var (
 
 // RunPreFlightChecks will ensure the sanity of the common upgrade options
 func (u *UpgradeOptions) RunPreFlightChecks(cmd *cobra.Command) error {
-	if len(strings.TrimSpace(u.openebsNamespace)) != 0 {
+	if len(strings.TrimSpace(u.openebsNamespace)) == 0 {
 		return errors.Errorf("Cannot execute upgrade job: namespace is missing")
 	}
 

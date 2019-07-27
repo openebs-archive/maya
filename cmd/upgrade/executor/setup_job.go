@@ -80,7 +80,7 @@ func NewJob() *cobra.Command {
 // PreRun will check for environement variables to be read and intialized.
 func PreRun(cmd *cobra.Command, args []string) {
 	namespace := getOpenEBSNamespace()
-	if len(strings.TrimSpace(namespace)) == 0 {
+	if len(strings.TrimSpace(namespace)) != 0 {
 		options.openebsNamespace = namespace
 	}
 }
