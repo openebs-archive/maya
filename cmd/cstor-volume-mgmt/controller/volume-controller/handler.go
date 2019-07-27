@@ -34,6 +34,7 @@ import (
 	cstorvolume "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -68,7 +69,6 @@ func (c *CStorVolumeController) syncHandler(
 		glog.Errorf(err.Error())
 		glog.Infof("cStorVolume:%v, %v; Status: %v", cStorVolumeGot.Name,
 			string(cStorVolumeGot.GetUID()), cStorVolumeGot.Status.Phase)
-
 		_, err1 := c.clientset.OpenebsV1alpha1().
 			CStorVolumes(cStorVolumeGot.Namespace).
 			Update(cStorVolumeGot)
@@ -83,6 +83,23 @@ func (c *CStorVolumeController) syncHandler(
 			)
 		}
 		return err
+	}
+	glog.Infof("[Debug] Comparing desired and current cpacity")
+	desiredCapacity, err := resource.ParseQuantity(cStorVolumeGot.Spec.Capacity)
+	if err != nil {
+		pkg_errors.Wrapf(
+			err, "failed to update capacity: failed to parse capacity {%s}",
+			cStorVolumeGot.Spec.Capacity,
+		)
+	}
+	curCapacity, ok := cStorVolumeGot.Status.Capacity[corev1.ResourceStorage]
+	glog.Infof("current capacity %v desiredCapcity %v", curCapacity, desiredCapacity)
+	if !ok || curCapacity.Cmp(desiredCapacity) != 0 {
+		resourceList := corev1.ResourceList{
+			corev1.ResourceName(corev1.ResourceStorage): desiredCapacity,
+		}
+		glog.Infof("[Debug] Updating current cpacity")
+		cStorVolumeGot.Status.Capacity = resourceList
 	}
 	_, err = c.clientset.OpenebsV1alpha1().
 		CStorVolumes(cStorVolumeGot.Namespace).
@@ -100,12 +117,15 @@ func (c *CStorVolumeController) syncHandler(
 	return nil
 }
 
+//TODO: Return status of cstorvolume and patch it on caller of below function
+
 // cStorVolumeEventHandler is to handle cstor volume related events.
 func (c *CStorVolumeController) cStorVolumeEventHandler(
 	operation common.QueueOperation,
 	cStorVolumeGot *apis.CStorVolume,
 ) (common.CStorVolumeStatus, error) {
 	var eventMessage string
+	customCVObj := cstorvolume.NewForAPIObject(cStorVolumeGot)
 	glog.V(4).Infof(
 		"%v event received for volume : %v ",
 		operation,
@@ -134,11 +154,11 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		if err != nil {
 			return common.CVStatusInvalid, err
 		}
+		statusPhase := common.CStorVolumeStatus(cStorVolumeGot.Status.Phase)
 		// blocking call for doing resize operation
-		if isResizePending(cStorVolumeGot) {
+		if customCVObj.IsResizePending() {
 			// return same as previous state
-			statusPhase := common.CStorVolumeStatus(cStorVolumeGot.Status.Phase)
-			err = c.resizeVolume(cStorVolumeGot)
+			err = c.resizeCStorVolume(cStorVolumeGot)
 			if err != nil {
 				eventMessage = fmt.Sprintf(
 					"failed to resize cstorvolume %s with capacity %s error %v",
@@ -146,29 +166,20 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 					cStorVolumeGot.Spec.Capacity,
 					err,
 				)
-				c.recorder.Event(cStorVolumeGot, corev1.EventTypeWarning, string(common.FailureUpdate), eventMessage)
-				return statusPhase, pkg_errors.Wrapf(
-					err,
-					"failed to resize cstorvolume %s",
-					cStorVolumeGot.Name,
+				c.recorder.Event(
+					cStorVolumeGot, corev1.EventTypeWarning,
+					string(common.FailureUpdate), eventMessage,
 				)
-			}
-			//TODO: Build Builder for conditions
-			//conditionStatus := apis.CStorVolumeCondition{
-			//	Type:    apis.CStorVolumeResizing,
-			//	Status:  apis.ConditionSuccess,
-			//	Reason:  string(apis.CStorVolumeResizing),
-			//	Message: msg,
-			//}
-			_, err := c.updateCVSubResource(cStorVolumeGot, apis.CStorVolumeResizing, apis.ConditionSuccess)
-			if err == nil {
-				eventMessage = fmt.Sprintf(
-					"successfully resized volume %s to %s",
+				glog.Errorf(
+					"failed to resize cstorvolume %s with capacity %s error %v",
 					cStorVolumeGot.Name,
-					cStorVolumeGot.Spec.Capacity)
-				c.recorder.Event(cStorVolumeGot, corev1.EventTypeNormal, string(common.SuccessUpdated), eventMessage)
+					cStorVolumeGot.Spec.Capacity,
+					err,
+				)
+				// return ignore from here so that caller does not
+				// attempt to update status capacity with new size
+				return common.CVStatusIgnore, nil
 			}
-			return statusPhase, err
 		}
 		// update the status capacity of cstorvolume caller of this code
 		// will update in etcd
@@ -179,33 +190,29 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		return common.CVStatusInit, nil
 
 	case common.QOpPeriodicSync:
+		var err error
 		lastKnownPhase := cStorVolumeGot.Status.Phase
-		//TODO: need to update resource
 		// blocking call for doing resize operation
-		if isResizePending(cStorVolumeGot) {
+		if customCVObj.IsResizePending() {
 			// return same as previous state
-			err := c.resizeVolume(cStorVolumeGot)
+			err = c.resizeCStorVolume(cStorVolumeGot)
 			if err != nil {
-				eventMessage := fmt.Sprintf(
-					"failed to resize cstorvolume %s with capacity %s",
+				eventMessage = fmt.Sprintf(
+					"failed to resize cstorvolume %s with capacity %s error %v",
 					cStorVolumeGot.Name,
-					cStorVolumeGot.Spec.Capacity)
-				c.recorder.Event(cStorVolumeGot, corev1.EventTypeNormal, string(common.SuccessUpdated), eventMessage)
-			}
-			newCStorVolume, err := c.updateCVSubResource(cStorVolumeGot, apis.CStorVolumeResizing, apis.ConditionSuccess)
-			if err != nil {
-				glog.Errorf(
-					"failed to update cstorvolume %s Error: %v",
-					cStorVolumeGot.Name,
+					cStorVolumeGot.Spec.Capacity,
 					err,
 				)
-			} else {
-				cStorVolumeGot = newCStorVolume
-				eventMessage := fmt.Sprintf(
-					"successfully resized volume %s to %s",
+				c.recorder.Event(
+					cStorVolumeGot, corev1.EventTypeWarning,
+					string(common.FailureUpdate), eventMessage,
+				)
+				glog.Errorf(
+					"failed to resize cstorvolume %s with capacity %s error %v",
 					cStorVolumeGot.Name,
-					cStorVolumeGot.Spec.Capacity)
-				c.recorder.Event(cStorVolumeGot, corev1.EventTypeNormal, string(common.FailureUpdate), eventMessage)
+					cStorVolumeGot.Spec.Capacity,
+					err,
+				)
 			}
 		}
 		volStatus, err := volume.GetVolumeStatus(cStorVolumeGot)
@@ -223,6 +230,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 				)
 			}
 		}
+		//capacity, err :=
 		cStorVolumeGot.Status.LastUpdateTime = metav1.Now()
 		if cStorVolumeGot.Status.Phase != lastKnownPhase {
 			cStorVolumeGot.Status.LastTransitionTime = cStorVolumeGot.Status.LastUpdateTime
@@ -388,26 +396,94 @@ func (c *CStorVolumeController) getVolumeResource(
 	return cStorVolumeGot, nil
 }
 
-func (c *CStorVolumeController) resizeVolume(cStorVolume *apis.CStorVolume) error {
-	err := volume.ResizeVolume(cStorVolume)
+// GetCVStatusCapacity returns the capacity in form of resourceList
+// TODO: Move below code to cstorvolumepackage
+func GetCVStatusCapacity(cvObj *apis.CStorVolume) (corev1.ResourceList, error) {
+	resCapacity, err := resource.ParseQuantity(cvObj.Spec.Capacity)
+	if err != nil {
+		return nil, pkg_errors.Wrapf(
+			err, "failed to update capacity: failed to parse capacity {%s}",
+			cvObj.Spec.Capacity,
+		)
+	}
+	resourceList := corev1.ResourceList{
+		corev1.ResourceName(corev1.ResourceStorage): resCapacity,
+	}
+	return resourceList, nil
+}
+
+// resizeCStorVolume resize the cstorvolume and if any error occurs updates the
+// resize conditions of cstorvolume either with success or failure message
+func (c *CStorVolumeController) resizeCStorVolume(cStorVolume *apis.CStorVolume) error {
+	var eventMessage string
+	var err error
+	cloneCV := cStorVolume.DeepCopy()
+	customCVObj := cstorvolume.NewForAPIObject(cloneCV)
+	conditionStatus := customCVObj.GetCVCondition(apis.CStorVolumeResizing)
+
+	err = c.resizeVolume(cloneCV)
+	if err != nil {
+		eventMessage = fmt.Sprintf(
+			"failed to resize cstorvolume %s with capacity %s error %v",
+			cloneCV.Name,
+			cloneCV.Spec.Capacity,
+			err,
+		)
+		c.recorder.Event(cloneCV, corev1.EventTypeWarning, string(common.FailureUpdate), eventMessage)
+		conditionStatus.Message = eventMessage
+	} else {
+		conditionStatus.Status = apis.ConditionSuccess
+		capacity, err := GetCVStatusCapacity(cloneCV)
+		if err != nil {
+			pkg_errors.Wrapf(
+				err, "failed to update capacity: failed to parse capacity {%s}",
+				cloneCV.Spec.Capacity,
+			)
+			conditionStatus.Message = fmt.Sprintf(
+				"failed to parse capacity {%s} error: %v",
+				cloneCV.Spec.Capacity,
+				err,
+			)
+		} else {
+			conditionStatus.Message = fmt.Sprintf(
+				"successfully resized volume to %s",
+				cloneCV.Spec.Capacity,
+			)
+			cloneCV.Status.Capacity = capacity
+		}
+	}
+
+	_, err = c.updateCVSubResource(cloneCV, conditionStatus)
+	if err == nil {
+		eventMessage = fmt.Sprintf(
+			"successfully resized volume %s to %s",
+			cloneCV.Name,
+			cloneCV.Spec.Capacity)
+		c.recorder.Event(cloneCV, corev1.EventTypeNormal, string(common.SuccessUpdated), eventMessage)
+	}
+	return err
+}
+
+// resizeVolume will resize volume on success it will update cvr capacity
+func (c *CStorVolumeController) resizeVolume(cstorVolume *apis.CStorVolume) error {
+	err := volume.ResizeVolume(cstorVolume)
 	if err != nil {
 		return err
 	}
-	err = c.updateCVRCapacity(cStorVolume)
+	err = c.updateCVRCapacity(cstorVolume)
 	if err != nil {
-		return pkg_errors.Wrapf(err, "failed to update cstorvolumereplica capacity")
+		return pkg_errors.Wrapf(err, "failed to update cstorvolumereplica with capacity")
 	}
 	return nil
 }
 
 func (c *CStorVolumeController) updateCVSubResource(
-	cStorVolume *apis.CStorVolume,
-	condType apis.CStorVolumeConditionType,
-	condStatus apis.ConditionStatus) (*apis.CStorVolume, error) {
-	cvCopy := cStorVolume.DeepCopy()
+	cstorVolume *apis.CStorVolume,
+	conditionStatus apis.CStorVolumeCondition) (*apis.CStorVolume, error) {
+	//cvCopy := cStorVolume.DeepCopy()
 	cvBuilder := cstorvolume.
-		BuilderFromAPI(cvCopy).
-		WithConditionStatus(condType, condStatus)
+		BuilderFromAPI(cstorVolume).
+		WithCondition(conditionStatus)
 	cvObj, err := cvBuilder.Build()
 	if err != nil {
 		return nil, err
@@ -415,10 +491,10 @@ func (c *CStorVolumeController) updateCVSubResource(
 
 	newCVObj, err := c.clientset.
 		OpenebsV1alpha1().
-		CStorVolumes(cvCopy.Namespace).
+		CStorVolumes(cstorVolume.Namespace).
 		Update(cvObj)
 	if err != nil {
-		return nil, pkg_errors.Wrapf(err, "failed to update status of cstorvolume %s", cvCopy.Name)
+		return nil, pkg_errors.Wrapf(err, "failed to update status of cstorvolume %s", cstorVolume.Name)
 	}
 	return newCVObj, nil
 }
@@ -429,6 +505,7 @@ func (c *CStorVolumeController) updateCVRCapacity(cStorVolume *apis.CStorVolume)
 		OpenebsV1alpha1().
 		CStorVolumeReplicas(cStorVolume.Namespace).
 		List(metav1.ListOptions{LabelSelector: cStorVolumeKey + "=" + cStorVolume.Name})
+	// Resize is successfull only when RF number of cvr are availble
 	if len(cvrList.Items) != cStorVolume.Spec.ReplicationFactor {
 		return pkg_errors.Errorf(
 			"got %d cstorvolumereplicas for cstorvolume %s but required %d",

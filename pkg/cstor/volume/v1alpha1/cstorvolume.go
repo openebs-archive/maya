@@ -107,15 +107,25 @@ func IsHealthy() Predicate {
 
 // IsResizePending return true if resize is in progress
 func (c *CStorVolume) IsResizePending() bool {
-	for _, cond := range c.object.Status.Conditions {
-		if cond.Type == apis.CStorVolumeResizing {
-			if cond.Status == apis.ConditionInProgress {
-				return true
-			}
-			return false
+	condition := c.GetCVCondition(apis.CStorVolumeResizing)
+	//TODO: Compare Capacity to decide resize
+	if condition.Type == apis.CStorVolumeResizing {
+		if condition.Status == apis.ConditionInProgress {
+			return true
 		}
 	}
 	return false
+}
+
+// GetCVCondition returns corresponding cstorvolume condition based argument passed
+func (c *CStorVolume) GetCVCondition(
+	condType apis.CStorVolumeConditionType) apis.CStorVolumeCondition {
+	for _, cond := range c.object.Status.Conditions {
+		if condType == cond.Type {
+			return cond
+		}
+	}
+	return apis.CStorVolumeCondition{}
 }
 
 // PredicateList holds a list of cstor volume

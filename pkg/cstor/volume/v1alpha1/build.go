@@ -301,13 +301,11 @@ func (b *Builder) WithReplicationFactor(replicationfactor int) *Builder {
 	return b
 }
 
-// WithConditionStatus sets the corresponding state
-func (b *Builder) WithConditionStatus(condType apis.CStorVolumeConditionType, condStatus apis.ConditionStatus) *Builder {
-	// Update the resizecondition
+// WithCondition overwrites the existing condition with provided argument
+func (b *Builder) WithCondition(conditionStatus apis.CStorVolumeCondition) *Builder {
 	for i, cond := range b.cstorvolume.object.Status.Conditions {
-		if cond.Type == condType {
-			cond.Status = condStatus
-			b.cstorvolume.object.Status.Conditions[i] = cond
+		if cond.Type == conditionStatus.Type {
+			b.cstorvolume.object.Status.Conditions[i] = conditionStatus
 		}
 	}
 	return b

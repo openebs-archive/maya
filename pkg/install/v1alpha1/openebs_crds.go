@@ -191,6 +191,7 @@ spec:
     name: Age
     type: date
   - JSONPath: .status.capacity
+    description: Current volume capacity
     name: Capacity
     type: string
 ---
