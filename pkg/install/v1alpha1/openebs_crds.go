@@ -190,6 +190,9 @@ spec:
   - JSONPath: .metadata.creationTimestamp
     name: Age
     type: date
+  - JSONPath: .status.capacity
+    name: Capacity
+    type: string
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition

@@ -79,6 +79,12 @@ func (c *CStorVolumeController) syncHandler(
 		}
 		return err
 	}
+	curCapacity := cStorVolumeGot.Status.Capacity
+	//desiredCapacity := cStorVolumeGot.Spec.Capacity
+	if curCapacity.IsZero() {
+		glog.Infof("[Debug] change in not sync")
+		cStorVolumeGot.Status.Capacity = cStorVolumeGot.Spec.Capacity
+	}
 	_, err = c.clientset.OpenebsV1alpha1().
 		CStorVolumes(cStorVolumeGot.Namespace).
 		Update(cStorVolumeGot)
@@ -118,8 +124,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		if err != nil {
 			return common.CVStatusError, err
 		}
-
-		return common.CVStatusIgnore, nil
+		return common.CVStatusInit, nil
 
 	case common.QOpModify:
 		// Make changes here to run zrepl command and update the data
@@ -150,6 +155,10 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 					common.CVStatusInit,
 				)
 			}
+		}
+		if cStorVolumeGot.Status.Capacity.IsZero() {
+			glog.Infof("[Debug] capacity change in sync")
+			cStorVolumeGot.Status.Capacity = cStorVolumeGot.Spec.Capacity
 		}
 		cStorVolumeGot.Status.LastUpdateTime = metav1.Now()
 		if cStorVolumeGot.Status.Phase != lastKnownPhase {

@@ -26,13 +26,20 @@ import (
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	"github.com/openebs/maya/pkg/client/k8s"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
+
+//TODO: Move to some common function
+func StrToQuantity(capacity string) resource.Quantity {
+	qntCapacity, _ := resource.ParseQuantity(capacity)
+	return qntCapacity
+}
 
 // TestGetVolumeResource checks if volume resource created is successfully got.
 func TestGetVolumeResource(t *testing.T) {
@@ -61,7 +68,7 @@ func TestGetVolumeResource(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP: "0.0.0.0",
-					Capacity: "5G",
+					Capacity: StrToQuantity("5G"),
 					Status:   "init",
 				},
 				Status: apis.CStorVolumeStatus{},
@@ -78,7 +85,7 @@ func TestGetVolumeResource(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP: "0.0.0.0",
-					Capacity: "15G",
+					Capacity: StrToQuantity("15G"),
 					Status:   "init",
 				},
 				Status: apis.CStorVolumeStatus{},
@@ -118,7 +125,7 @@ func TestIsValidCStorVolumeMgmt(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP: "0.0.0.0",
-					Capacity: "15G",
+					Capacity: StrToQuantity("15G"),
 					Status:   "init",
 				},
 				Status: apis.CStorVolumeStatus{},
@@ -154,7 +161,7 @@ func TestIsValidCStorVolumeMgmtNegative(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP: "0.0.0.0",
-					Capacity: "15G",
+					Capacity: StrToQuantity("15G"),
 					Status:   "init",
 				},
 				Status: apis.CStorVolumeStatus{},

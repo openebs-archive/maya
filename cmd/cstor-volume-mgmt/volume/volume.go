@@ -179,7 +179,7 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
 	buffer.WriteString(`
   PhysRecordLength 4096
 `)
-	buffer.WriteString("  LUN0 Storage " + cStorVolume.Spec.Capacity + " 32k")
+	buffer.WriteString("  LUN0 Storage " + cStorVolume.Spec.Capacity.String() + " 32k")
 	buffer.WriteString(`
   LUN0 Option Unmap Disable
   LUN0 Option WZero Disable
@@ -204,8 +204,9 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 	if len(string(cStorVolume.UID)) == 0 {
 		return fmt.Errorf("volumeID cannot be empty")
 	}
-	if len(string(cStorVolume.Spec.Capacity)) == 0 {
-		return fmt.Errorf("capacity cannot be empty")
+	// TODO: Need to check for nil
+	if cStorVolume.Spec.Capacity.IsZero() {
+		return fmt.Errorf("capacity cannot be zero")
 	}
 	if cStorVolume.Spec.ReplicationFactor == 0 {
 		return fmt.Errorf("replicationFactor cannot be zero")
