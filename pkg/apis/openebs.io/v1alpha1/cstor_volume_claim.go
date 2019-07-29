@@ -85,7 +85,9 @@ const (
 // defines the observed state of CStorVolumeClaim
 type CStorVolumeClaimStatus struct {
 	// Phase represents the current phase of CStorVolumeClaim.
-	Phase      CStorVolumeClaimPhase       `json:"phase"`
+	Phase CStorVolumeClaimPhase `json:"phase"`
+	// Capacity the actual resources of the underlying volume.
+	Capacity   corev1.ResourceList         `json:"capacity,omitempty"`
 	Conditions []CStorVolumeClaimCondition `json:"condition,omitempty"`
 }
 
