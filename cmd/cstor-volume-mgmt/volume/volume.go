@@ -107,11 +107,11 @@ func extractReplicaStatusFromJSON(str string) (*apis.CVStatus, error) {
 func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
 
 	var buffer bytes.Buffer
-	buffer.WriteString(`# Global section
+	_, _ = buffer.WriteString(`# Global section
 [Global]
 `)
-	buffer.WriteString("  NodeBase \"" + cStorVolume.Spec.NodeBase + "\"")
-	buffer.WriteString(`
+	_, _ = buffer.WriteString("  NodeBase \"" + cStorVolume.Spec.NodeBase + "\"")
+	_, _ = buffer.WriteString(`
   PidFile "/var/run/istgt.pid"
   AuthFile "/usr/local/etc/istgt/auth.conf"
   LogFile "/usr/local/etc/istgt/logfile"
@@ -137,14 +137,14 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
   AuthMethod None
   AuthGroup None
 `)
-	buffer.WriteString("  Portal UC1 " + cStorVolume.Spec.TargetIP + ":3261\n")
-	buffer.WriteString("  Netmask " + cStorVolume.Spec.TargetIP + "/8\n")
+	_, _ = buffer.WriteString("  Portal UC1 " + cStorVolume.Spec.TargetIP + ":3261\n")
+	_, _ = buffer.WriteString("  Netmask " + cStorVolume.Spec.TargetIP + "/8\n")
 	buffer.WriteString(`
 # PortalGroup section
 [PortalGroup1]
 `)
-	buffer.WriteString("  Portal DA1 " + cStorVolume.Spec.TargetIP + ":3260\n")
-	buffer.WriteString(`
+	_, _ = buffer.WriteString("  Portal DA1 " + cStorVolume.Spec.TargetIP + ":3260\n")
+	_, _ = buffer.WriteString(`
 # InitiatorGroup section
 [InitiatorGroup1]
   InitiatorName "ALL"
@@ -157,30 +157,30 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
 # LogicalUnit section
 [LogicalUnit1]
 `)
-	buffer.WriteString("  TargetName " + cStorVolume.Name + "\n")
-	buffer.WriteString("  TargetAlias nicknamefor-" + cStorVolume.Name)
-	buffer.WriteString(`
+	_, _ = buffer.WriteString("  TargetName " + cStorVolume.Name + "\n")
+	_, _ = buffer.WriteString("  TargetAlias nicknamefor-" + cStorVolume.Name)
+	_, _ = buffer.WriteString(`
   Mapping PortalGroup1 InitiatorGroup1
   AuthMethod None
   AuthGroup None
   UseDigest Auto
   ReadOnly No
 `)
-	buffer.WriteString("  ReplicationFactor " + strconv.Itoa(cStorVolume.Spec.ReplicationFactor) + "\n")
-	buffer.WriteString("  ConsistencyFactor " + strconv.Itoa(cStorVolume.Spec.ConsistencyFactor))
-	buffer.WriteString(`
+	_, _ = buffer.WriteString("  ReplicationFactor " + strconv.Itoa(cStorVolume.Spec.ReplicationFactor) + "\n")
+	_, _ = buffer.WriteString("  ConsistencyFactor " + strconv.Itoa(cStorVolume.Spec.ConsistencyFactor))
+	_, _ = buffer.WriteString(`
   UnitType Disk
   UnitOnline Yes
   BlockLength 512
   QueueDepth 32
   Luworkers 6
 `)
-	buffer.WriteString("  UnitInquiry \"OpenEBS\" \"iscsi\" \"0\" \"" + string(cStorVolume.UID) + "\"")
-	buffer.WriteString(`
+	_, _ = buffer.WriteString("  UnitInquiry \"OpenEBS\" \"iscsi\" \"0\" \"" + string(cStorVolume.UID) + "\"")
+	_, _ = buffer.WriteString(`
   PhysRecordLength 4096
 `)
-	buffer.WriteString("  LUN0 Storage " + cStorVolume.Spec.Capacity.String() + " 32k")
-	buffer.WriteString(`
+	_, _ = buffer.WriteString("  LUN0 Storage " + cStorVolume.Spec.Capacity.String() + " 32k")
+	_, _ = buffer.WriteString(`
   LUN0 Option Unmap Disable
   LUN0 Option WZero Disable
   LUN0 Option ATS Disable

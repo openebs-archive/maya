@@ -80,9 +80,8 @@ func (c *CStorVolumeController) syncHandler(
 		return err
 	}
 	curCapacity := cStorVolumeGot.Status.Capacity
-	//desiredCapacity := cStorVolumeGot.Spec.Capacity
+	// IsZero returns true if the quantity is equal to zero.
 	if curCapacity.IsZero() {
-		glog.Infof("[Debug] change in not sync")
 		cStorVolumeGot.Status.Capacity = cStorVolumeGot.Spec.Capacity
 	}
 	_, err = c.clientset.OpenebsV1alpha1().
@@ -157,7 +156,6 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 			}
 		}
 		if cStorVolumeGot.Status.Capacity.IsZero() {
-			glog.Infof("[Debug] capacity change in sync")
 			cStorVolumeGot.Status.Capacity = cStorVolumeGot.Spec.Capacity
 		}
 		cStorVolumeGot.Status.LastUpdateTime = metav1.Now()
