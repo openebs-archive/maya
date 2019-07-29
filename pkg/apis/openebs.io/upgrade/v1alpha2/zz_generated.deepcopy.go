@@ -201,7 +201,7 @@ func (in *StoragePoolClaim) DeepCopy() *StoragePoolClaim {
 func (in *UpgradeDetailedStatuses) DeepCopyInto(out *UpgradeDetailedStatuses) {
 	*out = *in
 	in.StartTime.DeepCopyInto(&out.StartTime)
-	in.LastUpdatedAt.DeepCopyInto(&out.LastUpdatedAt)
+	in.LastUpdatedTime.DeepCopyInto(&out.LastUpdatedTime)
 	out.Status = in.Status
 	return
 }
