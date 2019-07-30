@@ -364,88 +364,89 @@ func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
 		Should(BeTrue())
 }
 
-// GetPodList gets the list of pods using label selector
-// and returns an error if pod list count does not matched
-// with extected count.
-func (ops *Operations) GetPodList(
-	namespace string,
-	listOpts metav1.ListOptions,
-	expectedCount int) (*corev1.PodList, error) {
-	podList, err := ops.PodClient.WithNamespace(namespace).
-		List(listOpts)
-	if err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"failed to list pods with label {%s} in namespace {%s}",
-			listOpts.LabelSelector,
-			namespace,
+// ExecuteZpoolCMDEventually executes the zpool command in cstor pool container
+// and returns stdout
+func (ops *Operations) ExecuteZpoolCMDEventually(podObj *corev1.Pod, cmd string) string {
+	var err error
+	output := &pod.ExecOutput{}
+	podName := podObj.Name
+	namespace := podObj.Namespace
+	status := ops.IsPodRunningEventually(namespace, podName)
+	Expect(status).To(Equal(true),
+		"while checking the status of pod {%s} in namespace {%s}",
+		podName,
+		namespace,
+	)
+	for i := 0; i < maxRetry; i++ {
+		output, err = ops.PodClient.WithNamespace(namespace).
+			Exec(
+				podName,
+				&corev1.PodExecOptions{
+					Command: []string{
+						"/bin/bash",
+						"-c",
+						cmd,
+					},
+					Container: podObj.Spec.Containers[0].Name,
+					Stdin:     false,
+					Stdout:    true,
+					Stderr:    true,
+				},
+			)
+		Expect(err).ShouldNot(
+			HaveOccurred(),
+			"while geting the zpool pool guid of pod {%s}",
+			podName,
 		)
+		if output.Stdout != "" {
+			return output.Stdout
+		}
+		time.Sleep(5 * time.Second)
 	}
-	if len(podList.Items) != expectedCount {
-		return nil, errors.Errorf(
-			"atleast %d pods should present with label selector {%s} in namespace {%s} but got {%d} pods",
-			expectedCount,
-			listOpts.LabelSelector,
-			namespace,
-			len(podList.Items),
-		)
-	}
-	return podList, nil
+	err = errors.Errorf(
+		"failed to execute cmd %s on pool pod %s",
+		cmd,
+		podName,
+	)
+	Expect(err).To(BeNil(),
+		"failed to execute cmd %s on pool pod %s in namespace %s",
+		cmd,
+		podName,
+		namespace,
+	)
+	return ""
 }
 
-// RestartSinglePodsEventually returns pod object after
-// restarting the single pod if error happens in between it returns error
-func (ops *Operations) RestartSinglePodsEventually(
-	namespace string,
-	listOpts metav1.ListOptions) (*corev1.Pod, error) {
-	podList, err := ops.GetPodList(namespace, listOpts, 1)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to list pods")
-	}
-
-	podObj := podList.Items[0]
-	status := ops.IsPodRunningEventually(namespace, podObj.Name)
+// RestartPodEventually restarts the pod and return
+func (ops *Operations) RestartPodEventually(podObj *corev1.Pod) error {
+	status := ops.IsPodRunningEventually(podObj.Namespace, podObj.Name)
 	if !status {
-		return nil, errors.Errorf(
+		return errors.Errorf(
 			"while checking the status of pod {%s} in namespace {%s} before restarting",
 			podObj.Name,
-			namespace,
+			podObj.Namespace,
 		)
 	}
 
-	err = ops.PodClient.WithNamespace(namespace).
+	err := ops.PodClient.WithNamespace(podObj.Namespace).
 		Delete(podObj.Name, &metav1.DeleteOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(err,
+		return errors.Wrapf(err,
 			"failed to delete pod {%s} in namespace {%s}",
 			podObj.Name,
-			namespace,
+			podObj.Namespace,
 		)
 	}
 
-	status = ops.IsPodDeletedEventually(namespace, podObj.Name)
+	status = ops.IsPodDeletedEventually(podObj.Namespace, podObj.Name)
 	if !status {
-		return nil, errors.Errorf(
+		return errors.Errorf(
 			"while checking termination of pod {%s} in namespace {%s}",
 			podObj.Name,
-			namespace,
+			podObj.Namespace,
 		)
 	}
-
-	podList, err = ops.GetPodList(namespace, listOpts, 1)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to list pods")
-	}
-	podObj = podList.Items[0]
-	status = ops.IsPodRunningEventually(namespace, podObj.Name)
-	if !status {
-		return nil, errors.Errorf(
-			"while checking the status of pod {%s} in namespace {%s} after restarting",
-			podObj.Name,
-			namespace,
-		)
-	}
-	return &podObj, nil
+	return nil
 }
 
 // GetSnapshotTypeEventually returns type of snapshot eventually

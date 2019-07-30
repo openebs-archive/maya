@@ -20,11 +20,13 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/openebs/maya/tests/artifacts"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-/*
+var (
+	zpoolGUIDCmd = "zpool get guid -H | awk '{print $3}'"
+)
+
 var _ = Describe("STRIPED SPARSE SPC", func() {
 
 	When("We apply sparse-striped-auto spc yaml with maxPool count equal to 3 on a k8s cluster having at least 3 capable node", func() {
@@ -57,6 +59,59 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 			err := Spc.RemoveFinalizer(spc.SPCFinalizer)
 			Expect(err).To(BeNil())
 			Expect(ops.IsSPCFinalizerExistsOnSPC(spcObj.Name, spc.SPCFinalizer)).To(BeTrue())
+		})
+	})
+
+	When("We we delete cstor sparse pool pod", func() {
+		It("pool should be imported", func() {
+			namespace := string(artifacts.OpenebsNamespace)
+
+			cspList, err := ops.CSPClient.List(
+				metav1.ListOptions{
+					LabelSelector: "openebs.io/storage-pool-claim=" + spcObj.Name,
+				},
+			)
+			Expect(err).To(BeNil(), "failed to list csp of spc {%s}", spcObj.Name)
+
+			// get pool pod corresponding to above spc
+			poolPodList, err := ops.PodClient.WithNamespace(namespace).
+				List(metav1.ListOptions{
+					LabelSelector: "openebs.io/cstor-pool=" + cspList.Items[0].Name,
+				},
+				)
+			Expect(err).To(
+				BeNil(),
+				"failed to list cstor pool pod of csp %s",
+				cspList.Items[0].Name,
+			)
+			poolPodObj := poolPodList.Items[0]
+
+			oldGUID := ops.ExecuteZpoolCMDEventually(&poolPodObj, zpoolGUIDCmd)
+
+			By("Restarting cstor pool pod")
+			err = ops.RestartPodEventually(&poolPodObj)
+			Expect(err).To(BeNil(), "failed to restart cstor pool pod")
+
+			// get pool pod corresponding to above spc
+			poolPodList, err = ops.PodClient.WithNamespace(namespace).
+				List(metav1.ListOptions{
+					LabelSelector: "openebs.io/cstor-pool=" + cspList.Items[0].Name,
+				},
+				)
+			Expect(err).To(
+				BeNil(),
+				"failed to list cstor pool pod of csp %s",
+				cspList.Items[0].Name,
+			)
+			poolPodObj = poolPodList.Items[0]
+
+			newGUID := ops.ExecuteZpoolCMDEventually(&poolPodObj, zpoolGUIDCmd)
+
+			//Check zpool pool guid before and after restarts
+			Expect(oldGUID).To(
+				Equal(newGUID),
+				"pool is created after restarting the cstor sparse pool pod",
+			)
 		})
 	})
 
@@ -301,114 +356,4 @@ var _ = Describe("RAIDZ2 SPARSE SPC", func() {
 		})
 	})
 
-})*/
-
-var _ = Describe("SPC POOL POD DELETION", func() {
-	When("We apply sparse-striped-auto spc yaml with maxPool count equal to 1 "+
-		"on a k8s cluster having at least one capable node pool pod should be up and running", func() {
-		It("Zpool should be imported upon restart of cstor pool pod", func() {
-			namespace := string(artifacts.OpenebsNamespace)
-			builtSpcObj := spc.NewBuilder().
-				WithGenerateName(spcName).
-				WithDiskType(string(apis.TypeSparseCPV)).
-				WithMaxPool(1).
-				WithOverProvisioning(false).
-				WithPoolType(string(apis.PoolTypeStripedCPV)).
-				Build()
-			spcObj = builtSpcObj.Object
-
-			// Create a storage pool claim
-			_, err := ops.SPCClient.Create(spcObj)
-			Expect(err).To(BeNil())
-			cspCount := ops.GetHealthyCSPCount(spcObj.Name, 1)
-			Expect(cspCount).To(Equal(1))
-
-			// get pool pod corresponding to above spc
-			poolPodList, err := ops.PodClient.WithNamespace(namespace).
-				List(metav1.ListOptions{
-					LabelSelector: "openebs.io/storage-pool-claim=" + spcObj.Name,
-				},
-				)
-			Expect(err).To(BeNil(), "failed to get list of pool pods")
-
-			// verify pod status
-			status := ops.IsPodRunningEventually(namespace, poolPodList.Items[0].Name)
-			Expect(status).To(
-				Equal(true),
-				"while checking status of pool pod {%s}",
-				poolPodList.Items[0].Name,
-			)
-
-			// Exec into cstor-pool pod and get pool guid
-			oldOutput, err := ops.PodClient.WithNamespace(namespace).
-				Exec(
-					poolPodList.Items[0].Name,
-					&corev1.PodExecOptions{
-						Command: []string{
-							"/bin/bash",
-							"-c",
-							"zpool get guid -H | awk '{print $3}'",
-						},
-						Container: poolPodList.Items[0].Spec.Containers[0].Name,
-						Stdin:     false,
-						Stdout:    true,
-						Stderr:    true,
-					},
-				)
-			Expect(err).To(
-				BeNil(),
-				"while geting the zpool pool guid of pod {%s} before restart",
-				poolPodList.Items[0].Name,
-			)
-
-			By("Restarting cstor pool pod")
-			newPoolPodObj, err := ops.RestartSinglePodsEventually(
-				namespace,
-				metav1.ListOptions{
-					LabelSelector: "openebs.io/storage-pool-claim=" + spcObj.Name,
-				},
-			)
-			Expect(err).To(BeNil(), "failed to restart cstor pool pod")
-
-			// Wait untill Pool is created
-			// check with zpool status
-			cspCount = ops.GetHealthyCSPCount(spcObj.Name, 1)
-			Expect(cspCount).To(Equal(1))
-
-			// Exec into cstor-pool pod and get pool guid
-			newOutput, err := ops.PodClient.WithNamespace(namespace).
-				Exec(
-					newPoolPodObj.Name,
-					&corev1.PodExecOptions{
-						Command: []string{
-							"/bin/bash",
-							"-c",
-							"zpool get guid -H | awk '{print $3}'",
-						},
-						Container: newPoolPodObj.Spec.Containers[0].Name,
-						Stdin:     false,
-						Stdout:    true,
-						Stderr:    true,
-					},
-				)
-			Expect(err).To(
-				BeNil(),
-				"while geting the zpool pool guid of pod {%s} after restart",
-				newPoolPodObj,
-			)
-
-			//Check zpool pool guid before and after restarts
-			Expect(oldOutput.Stdout).To(
-				Equal(newOutput.Stdout),
-				"pool is created after restarting the cstor pool pod",
-			)
-		})
-	})
-
-	When("Cleaning up spc", func() {
-		It("should delete the spc", func() {
-			_, err := ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil())
-		})
-	})
 })
