@@ -86,7 +86,7 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 			)
 			poolPodObj := poolPodList.Items[0]
 
-			oldGUID := ops.ExecuteZpoolCMDEventually(&poolPodObj, zpoolGUIDCmd)
+			oldGUID := ops.ExecuteCMDEventually(&poolPodObj, zpoolGUIDCmd)
 
 			By("Restarting cstor pool pod")
 			err = ops.RestartPodEventually(&poolPodObj)
@@ -105,7 +105,7 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 			)
 			poolPodObj = poolPodList.Items[0]
 
-			newGUID := ops.ExecuteZpoolCMDEventually(&poolPodObj, zpoolGUIDCmd)
+			newGUID := ops.ExecuteCMDEventually(&poolPodObj, zpoolGUIDCmd)
 
 			//Check zpool pool guid before and after restarts
 			Expect(oldGUID).To(

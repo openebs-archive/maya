@@ -364,9 +364,9 @@ func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
 		Should(BeTrue())
 }
 
-// ExecuteZpoolCMDEventually executes the zpool command in cstor pool container
+// ExecuteCMDEventually executes the command on pod container
 // and returns stdout
-func (ops *Operations) ExecuteZpoolCMDEventually(podObj *corev1.Pod, cmd string) string {
+func (ops *Operations) ExecuteCMDEventually(podObj *corev1.Pod, cmd string) string {
 	var err error
 	output := &pod.ExecOutput{}
 	podName := podObj.Name
@@ -395,8 +395,10 @@ func (ops *Operations) ExecuteZpoolCMDEventually(podObj *corev1.Pod, cmd string)
 			)
 		Expect(err).ShouldNot(
 			HaveOccurred(),
-			"while geting the zpool pool guid of pod {%s}",
+			"failed to execute command {%s} on pod {%s} namespace {%s}",
+			cmd,
 			podName,
+			namespace,
 		)
 		if output.Stdout != "" {
 			return output.Stdout
@@ -404,12 +406,12 @@ func (ops *Operations) ExecuteZpoolCMDEventually(podObj *corev1.Pod, cmd string)
 		time.Sleep(5 * time.Second)
 	}
 	err = errors.Errorf(
-		"failed to execute cmd %s on pool pod %s",
+		"failed to execute cmd %s on pod %s",
 		cmd,
 		podName,
 	)
 	Expect(err).To(BeNil(),
-		"failed to execute cmd {%s} on pool pod {%s} in namespace {%s} stdout {%s}",
+		"failed to execute cmd {%s} on pod {%s} in namespace {%s} stdout {%s}",
 		cmd,
 		podName,
 		namespace,
