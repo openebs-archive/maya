@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+/*
 var _ = Describe("STRIPED SPARSE SPC", func() {
 
 	When("We apply sparse-striped-auto spc yaml with maxPool count equal to 3 on a k8s cluster having at least 3 capable node", func() {
@@ -300,7 +301,7 @@ var _ = Describe("RAIDZ2 SPARSE SPC", func() {
 		})
 	})
 
-})
+})*/
 
 var _ = Describe("SPC POOL POD DELETION", func() {
 	When("We apply sparse-striped-auto spc yaml with maxPool count equal to 1 "+
@@ -361,7 +362,7 @@ var _ = Describe("SPC POOL POD DELETION", func() {
 			)
 
 			By("Restarting cstor pool pod")
-			newPoolPodObj, err := ops.RestartPodsEventually(
+			newPoolPodObj, err := ops.RestartSinglePodsEventually(
 				namespace,
 				metav1.ListOptions{
 					LabelSelector: "openebs.io/storage-pool-claim=" + spcObj.Name,

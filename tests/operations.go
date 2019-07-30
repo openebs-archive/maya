@@ -393,9 +393,9 @@ func (ops *Operations) GetPodList(
 	return podList, nil
 }
 
-// RestartPodsEventually returns pod object after
+// RestartSinglePodsEventually returns pod object after
 // restarting the single pod if error happens in between it returns error
-func (ops *Operations) RestartPodsEventually(
+func (ops *Operations) RestartSinglePodsEventually(
 	namespace string,
 	listOpts metav1.ListOptions) (*corev1.Pod, error) {
 	podList, err := ops.GetPodList(namespace, listOpts, 1)
