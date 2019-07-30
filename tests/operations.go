@@ -409,10 +409,11 @@ func (ops *Operations) ExecuteZpoolCMDEventually(podObj *corev1.Pod, cmd string)
 		podName,
 	)
 	Expect(err).To(BeNil(),
-		"failed to execute cmd %s on pool pod %s in namespace %s",
+		"failed to execute cmd {%s} on pool pod {%s} in namespace {%s} stdout {%s}",
 		cmd,
 		podName,
 		namespace,
+		output.Stdout,
 	)
 	return ""
 }
