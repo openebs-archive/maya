@@ -364,9 +364,13 @@ func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
 		Should(BeTrue())
 }
 
-// GetnPods returns list of pod objects if list of pod count is matched to
-// expectedCount
-func (ops *Operations) GetnPods(namespace string, listOpts metav1.ListOptions, expectedCount int) (*corev1.PodList, error) {
+// GetPodList gets the list of pods using label selector
+// and returns an error if pod list count does not matched
+// with extected count.
+func (ops *Operations) GetPodList(
+	namespace string,
+	listOpts metav1.ListOptions,
+	expectedCount int) (*corev1.PodList, error) {
 	podList, err := ops.PodClient.WithNamespace(namespace).
 		List(listOpts)
 	if err != nil {
@@ -379,18 +383,22 @@ func (ops *Operations) GetnPods(namespace string, listOpts metav1.ListOptions, e
 	}
 	if len(podList.Items) != expectedCount {
 		return nil, errors.Errorf(
-			"got more than one pod with label {%s} in namespace {%s}",
+			"atleast %d pods should present with label selector {%s} in namespace {%s} but got {%d} pods",
+			expectedCount,
 			listOpts.LabelSelector,
 			namespace,
+			len(podList.Items),
 		)
 	}
 	return podList, nil
 }
 
-// RestartPodEventually returns pod object after restarting the pod if it comes
-// to running state
-func (ops *Operations) RestartPodEventually(namespace string, listOpts metav1.ListOptions) (*corev1.Pod, error) {
-	podList, err := ops.GetnPods(namespace, listOpts, 1)
+// RestartPodsEventually returns pod object after
+// restarting the single pod if error happens in between it returns error
+func (ops *Operations) RestartPodsEventually(
+	namespace string,
+	listOpts metav1.ListOptions) (*corev1.Pod, error) {
+	podList, err := ops.GetPodList(namespace, listOpts, 1)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list pods")
 	}
@@ -408,22 +416,34 @@ func (ops *Operations) RestartPodEventually(namespace string, listOpts metav1.Li
 	err = ops.PodClient.WithNamespace(namespace).
 		Delete(podObj.Name, &metav1.DeleteOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to delete pod {%s} in namespace {%s}", podObj.Name, namespace)
+		return nil, errors.Wrapf(err,
+			"failed to delete pod {%s} in namespace {%s}",
+			podObj.Name,
+			namespace,
+		)
 	}
 
 	status = ops.IsPodDeletedEventually(namespace, podObj.Name)
 	if !status {
-		return nil, errors.Errorf("while checking termination of pod {%s} in namespace {%s}", podObj.Name, namespace)
+		return nil, errors.Errorf(
+			"while checking termination of pod {%s} in namespace {%s}",
+			podObj.Name,
+			namespace,
+		)
 	}
 
-	podList, err = ops.GetnPods(namespace, listOpts, 1)
+	podList, err = ops.GetPodList(namespace, listOpts, 1)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list pods")
 	}
 	podObj = podList.Items[0]
 	status = ops.IsPodRunningEventually(namespace, podObj.Name)
 	if !status {
-		return nil, errors.Errorf("while checking the status of pod {%s} in namespace {%s} after restarting", podObj.Name, namespace)
+		return nil, errors.Errorf(
+			"while checking the status of pod {%s} in namespace {%s} after restarting",
+			podObj.Name,
+			namespace,
+		)
 	}
 	return &podObj, nil
 }

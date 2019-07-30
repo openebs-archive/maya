@@ -303,9 +303,9 @@ var _ = Describe("RAIDZ2 SPARSE SPC", func() {
 })
 
 var _ = Describe("SPC POOL POD DELETION", func() {
-	When("We apply sparse-striped-auto spc yaml with maxPool count equal to 1"+
-		"on a k8s cluster having at least one capable node", func() {
-		It("pool resources count should be 1 with no error and healthy status", func() {
+	When("We apply sparse-striped-auto spc yaml with maxPool count equal to 1 "+
+		"on a k8s cluster having at least one capable node pool pod should be up and running", func() {
+		It("Zpool should be imported upon restart of cstor pool pod", func() {
 			namespace := string(artifacts.OpenebsNamespace)
 			builtSpcObj := spc.NewBuilder().
 				WithGenerateName(spcName).
@@ -332,7 +332,11 @@ var _ = Describe("SPC POOL POD DELETION", func() {
 
 			// verify pod status
 			status := ops.IsPodRunningEventually(namespace, poolPodList.Items[0].Name)
-			Expect(status).To(Equal(true), "while checking status of pool pod {%s}", poolPodList.Items[0].Name)
+			Expect(status).To(
+				Equal(true),
+				"while checking status of pool pod {%s}",
+				poolPodList.Items[0].Name,
+			)
 
 			// Exec into cstor-pool pod and get pool guid
 			oldOutput, err := ops.PodClient.WithNamespace(namespace).
@@ -350,15 +354,25 @@ var _ = Describe("SPC POOL POD DELETION", func() {
 						Stderr:    true,
 					},
 				)
-			Expect(err).To(BeNil(), "while geting the zpool pool guid of pod {%s} before restart", poolPodList.Items[0].Name)
+			Expect(err).To(
+				BeNil(),
+				"while geting the zpool pool guid of pod {%s} before restart",
+				poolPodList.Items[0].Name,
+			)
 
-			newPoolPodObj, err := ops.RestartPodEventually(
+			By("Restarting cstor pool pod")
+			newPoolPodObj, err := ops.RestartPodsEventually(
 				namespace,
 				metav1.ListOptions{
 					LabelSelector: "openebs.io/storage-pool-claim=" + spcObj.Name,
 				},
 			)
 			Expect(err).To(BeNil(), "failed to restart cstor pool pod")
+
+			// Wait untill Pool is created
+			// check with zpool status
+			cspCount = ops.GetHealthyCSPCount(spcObj.Name, 1)
+			Expect(cspCount).To(Equal(1))
 
 			// Exec into cstor-pool pod and get pool guid
 			newOutput, err := ops.PodClient.WithNamespace(namespace).
@@ -376,10 +390,17 @@ var _ = Describe("SPC POOL POD DELETION", func() {
 						Stderr:    true,
 					},
 				)
-			Expect(err).To(BeNil(), "while geting the zpool pool guid of pod {%s} after restart", newPoolPodObj)
+			Expect(err).To(
+				BeNil(),
+				"while geting the zpool pool guid of pod {%s} after restart",
+				newPoolPodObj,
+			)
 
 			//Check zpool pool guid before and after restarts
-			Expect(oldOutput.Stdout).To(Equal(newOutput.Stdout), "pool is created after restarting the pool pod")
+			Expect(oldOutput.Stdout).To(
+				Equal(newOutput.Stdout),
+				"pool is created after restarting the cstor pool pod",
+			)
 		})
 	})
 
