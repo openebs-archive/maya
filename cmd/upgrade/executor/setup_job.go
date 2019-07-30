@@ -33,7 +33,7 @@ func NewJob() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "upgrade",
 		Short: "OpenEBS Upgrade Utility",
-		Long: `An utility to uggrade OpenEBS Storage Pools and Volumes,
+		Long: `An utility to upgrade OpenEBS Storage Pools and Volumes,
 			run as a Kubernetes Job`,
 		PersistentPreRun: PreRun,
 	}

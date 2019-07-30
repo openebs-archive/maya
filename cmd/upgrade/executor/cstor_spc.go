@@ -41,7 +41,8 @@ Usage: upgrade cstor-spc --spc-name <spc-name> --options...
 `
 )
 
-// NewUpgradeCStorSPCJob upgrade a Jiva Volume
+// NewUpgradeCStorSPCJob upgrades all the cStor Pools associated with
+// a given Storage Pool Claim
 func NewUpgradeCStorSPCJob() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "cstor-spc",
