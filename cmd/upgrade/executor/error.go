@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors.
+Copyright 2019 The OpenEBS Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,18 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package executor
 
 import (
-	"github.com/openebs/maya/cmd/upgrade/executor"
-	mlogger "github.com/openebs/maya/pkg/logs"
+	"context"
+	"fmt"
+	"os"
 )
 
-func main() {
-	// Init logging
-	mlogger.InitLogs()
-	defer mlogger.FlushLogs()
-
-	err := executor.NewJob().Execute()
-	executor.CheckError(err)
+// CheckError prints err to stderr and exits with code 1 if err is not nil. Otherwise, it is a
+// no-op.
+func CheckError(err error) {
+	if err != nil {
+		if err != context.Canceled {
+			fmt.Fprintf(os.Stderr, fmt.Sprintf("An error occurred: %v\n", err))
+		}
+		os.Exit(1)
+	}
 }

@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors.
+Copyright 2019 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,18 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package executor
 
 import (
-	"github.com/openebs/maya/cmd/upgrade/executor"
-	mlogger "github.com/openebs/maya/pkg/logs"
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 )
 
-func main() {
-	// Init logging
-	mlogger.InitLogs()
-	defer mlogger.FlushLogs()
+//This file defines the environement variable names that are specific
+// to this provisioner. In addition to the variables defined in this file,
+// provisioner also uses the following:
+//   OPENEBS_NAMESPACE
 
-	err := executor.NewJob().Execute()
-	executor.CheckError(err)
+func getOpenEBSNamespace() string {
+	return menv.Get(menv.OpenEBSNamespace)
 }
