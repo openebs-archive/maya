@@ -26,6 +26,8 @@ import (
 type Interface interface {
 	// UpgradeResults returns a UpgradeResultInformer.
 	UpgradeResults() UpgradeResultInformer
+	// UpgradeTasks returns a UpgradeTaskInformer.
+	UpgradeTasks() UpgradeTaskInformer
 }
 
 type version struct {
@@ -42,4 +44,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // UpgradeResults returns a UpgradeResultInformer.
 func (v *version) UpgradeResults() UpgradeResultInformer {
 	return &upgradeResultInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// UpgradeTasks returns a UpgradeTaskInformer.
+func (v *version) UpgradeTasks() UpgradeTaskInformer {
+	return &upgradeTaskInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

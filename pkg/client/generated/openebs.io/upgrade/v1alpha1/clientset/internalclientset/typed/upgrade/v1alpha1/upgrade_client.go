@@ -28,6 +28,7 @@ import (
 type OpenebsV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	UpgradeResultsGetter
+	UpgradeTasksGetter
 }
 
 // OpenebsV1alpha1Client is used to interact with features provided by the openebs.io group.
@@ -37,6 +38,10 @@ type OpenebsV1alpha1Client struct {
 
 func (c *OpenebsV1alpha1Client) UpgradeResults(namespace string) UpgradeResultInterface {
 	return newUpgradeResults(c, namespace)
+}
+
+func (c *OpenebsV1alpha1Client) UpgradeTasks(namespace string) UpgradeTaskInterface {
+	return newUpgradeTasks(c, namespace)
 }
 
 // NewForConfig creates a new OpenebsV1alpha1Client for the given config.

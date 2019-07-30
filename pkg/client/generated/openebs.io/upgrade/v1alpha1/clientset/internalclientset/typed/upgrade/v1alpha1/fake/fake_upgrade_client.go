@@ -32,6 +32,10 @@ func (c *FakeOpenebsV1alpha1) UpgradeResults(namespace string) v1alpha1.UpgradeR
 	return &FakeUpgradeResults{c, namespace}
 }
 
+func (c *FakeOpenebsV1alpha1) UpgradeTasks(namespace string) v1alpha1.UpgradeTaskInterface {
+	return &FakeUpgradeTasks{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeOpenebsV1alpha1) RESTClient() rest.Interface {
