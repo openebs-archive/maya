@@ -50,7 +50,6 @@ BOILERPLATE_TEXT_PATH=buildscripts/custom-boilerplate.go.txt
 ALL_API_GROUPS=\
 	openebs.io/runtask/v1beta1 \
 	openebs.io/upgrade/v1alpha1 \
-	openebs.io/upgrade/v1alpha2 \
 	openebs.io/snapshot/v1alpha1 \
 	openebs.io/ndm/v1alpha1
 
