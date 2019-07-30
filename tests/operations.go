@@ -40,7 +40,7 @@ import (
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
-	"github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
+	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/tests/artifacts"
@@ -350,7 +350,7 @@ func (ops *Operations) PodDeleteCollection(ns string, lopts metav1.ListOptions) 
 	return ops.PodClient.WithNamespace(ns).DeleteCollection(lopts, dopts)
 }
 
-// IsPodRunningEventually checks if the pvc is bound or not eventually
+// IsPodRunningEventually return true if the pod comes to running state
 func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
 	return Eventually(func() bool {
 		p, err := ops.PodClient.
@@ -362,6 +362,70 @@ func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
 	},
 		150, 10).
 		Should(BeTrue())
+}
+
+// GetnPods returns list of pod objects if list of pod count is matched to
+// expectedCount
+func (ops *Operations) GetnPods(namespace string, listOpts metav1.ListOptions, expectedCount int) (*corev1.PodList, error) {
+	podList, err := ops.PodClient.WithNamespace(namespace).
+		List(listOpts)
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to list pods with label {%s} in namespace {%s}",
+			listOpts.LabelSelector,
+			namespace,
+		)
+	}
+	if len(podList.Items) != expectedCount {
+		return nil, errors.Errorf(
+			"got more than one pod with label {%s} in namespace {%s}",
+			listOpts.LabelSelector,
+			namespace,
+		)
+	}
+	return podList, nil
+}
+
+// RestartPodEventually returns pod object after restarting the pod if it comes
+// to running state
+func (ops *Operations) RestartPodEventually(namespace string, listOpts metav1.ListOptions) (*corev1.Pod, error) {
+	podList, err := ops.GetnPods(namespace, listOpts, 1)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list pods")
+	}
+
+	podObj := podList.Items[0]
+	status := ops.IsPodRunningEventually(namespace, podObj.Name)
+	if !status {
+		return nil, errors.Errorf(
+			"while checking the status of pod {%s} in namespace {%s} before restarting",
+			podObj.Name,
+			namespace,
+		)
+	}
+
+	err = ops.PodClient.WithNamespace(namespace).
+		Delete(podObj.Name, &metav1.DeleteOptions{})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to delete pod {%s} in namespace {%s}", podObj.Name, namespace)
+	}
+
+	status = ops.IsPodDeletedEventually(namespace, podObj.Name)
+	if !status {
+		return nil, errors.Errorf("while checking termination of pod {%s} in namespace {%s}", podObj.Name, namespace)
+	}
+
+	podList, err = ops.GetnPods(namespace, listOpts, 1)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list pods")
+	}
+	podObj = podList.Items[0]
+	status = ops.IsPodRunningEventually(namespace, podObj.Name)
+	if !status {
+		return nil, errors.Errorf("while checking the status of pod {%s} in namespace {%s} after restarting", podObj.Name, namespace)
+	}
+	return &podObj, nil
 }
 
 // GetSnapshotTypeEventually returns type of snapshot eventually
