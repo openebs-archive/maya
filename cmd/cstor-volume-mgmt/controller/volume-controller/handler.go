@@ -79,11 +79,6 @@ func (c *CStorVolumeController) syncHandler(
 		}
 		return err
 	}
-	curCapacity := cStorVolumeGot.Status.Capacity
-	// IsZero returns true if the quantity is equal to zero.
-	if curCapacity.IsZero() {
-		cStorVolumeGot.Status.Capacity = cStorVolumeGot.Spec.Capacity
-	}
 	_, err = c.clientset.OpenebsV1alpha1().
 		CStorVolumes(cStorVolumeGot.Namespace).
 		Update(cStorVolumeGot)
@@ -123,6 +118,15 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		if err != nil {
 			return common.CVStatusError, err
 		}
+		//TODO: Should we need to make update call here itself or caller of the
+		//code will take care?
+
+		// IsZero returns true if the quantity is equal to zero.
+		if cStorVolumeGot.Status.Capacity.IsZero() {
+			// update the status capacity of cstorvolume caller of this code
+			// will update in etcd
+			cStorVolumeGot.Status.Capacity = cStorVolumeGot.Spec.Capacity
+		}
 		return common.CVStatusInit, nil
 
 	case common.QOpModify:
@@ -154,9 +158,6 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 					common.CVStatusInit,
 				)
 			}
-		}
-		if cStorVolumeGot.Status.Capacity.IsZero() {
-			cStorVolumeGot.Status.Capacity = cStorVolumeGot.Spec.Capacity
 		}
 		cStorVolumeGot.Status.LastUpdateTime = metav1.Now()
 		if cStorVolumeGot.Status.Phase != lastKnownPhase {
