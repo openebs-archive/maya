@@ -40,7 +40,7 @@ import (
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
-	"github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
+	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/tests/artifacts"
@@ -350,7 +350,7 @@ func (ops *Operations) PodDeleteCollection(ns string, lopts metav1.ListOptions) 
 	return ops.PodClient.WithNamespace(ns).DeleteCollection(lopts, dopts)
 }
 
-// IsPodRunningEventually checks if the pvc is bound or not eventually
+// IsPodRunningEventually return true if the pod comes to running state
 func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
 	return Eventually(func() bool {
 		p, err := ops.PodClient.
@@ -362,6 +362,94 @@ func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
 	},
 		150, 10).
 		Should(BeTrue())
+}
+
+// ExecuteCMDEventually executes the command on pod container
+// and returns stdout
+func (ops *Operations) ExecuteCMDEventually(podObj *corev1.Pod, cmd string) string {
+	var err error
+	output := &pod.ExecOutput{}
+	podName := podObj.Name
+	namespace := podObj.Namespace
+	status := ops.IsPodRunningEventually(namespace, podName)
+	Expect(status).To(Equal(true),
+		"while checking the status of pod {%s} in namespace {%s}",
+		podName,
+		namespace,
+	)
+	for i := 0; i < maxRetry; i++ {
+		output, err = ops.PodClient.WithNamespace(namespace).
+			Exec(
+				podName,
+				&corev1.PodExecOptions{
+					Command: []string{
+						"/bin/bash",
+						"-c",
+						cmd,
+					},
+					Container: podObj.Spec.Containers[0].Name,
+					Stdin:     false,
+					Stdout:    true,
+					Stderr:    true,
+				},
+			)
+		Expect(err).ShouldNot(
+			HaveOccurred(),
+			"failed to execute command {%s} on pod {%s} namespace {%s}",
+			cmd,
+			podName,
+			namespace,
+		)
+		if output.Stdout != "" {
+			return output.Stdout
+		}
+		time.Sleep(5 * time.Second)
+	}
+	err = errors.Errorf(
+		"failed to execute cmd %s on pod %s",
+		cmd,
+		podName,
+	)
+	Expect(err).To(BeNil(),
+		"failed to execute cmd {%s} on pod {%s} in namespace {%s} stdout {%s}",
+		cmd,
+		podName,
+		namespace,
+		output.Stdout,
+	)
+	return ""
+}
+
+// RestartPodEventually restarts the pod and return
+func (ops *Operations) RestartPodEventually(podObj *corev1.Pod) error {
+	status := ops.IsPodRunningEventually(podObj.Namespace, podObj.Name)
+	if !status {
+		return errors.Errorf(
+			"while checking the status of pod {%s} in namespace {%s} before restarting",
+			podObj.Name,
+			podObj.Namespace,
+		)
+	}
+
+	err := ops.PodClient.WithNamespace(podObj.Namespace).
+		Delete(podObj.Name, &metav1.DeleteOptions{})
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to delete pod {%s} in namespace {%s}",
+			podObj.Name,
+			podObj.Namespace,
+		)
+	}
+
+	status = ops.IsPodDeletedEventually(podObj.Namespace, podObj.Name)
+	if !status {
+		return errors.Errorf(
+			"while checking termination of pod {%s} in namespace {%s}",
+			podObj.Name,
+			podObj.Namespace,
+		)
+	}
+	return nil
 }
 
 // GetSnapshotTypeEventually returns type of snapshot eventually

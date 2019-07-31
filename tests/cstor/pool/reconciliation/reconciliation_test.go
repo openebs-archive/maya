@@ -23,6 +23,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var (
+	zpoolGUIDCmd = "zpool get guid -H | awk '{print $3}'"
+)
+
 var _ = Describe("STRIPED SPARSE SPC", func() {
 
 	When("We apply sparse-striped-auto spc yaml with maxPool count equal to 3 on a k8s cluster having at least 3 capable node", func() {
@@ -55,6 +59,59 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 			err := Spc.RemoveFinalizer(spc.SPCFinalizer)
 			Expect(err).To(BeNil())
 			Expect(ops.IsSPCFinalizerExistsOnSPC(spcObj.Name, spc.SPCFinalizer)).To(BeTrue())
+		})
+	})
+
+	When("We we delete cstor sparse pool pod", func() {
+		It("pool should be imported", func() {
+			namespace := string(artifacts.OpenebsNamespace)
+
+			cspList, err := ops.CSPClient.List(
+				metav1.ListOptions{
+					LabelSelector: "openebs.io/storage-pool-claim=" + spcObj.Name,
+				},
+			)
+			Expect(err).To(BeNil(), "failed to list csp of spc {%s}", spcObj.Name)
+
+			// get pool pod corresponding to above spc
+			poolPodList, err := ops.PodClient.WithNamespace(namespace).
+				List(metav1.ListOptions{
+					LabelSelector: "openebs.io/cstor-pool=" + cspList.Items[0].Name,
+				},
+				)
+			Expect(err).To(
+				BeNil(),
+				"failed to list cstor pool pod of csp %s",
+				cspList.Items[0].Name,
+			)
+			poolPodObj := poolPodList.Items[0]
+
+			oldGUID := ops.ExecuteCMDEventually(&poolPodObj, zpoolGUIDCmd)
+
+			By("Restarting cstor pool pod")
+			err = ops.RestartPodEventually(&poolPodObj)
+			Expect(err).To(BeNil(), "failed to restart cstor pool pod")
+
+			// get pool pod corresponding to above spc
+			poolPodList, err = ops.PodClient.WithNamespace(namespace).
+				List(metav1.ListOptions{
+					LabelSelector: "openebs.io/cstor-pool=" + cspList.Items[0].Name,
+				},
+				)
+			Expect(err).To(
+				BeNil(),
+				"failed to list cstor pool pod of csp %s",
+				cspList.Items[0].Name,
+			)
+			poolPodObj = poolPodList.Items[0]
+
+			newGUID := ops.ExecuteCMDEventually(&poolPodObj, zpoolGUIDCmd)
+
+			//Check zpool pool guid before and after restarts
+			Expect(oldGUID).To(
+				Equal(newGUID),
+				"pool is created after restarting the cstor sparse pool pod",
+			)
 		})
 	})
 
