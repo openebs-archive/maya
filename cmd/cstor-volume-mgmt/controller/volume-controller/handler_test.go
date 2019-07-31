@@ -35,8 +35,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-//TODO: Move to some common function
-func StrToQuantity(capacity string) resource.Quantity {
+func fakeStrToQuantity(capacity string) resource.Quantity {
 	qntCapacity, _ := resource.ParseQuantity(capacity)
 	return qntCapacity
 }
@@ -68,7 +67,7 @@ func TestGetVolumeResource(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP: "0.0.0.0",
-					Capacity: StrToQuantity("5G"),
+					Capacity: fakeStrToQuantity("5G"),
 					Status:   "init",
 				},
 				Status: apis.CStorVolumeStatus{},
@@ -85,7 +84,7 @@ func TestGetVolumeResource(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP: "0.0.0.0",
-					Capacity: StrToQuantity("15G"),
+					Capacity: fakeStrToQuantity("15G"),
 					Status:   "init",
 				},
 				Status: apis.CStorVolumeStatus{},
@@ -125,7 +124,7 @@ func TestIsValidCStorVolumeMgmt(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP: "0.0.0.0",
-					Capacity: StrToQuantity("15G"),
+					Capacity: fakeStrToQuantity("15G"),
 					Status:   "init",
 				},
 				Status: apis.CStorVolumeStatus{},
@@ -161,7 +160,7 @@ func TestIsValidCStorVolumeMgmtNegative(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP: "0.0.0.0",
-					Capacity: StrToQuantity("15G"),
+					Capacity: fakeStrToQuantity("15G"),
 					Status:   "init",
 				},
 				Status: apis.CStorVolumeStatus{},

@@ -118,15 +118,9 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		if err != nil {
 			return common.CVStatusError, err
 		}
-		//TODO: Should we need to make update call here itself or caller of the
-		//code will take care?
-
-		// IsZero returns true if the quantity is equal to zero.
-		if cStorVolumeGot.Status.Capacity.IsZero() {
-			// update the status capacity of cstorvolume caller of this code
-			// will update in etcd
-			cStorVolumeGot.Status.Capacity = cStorVolumeGot.Spec.Capacity
-		}
+		// update the status capacity of cstorvolume caller of this code
+		// will update in etcd
+		cStorVolumeGot.Status.Capacity = cStorVolumeGot.Spec.Capacity
 		return common.CVStatusInit, nil
 
 	case common.QOpModify:
@@ -140,7 +134,13 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		if err != nil {
 			return common.CVStatusError, err
 		}
-		break
+		// update the status capacity of cstorvolume caller of this code
+		// will update in etcd
+		cStorVolumeGot.Status.Capacity = cStorVolumeGot.Spec.Capacity
+		// TODO: Should we return other than init?
+		// intention to have init status since we rewriting entier conf file and
+		// triggering istgtcontrol refresh command.
+		return common.CVStatusInit, nil
 
 	case common.QOpPeriodicSync:
 		lastKnownPhase := cStorVolumeGot.Status.Phase

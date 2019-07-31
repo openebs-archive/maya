@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"strconv"
+	"text/template"
 
 	"strings"
 
@@ -28,11 +28,82 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 // VolumeOperator is the name of the tool that makes volume-related operations.
 const (
 	VolumeOperator = "iscsi"
+)
+
+var (
+	istgtConfFile = `# Global section
+[Global]
+  NodeBase {{.Spec.NodeBase}}
+  PidFile "/var/run/istgt.pid"
+  AuthFile "/usr/local/etc/istgt/auth.conf"
+  LogFile "/usr/local/etc/istgt/logfile"
+  Luworkers 6
+  MediaDirectory "/mnt"
+  Timeout 60
+  NopInInterval 20
+  MaxR2T 16
+  DiscoveryAuthMethod None
+  DiscoveryAuthGroup None
+  MaxSessions 32
+  MaxConnections 4
+  FirstBurstLength 262144
+  MaxBurstLength 1048576
+  MaxRecvDataSegmentLength 262144
+  MaxOutstandingR2T 16
+  DefaultTime2Wait 2
+  DefaultTime2Retain 20
+  OperationalMode 0
+
+# UnitControl section
+[UnitControl]
+  AuthMethod None
+  AuthGroup None
+  Portal UC1 {{.Spec.TargetIP}}:3261
+  Netmask {{.Spec.TargetIP}}/8
+
+# PortalGroup section
+[PortalGroup1]
+  Portal DA1 {{.Spec.TargetIP}}:3260
+
+# InitiatorGroup section
+[InitiatorGroup1]
+  InitiatorName "ALL"
+  Netmask "ALL"
+
+[InitiatorGroup2]
+  InitiatorName "None"
+  Netmask "None"
+
+# LogicalUnit section
+[LogicalUnit1]
+  TargetName {{.Name}}
+  TargetAlias nicknamefor-{{.Name}}
+  Mapping PortalGroup1 InitiatorGroup1
+  AuthMethod None
+  AuthGroup None
+  UseDigest Auto
+  ReadOnly No
+  ReplicationFactor {{.Spec.ReplicationFactor}}
+  ConsistencyFactor {{.Spec.ConsistencyFactor}}
+  UnitType Disk
+  UnitOnline Yes
+  BlockLength 512
+  QueueDepth 32
+  Luworkers 6
+  UnitInquiry "OpenEBS" "iscsi" "0" "{{.UID}}"
+  PhysRecordLength 4096
+  LUN0 Storage {{CapacityStr .Spec.Capacity}} 32k
+  LUN0 Option Unmap Disable
+  LUN0 Option WZero Disable
+  LUN0 Option ATS Disable
+  LUN0 Option XCOPY Disable
+`
 )
 
 //FileOperatorVar is used for doing File Operations
@@ -49,8 +120,11 @@ func init() {
 // CreateVolumeTarget creates a new cStor volume istgt config.
 func CreateVolumeTarget(cStorVolume *apis.CStorVolume) error {
 	// create conf file
-	text := CreateIstgtConf(cStorVolume)
-	err := FileOperatorVar.Write(util.IstgtConfPath, text, 0644)
+	data, err := CreateIstgtConf(cStorVolume)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create istgtconf file data")
+	}
+	err = FileOperatorVar.Write(util.IstgtConfPath, data, 0644)
 	if err != nil {
 		glog.Errorf("Failed to write istgt.conf")
 	}
@@ -104,90 +178,22 @@ func extractReplicaStatusFromJSON(str string) (*apis.CVStatus, error) {
 }
 
 // CreateIstgtConf creates istgt.conf file
-func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
-
-	var buffer bytes.Buffer
-	_, _ = buffer.WriteString(`# Global section
-[Global]
-`)
-	_, _ = buffer.WriteString("  NodeBase \"" + cStorVolume.Spec.NodeBase + "\"")
-	_, _ = buffer.WriteString(`
-  PidFile "/var/run/istgt.pid"
-  AuthFile "/usr/local/etc/istgt/auth.conf"
-  LogFile "/usr/local/etc/istgt/logfile"
-  Luworkers 6
-  MediaDirectory "/mnt"
-  Timeout 60
-  NopInInterval 20
-  MaxR2T 16
-  DiscoveryAuthMethod None
-  DiscoveryAuthGroup None
-  MaxSessions 32
-  MaxConnections 4
-  FirstBurstLength 262144
-  MaxBurstLength 1048576
-  MaxRecvDataSegmentLength 262144
-  MaxOutstandingR2T 16
-  DefaultTime2Wait 2
-  DefaultTime2Retain 20
-  OperationalMode 0
-
-# UnitControl section
-[UnitControl]
-  AuthMethod None
-  AuthGroup None
-`)
-	_, _ = buffer.WriteString("  Portal UC1 " + cStorVolume.Spec.TargetIP + ":3261\n")
-	_, _ = buffer.WriteString("  Netmask " + cStorVolume.Spec.TargetIP + "/8\n")
-	buffer.WriteString(`
-# PortalGroup section
-[PortalGroup1]
-`)
-	_, _ = buffer.WriteString("  Portal DA1 " + cStorVolume.Spec.TargetIP + ":3260\n")
-	_, _ = buffer.WriteString(`
-# InitiatorGroup section
-[InitiatorGroup1]
-  InitiatorName "ALL"
-  Netmask "ALL"
-
-[InitiatorGroup2]
-  InitiatorName "None"
-  Netmask "None"
-
-# LogicalUnit section
-[LogicalUnit1]
-`)
-	_, _ = buffer.WriteString("  TargetName " + cStorVolume.Name + "\n")
-	_, _ = buffer.WriteString("  TargetAlias nicknamefor-" + cStorVolume.Name)
-	_, _ = buffer.WriteString(`
-  Mapping PortalGroup1 InitiatorGroup1
-  AuthMethod None
-  AuthGroup None
-  UseDigest Auto
-  ReadOnly No
-`)
-	_, _ = buffer.WriteString("  ReplicationFactor " + strconv.Itoa(cStorVolume.Spec.ReplicationFactor) + "\n")
-	_, _ = buffer.WriteString("  ConsistencyFactor " + strconv.Itoa(cStorVolume.Spec.ConsistencyFactor))
-	_, _ = buffer.WriteString(`
-  UnitType Disk
-  UnitOnline Yes
-  BlockLength 512
-  QueueDepth 32
-  Luworkers 6
-`)
-	_, _ = buffer.WriteString("  UnitInquiry \"OpenEBS\" \"iscsi\" \"0\" \"" + string(cStorVolume.UID) + "\"")
-	_, _ = buffer.WriteString(`
-  PhysRecordLength 4096
-`)
-	_, _ = buffer.WriteString("  LUN0 Storage " + cStorVolume.Spec.Capacity.String() + " 32k")
-	_, _ = buffer.WriteString(`
-  LUN0 Option Unmap Disable
-  LUN0 Option WZero Disable
-  LUN0 Option ATS Disable
-  LUN0 Option XCOPY Disable
-`)
-
-	return buffer.Bytes()
+func CreateIstgtConf(cStorVolume *apis.CStorVolume) ([]byte, error) {
+	var dataBytes []byte
+	buffer := &bytes.Buffer{}
+	tmpl, err := template.New("").Funcs(template.FuncMap{
+		"CapacityStr": func(q resource.Quantity) string { return q.String() },
+	}).Parse(istgtConfFile)
+	if err != nil {
+		return dataBytes, errors.Wrapf(err, "failed to build istgtconffile from template")
+	}
+	err = tmpl.Execute(buffer, cStorVolume)
+	if err != nil {
+		return dataBytes, errors.Wrapf(err, "failed execute istgtconfile template")
+	}
+	dataBytes = buffer.Bytes()
+	buffer.Reset()
+	return dataBytes, nil
 }
 
 // CheckValidVolume checks for validity of CStorVolume resource.

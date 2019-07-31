@@ -36,6 +36,7 @@ type CStorVolume struct {
 
 // CStorVolumeSpec is the spec for a CStorVolume resource
 type CStorVolumeSpec struct {
+	// Capacity represents the desired size of the underlying volume.
 	Capacity          resource.Quantity `json:"capacity"`
 	TargetIP          string            `json:"targetIP"`
 	TargetPort        string            `json:"targetPort"`
@@ -52,9 +53,10 @@ type CStorVolumePhase string
 
 // CStorVolumeStatus is for handling status of cvr.
 type CStorVolumeStatus struct {
-	Phase           CStorVolumePhase  `json:"phase"`
-	ReplicaStatuses []ReplicaStatus   `json:"replicaStatuses,omitempty"`
-	Capacity        resource.Quantity `json:"capacity,omitempty"`
+	Phase           CStorVolumePhase `json:"phase"`
+	ReplicaStatuses []ReplicaStatus  `json:"replicaStatuses,omitempty"`
+	// Represents the actual resources of the underlying volume.
+	Capacity resource.Quantity `json:"capacity,omitempty"`
 	// LastTransitionTime refers to the time when the phase changes
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 	LastUpdateTime     metav1.Time `json:"lastUpdateTime,omitempty"`

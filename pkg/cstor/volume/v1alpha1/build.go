@@ -209,7 +209,7 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 		b.errs = append(
 			b.errs,
 			errors.Wrapf(
-				err, "failed to update capacity: failed to parse capacity {%s}",
+				err, "failed to build cstorvolume object: failed to parse capacity {%s}",
 				capacity,
 			),
 		)

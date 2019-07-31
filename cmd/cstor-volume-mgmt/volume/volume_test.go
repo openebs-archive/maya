@@ -26,8 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-//TODO: Move to some common function
-func StrToQuantity(capacity string) resource.Quantity {
+func fakeStrToQuantity(capacity string) resource.Quantity {
 	qntCapacity, _ := resource.ParseQuantity(capacity)
 	//	fmt.Printf("Error: %v", err)
 	return qntCapacity
@@ -49,7 +48,7 @@ func TestCreateVolumeTarget(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP:          "0.0.0.0",
-					Capacity:          StrToQuantity("5G"),
+					Capacity:          fakeStrToQuantity("5G"),
 					Status:            "init",
 					ReplicationFactor: 3,
 					ConsistencyFactor: 2,
@@ -62,6 +61,49 @@ func TestCreateVolumeTarget(t *testing.T) {
 	obtainedErr := CreateVolumeTarget(testVolumeResource["img1VolumeResource"].test)
 	if testVolumeResource["img1VolumeResource"].expectedError != obtainedErr {
 		t.Fatalf("Expected: %v, Got: %v", testVolumeResource["img1VolumeResource"].expectedError, obtainedErr)
+	}
+}
+
+// TestCreateVolumeTarget is to test cStorVolume creation.
+func TestCreateIstgtConf(t *testing.T) {
+	testVolumeResource := map[string]struct {
+		expectedErr bool
+		test        *apis.CStorVolume
+	}{
+		"testcase1": {
+			expectedErr: false,
+			test: &apis.CStorVolume{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					Name: "testvol1",
+					UID:  types.UID("abc"),
+				},
+				Spec: apis.CStorVolumeSpec{
+					TargetIP:          "0.0.0.0",
+					Capacity:          fakeStrToQuantity("5G"),
+					Status:            "init",
+					ReplicationFactor: 3,
+					ConsistencyFactor: 2,
+				},
+			},
+		},
+		"testcase2": {
+			expectedErr: true,
+			test:        nil,
+		},
+	}
+	for name, mock := range testVolumeResource {
+		name := name // pin it
+		mock := mock // pin it
+		t.Run(name, func(t *testing.T) {
+			_, err := CreateIstgtConf(mock.test)
+			if mock.expectedErr && err == nil {
+				t.Fatalf("test %q failed : expected error not to be nil but got %v", name, err)
+			}
+			if !mock.expectedErr && err != nil {
+				t.Fatalf("test %q failed : expected error be nil but got %v", name, err)
+			}
+		})
 	}
 }
 
@@ -81,7 +123,7 @@ func TestCheckValidVolume(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP:          "0.0.0.0",
-					Capacity:          StrToQuantity("5G"),
+					Capacity:          fakeStrToQuantity("5G"),
 					Status:            "init",
 					ReplicationFactor: 3,
 					ConsistencyFactor: 2,
@@ -98,7 +140,7 @@ func TestCheckValidVolume(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP:          "",
-					Capacity:          StrToQuantity("5G"),
+					Capacity:          fakeStrToQuantity("5G"),
 					Status:            "init",
 					ReplicationFactor: 3,
 					ConsistencyFactor: 2,
@@ -116,7 +158,7 @@ func TestCheckValidVolume(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP:          "0.0.0.0",
-					Capacity:          StrToQuantity("5G"),
+					Capacity:          fakeStrToQuantity("5G"),
 					Status:            "init",
 					ReplicationFactor: 3,
 					ConsistencyFactor: 2,
@@ -133,7 +175,7 @@ func TestCheckValidVolume(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP:          "0.0.0.0",
-					Capacity:          StrToQuantity(""),
+					Capacity:          fakeStrToQuantity(""),
 					Status:            "init",
 					ReplicationFactor: 3,
 					ConsistencyFactor: 2,
@@ -150,7 +192,7 @@ func TestCheckValidVolume(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP:          "0.0.0.0",
-					Capacity:          StrToQuantity("1B"),
+					Capacity:          fakeStrToQuantity("1B"),
 					Status:            "init",
 					ReplicationFactor: 3,
 					ConsistencyFactor: 2,
@@ -167,7 +209,7 @@ func TestCheckValidVolume(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP:          "0.0.0.0",
-					Capacity:          StrToQuantity("2G"),
+					Capacity:          fakeStrToQuantity("2G"),
 					Status:            "init",
 					ReplicationFactor: 0,
 					ConsistencyFactor: 2,
@@ -184,7 +226,7 @@ func TestCheckValidVolume(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP:          "0.0.0.0",
-					Capacity:          StrToQuantity("2G"),
+					Capacity:          fakeStrToQuantity("2G"),
 					Status:            "init",
 					ReplicationFactor: 3,
 					ConsistencyFactor: 0,
@@ -201,7 +243,7 @@ func TestCheckValidVolume(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP:          "0.0.0.0",
-					Capacity:          StrToQuantity("2G"),
+					Capacity:          fakeStrToQuantity("2G"),
 					Status:            "init",
 					ReplicationFactor: 2,
 					ConsistencyFactor: 3,
