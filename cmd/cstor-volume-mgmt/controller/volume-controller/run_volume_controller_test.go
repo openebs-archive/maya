@@ -91,7 +91,7 @@ func TestProcessNextWorkItemAdd(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP: "0.0.0.0",
-					Capacity: "5G",
+					Capacity: fakeStrToQuantity("5G"),
 					Status:   "init",
 				},
 				Status: apis.CStorVolumeStatus{Phase: "init"},
@@ -143,7 +143,7 @@ func TestProcessNextWorkItemModify(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP: "0.0.0.0",
-					Capacity: "5G",
+					Capacity: fakeStrToQuantity("5G"),
 					Status:   "init",
 				},
 				Status: apis.CStorVolumeStatus{},
@@ -195,7 +195,7 @@ func TestProcessNextWorkItemDestroy(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP: "0.0.0.0",
-					Capacity: "5G",
+					Capacity: fakeStrToQuantity("5G"),
 					Status:   "init",
 				},
 				Status: apis.CStorVolumeStatus{},

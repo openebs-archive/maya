@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -35,15 +36,16 @@ type CStorVolume struct {
 
 // CStorVolumeSpec is the spec for a CStorVolume resource
 type CStorVolumeSpec struct {
-	Capacity          string `json:"capacity"`
-	TargetIP          string `json:"targetIP"`
-	TargetPort        string `json:"targetPort"`
-	Iqn               string `json:"iqn"`
-	TargetPortal      string `json:"targetPortal"`
-	Status            string `json:"status"`
-	NodeBase          string `json:"nodeBase"`
-	ReplicationFactor int    `json:"replicationFactor"`
-	ConsistencyFactor int    `json:"consistencyFactor"`
+	// Capacity represents the desired size of the underlying volume.
+	Capacity          resource.Quantity `json:"capacity"`
+	TargetIP          string            `json:"targetIP"`
+	TargetPort        string            `json:"targetPort"`
+	Iqn               string            `json:"iqn"`
+	TargetPortal      string            `json:"targetPortal"`
+	Status            string            `json:"status"`
+	NodeBase          string            `json:"nodeBase"`
+	ReplicationFactor int               `json:"replicationFactor"`
+	ConsistencyFactor int               `json:"consistencyFactor"`
 }
 
 // CStorVolumePhase is to hold result of action.
@@ -53,6 +55,8 @@ type CStorVolumePhase string
 type CStorVolumeStatus struct {
 	Phase           CStorVolumePhase `json:"phase"`
 	ReplicaStatuses []ReplicaStatus  `json:"replicaStatuses,omitempty"`
+	// Represents the actual resources of the underlying volume.
+	Capacity resource.Quantity `json:"capacity,omitempty"`
 	// LastTransitionTime refers to the time when the phase changes
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 	LastUpdateTime     metav1.Time `json:"lastUpdateTime,omitempty"`

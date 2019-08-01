@@ -17,6 +17,7 @@ package v1alpha1
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -203,7 +204,17 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 		)
 		return b
 	}
-	b.cstorvolume.object.Spec.Capacity = capacity
+	capacityQnt, err := resource.ParseQuantity(capacity)
+	if err != nil {
+		b.errs = append(
+			b.errs,
+			errors.Wrapf(
+				err, "failed to build cstorvolume object: failed to parse capacity {%s}",
+				capacity,
+			),
+		)
+	}
+	b.cstorvolume.object.Spec.Capacity = capacityQnt
 	return b
 }
 

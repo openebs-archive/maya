@@ -363,7 +363,7 @@ func createCVR(
 			WithOwnerRefernceNew(getCVROwnerReference(volume)).
 			WithFinalizers(getCVRFinalizer()).
 			WithTargetIP(service.Spec.ClusterIP).
-			WithCapacity(volume.Spec.Capacity).
+			WithCapacity(volume.Spec.Capacity.String()).
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(

@@ -118,8 +118,10 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		if err != nil {
 			return common.CVStatusError, err
 		}
-
-		return common.CVStatusIgnore, nil
+		// update the status capacity of cstorvolume caller of this code
+		// will update in etcd
+		cStorVolumeGot.Status.Capacity = cStorVolumeGot.Spec.Capacity
+		return common.CVStatusInit, nil
 
 	case common.QOpModify:
 		// Make changes here to run zrepl command and update the data
@@ -132,7 +134,13 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		if err != nil {
 			return common.CVStatusError, err
 		}
-		break
+		// update the status capacity of cstorvolume caller of this code
+		// will update in etcd
+		cStorVolumeGot.Status.Capacity = cStorVolumeGot.Spec.Capacity
+		// TODO: Should we return other than init?
+		// intention to have init status since we rewriting entier conf file and
+		// triggering istgtcontrol refresh command.
+		return common.CVStatusInit, nil
 
 	case common.QOpPeriodicSync:
 		lastKnownPhase := cStorVolumeGot.Status.Phase
