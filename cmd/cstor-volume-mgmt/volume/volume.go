@@ -198,47 +198,44 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) ([]byte, error) {
 	return dataBytes, nil
 }
 
-// ResizeVolume sends resize volume command to istgt and get the response
-func ResizeVolume(cStorVolume *apis.CStorVolume) error {
+// ResizeTargetVolume sends resize volume command to istgt and get the response
+func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 	index, _, err := FileOperatorVar.GetLineDetails(util.IstgtConfPath, "LUN0 Storage")
 	if err != nil {
 		return errors.Wrapf(err,
-			"failed to get the details of storage from %s file",
+			"failed to get storage details from %s file",
 			util.IstgtConfPath)
 	} else if index == -1 {
-		return errors.Errorf("storage details not found on file %s", util.IstgtConfPath)
+		return errors.Errorf("storage details not found in file %s", util.IstgtConfPath)
 	}
 	//TODO: Size comparision is required between CV and istgt.conf to avoid less
 	// capacity changes and unnecessary calls to istgt
 
 	// send resize command to istgt and read the response
-	resizeCmd := buildResizeCommand(cStorVolume)
-	glog.Infof("[DEBUG] Resize command %s", resizeCmd)
+	resizeCmd := getResizeCommand(cStorVolume)
 	sockResp, err := UnixSockVar.SendCommand(resizeCmd)
-	glog.Infof("[Debug] Response from resize {%s}", sockResp)
 	if err != nil || v1_strings.MakeList(sockResp...).Contains("ERR") {
 		return errors.Wrapf(
 			err,
-			"failed to execute istgt %s command on cstorvolume %s",
+			"failed to execute istgt %s command on volume %s",
 			util.IstgtResizeCmd,
 			cStorVolume.Name)
 	}
-	glog.Info("[Debug] Resized Iscsi Volume Successful")
 
 	updateStorageVal := fmt.Sprintf("  LUN0 Storage %s 32K", cStorVolume.Spec.Capacity)
 	err = FileOperatorVar.Updatefile(util.IstgtConfPath, updateStorageVal, index, 0644)
 	if err != nil {
 		return errors.Wrapf(err,
-			"failed to update %v file with %s storage details",
+			"failed to update %s file with %s details",
 			util.IstgtConfPath,
 			updateStorageVal)
 	}
-	glog.Infof("[Debug] Updated the '%s' file with capacity '%s'", util.IstgtConfPath, updateStorageVal)
+	glog.V(4).Infof("Updated '%s' file with capacity '%s'", util.IstgtConfPath, updateStorageVal)
 	return nil
 }
 
-// TODO: Move to CStorVolumePackage
-func buildResizeCommand(cstorVolume *apis.CStorVolume) string {
+// getResizeCommand returns resize used to resize volumes
+func getResizeCommand(cstorVolume *apis.CStorVolume) string {
 	return fmt.Sprintf("%s %s %s %v %v", util.IstgtResizeCmd,
 		cstorVolume.Name,
 		cstorVolume.Spec.Capacity,
@@ -261,7 +258,6 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 	if len(string(cStorVolume.UID)) == 0 {
 		return fmt.Errorf("volumeID cannot be empty")
 	}
-	// TODO: Need to check for nil
 	if cStorVolume.Spec.Capacity.IsZero() {
 		return fmt.Errorf("capacity cannot be zero")
 	}

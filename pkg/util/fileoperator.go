@@ -48,7 +48,7 @@ func (r RealFileOperator) GetLineDetails(filename, searchString string) (int, st
 	var i int
 	buffer, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return -1, "", errors.Wrapf(err, "failed to read a %s file", filename)
+		return -1, "", errors.Wrapf(err, "failed to read %s file", filename)
 	}
 	lines := strings.Split(string(buffer), "\n")
 	for i, line = range lines {
@@ -60,13 +60,13 @@ func (r RealFileOperator) GetLineDetails(filename, searchString string) (int, st
 }
 
 // Updatefile updates the line number with the given string
-func (r RealFileOperator) Updatefile(filename, updateStorageVal string, index int, perm os.FileMode) error {
+func (r RealFileOperator) Updatefile(filename, updatedVal string, index int, perm os.FileMode) error {
 	buffer, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return errors.Wrapf(err, "failed to read a %s file", filename)
+		return errors.Wrapf(err, "failed to read %s file", filename)
 	}
 	lines := strings.Split(string(buffer), "\n")
-	lines[index] = updateStorageVal
+	lines[index] = updatedVal
 	newbuffer := strings.Join(lines, "\n")
 	glog.V(4).Infof("content in a file %s\n", lines)
 	err = r.Write(filename, []byte(newbuffer), perm)

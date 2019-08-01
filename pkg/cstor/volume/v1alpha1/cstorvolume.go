@@ -107,11 +107,14 @@ func IsHealthy() Predicate {
 
 // IsResizePending return true if resize is in progress
 func (c *CStorVolume) IsResizePending() bool {
-	condition := c.GetCVCondition(apis.CStorVolumeResizing)
-	//TODO: Compare Capacity to decide resize
-	if condition.Type == apis.CStorVolumeResizing {
-		if condition.Status == apis.ConditionInProgress {
-			return true
+	curCapacity := c.object.Status.Capacity
+	desiredCapacity := c.object.Spec.Capacity
+	if curCapacity.IsZero() || curCapacity.Cmp(desiredCapacity) == -1 {
+		condition := c.GetCVCondition(apis.CStorVolumeResizing)
+		if condition.Type == apis.CStorVolumeResizing {
+			if condition.Status == apis.ConditionInProgress {
+				return true
+			}
 		}
 	}
 	return false
