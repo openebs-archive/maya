@@ -42,8 +42,8 @@ type UpgradeTaskSpec struct {
 	// ToVersion is the upgraded version of the resource. It should be same
 	// as the version of control plane components version.
 	ToVersion string `json:"toVersion" protobuf:"bytes,2,name=toVersion"`
-	// Flags contains the optional flags that can be passed during upgrade.
-	Flags *Flags `json:"flags,omitempty" protobuf:"bytes,3,name=flags"`
+	// Options contains the optional flags that can be passed during upgrade.
+	Options *Options `json:"options,omitempty" protobuf:"bytes,3,name=options"`
 	// ResourceSpec contains the details of the resource that has to upgraded.
 	ResourceSpec `json:",inline" protobuf:"bytes,4,name=resourceType"`
 	// ImagePrefix contains the url prefix of the image url. This field is
@@ -54,8 +54,9 @@ type UpgradeTaskSpec struct {
 	ImageTag string `json:"imageTag" protobuf:"bytes,6,name=imageTag"`
 }
 
-// Flags provides additional optional arguments
-type Flags struct {
+// Options provides additional optional arguments
+type Options struct {
+	// Timeout is maximum seconds to wait at any given step in the upgrade
 	Timeout int `json:"timeout,omitempty" protobuf:"varint,1,opt,name=resourceType"`
 }
 
@@ -75,33 +76,38 @@ type ResourceSpec struct {
 // JivaVolume is the ResourceType for jiva volume
 type JivaVolume struct {
 	// PVName contains the name of the pv associated with the jiva volume
-	PVName string         `json:"pvName,omitempty" protobuf:"bytes,1,name=pvName"`
-	Flags  *ResourceFlags `json:"flags,omitempty" protobuf:"bytes,2,opt,name=flags"`
+	PVName string `json:"pvName,omitempty" protobuf:"bytes,1,name=pvName"`
+	// Options can be used to change the default behaviour of upgrade
+	Options *ResourceOptions `json:"flags,omitempty" protobuf:"bytes,2,opt,name=flags"`
 }
 
 // CStorVolume is the ResourceType for cstor volume
 type CStorVolume struct {
 	// PVName contains the name of the pv associated with the cstor volume
-	PVName string         `json:"pvName,omitempty" protobuf:"bytes,1,name=pvName"`
-	Flags  *ResourceFlags `json:"flags,omitempty" protobuf:"bytes,2,opt,name=flags"`
+	PVName string `json:"pvName,omitempty" protobuf:"bytes,1,name=pvName"`
+	// Options can be used to change the default behaviour of upgrade
+	Options *ResourceOptions `json:"flags,omitempty" protobuf:"bytes,2,opt,name=flags"`
 }
 
 // CStorPool is the ResourceType for cstor pool
 type CStorPool struct {
 	// PoolName contains the name of the cstor pool to be upgraded
-	PoolName string         `json:"poolName,omitempty" protobuf:"bytes,1,name=poolName"`
-	Flags    *ResourceFlags `json:"flags,omitempty" protobuf:"bytes,2,opt,name=flags"`
+	PoolName string `json:"poolName,omitempty" protobuf:"bytes,1,name=poolName"`
+	// Options can be used to change the default behaviour of upgrade
+	Options *ResourceOptions `json:"flags,omitempty" protobuf:"bytes,2,opt,name=flags"`
 }
 
 // StoragePoolClaim is the ResourceType for storage pool claim
 type StoragePoolClaim struct {
 	// SPCName contains the name of the storage pool claim to be upgraded
-	SPCName string         `json:"spcName,omitempty" protobuf:"bytes,1,name=spcName"`
-	Flags   *ResourceFlags `json:"flags,omitempty" protobuf:"bytes,2,opt,name=flags"`
+	SPCName string `json:"spcName,omitempty" protobuf:"bytes,1,name=spcName"`
+	// Options can be used to change the default behaviour of upgrade
+	Options *ResourceOptions `json:"flags,omitempty" protobuf:"bytes,2,opt,name=flags"`
 }
 
-// ResourceFlags provides additional options for a particular resource
-type ResourceFlags struct {
+// ResourceOptions provides additional options for a particular resource
+type ResourceOptions struct {
+	// IgnoreStepsOnError allows to ignore steps which failed
 	IgnoreStepsOnError []string `json:"ignoreStepsOnError,omitempty" protobuf:"bytes,1,opt,name=ignoreStepsOnError"`
 }
 
