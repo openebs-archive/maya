@@ -121,6 +121,8 @@ type UpgradeTaskStatus struct {
 	CompletedTime metav1.Time `json:"completedTime,omitempty" protobuf:"bytes,3,opt,name=completedTime"`
 	// UpgradeDetailedStatuses contains the list of statuses of each step
 	UpgradeDetailedStatuses []UpgradeDetailedStatuses `json:"upgradeDetailedStatuses,omitempty" protobuf:"bytes,4,rep,name=upgradeDetailedStatuses"`
+	// Retries is the number of times the job attempted to upgrade the resource
+	Retries int `json:"retries" protobuf:"bytes,2,opt,name=retries"`
 }
 
 // UpgradeDetailedStatuses represents the latest available observations
