@@ -24,6 +24,7 @@ import (
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
+	util "github.com/openebs/maya/pkg/util"
 	volume "github.com/openebs/maya/pkg/volume"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,43 +83,67 @@ func (ac *Config) getFilteredNodeBlockDevices(
 	if err != nil {
 		return nil, err
 	}
+	// get used node names from csp related to spc
+	usedNodeMap, err := ac.getUsedNodeMap()
+	if err != nil {
+		return nil, err
+	}
 	//TODO: Make smaller function before removing WIP
 
 	// minRequiredDiskCount will hold the required number of disk that should be selected from a qualified
 	// node for specific pool type
 	minRequiredBDCount := blockdevice.DefaultDiskCount[ac.poolType()]
-	preferedNodeList := []string{}
 
 	newNodeBDMap := make(map[string]*blockDeviceList)
 	// form the map of node name and blockdevice list from
 	// blockdeviceclaims created by spc
 	for _, bdcObj := range bdcList.Items {
 		bdcObj := bdcObj
+		if ac.VisitedNodes[bdcObj.Spec.HostName] ||
+			usedNodeMap[bdcObj.Spec.HostName] == 1 {
+			continue
+		}
 		if newNodeBDMap[bdcObj.Spec.HostName] == nil {
 			newNodeBDMap[bdcObj.Spec.HostName] = &blockDeviceList{
 				Items: []string{bdcObj.Spec.BlockDeviceName},
 			}
-			preferedNodeList = append(preferedNodeList, bdcObj.Spec.HostName)
 		} else {
 			bdList := newNodeBDMap[bdcObj.Spec.HostName]
 			bdList.Items = append(bdList.Items, bdcObj.Spec.BlockDeviceName)
 		}
 	}
+	// If selectedNodeCount is zero then we can consider it is first
+	// reconciliation and need to send
+	selectedNodeCount := len(newNodeBDMap)
 
 	// Form the map of node name and blockdevice list from existing blockdevices
 	for nodeName, bdList := range nodeBDs {
 		// pin it
 		nodeName := nodeName
 		bdList := bdList
-		if newNodeBDMap[nodeName] == nil {
-			newNodeBDMap[nodeName] = &blockDeviceList{
-				Items: bdList.Items,
+		if selectedNodeCount != 0 {
+			if newNodeBDMap[nodeName] != nil {
+				if len(newNodeBDMap[nodeName].Items) < minRequiredBDCount {
+					// If BDC creation failed in before reconciliation we are
+					// inserting required no blockdevices
+					for _, bdName := range bdList.Items {
+						if !util.ContainsString(newNodeBDMap[nodeName].Items, bdName) {
+							bdList := newNodeBDMap[nodeName]
+							bdList.Items = append(bdList.Items, bdName)
+						}
+					}
+				}
 			}
-			preferedNodeList = append(preferedNodeList, nodeName)
-		} else if len(newNodeBDMap[nodeName].Items) < minRequiredBDCount {
-			// TODO: If BDC creation failed in before itteration need to handle
-			// those scenarios
+		} else {
+			if newNodeBDMap[nodeName] == nil {
+				newNodeBDMap[nodeName] = &blockDeviceList{
+					Items: bdList.Items,
+				}
+			}
 		}
+	}
+	for node, bdList := range newNodeBDMap {
+		glog.Infof("Node-- %s BD list %#v", node, bdList)
 	}
 	return newNodeBDMap, nil
 }
@@ -158,7 +183,7 @@ func (ac *Config) getUsedNodeMap() (map[string]int, error) {
 }
 
 func (ac *Config) getCandidateNode(listBlockDevice *ndmapis.BlockDeviceList) (map[string]*blockDeviceList, error) {
-	// get used blockdevice from csp related to spc
+	// get used blockdevice from csp present in cluster
 	usedDiskMap, err := ac.getUsedBlockDeviceMap()
 	if err != nil {
 		return nil, err
@@ -370,6 +395,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to create block device claim for bdc {%s}", bdcName)
 			}
+			ac.VisitedNodes[hostName] = true
 			glog.Infof("successfully created block device claim {%s} for block device {%s}", bdcName, bdName)
 			// As a part of reconcilation we will create pool if all the block
 			// devices are claimed
