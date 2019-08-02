@@ -25,3 +25,11 @@ type UpgradeResultListerExpansion interface{}
 // UpgradeResultNamespaceListerExpansion allows custom methods to be added to
 // UpgradeResultNamespaceLister.
 type UpgradeResultNamespaceListerExpansion interface{}
+
+// UpgradeTaskListerExpansion allows custom methods to be added to
+// UpgradeTaskLister.
+type UpgradeTaskListerExpansion interface{}
+
+// UpgradeTaskNamespaceListerExpansion allows custom methods to be added to
+// UpgradeTaskNamespaceLister.
+type UpgradeTaskNamespaceListerExpansion interface{}

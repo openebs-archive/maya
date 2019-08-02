@@ -1019,12 +1019,11 @@
   version = "v1.12.8"
 
 [[projects]]
-  digest = "1:9b89872389bed1e6647547b868c3f9fa813f8adf098ba0984bc672e4b78ae235"
+  digest = "1:744e92fc72882b22ae2add854ee1841f95fc5148baaeda2a244e621ad0995d97"
   name = "sigs.k8s.io/controller-runtime"
   packages = [
     "pkg/client",
     "pkg/client/apiutil",
-    "pkg/runtime/scheme",
   ]
   pruneopts = "UT"
   revision = "f6f0bc9611363b43664d08fb097ab13243ef621d"
@@ -1116,7 +1115,6 @@
     "k8s.io/code-generator/cmd/lister-gen",
     "k8s.io/kubernetes/pkg/util/slice",
     "sigs.k8s.io/controller-runtime/pkg/client",
-    "sigs.k8s.io/controller-runtime/pkg/runtime/scheme",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
