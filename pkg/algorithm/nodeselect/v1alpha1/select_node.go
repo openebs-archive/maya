@@ -73,7 +73,8 @@ func (ac *Config) NodeBlockDeviceSelector() (*nodeBlockDevice, error) {
 // getFilteredNodeBlockDevices returns the map of node name and block device
 // list if no claims are present on list of block devices. If claims are present
 // then it retunrns those block devices on which claims are created
-func (ac *Config) getFilteredNodeBlockDevices(nodeBDs map[string]*blockDeviceList) (map[string]*blockDeviceList, error) {
+func (ac *Config) getFilteredNodeBlockDevices(
+	nodeBDs map[string]*blockDeviceList) (map[string]*blockDeviceList, error) {
 	namespace := env.Get(env.OpenEBSNamespace)
 	bdcKubeclient := bdc.NewKubeClient().
 		WithNamespace(namespace)
@@ -81,23 +82,42 @@ func (ac *Config) getFilteredNodeBlockDevices(nodeBDs map[string]*blockDeviceLis
 	if err != nil {
 		return nil, err
 	}
+	//TODO: Make smaller function before removing WIP
 
-	customBDCList := &bdc.BlockDeviceClaimList{
-		ObjectList: bdcList,
-	}
-
-	nodeClaimedBDs := customBDCList.GetBlockDeviceNamesByNode()
+	// minRequiredDiskCount will hold the required number of disk that should be selected from a qualified
+	// node for specific pool type
+	minRequiredBDCount := blockdevice.DefaultDiskCount[ac.poolType()]
+	preferedNodeList := []string{}
 
 	newNodeBDMap := make(map[string]*blockDeviceList)
-	for node, bdList := range nodeBDs {
-		if len(nodeClaimedBDs[node]) == 0 {
-			newNodeBDMap[node] = &blockDeviceList{
+	// form the map of node name and blockdevice list from
+	// blockdeviceclaims created by spc
+	for _, bdcObj := range bdcList.Items {
+		bdcObj := bdcObj
+		if newNodeBDMap[bdcObj.Spec.HostName] == nil {
+			newNodeBDMap[bdcObj.Spec.HostName] = &blockDeviceList{
+				Items: []string{bdcObj.Spec.BlockDeviceName},
+			}
+			preferedNodeList = append(preferedNodeList, bdcObj.Spec.HostName)
+		} else {
+			bdList := newNodeBDMap[bdcObj.Spec.HostName]
+			bdList.Items = append(bdList.Items, bdcObj.Spec.BlockDeviceName)
+		}
+	}
+
+	// Form the map of node name and blockdevice list from existing blockdevices
+	for nodeName, bdList := range nodeBDs {
+		// pin it
+		nodeName := nodeName
+		bdList := bdList
+		if newNodeBDMap[nodeName] == nil {
+			newNodeBDMap[nodeName] = &blockDeviceList{
 				Items: bdList.Items,
 			}
-		} else {
-			newNodeBDMap[node] = &blockDeviceList{
-				Items: nodeClaimedBDs[node],
-			}
+			preferedNodeList = append(preferedNodeList, nodeName)
+		} else if len(newNodeBDMap[nodeName].Items) < minRequiredBDCount {
+			// TODO: If BDC creation failed in before itteration need to handle
+			// those scenarios
 		}
 	}
 	return newNodeBDMap, nil
@@ -138,10 +158,12 @@ func (ac *Config) getUsedNodeMap() (map[string]int, error) {
 }
 
 func (ac *Config) getCandidateNode(listBlockDevice *ndmapis.BlockDeviceList) (map[string]*blockDeviceList, error) {
+	// get used blockdevice from csp related to spc
 	usedDiskMap, err := ac.getUsedBlockDeviceMap()
 	if err != nil {
 		return nil, err
 	}
+	// get used node names from csp related to spc
 	usedNodeMap, err := ac.getUsedNodeMap()
 	if err != nil {
 		return nil, err
@@ -150,21 +172,28 @@ func (ac *Config) getCandidateNode(listBlockDevice *ndmapis.BlockDeviceList) (ma
 	// and nodeBlockDevice struct as value.
 	nodeBlockDeviceMap := make(map[string]*blockDeviceList)
 	for _, value := range listBlockDevice.Items {
+		nodeName := value.Labels[string(apis.HostNameCPK)]
 		// If the disk is already being used, do not consider this as a part for provisioning pool.
 		if usedDiskMap[value.Name] == 1 {
 			continue
 		}
 		// If the node is already being used for a given spc, do not consider this as a part for provisioning pool.
-		if usedNodeMap[value.Labels[string(apis.HostNameCPK)]] == 1 {
+		if usedNodeMap[nodeName] == 1 {
 			continue
 		}
-		if nodeBlockDeviceMap[value.Labels[string(apis.HostNameCPK)]] == nil {
+		//If node is already visited in this reconciliation then continue with
+		//other nodes
+		if ac.VisitedNodes[nodeName] {
+			glog.Infof("-------Ignoring node: %s", nodeName)
+			continue
+		}
+		if nodeBlockDeviceMap[nodeName] == nil {
 			// Entry to this block means first time the hostname will be mapped for the first time.
 			// Obviously, this entry of hostname(node) is for a usable disk and initialize diskCount to 1.
-			nodeBlockDeviceMap[value.Labels[string(apis.HostNameCPK)]] = &blockDeviceList{Items: []string{value.Name}}
+			nodeBlockDeviceMap[nodeName] = &blockDeviceList{Items: []string{value.Name}}
 		} else {
 			// Entry to this block means the hostname was already mapped and it has more than one disk and at least two disks.
-			nodeDisk := nodeBlockDeviceMap[value.Labels[string(apis.HostNameCPK)]]
+			nodeDisk := nodeBlockDeviceMap[nodeName]
 			// Add the current disk to the diskList for this node.
 			nodeDisk.Items = append(nodeDisk.Items, value.Name)
 		}
@@ -172,6 +201,8 @@ func (ac *Config) getCandidateNode(listBlockDevice *ndmapis.BlockDeviceList) (ma
 	return nodeBlockDeviceMap, nil
 }
 
+// selectNode returns node name and list of blockdevice(nodeBlockDevice) can be used to
+// provision cstor pools
 func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) *nodeBlockDevice {
 	// selectedBlockDevice will hold a node capable to form pool and list of disks attached to it.
 	selectedBlockDevice := &nodeBlockDevice{
@@ -202,6 +233,7 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) *no
 		selectedBlockDevice.NodeName = node
 		break
 	}
+	glog.Infof("Selecting-------node: %s----bdc list %v", selectedBlockDevice.NodeName, selectedBlockDevice.BlockDevices.Items)
 	return selectedBlockDevice
 }
 

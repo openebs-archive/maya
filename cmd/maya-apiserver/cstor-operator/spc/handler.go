@@ -259,9 +259,10 @@ func (c *Controller) create(pendingPoolCount int, spc *apis.StoragePoolClaim) er
 	}
 	glog.V(4).Infof("Lease acquired successfully on storagepoolclaim %s ", spc.Name)
 	defer newSpcLease.Release()
+	poolConfig := c.NewPoolCreateConfig(spc)
 	for poolCount := 1; poolCount <= pendingPoolCount; poolCount++ {
 		glog.Infof("Provisioning pool %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, spc.Name)
-		err = c.CreateStoragePool(spc)
+		err = poolConfig.CreateStoragePool(spc)
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Pool provisioning failed for %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, spc.Name))
 		}
