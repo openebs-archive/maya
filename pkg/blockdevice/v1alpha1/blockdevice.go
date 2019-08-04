@@ -21,6 +21,7 @@ import (
 
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	bdc_v1alpha1 "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -201,6 +202,35 @@ func (bdl *BlockDeviceList) Filter(predicateKeys ...string) *BlockDeviceList {
 		filteredBlockDeviceList = filterOptionFuncMap[key](filteredBlockDeviceList)
 	}
 	return filteredBlockDeviceList
+}
+
+func (bdl *BlockDeviceList) GetFreeBlockDevices(spcName, namespace string) (*BlockDeviceList, error) {
+	// Initialize filtered block device list
+	filteredBlockDeviceList := &BlockDeviceList{
+		BlockDeviceList: &ndm.BlockDeviceList{},
+		errs:            nil,
+	}
+	bdcClient := bdc_v1alpha1.NewKubeClient().WithNamespace(namespace)
+	errMsg, ok := bdl.Hasitems()
+	if !ok {
+		filteredBlockDeviceList.errs = append(filteredBlockDeviceList.errs, errors.New(errMsg))
+		return filteredBlockDeviceList, nil
+	}
+	for _, bdObj := range bdl.Items {
+		if bdObj.Status.ClaimState == ndm.BlockDeviceClaimed {
+			bdcName := bdObj.Spec.ClaimRef.Name
+			bdcObj, err := bdcClient.Get(bdcName, metav1.GetOptions{})
+			if err != nil {
+				return nil, err
+			}
+			if bdcObj.Labels[string(apis.StoragePoolClaimCPK)] == spcName {
+				filteredBlockDeviceList.Items = append(filteredBlockDeviceList.Items, bdObj)
+			}
+		} else {
+			filteredBlockDeviceList.Items = append(filteredBlockDeviceList.Items, bdObj)
+		}
+	}
+	return filteredBlockDeviceList, nil
 }
 
 //filterInactive filter and give out all the inactive block device

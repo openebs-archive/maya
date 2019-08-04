@@ -59,6 +59,8 @@ type Config struct {
 	// VisitedNodes is a map which contains the node names which has already been
 	// processed for pool provisioning
 	VisitedNodes map[string]bool
+	// Namespace where OpenEBS is deployed
+	Namespace string
 }
 
 // getDiskK8sClient returns an instance of kubernetes client for Disk.

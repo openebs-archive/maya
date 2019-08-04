@@ -132,6 +132,21 @@ func ContainsString(stringarr []string, element string) bool {
 	return false
 }
 
+// ListAMinusListB returns list of string which are in listA but not in listB
+func ListAMinusListB(listA []string, listB []string) []string {
+	outputList := []string{}
+	mapListB := map[string]bool{}
+	for _, str := range listB {
+		mapListB[str] = true
+	}
+	for _, str := range listA {
+		if !mapListB[str] {
+			outputList = append(outputList, str)
+		}
+	}
+	return outputList
+}
+
 // ContainsKey returns true if the provided key is present in the provided map
 func ContainsKey(mapOfObjs map[string]interface{}, key string) bool {
 	for k := range mapOfObjs {
