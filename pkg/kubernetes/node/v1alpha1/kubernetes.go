@@ -17,7 +17,9 @@ package v1alpha1
 import (
 	"encoding/json"
 	"strings"
+	"sync"
 
+	"github.com/golang/glog"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -26,6 +28,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 
 	"k8s.io/client-go/kubernetes"
+)
+
+const (
+	labelKeyHostName string = "kubernetes.io/hostname"
 )
 
 // getClientsetFn is a typed function that
@@ -52,6 +58,11 @@ type updateFn func(cli *kubernetes.Clientset, node *corev1.Node) (*corev1.Node, 
 // patch of a node
 type patchFn func(cli *kubernetes.Clientset, name string, pt types.PatchType,
 	data []byte, subresources ...string) (*corev1.Node, error)
+
+var (
+	kubeClientInst *Kubeclient
+	once           sync.Once
+)
 
 // Kubeclient enables kubernetes API operations on node instance
 type Kubeclient struct {
@@ -130,6 +141,34 @@ func NewKubeClient(opts ...KubeClientBuildOption) *Kubeclient {
 	return k
 }
 
+// KubeClientInstanceOrDie returns the singleton instance of Kubeclient
+//
+// Usage:
+//  Caller code will use syntax(-es) as shown below:
+//
+// ```go
+// import (
+//  node "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
+// )
+//
+// node.KubeClientInstanceOrDie().Get(...)
+// node.KubeClientInstanceOrDie().Create(...)
+// node.KubeClientInstanceOrDie().Update(...)
+// node.KubeClientInstanceOrDie().List(...)
+// ```
+func KubeClientInstanceOrDie() *Kubeclient {
+	once.Do(func() {
+		k := NewKubeClient()
+		_, err := k.getClientsetOrCached()
+		if err != nil {
+			glog.Fatalf("failed to initialise kubeclient instance: {%v}", err)
+		}
+		kubeClientInst = k
+	})
+
+	return kubeClientInst
+}
+
 func (k *Kubeclient) getClientsetForPathOrDirect() (*kubernetes.Clientset, error) {
 	if k.kubeConfigPath != "" {
 		return k.getClientsetForPath(k.kubeConfigPath)
@@ -163,6 +202,50 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*corev1.Node, err
 		return nil, errors.Wrapf(err, "failed to get node {%s}", name)
 	}
 	return k.get(cli, name, opts)
+}
+
+// GetHostName returns a hostname corresponding
+// to the provided node name
+func (k *Kubeclient) GetHostName(name string, opts metav1.GetOptions) (string, error) {
+	n, err := k.Get(name, opts)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get hostname for node {%s}", name)
+	}
+
+	if len(n.Labels) == 0 {
+		return "",
+			errors.Errorf("failed to get hostname for node {%s}: missing labels", name)
+	}
+
+	h := n.Labels[labelKeyHostName]
+	if h == "" {
+		return "",
+			errors.Errorf(
+				"failed to get hostname for node {%s}: missing label {%s}",
+				name,
+				labelKeyHostName,
+			)
+	}
+	return h, nil
+}
+
+// GetHostNameOrNodeName returns a hostname corresponding
+// to the provided node name or returns the node name if
+// hostname is not available
+func (k *Kubeclient) GetHostNameOrNodeName(
+	name string,
+	opts metav1.GetOptions,
+) (string, error) {
+	n, err := k.Get(name, opts)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get hostname for node {%s}", name)
+	}
+
+	if len(n.Labels) == 0 || n.Labels[labelKeyHostName] == "" {
+		return name, nil
+	}
+
+	return n.Labels[labelKeyHostName], nil
 }
 
 // List returns a list of nodes instances present in kubernetes cluster

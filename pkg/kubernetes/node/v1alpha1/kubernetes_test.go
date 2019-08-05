@@ -22,6 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	clientset "k8s.io/client-go/kubernetes"
 )
 
@@ -531,5 +532,138 @@ func TestCordonWithTaintsPatch(t *testing.T) {
 		if !mock.expectedErr && err != nil {
 			t.Fatalf("Test %q failed: expected error to be nil", mock.name)
 		}
+	}
+}
+
+func fakeOptionGetNonNil(k *Kubeclient) {
+	k.get = func(cli *kubernetes.Clientset,
+		name string,
+		opts metav1.GetOptions,
+	) (*corev1.Node, error) {
+		return &corev1.Node{}, nil
+	}
+}
+
+func fakeOptionGetErr(k *Kubeclient) {
+	k.get = func(cli *kubernetes.Clientset,
+		name string,
+		opts metav1.GetOptions,
+	) (*corev1.Node, error) {
+		return nil, errors.New("Woo!!!")
+	}
+}
+
+func fakeOptionGetValid(k *Kubeclient) {
+	k.get = func(cli *kubernetes.Clientset,
+		name string,
+		opts metav1.GetOptions,
+	) (*corev1.Node, error) {
+		return &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					labelKeyHostName: "apple",
+				},
+			},
+		}, nil
+	}
+}
+
+func fakeOptionClientsetNonNil(k *Kubeclient) {
+	k.clientset = &clientset.Clientset{}
+}
+
+func TestGetHostNameOrNodeName(t *testing.T) {
+	tests := map[string]struct {
+		getfn          KubeClientBuildOption
+		nodename       string
+		expectErr      bool
+		expectHostname string
+	}{
+		"mising labels": {
+			getfn:          fakeOptionGetNonNil,
+			nodename:       "lenovo-laptop",
+			expectErr:      false,
+			expectHostname: "lenovo-laptop",
+		},
+		"error during get": {
+			getfn:     fakeOptionGetErr,
+			expectErr: true,
+		},
+		"valid get": {
+			getfn:          fakeOptionGetValid,
+			nodename:       "lenovo-laptop",
+			expectErr:      false,
+			expectHostname: "apple",
+		},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			name := name // pin it
+			mock := mock // pin it
+			gotHostName, err := NewKubeClient(mock.getfn, fakeOptionClientsetNonNil).
+				GetHostNameOrNodeName(mock.nodename, metav1.GetOptions{})
+			if mock.expectErr && err == nil {
+				t.Fatalf("test %q failed: expected error got nil", name)
+			}
+			if !mock.expectErr && err != nil {
+				t.Fatalf("test %q failed: expected no error got err: %+v", name, err)
+			}
+			if !mock.expectErr && mock.expectHostname != gotHostName {
+				t.Fatalf(
+					"test %q failed: expected hostname %q got %q",
+					name,
+					mock.expectHostname,
+					gotHostName,
+				)
+			}
+		})
+	}
+}
+
+func TestGetHostName(t *testing.T) {
+	tests := map[string]struct {
+		getfn          KubeClientBuildOption
+		nodename       string
+		expectErr      bool
+		expectHostname string
+	}{
+		"mising labels": {
+			getfn:     fakeOptionGetNonNil,
+			expectErr: true,
+		},
+		"error during get": {
+			getfn:     fakeOptionGetErr,
+			expectErr: true,
+		},
+		"valid get": {
+			getfn:          fakeOptionGetValid,
+			nodename:       "lenovo-laptop",
+			expectErr:      false,
+			expectHostname: "apple",
+		},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			name := name // pin it
+			mock := mock // pin it
+			gotHostName, err := NewKubeClient(mock.getfn, fakeOptionClientsetNonNil).
+				GetHostName(mock.nodename, metav1.GetOptions{})
+			if mock.expectErr && err == nil {
+				t.Fatalf("test %q failed: expected error got nil", name)
+			}
+			if !mock.expectErr && err != nil {
+				t.Fatalf("test %q failed: expected no error got err: %+v", name, err)
+			}
+			if !mock.expectErr && mock.expectHostname != gotHostName {
+				t.Fatalf(
+					"test %q failed: expected hostname %q got %q",
+					name,
+					mock.expectHostname,
+					gotHostName,
+				)
+			}
+		})
 	}
 }
