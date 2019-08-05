@@ -31,13 +31,16 @@ type cstorTargetPatchDetails struct {
 }
 
 func verifyCSPVersion(pvLabel, namespace string) error {
-	cvrList, err := cvrClient.List(
+	cvrList, err := cvrClient.WithNamespace(namespace).List(
 		metav1.ListOptions{
 			LabelSelector: pvLabel,
 		},
 	)
 	if err != nil {
 		return errors.Wrapf(err, "failed to list cvr for %s", pvLabel)
+	}
+	if len(cvrList.Items) == 0 {
+		return errors.Errorf("no cvr found for %s in %s", pvLabel, namespace)
 	}
 	for _, cvrObj := range cvrList.Items {
 		cspName := cvrObj.Labels["cstorpool.openebs.io/name"]
@@ -266,6 +269,9 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) error {
 	)
 	if err != nil {
 		return err
+	}
+	if len(cvrList.Items) == 0 {
+		return errors.Errorf("no cvr found for %s, in %s", pvName, openebsNamespace)
 	}
 	for _, cvrObj := range cvrList.Items {
 		if cvrObj.Name == "" {

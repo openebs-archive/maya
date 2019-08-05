@@ -32,6 +32,9 @@ func spcUpgrade(spcName, openebsNamespace string) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to list csp for spc %s", spcName)
 	}
+	if len(cspList.Items) == 0 {
+		return errors.Errorf("no csp found for spc %s: no csp found", spcName)
+	}
 	for _, cspObj := range cspList.Items {
 		if cspObj.Name == "" {
 			return errors.Errorf("missing csp name")
