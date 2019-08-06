@@ -26,7 +26,7 @@ import (
 
 // to verify that no two csp are on same node
 func verifyCSPNodeName(cspList *apis.CStorPoolList) error {
-	var nodeMap map[string]bool
+	nodeMap := map[string]bool{}
 	for _, cspObj := range cspList.Items {
 		nodeName := cspObj.Labels[string(apis.HostNameCPK)]
 		if nodeMap[nodeName] {
