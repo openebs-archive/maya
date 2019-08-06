@@ -79,6 +79,8 @@ func TestListAMinusListB(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			resultArr := ListAMinusListB(mock.listA, mock.listB)
 			if mock.expectedLen != len(resultArr) {
