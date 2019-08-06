@@ -45,6 +45,8 @@ type ListBuilder struct {
 	filters PredicateList
 }
 
+// GetResizeConditions will return reaize condtions related to
+// cstorvolume condtions
 func GetResizeConditions() apis.CStorVolumeCondition {
 	resizeConditions := apis.CStorVolumeCondition{
 		Type:               apis.CStorVolumeResizing,

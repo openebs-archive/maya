@@ -39,10 +39,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-var (
-	cStorVolumeKey = "cstorvolume.openebs.io/name"
-)
-
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the cStorVolumeUpdated
 // resource with the current status of the resource.
@@ -107,6 +103,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 	cStorVolumeGot *apis.CStorVolume,
 ) (common.CStorVolumeStatus, error) {
 	var eventMessage string
+	var updatedCV *apis.CStorVolume
 	customCVObj := cstorvolume.NewForAPIObject(cStorVolumeGot)
 	glog.V(4).Infof(
 		"%v event received for volume : %v ",
@@ -142,8 +139,8 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		if customCVObj.IsResizePending() {
 			if !customCVObj.IsConditionPresent(apis.CStorVolumeResizing) {
 				resizeConditions := cstorvolume.GetResizeConditions()
-				updatedCV, updateErr := c.updateCVSubResource(cStorVolumeGot, resizeConditions)
-				if updateErr != nil {
+				updatedCV, err = c.updateCVSubResource(cStorVolumeGot, resizeConditions)
+				if err != nil {
 					// Generate event and return
 					eventMessage = fmt.Sprintf(
 						"failed to update resize conditions error %v",
@@ -181,7 +178,6 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 			cStorVolumeGot, corev1.EventTypeWarning,
 			string(common.FailureUpdate), eventMessage,
 		)
-		break
 
 	case common.QOpPeriodicSync:
 		var err error
@@ -190,8 +186,8 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		if customCVObj.IsResizePending() {
 			if !customCVObj.IsConditionPresent(apis.CStorVolumeResizing) {
 				resizeConditions := cstorvolume.GetResizeConditions()
-				updatedCV, updateErr := c.updateCVSubResource(cStorVolumeGot, resizeConditions)
-				if updateErr != nil {
+				updatedCV, err = c.updateCVSubResource(cStorVolumeGot, resizeConditions)
+				if err != nil {
 					// Generate event and return
 					eventMessage = fmt.Sprintf(
 						"failed to update resize conditions error %v",
@@ -213,7 +209,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 				cStorVolumeGot = updatedCV
 			}
 			// return same as previous state
-			updatedCV, err := c.resizeCStorVolume(cStorVolumeGot)
+			updatedCV, err = c.resizeCStorVolume(cStorVolumeGot)
 			if err != nil {
 				capacity := cStorVolumeGot.Spec.Capacity.String()
 				glog.Errorf(
@@ -471,11 +467,6 @@ func (c *CStorVolumeController) updateCVSubResource(
 		return nil, pkg_errors.Wrapf(err, "failed to update status of cstorvolume %s", cstorVolume.Name)
 	}
 	return newCVObj, nil
-}
-
-func isResizePending(cStorVolume *apis.CStorVolume) bool {
-	customCVObj := cstorvolume.NewForAPIObject(cStorVolume)
-	return customCVObj.IsResizePending()
 }
 
 // IsValidCStorVolumeMgmt is to check if the volume request
