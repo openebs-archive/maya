@@ -208,9 +208,6 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 	} else if index == -1 {
 		return errors.Errorf("storage details not found in file %s", util.IstgtConfPath)
 	}
-	//TODO: Size comparision is required between CV and istgt.conf to avoid less
-	// capacity changes and unnecessary calls to istgt
-
 	// send resize command to istgt and read the response
 	resizeCmd := getResizeCommand(cStorVolume)
 	sockResp, err := UnixSockVar.SendCommand(resizeCmd)
@@ -222,7 +219,7 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 			cStorVolume.Name)
 	}
 
-	updateStorageVal := fmt.Sprintf("  LUN0 Storage %s 32K", cStorVolume.Spec.Capacity)
+	updateStorageVal := fmt.Sprintf("  LUN0 Storage %s 32K", cStorVolume.Spec.Capacity.String())
 	err = FileOperatorVar.Updatefile(util.IstgtConfPath, updateStorageVal, index, 0644)
 	if err != nil {
 		return errors.Wrapf(err,
@@ -238,7 +235,7 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 func getResizeCommand(cstorVolume *apis.CStorVolume) string {
 	return fmt.Sprintf("%s %s %s %v %v", util.IstgtResizeCmd,
 		cstorVolume.Name,
-		cstorVolume.Spec.Capacity,
+		cstorVolume.Spec.Capacity.String(),
 		cvapis.IoWaitTime,
 		cvapis.TotalWaitTime,
 	)

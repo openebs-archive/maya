@@ -16,6 +16,7 @@ package v1alpha1
 
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -42,6 +43,18 @@ type CStorVolumeList struct {
 type ListBuilder struct {
 	list    *CStorVolumeList
 	filters PredicateList
+}
+
+func GetResizeConditions() apis.CStorVolumeCondition {
+	resizeConditions := apis.CStorVolumeCondition{
+		Type:               apis.CStorVolumeResizing,
+		Status:             apis.ConditionInProgress,
+		LastProbeTime:      metav1.Now(),
+		LastTransitionTime: metav1.Now(),
+		Reason:             "Resizing",
+		Message:            "Triggered resize by changing capacity in spec",
+	}
+	return resizeConditions
 }
 
 // NewListBuilder returns a new instance
@@ -109,13 +122,14 @@ func IsHealthy() Predicate {
 func (c *CStorVolume) IsResizePending() bool {
 	curCapacity := c.object.Status.Capacity
 	desiredCapacity := c.object.Spec.Capacity
-	if curCapacity.IsZero() || curCapacity.Cmp(desiredCapacity) == -1 {
-		condition := c.GetCVCondition(apis.CStorVolumeResizing)
-		if condition.Type == apis.CStorVolumeResizing {
-			if condition.Status == apis.ConditionInProgress {
-				return true
-			}
-		}
+	if curCapacity.IsZero() {
+		return false
+	}
+	// Cmp returns 0 if the curCapacity is equal to desiredCapacity,
+	// -1 if the curCapacity is less than desiredCapacity, or 1 if the
+	// curCapacity is greater than desiredCapacity.
+	if curCapacity.Cmp(desiredCapacity) == -1 {
+		return true
 	}
 	return false
 }
@@ -129,6 +143,16 @@ func (c *CStorVolume) GetCVCondition(
 		}
 	}
 	return apis.CStorVolumeCondition{}
+}
+
+// IsConditionPresent returns true if condition is available
+func (c *CStorVolume) IsConditionPresent(condType apis.CStorVolumeConditionType) bool {
+	for _, cond := range c.object.Status.Conditions {
+		if condType == cond.Type {
+			return true
+		}
+	}
+	return false
 }
 
 // PredicateList holds a list of cstor volume

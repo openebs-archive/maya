@@ -19,6 +19,8 @@ import (
 	"os"
 	"strings"
 
+	"path/filepath"
+
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 )
@@ -46,7 +48,7 @@ func (r RealFileOperator) Write(filename string, data []byte, perm os.FileMode) 
 func (r RealFileOperator) GetLineDetails(filename, searchString string) (int, string, error) {
 	var line string
 	var i int
-	buffer, err := ioutil.ReadFile(filename)
+	buffer, err := ioutil.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return -1, "", errors.Wrapf(err, "failed to read %s file", filename)
 	}
@@ -61,7 +63,7 @@ func (r RealFileOperator) GetLineDetails(filename, searchString string) (int, st
 
 // Updatefile updates the line number with the given string
 func (r RealFileOperator) Updatefile(filename, updatedVal string, index int, perm os.FileMode) error {
-	buffer, err := ioutil.ReadFile(filename)
+	buffer, err := ioutil.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return errors.Wrapf(err, "failed to read %s file", filename)
 	}

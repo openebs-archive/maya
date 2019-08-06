@@ -138,6 +138,8 @@ type ConditionStatus string
 // These are valid condition statuses. "ConditionInProgress" means corresponding
 // condition is inprogress. "ConditionSuccess" means corresponding condition is success
 const (
+	// ConditionInProgress states resize of underlying volumes are in progress
 	ConditionInProgress ConditionStatus = "InProgress"
-	ConditionSuccess    ConditionStatus = "Success"
+	// ConditionSuccess states resizing underlying volumes are successfull
+	ConditionSuccess ConditionStatus = "Success"
 )
