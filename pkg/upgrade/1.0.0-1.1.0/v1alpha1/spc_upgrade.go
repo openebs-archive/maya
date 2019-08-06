@@ -19,9 +19,24 @@ package v1alpha1
 import (
 	"fmt"
 
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// to verify that no two csp are on same node
+func verifyCSPNodeName(cspList *apis.CStorPoolList) error {
+	nodeMap := map[string]bool{}
+	for _, cspObj := range cspList.Items {
+		nodeName := cspObj.Labels[string(apis.HostNameCPK)]
+		if nodeMap[nodeName] {
+			return errors.Errorf("more than one csp on %s node."+
+				" please make sure all csp are on different nodes", nodeName)
+		}
+		nodeMap[nodeName] = true
+	}
+	return nil
+}
 
 func spcUpgrade(spcName, openebsNamespace string) error {
 
@@ -31,6 +46,13 @@ func spcUpgrade(spcName, openebsNamespace string) error {
 	})
 	if err != nil {
 		return errors.Wrapf(err, "failed to list csp for spc %s", spcName)
+	}
+	if len(cspList.Items) == 0 {
+		return errors.Errorf("no csp found for spc %s: no csp found", spcName)
+	}
+	err = verifyCSPNodeName(cspList)
+	if err != nil {
+		return err
 	}
 	for _, cspObj := range cspList.Items {
 		if cspObj.Name == "" {

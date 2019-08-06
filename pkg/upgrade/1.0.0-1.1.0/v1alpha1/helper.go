@@ -38,7 +38,7 @@ func getDeployment(labels, namespace string) (*appsv1.Deployment, error) {
 		return nil, err
 	}
 	if len(deployList.Items) == 0 {
-		return nil, errors.Errorf("no deployments found for %s", labels)
+		return nil, errors.Errorf("no deployments found for %s in %s", labels, namespace)
 	}
 	return &(deployList.Items[0]), nil
 }
@@ -128,6 +128,9 @@ func patchService(targetServiceLabel, namespace string) error {
 	)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get service for %s", targetServiceLabel)
+	}
+	if len(targetServiceObj.Items) == 0 {
+		return errors.Errorf("no service found for %s in %s", targetServiceLabel, namespace)
 	}
 	targetServiceName := targetServiceObj.Items[0].Name
 	if targetServiceName == "" {
