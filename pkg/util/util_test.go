@@ -55,6 +55,39 @@ func TestContainsString(t *testing.T) {
 	}
 }
 
+func TestListAMinusListB(t *testing.T) {
+	tests := map[string]struct {
+		listA       []string
+		listB       []string
+		expectedLen int
+	}{
+		"contains string - positive test case - element is present": {
+			listA:       []string{"hi", "hello", "crazzy"},
+			listB:       []string{"hello"},
+			expectedLen: 2,
+		},
+		"contains string - positive test case - element is not present": {
+			listA:       []string{},
+			listB:       []string{"there", "you", "go"},
+			expectedLen: 0,
+		},
+		"contains string - boundary test case - similar elements but not same": {
+			listA:       []string{"hi there", "ok now"},
+			listB:       []string{},
+			expectedLen: 2,
+		},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			resultArr := ListAMinusListB(mock.listA, mock.listB)
+			if mock.expectedLen != len(resultArr) {
+				t.Fatalf("failed to test %q: expected element count '%d': actual element count '%d'", name, mock.expectedLen, len(resultArr))
+			}
+		})
+	}
+}
+
 func TestContainsKey(t *testing.T) {
 	tests := map[string]struct {
 		mapOfObjs map[string]interface{}

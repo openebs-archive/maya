@@ -58,14 +58,6 @@ func (ac *Config) NodeBlockDeviceSelector() (*nodeBlockDevice, error) {
 		return nil, err
 	}
 
-	//filteredNodeBDs = nodeBlockDeviceMap
-	//if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
-	//	filteredNodeBDs, err = ac.getFilteredNodeBlockDevices(nodeBlockDeviceMap)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//}
-
 	selectedBD, err := ac.selectNode(nodeBlockDeviceMap)
 	if err != nil {
 		return nil, err
@@ -73,83 +65,6 @@ func (ac *Config) NodeBlockDeviceSelector() (*nodeBlockDevice, error) {
 
 	return selectedBD, nil
 }
-
-//// getFilteredNodeBlockDevices returns the map of node name and block device
-//// list if no claims are present on list of block devices. If claims are present
-//// then it retunrns those block devices on which claims are created
-//func (ac *Config) getFilteredNodeBlockDevices(
-//	nodeBDs map[string]*blockDeviceList) (map[string]*blockDeviceList, error) {
-//	namespace := env.Get(env.OpenEBSNamespace)
-//	bdcKubeclient := bdc.NewKubeClient().
-//		WithNamespace(namespace)
-//	bdcList, err := bdcKubeclient.List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
-//	if err != nil {
-//		return nil, err
-//	}
-//	// get used node names from csp related to spc
-//	usedNodeMap, err := ac.getUsedNodeMap()
-//	if err != nil {
-//		return nil, err
-//	}
-//	//TODO: Make smaller function before removing WIP
-//
-//	// minRequiredDiskCount will hold the required number of disk that should be selected from a qualified
-//	// node for specific pool type
-//	minRequiredBDCount := blockdevice.DefaultDiskCount[ac.poolType()]
-//
-//	newNodeBDMap := make(map[string]*blockDeviceList)
-//	// form the map of node name and blockdevice list from
-//	// blockdeviceclaims created by spc
-//	for _, bdcObj := range bdcList.Items {
-//		bdcObj := bdcObj
-//		if ac.VisitedNodes[bdcObj.Spec.HostName] ||
-//			usedNodeMap[bdcObj.Spec.HostName] == 1 {
-//			continue
-//		}
-//		if newNodeBDMap[bdcObj.Spec.HostName] == nil {
-//			newNodeBDMap[bdcObj.Spec.HostName] = &blockDeviceList{
-//				Items: []string{bdcObj.Spec.BlockDeviceName},
-//			}
-//		} else {
-//			bdList := newNodeBDMap[bdcObj.Spec.HostName]
-//			bdList.Items = append(bdList.Items, bdcObj.Spec.BlockDeviceName)
-//		}
-//	}
-//	// If selectedNodeCount is zero then we can consider it is first
-//	// reconciliation and need to send
-//	selectedNodeCount := len(newNodeBDMap)
-//
-//	// Form the map of node name and blockdevice list from existing blockdevices
-//	for nodeName, bdList := range nodeBDs {
-//		// pin it
-//		nodeName := nodeName
-//		bdList := bdList
-//		if selectedNodeCount != 0 {
-//			if newNodeBDMap[nodeName] != nil {
-//				if len(newNodeBDMap[nodeName].Items) < minRequiredBDCount {
-//					// If BDC creation failed in before reconciliation we are
-//					// inserting required no blockdevices
-//					for _, bdName := range bdList.Items {
-//						if !util.ContainsString(newNodeBDMap[nodeName].Items, bdName) {
-//							bdList := newNodeBDMap[nodeName]
-//							bdList.Items = append(bdList.Items, bdName)
-//						}
-//					}
-//				}
-//			}
-//		} else {
-//			if newNodeBDMap[nodeName] == nil {
-//				newNodeBDMap[nodeName] = &blockDeviceList{
-//					Items: bdList.Items,
-//				}
-//			}
-//		}
-//	}
-//	for node, bdList := range newNodeBDMap {
-//		glog.Infof("Node-- %s BD list %#v", node, bdList)
-//	}
-//	return newNodeBDMap, nil
-//}
 
 // getUsedBlockDeviceMap gives list of disks that has already been used for pool provisioning.
 func (ac *Config) getUsedBlockDeviceMap() (map[string]int, error) {
@@ -212,7 +127,6 @@ func (ac *Config) getCandidateNode(listBlockDevice *ndmapis.BlockDeviceList) (ma
 		//If node is already visited in this reconciliation then continue with
 		//other nodes
 		if ac.VisitedNodes[nodeName] {
-			glog.Infof("-------Ignoring node: %s", nodeName)
 			continue
 		}
 		if nodeBlockDeviceMap[nodeName] == nil {
@@ -247,26 +161,34 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 	minRequiredDiskCount := blockdevice.DefaultDiskCount[ac.poolType()]
 
 	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
-		// List all blockdevices related to spc
+		// List all blockdeviceclaims related to spc
+		// NOTE: This list contains blockdevices on which csps' are already
+		// created filter and use it
 		bdcList, err := bdc.NewKubeClient().
 			WithNamespace(ac.Namespace).
 			List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to select node and blockdevices")
 		}
 		customBDCList := bdc.BlockDeviceClaimList{
 			ObjectList: bdcList,
 		}
+		// Form node and blockdevice topology for blockdevices which has bdc
 		claimedNodes := customBDCList.GetBlockDeviceNamesByNode()
 		for claimedNodeName, bdNameList := range claimedNodes {
-			//Check is this node is usable or not
 			qualifiedBDList := []string{}
-			//TODO: Nil check againest nodeBlockDeviceMap
-			if util.ContainsString(nodeBlockDeviceMap[claimedNodeName].Items, bdNameList[0]) {
+			filteredBlockDevices := nodeBlockDeviceMap[claimedNodeName]
+
+			//Check is this node is usable or not
+			if filteredBlockDevices != nil &&
+				util.ContainsString(filteredBlockDevices.Items, bdNameList[0]) {
 				qualifiedBDList = append(qualifiedBDList, bdNameList...)
 				if len(qualifiedBDList) < minRequiredDiskCount {
 					count := minRequiredDiskCount - len(qualifiedBDList)
-					availableBDOnNode := util.ListAMinusListB(nodeBlockDeviceMap[claimedNodeName].Items, qualifiedBDList)
+					availableBDOnNode := util.ListAMinusListB(filteredBlockDevices.Items, qualifiedBDList)
+					if len(availableBDOnNode) < count {
+						continue
+					}
 					qualifiedBDList = append(qualifiedBDList, availableBDOnNode[:count]...)
 				}
 				selectedBlockDevice.BlockDevices.Items = append(selectedBlockDevice.BlockDevices.Items, qualifiedBDList...)
@@ -353,7 +275,7 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	if len(bdl.Items) == 0 {
 		return nil, errors.Errorf("type {%s} devices are not available to provision pools in %s mode", diskType, ProvisioningType(ac.Spc))
 	}
-	newBDL, err := bdl.GetFreeBlockDevices(ac.Spc.Name, ac.Namespace)
+	newBDL, err := bdl.GetUsableBlockDevices(ac.Spc.Name, ac.Namespace)
 	if err != nil {
 		return nil, err
 	}

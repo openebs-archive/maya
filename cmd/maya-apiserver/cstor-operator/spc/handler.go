@@ -29,6 +29,7 @@ import (
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -117,7 +118,7 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 	gotSPC, err := spcv1alpha1.BuilderForAPIObject(spc).Spc.AddFinalizer(spcv1alpha1.SPCFinalizer)
 
 	if err != nil {
-		glog.Errorf("Failed to add finalizer on CSPC %s:%s", spc.Name, err.Error())
+		glog.Errorf("Failed to add finalizer on SPC %s:%s", spc.Name, err.Error())
 		return nil
 	}
 
@@ -260,6 +261,14 @@ func (c *Controller) create(pendingPoolCount int, spc *apis.StoragePoolClaim) er
 	glog.V(4).Infof("Lease acquired successfully on storagepoolclaim %s ", spc.Name)
 	defer newSpcLease.Release()
 	poolConfig := c.NewPoolCreateConfig(spc)
+	namespace := env.Get(env.OpenEBSNamespace)
+	if namespace == "" {
+		message := fmt.Sprint("Could not create spc: got empty namespace for openebs from env variable")
+		c.recorder.Event(spc, corev1.EventTypeWarning, "Getting Namespace", message)
+		glog.Errorf("Could not sync SPC {%s}: got empty namespace for openebs from env variable", spc.Name)
+		return nil
+	}
+	poolConfig.Namespace = namespace
 	for poolCount := 1; poolCount <= pendingPoolCount; poolCount++ {
 		glog.Infof("Provisioning pool %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, spc.Name)
 		err = poolConfig.CreateStoragePool(spc)

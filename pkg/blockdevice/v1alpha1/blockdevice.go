@@ -204,18 +204,17 @@ func (bdl *BlockDeviceList) Filter(predicateKeys ...string) *BlockDeviceList {
 	return filteredBlockDeviceList
 }
 
-func (bdl *BlockDeviceList) GetFreeBlockDevices(spcName, namespace string) (*BlockDeviceList, error) {
+// GetUsableBlockDevices returns custom blockdevice list which can be used
+func (bdl *BlockDeviceList) GetUsableBlockDevices(spcName, namespace string) (*BlockDeviceList, error) {
 	// Initialize filtered block device list
+	if bdl == nil {
+		return nil, errors.Errorf("failed to get usable blockdevices: blockdevicelist is nil")
+	}
 	filteredBlockDeviceList := &BlockDeviceList{
 		BlockDeviceList: &ndm.BlockDeviceList{},
 		errs:            nil,
 	}
 	bdcClient := bdc_v1alpha1.NewKubeClient().WithNamespace(namespace)
-	errMsg, ok := bdl.Hasitems()
-	if !ok {
-		filteredBlockDeviceList.errs = append(filteredBlockDeviceList.errs, errors.New(errMsg))
-		return filteredBlockDeviceList, nil
-	}
 	for _, bdObj := range bdl.Items {
 		if bdObj.Status.ClaimState == ndm.BlockDeviceClaimed {
 			bdcName := bdObj.Spec.ClaimRef.Name
@@ -226,7 +225,7 @@ func (bdl *BlockDeviceList) GetFreeBlockDevices(spcName, namespace string) (*Blo
 			if bdcObj.Labels[string(apis.StoragePoolClaimCPK)] == spcName {
 				filteredBlockDeviceList.Items = append(filteredBlockDeviceList.Items, bdObj)
 			}
-		} else {
+		} else if bdObj.Status.ClaimState == ndm.BlockDeviceUnclaimed {
 			filteredBlockDeviceList.Items = append(filteredBlockDeviceList.Items, bdObj)
 		}
 	}
