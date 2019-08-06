@@ -275,11 +275,14 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	if len(bdl.Items) == 0 {
 		return nil, errors.Errorf("type {%s} devices are not available to provision pools in %s mode", diskType, ProvisioningType(ac.Spc))
 	}
-	newBDL, err := bdl.GetUsableBlockDevices(ac.Spc.Name, ac.Namespace)
-	if err != nil {
-		return nil, err
+	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
+		newBDL, err := bdl.GetUsableBlockDevices(ac.Spc.Name, ac.Namespace)
+		if err != nil {
+			return nil, err
+		}
+		bdl = newBDL
 	}
-	return newBDL.BlockDeviceList, nil
+	return bdl.BlockDeviceList, nil
 }
 
 //TODO: Make changes in below code in refactor PR
