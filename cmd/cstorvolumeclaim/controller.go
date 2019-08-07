@@ -48,14 +48,13 @@ const (
 	// cstorvolumeclaim fails to sync due to a cstorvolumeclaim of the same
 	// name already existing.
 	ErrResourceExists = "ErrResourceExists"
-
 	// MessageResourceExists is the message used for Events when a resource
 	// fails to sync due to a cstorvolumeclaim already existing
 	MessageResourceExists = "Resource %q already exists and is not managed by CVC"
 	// MessageResourceSynced is the message used for an Event fired when a
 	// cstorvolumeclaim is synced successfully
 	MessageResourceSynced = "cstorvolumeclaim synced successfully"
-	// MessageResourceCreated ...
+	// MessageResourceCreated msg used for cstor volume provisioning success event
 	MessageResourceCreated = "cstorvolumeclaim created successfully"
 	// CStorVolumeClaimFinalizer name of finalizer on CStorVolumeClaim that
 	// are bound by CStorVolume
@@ -197,12 +196,6 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 			return err
 		}
 	}
-	// Finally, we update the status block of the CVC resource to reflect the
-	// current state of the world
-	//c.recorder.Event(cvc, corev1.EventTypeNormal,
-	//	SuccessSynced,
-	//	MessageResourceSynced,
-	//)
 	return nil
 }
 
@@ -239,7 +232,6 @@ func (c *CVCController) updateCVCObj(
 // 4. Create cstorvolumeclaim resource.
 // 5. Update the cstorvolumeclaim with claimRef info and bound with cstorvolume.
 func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeClaim, error) {
-
 	_ = cvc.Annotations[string(apis.ConfigClassKey)]
 
 	glog.V(2).Infof("creating cstorvolume service resource")
@@ -400,7 +392,7 @@ func BaseLabels(cvc *apis.CStorVolumeClaim) map[string]string {
 	return base
 }
 
-// cvcNeedResize returns true is a cvc requests a resize operation.
+// cvcNeedResize returns true if a cvc requests a resize operation.
 func (c *CVCController) cvcNeedResize(cvc *apis.CStorVolumeClaim) bool {
 	// only bound cstorvolumeclaim can be resized
 	if cvc.Status.Phase != apis.CStorVolumeClaimPhaseBound {
@@ -429,17 +421,8 @@ func (c *CVCController) cvcNeedResize(cvc *apis.CStorVolumeClaim) bool {
 // 2. Resize the cstorvolume object.
 // 3. Mark cvc as resizing finished
 func (c *CVCController) resizeCVC(cvc *apis.CStorVolumeClaim) error {
-	if updatedCVC, err := c.markCVCResizeInProgress(cvc); err != nil {
-		glog.Errorf("mark cvc %q as resizing failed: %v", cvc.Name, err)
-		return err
-	} else if updatedCVC != nil {
-		cvc = updatedCVC
-	}
-
-	// Record an event to indicate that cvc-controller is resizing this volume.
-	c.recorder.Event(cvc, corev1.EventTypeNormal, string(apis.CStorVolumeClaimResizing),
-		fmt.Sprintf("CVCController is resizing volume %s", cvc.Name))
-
+	var updatedCVC *apis.CStorVolumeClaim
+	var err error
 	cv, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cvc.Namespace).
 		Get(cvc.Name, metav1.GetOptions{})
 	if err != nil {
@@ -447,21 +430,29 @@ func (c *CVCController) resizeCVC(cvc *apis.CStorVolumeClaim) error {
 		return err
 	}
 
-	err = func() error {
-		err = c.resizeVolume(cvc, cv)
-		if err != nil {
+	requestCVCSize := cvc.Spec.Capacity[v1.ResourceStorage]
+	if requestCVCSize.Cmp(cv.Spec.Capacity) > 0 {
+		if updatedCVC, err = c.markCVCResizeInProgress(cvc); err != nil {
+			glog.Errorf("failed to mark cvc %q as resizing: %v", cvc.Name, err)
 			return err
 		}
+		cvc = updatedCVC
+		// Record an event to indicate that cvc-controller is resizing this volume.
+		c.recorder.Event(cvc, corev1.EventTypeNormal, string(apis.CStorVolumeClaimResizing),
+			fmt.Sprintf("CVCController is resizing volume %s", cvc.Name))
+
+		err = c.resizeVolume(cvc, cv)
+		if err != nil {
+			// Record an event to indicate that resize operation is failed.
+			c.recorder.Eventf(cvc, corev1.EventTypeWarning, string(apis.CStorVolumeClaimResizeFailed), err.Error())
+		}
+		return err
+	}
+	if requestCVCSize.Cmp(cv.Status.Capacity) == 0 {
 		// Resize volume succeeded mark it as resizing finished.
 		return c.markCVCResizeFinished(cvc)
-	}()
-
-	if err != nil {
-		// Record an event to indicate that resize operation is failed.
-		c.recorder.Eventf(cvc, corev1.EventTypeWarning, string(apis.CStorVolumeClaimResizeFailed), err.Error())
 	}
-
-	return err
+	return nil
 }
 
 func (c *CVCController) markCVCResizeInProgress(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeClaim, error) {
@@ -564,10 +555,10 @@ func (c *CVCController) resizeVolume(
 	newSize := cvc.Spec.Capacity[corev1.ResourceStorage]
 	err := c.UpdateCVCapacity(cv, newSize)
 	if err != nil {
-		glog.Errorf("Update capacity of CV %q to %s failed: %v", cv.Name, newSize.String(), err)
+		glog.Errorf("failed to update capacity of CV %q to %s : %v", cv.Name, newSize.String(), err)
 		return err
 	}
-	glog.V(4).Infof("Update capacity of CV %q to %s succeeded", cv.Name, newSize.String())
+	glog.V(4).Infof("successfully Updated capacity of CV %q to %s", cv.Name, newSize.String())
 
 	return err
 
@@ -575,16 +566,9 @@ func (c *CVCController) resizeVolume(
 
 // UpdateCVCapacity updates CV capacity with requested size.
 func (c *CVCController) UpdateCVCapacity(cv *apis.CStorVolume, newCapacity resource.Quantity) error {
-	progressCondition := apis.CStorVolumeCondition{
-		Type:               apis.CStorVolumeResizing,
-		LastTransitionTime: metav1.Now(),
-		Status:             apis.ConditionInProgress,
-	}
-
 	newCV := cv.DeepCopy()
-	newCV.Status.Conditions = append(newCV.Status.Conditions, progressCondition)
-
 	newCV.Spec.Capacity = newCapacity
+
 	patchBytes, err := getPatchData(cv, newCV)
 	if err != nil {
 		return fmt.Errorf("can't update capacity of CV %s as generate patch data failed: %v", cv.Name, err)
@@ -595,16 +579,4 @@ func (c *CVCController) UpdateCVCapacity(cv *apis.CStorVolume, newCapacity resou
 		return updateErr
 	}
 	return nil
-}
-
-// HasResizePendingCondition returns true if a cv has a ResizePending condition.
-// This means the controller side resize operation is finished,
-// and volume side operation is in progress.
-func HasResizePendingCondition(cv *apis.CStorVolume) bool {
-	for _, condition := range cv.Status.Conditions {
-		if condition.Type == apis.CStorVolumeResizing && condition.Status == apis.ConditionInProgress {
-			return true
-		}
-	}
-	return false
 }
