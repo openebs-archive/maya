@@ -139,7 +139,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		if customCVObj.IsResizePending() {
 			if !customCVObj.IsConditionPresent(apis.CStorVolumeResizing) {
 				resizeConditions := cstorvolume.GetResizeConditions()
-				updatedCV, err = c.updateCVSubResource(cStorVolumeGot, resizeConditions)
+				updatedCV, err = c.updateCVWithCondition(cStorVolumeGot, resizeConditions, apis.CStorVolumeResizing)
 				if err != nil {
 					// Generate event and return
 					eventMessage = fmt.Sprintf(
@@ -186,7 +186,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		if customCVObj.IsResizePending() {
 			if !customCVObj.IsConditionPresent(apis.CStorVolumeResizing) {
 				resizeConditions := cstorvolume.GetResizeConditions()
-				updatedCV, err = c.updateCVSubResource(cStorVolumeGot, resizeConditions)
+				updatedCV, err = c.updateCVWithCondition(cStorVolumeGot, resizeConditions, apis.CStorVolumeResizing)
 				if err != nil {
 					// Generate event and return
 					eventMessage = fmt.Sprintf(
@@ -435,7 +435,7 @@ func (c *CStorVolumeController) resizeCStorVolume(
 		isResizeSuccess = true
 	}
 
-	newCV, cvUpdateErr := c.updateCVSubResource(cloneCV, conditionStatus)
+	newCV, cvUpdateErr := c.updateCVWithCondition(cloneCV, conditionStatus, apis.CStorVolumeResizing)
 	if cvUpdateErr == nil && isResizeSuccess {
 		eventMessage = fmt.Sprintf(
 			"successfully resized volume %s to %s",
@@ -447,13 +447,13 @@ func (c *CStorVolumeController) resizeCStorVolume(
 	return newCV, cvUpdateErr
 }
 
-func (c *CStorVolumeController) updateCVSubResource(
+func (c *CStorVolumeController) updateCVWithCondition(
 	cstorVolume *apis.CStorVolume,
-	conditionStatus apis.CStorVolumeCondition) (*apis.CStorVolume, error) {
+	conditionStatus apis.CStorVolumeCondition, condType apis.CStorVolumeConditionType) (*apis.CStorVolume, error) {
 	//cvCopy := cStorVolume.DeepCopy()
 	cvBuilder := cstorvolume.
 		BuilderFromAPI(cstorVolume).
-		WithCondition(conditionStatus)
+		WithCondition(conditionStatus, condType)
 	cvObj, err := cvBuilder.Build()
 	if err != nil {
 		return nil, err

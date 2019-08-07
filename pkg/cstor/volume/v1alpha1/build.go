@@ -303,10 +303,12 @@ func (b *Builder) WithReplicationFactor(replicationfactor int) *Builder {
 
 // WithCondition overwrites the existing condition with provided argument if
 // condition not present it will append to existing conditions
-func (b *Builder) WithCondition(conditionStatus apis.CStorVolumeCondition) *Builder {
+func (b *Builder) WithCondition(
+	conditionStatus apis.CStorVolumeCondition,
+	condType apis.CStorVolumeConditionType) *Builder {
 	isCondPresent := false
 	for i, cond := range b.cstorvolume.object.Status.Conditions {
-		if cond.Type == conditionStatus.Type {
+		if cond.Type == condType {
 			b.cstorvolume.object.Status.Conditions[i] = conditionStatus
 			isCondPresent = true
 		}
