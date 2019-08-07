@@ -94,8 +94,8 @@ type updateFn func(
 
 // make upgrade task clientset as singleton
 var (
-	upgradeTaskClientset *clientset.Clientset
-	once                 sync.Once
+	clientsetInstance *clientset.Clientset
+	once              sync.Once
 )
 
 // Kubeclient enables kubernetes API operations
@@ -124,8 +124,8 @@ type Kubeclient struct {
 type KubeclientBuildOption func(*Kubeclient)
 
 func defaultGetClientset() (clients *clientset.Clientset, err error) {
-	if upgradeTaskClientset != nil {
-		return upgradeTaskClientset, nil
+	if clientsetInstance != nil {
+		return clientsetInstance, nil
 	}
 	config, err := kclient.New().GetConfigForPathOrDirect()
 	if err != nil {
@@ -136,9 +136,9 @@ func defaultGetClientset() (clients *clientset.Clientset, err error) {
 		return nil, err
 	}
 	once.Do(func() {
-		upgradeTaskClientset = upgradeTaskCS
+		clientsetInstance = upgradeTaskCS
 	})
-	return upgradeTaskClientset, nil
+	return clientsetInstance, nil
 }
 
 func defaultGetClientsetForPath(
@@ -418,6 +418,9 @@ func GetUpgradeDetailedStatuses(
 		return nil, errors.Errorf("failed to build upgradestatus : missing step")
 	}
 	uStatusObj.Step = step
+	if phase == "" {
+		return nil, errors.Errorf("failed to build upgradestatus : missing phase")
+	}
 	uStatusObj.Phase = phase
 	uStatusObj.LastUpdatedTime = metav1.Now()
 	if phase == apis.StepWaiting {
