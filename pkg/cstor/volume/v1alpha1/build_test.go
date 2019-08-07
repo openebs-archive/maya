@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestBuilderWithName(t *testing.T) {
@@ -546,6 +547,85 @@ func TestBuilderWithConsistencyFactor(t *testing.T) {
 			}
 			if !mock.expectErr && len(b.errs) > 0 {
 				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestBuilderWithConditions(t *testing.T) {
+	tests := map[string]struct {
+		condition apis.CStorVolumeCondition
+		builder   *Builder
+		expectLen int
+	}{
+		"Test Builder with existing condition": {
+			condition: apis.CStorVolumeCondition{
+				Type:          apis.CStorVolumeResizing,
+				Status:        apis.ConditionSuccess,
+				LastProbeTime: metav1.Now(),
+			},
+			builder: &Builder{cstorvolume: &CStorVolume{
+				object: &apis.CStorVolume{
+					Status: apis.CStorVolumeStatus{
+						Conditions: []apis.CStorVolumeCondition{
+							apis.CStorVolumeCondition{
+								Type:          apis.CStorVolumeResizing,
+								Status:        apis.ConditionInProgress,
+								LastProbeTime: metav1.Now(),
+							},
+						},
+					},
+				},
+			}},
+			expectLen: 1,
+		},
+		"Test Builder without condition": {
+			condition: apis.CStorVolumeCondition{
+				Type:          apis.CStorVolumeConditionType("Unknown"),
+				Status:        apis.ConditionSuccess,
+				LastProbeTime: metav1.Now(),
+			},
+			builder: &Builder{cstorvolume: &CStorVolume{
+				object: &apis.CStorVolume{},
+			}},
+			expectLen: 1,
+		},
+		"Test Builder with new condition": {
+			condition: apis.CStorVolumeCondition{
+				Type:          apis.CStorVolumeConditionType("Unknown"),
+				Status:        apis.ConditionSuccess,
+				LastProbeTime: metav1.Now(),
+			},
+			builder: &Builder{cstorvolume: &CStorVolume{
+				object: &apis.CStorVolume{
+					Status: apis.CStorVolumeStatus{
+						Conditions: []apis.CStorVolumeCondition{
+							apis.CStorVolumeCondition{
+								Type:          apis.CStorVolumeResizing,
+								Status:        apis.ConditionInProgress,
+								LastProbeTime: metav1.Now(),
+							},
+						},
+					},
+				},
+			}},
+			expectLen: 2,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithCondition(mock.condition)
+			if len(b.errs) != 0 {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+			if mock.expectLen != len(b.cstorvolume.object.Status.Conditions) {
+				t.Fatalf(
+					"Test %q failed: expected condition length %d but got %d",
+					name,
+					mock.expectLen,
+					len(b.cstorvolume.object.Status.Conditions),
+				)
 			}
 		})
 	}
