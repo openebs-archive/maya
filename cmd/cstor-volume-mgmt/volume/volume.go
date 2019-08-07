@@ -211,7 +211,15 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 	// send resize command to istgt and read the response
 	resizeCmd := getResizeCommand(cStorVolume)
 	sockResp, err := UnixSockVar.SendCommand(resizeCmd)
-	if err != nil || v1_strings.MakeList(sockResp...).Contains("ERR") {
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to execute istgt %s command on volume %s",
+			util.IstgtResizeCmd,
+			cStorVolume.Name)
+	}
+	if v1_strings.MakeList(sockResp...).Contains("ERR") {
+		err = errors.Errorf("%v", sockResp)
 		return errors.Wrapf(
 			err,
 			"failed to execute istgt %s command on volume %s",
@@ -227,7 +235,7 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 			util.IstgtConfPath,
 			updateStorageVal)
 	}
-	glog.V(4).Infof("Updated '%s' file with capacity '%s'", util.IstgtConfPath, updateStorageVal)
+	glog.Infof("Updated '%s' file with capacity '%s'", util.IstgtConfPath, updateStorageVal)
 	return nil
 }
 
