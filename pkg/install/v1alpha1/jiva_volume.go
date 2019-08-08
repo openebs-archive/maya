@@ -604,7 +604,7 @@ spec:
                         {{- if ne $nodeNames "" }}
                         {{- $nodeNamesMap := $nodeNames | split " " }}
                         {{- range $k, $v := $nodeNamesMap }}
-                        - {{ $v }}
+                        - {{ kubeNodeGetHostNameOrNodeName $v }}
                         {{- end }}
                         {{- end }}
 ---
@@ -1380,9 +1380,9 @@ spec:
       {{- end }}
       template:
         spec:
-          restartPolicy: Never
+          restartPolicy: OnFailure
           nodeSelector:
-            kubernetes.io/hostname: {{ .ListItems.currentRepeatResource }}
+            kubernetes.io/hostname: {{ kubeNodeGetHostNameOrNodeName .ListItems.currentRepeatResource }}
           volumes:
           - name: replica-path
             hostPath:
