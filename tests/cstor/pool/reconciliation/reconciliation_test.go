@@ -52,9 +52,12 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 			Expect(cspCount).To(Equal(3))
 			// Check blockdeviceclaim count after creating the cstor pool
 			bdcCount := ops.GetBDCCount(getLabelSelector(spcObj), string(artifacts.OpenebsNamespace))
-			Expect(bdcCount).To(Equal(spc_v1alpha1.DefaultDiskCount[string(apis.PoolTypeStripedCPV)]))
+			Expect(bdcCount).To(
+				Equal(spc_v1alpha1.DefaultDiskCount[string(apis.PoolTypeStripedCPV)]*3),
+				"mismatch of blockdeviceclaim count",
+			)
 			// Check is there any extra csp's are created
-			cspCount = ops.GetCSPCount(spcObj.Name)
+			cspCount = ops.GetCSPCount(getLabelSelector(spcObj))
 			Expect(cspCount).To(Equal(3), "mismatch of csp count")
 
 			Expect(ops.IsSPCFinalizerExistsOnSPC(spcObj.Name, spc_v1alpha1.SPCFinalizer)).To(BeTrue())
@@ -207,9 +210,12 @@ var _ = Describe("MIRRORED SPARSE SPC", func() {
 			cspCount := ops.GetHealthyCSPCount(spcObj.Name, 3)
 			Expect(cspCount).To(Equal(3))
 			bdcCount := ops.GetBDCCount(getLabelSelector(spcObj), string(artifacts.OpenebsNamespace))
-			Expect(bdcCount).To(Equal(spc_v1alpha1.DefaultDiskCount[string(apis.PoolTypeMirroredCPV)]))
+			Expect(bdcCount).To(
+				Equal(spc_v1alpha1.DefaultDiskCount[string(apis.PoolTypeMirroredCPV)]*3),
+				"mismatch of blockdeviceclaim count",
+			)
 			// Check is there any extra csp's are created
-			cspCount = ops.GetCSPCount(spcObj.Name)
+			cspCount = ops.GetCSPCount(getLabelSelector(spcObj))
 			Expect(cspCount).To(Equal(3), "mismatch of csp count")
 		})
 	})
@@ -273,9 +279,12 @@ var _ = Describe("RAIDZ SPARSE SPC", func() {
 			cspCount := ops.GetHealthyCSPCount(spcObj.Name, 3)
 			Expect(cspCount).To(Equal(3))
 			bdcCount := ops.GetBDCCount(getLabelSelector(spcObj), string(artifacts.OpenebsNamespace))
-			Expect(bdcCount).To(Equal(spc_v1alpha1.DefaultDiskCount[string(apis.PoolTypeRaidzCPV)]))
+			Expect(bdcCount).To(
+				Equal(spc_v1alpha1.DefaultDiskCount[string(apis.PoolTypeRaidzCPV)]*3),
+				"mismatch of blockdeviceclaim count",
+			)
 			// Check is there any extra csp's are created
-			cspCount = ops.GetCSPCount(spcObj.Name)
+			cspCount = ops.GetCSPCount(getLabelSelector(spcObj))
 			Expect(cspCount).To(Equal(3), "mismatch of csp count")
 		})
 	})
@@ -348,12 +357,15 @@ var _ = Describe("RAIDZ2 SPARSE SPC", func() {
 			err = ops.RestartPodEventually(&mayaPod)
 			Expect(err).To(BeNil(), "failed to restart maya-apiserver pod")
 
-			cspCount := ops.GetHealthyCSPCount(spcObj.Name, 1)
-			Expect(cspCount).To(Equal(1))
+			cspCount := ops.GetHealthyCSPCount(spcObj.Name, 3)
+			Expect(cspCount).To(Equal(3))
 			bdcCount := ops.GetBDCCount(getLabelSelector(spcObj), string(artifacts.OpenebsNamespace))
-			Expect(bdcCount).To(Equal(spc_v1alpha1.DefaultDiskCount[string(apis.PoolTypeRaidz2CPV)]))
+			Expect(bdcCount).To(
+				Equal(spc_v1alpha1.DefaultDiskCount[string(apis.PoolTypeRaidz2CPV)]*3),
+				"mismatch of blockdeviceclaim count",
+			)
 			// Check is there any extra csp's are created
-			cspCount = ops.GetCSPCount(spcObj.Name)
+			cspCount = ops.GetCSPCount(getLabelSelector(spcObj))
 			Expect(cspCount).To(Equal(3), "mismatch of csp count")
 		})
 	})
