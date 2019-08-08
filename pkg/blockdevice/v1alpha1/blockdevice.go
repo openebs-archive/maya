@@ -41,14 +41,6 @@ const (
 	FilterNonRelesedDevices = "filterNonRelesedDevices"
 )
 
-// DefaultDiskCount is a map containing the default block device count of various raid types.
-var DefaultDiskCount = map[string]int{
-	string(apis.PoolTypeMirroredCPV): int(apis.MirroredBlockDeviceCountCPV),
-	string(apis.PoolTypeStripedCPV):  int(apis.StripedBlockDeviceCountCPV),
-	string(apis.PoolTypeRaidzCPV):    int(apis.RaidzBlockDeviceCountCPV),
-	string(apis.PoolTypeRaidz2CPV):   int(apis.Raidz2BlockDeviceCountCPV),
-}
-
 // KubernetesClient is the kubernetes client which will implement block device actions/behaviours
 type KubernetesClient struct {
 	// Kubeclientset is a standard kubernetes clientset

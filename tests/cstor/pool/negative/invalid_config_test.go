@@ -59,7 +59,7 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGEPOOLCLAIM", func() {
 			Expect(err).To(BeNil(), "while creating storagepoolclaim {%s}", spcObj.Name)
 
 			By("verifying cstorpool count as 0")
-			cspCount := ops.GetCSPCount(spcObj.Name, cstor.PoolCount)
+			cspCount := ops.GetHealthyCSPCount(spcObj.Name, cstor.PoolCount)
 			Expect(cspCount).To(Equal(0), "while checking cstorpool count")
 
 		})
@@ -82,7 +82,7 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGEPOOLCLAIM", func() {
 			Expect(err).To(BeNil(), "while creating storagepoolclaim {%s}", spcObj.Name)
 
 			By("verifying cstorpool count as 0")
-			cspCount := ops.GetCSPCount(spcObj.Name, cstor.PoolCount)
+			cspCount := ops.GetHealthyCSPCount(spcObj.Name, cstor.PoolCount)
 			Expect(cspCount).To(Equal(0), "while checking cstorpool count")
 
 		})
@@ -105,7 +105,7 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGEPOOLCLAIM", func() {
 			Expect(err).To(BeNil(), "while creating storagepoolclaim {%s}", spcObj.Name)
 
 			By("verifying cstorpool count as 0")
-			cspCount := ops.GetCSPCount(spcObj.Name, cstor.PoolCount)
+			cspCount := ops.GetHealthyCSPCount(spcObj.Name, cstor.PoolCount)
 			Expect(cspCount).To(Equal(0), "while checking cstorpool count")
 
 		})

@@ -552,26 +552,11 @@ func (ops *Operations) DeleteCSP(spcName string, deleteCount int) {
 	}
 }
 
-// GetCSPCount gets csp count based on spcName
-func (ops *Operations) GetCSPCount(spcName string, expectedCSPCount int) int {
-	var cspCount int
-	for i := 0; i < maxRetry; i++ {
-		cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{})
-		Expect(err).To(BeNil())
-		cspCount = csp.
-			ListBuilderForAPIObject(cspAPIList).
-			List().
-			Filter(
-				csp.HasLabel(string(apis.StoragePoolClaimCPK), spcName),
-				csp.IsStatus("Healthy"),
-			).
-			Len()
-		if cspCount == expectedCSPCount {
-			return cspCount
-		}
-		time.Sleep(5 * time.Second)
-	}
-	return cspCount
+// GetCSPCount gets csp count based on spcName at that time
+func (ops *Operations) GetCSPCount(labelSelector string) int {
+	cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{LabelSelector: labelSelector})
+	Expect(err).To(BeNil())
+	return len(cspAPIList.Items)
 }
 
 // GetHealthyCSPCount gets healthy csp based on spcName
@@ -593,8 +578,8 @@ func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) 
 	return cspCount
 }
 
-// GetBDCCount gets BDC resource count based on provided list option.
-func (ops *Operations) GetBDCCount(listOptions metav1.ListOptions, expectedBDCCount int, namespace string) int {
+// GetBDCCountEventually gets BDC resource count based on provided list option.
+func (ops *Operations) GetBDCCountEventually(listOptions metav1.ListOptions, expectedBDCCount int, namespace string) int {
 	var bdcCount int
 	for i := 0; i < maxRetry; i++ {
 		bdcAPIList, err := ops.BDCClient.WithNamespace(namespace).List(listOptions)
@@ -775,4 +760,13 @@ func (ops *Operations) VerifyUpgradeResultTasksIsNotFail(namespace, lselector st
 		}
 	}
 	return true
+}
+
+// GetBDCCount gets BDC resource count based on provided label selector
+func (ops *Operations) GetBDCCount(lSelector, namespace string) int {
+	bdcList, err := ops.BDCClient.
+		WithNamespace(namespace).
+		List(metav1.ListOptions{LabelSelector: lSelector})
+	Expect(err).ShouldNot(HaveOccurred())
+	return len(bdcList.Items)
 }

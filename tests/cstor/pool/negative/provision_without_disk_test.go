@@ -80,7 +80,7 @@ var _ = Describe("[cstor] [-ve] TEST PROVISION WITHOUT DISK", func() {
 			Expect(err).To(BeNil(), "while creating storagepoolclaim {%s}", spcObj.Name)
 
 			By("verifying cstorpool count as 0")
-			cspCount := ops.GetCSPCount(spcObj.Name, cstor.PoolCount)
+			cspCount := ops.GetHealthyCSPCountEventually(spcObj.Name, cstor.PoolCount)
 			Expect(cspCount).To(Equal(0), "while checking cstorpool count")
 
 		})
