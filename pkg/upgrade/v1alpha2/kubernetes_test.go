@@ -677,7 +677,7 @@ func TestUpgradeTaskPatch(t *testing.T) {
 	}
 }
 
-func TestGetUpgradeDetailedStatuses(t *testing.T) {
+func TestIsValidStatus(t *testing.T) {
 	tests := map[string]struct {
 		status       apis.UpgradeDetailedStatuses
 		expectOutput bool
