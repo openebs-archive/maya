@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1alpha1
+package v1alpha2
 
 import (
 	"encoding/json"
@@ -679,53 +679,68 @@ func TestUpgradeTaskPatch(t *testing.T) {
 
 func TestGetUpgradeDetailedStatuses(t *testing.T) {
 	tests := map[string]struct {
-		step      apis.UpgradeStep
-		phase     apis.StepPhase
-		args      []string
-		expectErr bool
+		status       apis.UpgradeDetailedStatuses
+		expectOutput bool
 	}{
 		"Test 1": {
-			apis.PreUpgrade,
-			apis.StepWaiting,
-			[]string{},
-			false,
+			apis.UpgradeDetailedStatuses{
+				Step: apis.PreUpgrade,
+				Status: apis.Status{
+					Phase: apis.StepWaiting,
+				},
+			},
+			true,
 		},
 		"Test 2": {
-			apis.PreUpgrade,
-			apis.StepCompleted,
-			[]string{"fake-message"},
-			false,
+			apis.UpgradeDetailedStatuses{
+				Step: apis.PreUpgrade,
+				Status: apis.Status{
+					Phase:   apis.StepCompleted,
+					Message: "fake-message",
+				},
+			},
+			true,
 		},
 		"Test 3": {
-			apis.PreUpgrade,
-			apis.StepErrored,
-			[]string{"fake-message", "fake-reason"},
-			false,
+			apis.UpgradeDetailedStatuses{
+				Step: apis.PreUpgrade,
+				Status: apis.Status{
+					Phase:   apis.StepErrored,
+					Message: "fake-message",
+					Reason:  "fake-reason",
+				},
+			},
+			true,
 		},
 		// negative test
 		"Test 4": {
-			apis.PreUpgrade,
-			apis.StepErrored,
-			[]string{"fake-message"},
-			true,
+			apis.UpgradeDetailedStatuses{},
+			false,
 		},
 		"Test 5": {
-			apis.PreUpgrade,
-			apis.StepCompleted,
-			[]string{},
-			true,
+			apis.UpgradeDetailedStatuses{
+				Step: apis.PreUpgrade,
+			},
+			false,
 		},
 		"Test 6": {
-			apis.PreUpgrade,
-			"",
-			[]string{},
-			true,
+			apis.UpgradeDetailedStatuses{
+				Step: apis.PreUpgrade,
+				Status: apis.Status{
+					Phase: apis.StepCompleted,
+				},
+			},
+			false,
 		},
 		"Test 7": {
-			"",
-			apis.StepCompleted,
-			[]string{},
-			true,
+			apis.UpgradeDetailedStatuses{
+				Step: apis.PreUpgrade,
+				Status: apis.Status{
+					Phase:   apis.StepErrored,
+					Message: "fake-message",
+				},
+			},
+			false,
 		},
 	}
 	for name, mock := range tests {
@@ -733,14 +748,14 @@ func TestGetUpgradeDetailedStatuses(t *testing.T) {
 		mock := mock
 		t.Run(name, func(t *testing.T) {
 
-			_, err := GetUpgradeDetailedStatuses(
-				mock.step, mock.phase, mock.args...,
-			)
-			if mock.expectErr && err == nil {
-				t.Fatalf("Test %q failed: expected error not to be nil", name)
-			}
-			if !mock.expectErr && err != nil {
-				t.Fatalf("Test %q failed: expected error %s to be nil", err, name)
+			output := IsValidStatus(mock.status)
+			if mock.expectOutput != output {
+				t.Fatalf(
+					"Test %q failed: expected %v not to be %v",
+					name,
+					output,
+					mock.expectOutput,
+				)
 			}
 		})
 	}

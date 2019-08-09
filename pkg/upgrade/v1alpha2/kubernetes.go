@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1alpha2
 
 import (
 	"strings"
@@ -29,8 +29,6 @@ import (
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha1/clientset/internalclientset"
 	"k8s.io/apimachinery/pkg/types"
 )
-
-//TODO: While using these packages UnitTest must be written to corresponding function
 
 // getClientsetFn is a typed function that
 // abstracts fetching of internal clientset
@@ -405,38 +403,19 @@ func (k *Kubeclient) Update(
 	return k.update(cli, k.namespace, upgradeTask)
 }
 
-// GetUpgradeDetailedStatuses builds and returns the UpgradeDetailedStatuses
-// object with given parameters
-func GetUpgradeDetailedStatuses(
-	step apis.UpgradeStep,
-	phase apis.StepPhase,
-	// args contains message and reason depending upon the StepPhase
-	args ...string,
-) (*apis.UpgradeDetailedStatuses, error) {
-	uStatusObj := &apis.UpgradeDetailedStatuses{}
-	if step == "" {
-		return nil, errors.Errorf("failed to build upgradestatus : missing step")
+// IsValidStatus is used to validate IsValidStatus
+func IsValidStatus(o apis.UpgradeDetailedStatuses) bool {
+	if o.Step == "" {
+		return false
 	}
-	uStatusObj.Step = step
-	if phase == "" {
-		return nil, errors.Errorf("failed to build upgradestatus : missing phase")
+	if o.Phase == "" {
+		return false
 	}
-	uStatusObj.Phase = phase
-	uStatusObj.LastUpdatedTime = metav1.Now()
-	if phase == apis.StepWaiting {
-		uStatusObj.StartTime = uStatusObj.LastUpdatedTime
-		return uStatusObj, nil
+	if o.Message == "" && o.Phase != apis.StepWaiting {
+		return false
 	}
-	if len(args) == 0 || args[0] == "" {
-		return nil, errors.Errorf("failed to build upgradestatus : missing message")
+	if o.Reason == "" && o.Phase == apis.StepErrored {
+		return false
 	}
-	uStatusObj.Message = args[0]
-	if phase == apis.StepCompleted {
-		return uStatusObj, nil
-	}
-	if len(args) == 1 || args[1] == "" {
-		return nil, errors.Errorf("failed to build upgradestatus : missing reason")
-	}
-	uStatusObj.Reason = args[1]
-	return uStatusObj, nil
+	return true
 }
