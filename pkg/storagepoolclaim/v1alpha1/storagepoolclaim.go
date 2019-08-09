@@ -18,10 +18,11 @@ package v1alpha1
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
-	"time"
 
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
@@ -40,6 +41,14 @@ const (
 var SupportedDiskTypes = map[apis.CasPoolValString]bool{
 	apis.TypeSparseCPV: true,
 	apis.TypeDiskCPV:   true,
+}
+
+// DefaultDiskCount is a map containing the default block device count of various raid types.
+var DefaultDiskCount = map[string]int{
+	string(apis.PoolTypeMirroredCPV): int(apis.MirroredBlockDeviceCountCPV),
+	string(apis.PoolTypeStripedCPV):  int(apis.StripedBlockDeviceCountCPV),
+	string(apis.PoolTypeRaidzCPV):    int(apis.RaidzBlockDeviceCountCPV),
+	string(apis.PoolTypeRaidz2CPV):   int(apis.Raidz2BlockDeviceCountCPV),
 }
 
 // SPC encapsulates StoragePoolClaim api object.

@@ -21,8 +21,8 @@ import (
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha1"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
 	"github.com/openebs/maya/pkg/storagepool"
+	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -196,7 +196,7 @@ func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePo
 		}
 		return casPool, nil
 	}
-	count := blockdevice.DefaultDiskCount[spc.Spec.PoolSpec.PoolType]
+	count := spcv1alpha1.DefaultDiskCount[spc.Spec.PoolSpec.PoolType]
 	for i := 0; i < len(claimedNodeBDs.BlockDeviceList); i = i + count {
 		var bdList []apis.CspBlockDevice
 		var group apis.BlockDeviceGroup
