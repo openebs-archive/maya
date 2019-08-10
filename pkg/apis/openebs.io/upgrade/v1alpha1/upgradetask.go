@@ -78,7 +78,7 @@ type JivaVolume struct {
 	// PVName contains the name of the pv associated with the jiva volume
 	PVName string `json:"pvName,omitempty" protobuf:"bytes,1,name=pvName"`
 	// Options can be used to change the default behaviour of upgrade
-	Options *ResourceOptions `json:"flags,omitempty" protobuf:"bytes,2,opt,name=flags"`
+	Options *ResourceOptions `json:"options,omitempty" protobuf:"bytes,2,opt,name=options"`
 }
 
 // CStorVolume is the ResourceType for cstor volume
@@ -86,7 +86,7 @@ type CStorVolume struct {
 	// PVName contains the name of the pv associated with the cstor volume
 	PVName string `json:"pvName,omitempty" protobuf:"bytes,1,name=pvName"`
 	// Options can be used to change the default behaviour of upgrade
-	Options *ResourceOptions `json:"flags,omitempty" protobuf:"bytes,2,opt,name=flags"`
+	Options *ResourceOptions `json:"options,omitempty" protobuf:"bytes,2,opt,name=options"`
 }
 
 // CStorPool is the ResourceType for cstor pool
@@ -94,7 +94,7 @@ type CStorPool struct {
 	// PoolName contains the name of the cstor pool to be upgraded
 	PoolName string `json:"poolName,omitempty" protobuf:"bytes,1,name=poolName"`
 	// Options can be used to change the default behaviour of upgrade
-	Options *ResourceOptions `json:"flags,omitempty" protobuf:"bytes,2,opt,name=flags"`
+	Options *ResourceOptions `json:"options,omitempty" protobuf:"bytes,2,opt,name=options"`
 }
 
 // StoragePoolClaim is the ResourceType for storage pool claim
@@ -102,7 +102,7 @@ type StoragePoolClaim struct {
 	// SPCName contains the name of the storage pool claim to be upgraded
 	SPCName string `json:"spcName,omitempty" protobuf:"bytes,1,name=spcName"`
 	// Options can be used to change the default behaviour of upgrade
-	Options *ResourceOptions `json:"flags,omitempty" protobuf:"bytes,2,opt,name=flags"`
+	Options *ResourceOptions `json:"options,omitempty" protobuf:"bytes,2,opt,name=options"`
 }
 
 // ResourceOptions provides additional options for a particular resource
