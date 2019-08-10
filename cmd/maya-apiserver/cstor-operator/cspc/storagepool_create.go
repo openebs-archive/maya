@@ -109,7 +109,6 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.NewTestCStorPool) (*appsv1.Dep
 		WithNamespace(csp.Namespace).
 		WithAnnotationsNew(getDeployAnnotations()).
 		WithLabelsNew(getDeployLabels(csp)).
-		WithNodeSelector(csp.Spec.NodeSelector).
 		WithOwnerReferenceNew(getDeployOwnerReference(csp)).
 		WithReplicas(getReplicaCount()).
 		WithStrategyType(appsv1.RecreateDeploymentStrategyType).
@@ -117,6 +116,7 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.NewTestCStorPool) (*appsv1.Dep
 		WithPodTemplateSpecBuilder(
 			pts.NewBuilder().
 				WithLabelsNew(getPodLabels(csp)).
+				WithNodeSelector(csp.Spec.NodeSelector).
 				WithAnnotationsNew(getPodAnnotations()).
 				WithServiceAccountName(OpenEBSServiceAccount).
 				// For CStor-Pool-Mgmt container

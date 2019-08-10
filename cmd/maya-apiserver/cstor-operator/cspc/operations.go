@@ -83,6 +83,13 @@ func (pc *PoolConfig) addGroupToPool(cspcPoolSpec *apis.PoolSpec, csp *apis.NewT
 			if cspcRaidGroup.Type == "" {
 				cspcRaidGroup.Type = cspcPoolSpec.PoolConfig.DefaultRaidGroupType
 			}
+
+			for _, bd := range cspcRaidGroup.BlockDevices {
+				err := pc.ClaimBD(bd.BlockDeviceName)
+				if err != nil {
+					glog.Errorf("failed to created bdc for bd %s:%s", bd.BlockDeviceName, err.Error())
+				}
+			}
 			for _, bd := range cspcRaidGroup.BlockDevices {
 				err := pc.isBDUsable(bd.BlockDeviceName)
 				if err != nil {
@@ -131,6 +138,7 @@ func (pc *PoolConfig) addBlockDeviceToGroup(group *apis.RaidGroup, csp *apis.New
 					glog.V(2).Infof("No new block devices "+
 						"added for group {%+v} on csp %s", groupOnCSP, csp.Name)
 				}
+				pc.ClaimBDList(newBDs)
 				for _, bdName := range newBDs {
 					err := pc.isBDUsable(bdName)
 					if err != nil {
@@ -211,14 +219,6 @@ func (pc *PoolConfig) isBDUsable(bdName string) error {
 		NewKubeClient().
 		WithNamespace(pc.AlgorithmConfig.Namespace).
 		Get(bdName, metav1.GetOptions{})
-	if err != nil {
-		return errors.Wrapf(err, "could not get bd object %s", bdName)
-	}
-	err = pc.AlgorithmConfig.ClaimBD(bdObj)
-	if err != nil {
-		return errors.Wrapf(err, "failed to claim bd %s", bdName)
-
-	}
 	isBDUsable, err := pc.AlgorithmConfig.IsClaimedBDUsable(bdObj)
 	if err != nil {
 		return errors.Wrapf(err, "bd %s cannot be used as could not get claim status", bdName)
@@ -226,6 +226,33 @@ func (pc *PoolConfig) isBDUsable(bdName string) error {
 
 	if !isBDUsable {
 		return errors.Errorf("BD %s cannot be used as it is already claimed but not by cspc", bdName)
+	}
+	return nil
+}
+
+// ClaimBDList claims a list of block device
+func (pc *PoolConfig) ClaimBDList(bdList []string) {
+	for _, bdName := range bdList {
+		err := pc.ClaimBD(bdName)
+		if err != nil {
+			glog.Errorf("failed to create bdc for bd %s: %s", bdName, err.Error())
+		}
+	}
+}
+
+// ClaimBD calims a block device
+func (pc *PoolConfig) ClaimBD(bdName string) error {
+	bdObj, err := apisbd.
+		NewKubeClient().
+		WithNamespace(pc.AlgorithmConfig.Namespace).
+		Get(bdName, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "could not get bd object %s", bdName)
+	}
+	err = pc.AlgorithmConfig.ClaimBD(bdObj)
+	if err != nil {
+		return errors.Wrapf(err, "failed to claim bd %s", bdName)
+
 	}
 	return nil
 }
