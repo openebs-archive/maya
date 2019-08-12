@@ -185,17 +185,24 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 	if pending {
 		glog.Infof("create remaining volume replica %+v", cvc)
 		_, err = c.createVolumeOperation(cvc)
-		if err != nil {
-			return err
-		}
+	}
+	// If an error occurs during Get/Create, we'll requeue the item so we can
+	// attempt processing again later. This could have been caused by a
+	// temporary network failure, or any other transient reason.
+	if err != nil {
+		return err
 	}
 
 	if c.cvcNeedResize(cvc) {
 		err = c.resizeCVC(cvc)
-		if err != nil {
-			return err
-		}
 	}
+	// If an error occurs during Get/Create, we'll requeue the item so we can
+	// attempt processing again later. This could have been caused by a
+	// temporary network failure, or any other transient reason.
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -462,46 +469,53 @@ func (c *CVCController) markCVCResizeInProgress(cvc *apis.CStorVolumeClaim) (*ap
 		LastTransitionTime: metav1.Now(),
 	}
 	newCVC := cvc.DeepCopy()
-	newCVC.Status.Conditions = c.MergeResizeConditionsOfCVC(newCVC.Status.Conditions,
+	newCVC.Status.Conditions = MergeResizeConditionsOfCVC(newCVC.Status.Conditions,
 		[]apis.CStorVolumeClaimCondition{progressCondition})
 	return c.PatchCVCStatus(cvc, newCVC)
 }
 
+type resizeProcessStatus struct {
+	condition apis.CStorVolumeClaimCondition
+	processed bool
+}
+
 // MergeResizeConditionsOfCVC updates cvc with requested resize conditions
 // leaving other conditions untouched.
-func (c *CVCController) MergeResizeConditionsOfCVC(oldConditions, newConditions []apis.CStorVolumeClaimCondition) []apis.CStorVolumeClaimCondition {
-	newConditionSet := make(map[apis.CStorVolumeClaimConditionType]apis.CStorVolumeClaimCondition, len(newConditions))
-	for _, condition := range newConditions {
-		newConditionSet[condition.Type] = condition
+func MergeResizeConditionsOfCVC(oldConditions, resizeConditions []apis.CStorVolumeClaimCondition) []apis.CStorVolumeClaimCondition {
+
+	resizeConditionMap := map[apis.CStorVolumeClaimConditionType]*resizeProcessStatus{}
+
+	for _, condition := range resizeConditions {
+		resizeConditionMap[condition.Type] = &resizeProcessStatus{condition, false}
 	}
 
-	var resultConditions []apis.CStorVolumeClaimCondition
+	newConditions := []apis.CStorVolumeClaimCondition{}
 	for _, condition := range oldConditions {
-		// If Condition is of not resize type, we keep and append it
+		// If Condition is of not resize type, we keep it.
 		if _, ok := knownResizeConditions[condition.Type]; !ok {
 			newConditions = append(newConditions, condition)
 			continue
 		}
-		if newCondition, ok := newConditionSet[condition.Type]; ok {
-			// Use the new condition to replace old condition with same type
-			resultConditions = append(resultConditions, newCondition)
-			delete(newConditionSet, condition.Type)
+
+		if newCondition, ok := resizeConditionMap[condition.Type]; ok {
+			newConditions = append(newConditions, newCondition.condition)
+			newCondition.processed = true
 		}
 	}
-
-	// Append remains resize conditions
-	for _, condition := range newConditionSet {
-		resultConditions = append(resultConditions, condition)
+	// append all unprocessed conditions
+	for _, newCondition := range resizeConditionMap {
+		if !newCondition.processed {
+			newConditions = append(newConditions, newCondition.condition)
+		}
 	}
-
-	return resultConditions
+	return newConditions
 }
 
 func (c *CVCController) markCVCResizeFinished(cvc *apis.CStorVolumeClaim) error {
 	newCVC := cvc.DeepCopy()
 	newCVC.Status.Capacity = cvc.Spec.Capacity
 
-	newCVC.Status.Conditions = c.MergeResizeConditionsOfCVC(cvc.Status.Conditions, []apis.CStorVolumeClaimCondition{})
+	newCVC.Status.Conditions = MergeResizeConditionsOfCVC(cvc.Status.Conditions, []apis.CStorVolumeClaimCondition{})
 	_, err := c.PatchCVCStatus(cvc, newCVC)
 	if err != nil {
 		glog.Errorf("Mark CVC %q as resize finished failed: %v", cvc.Name, err)

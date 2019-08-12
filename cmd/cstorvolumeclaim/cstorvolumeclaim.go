@@ -24,7 +24,7 @@ import (
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/openebs/maya/pkg/version"
 
-	ncsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
+	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
@@ -115,7 +115,7 @@ func getTargetServiceOwnerReference(claim *apis.CStorVolumeClaim) []metav1.Owner
 }
 
 // getCVRLabels get the labels for cstorvolumereplica
-func getCVRLabels(pool *apis.NewTestCStorPool, volumeName string) map[string]string {
+func getCVRLabels(pool *apis.CStorPoolInstance, volumeName string) map[string]string {
 	return map[string]string{
 		"cstorpool.openebs.io/name":    pool.Name,
 		"cstorpool.openebs.io/uid":     string(pool.UID),
@@ -126,7 +126,7 @@ func getCVRLabels(pool *apis.NewTestCStorPool, volumeName string) map[string]str
 }
 
 // getCVRAnnotations get the annotations for cstorvolumereplica
-func getCVRAnnotations(pool *apis.NewTestCStorPool) map[string]string {
+func getCVRAnnotations(pool *apis.CStorPoolInstance) map[string]string {
 	return map[string]string{
 		"cstorpool.openebs.io/hostname": pool.Labels["kubernetes.io/hostname"],
 	}
@@ -183,13 +183,13 @@ func getCSPC(
 func listCStorPools(
 	cspcName string,
 	replicaCount int,
-) (*apis.NewTestCStorPoolList, error) {
+) (*apis.CStorPoolInstanceList, error) {
 
 	if cspcName == "" {
 		return nil, errors.New("failed to list cstorpool: cspc name missing")
 	}
 
-	cstorPoolList, err := ncsp.NewKubeClient().List(metav1.ListOptions{
+	cstorPoolList, err := cspi.NewKubeClient().List(metav1.ListOptions{
 		LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + cspcName,
 	})
 
@@ -343,7 +343,7 @@ func distributeCVRs(
 func createCVR(
 	service *corev1.Service,
 	volume *apis.CStorVolume,
-	pool *apis.NewTestCStorPool,
+	pool *apis.CStorPoolInstance,
 ) (*apis.CStorVolumeReplica, error) {
 
 	cvrObj, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).
@@ -403,8 +403,8 @@ func getUsedPoolNames(cvrList *apis.CStorVolumeReplicaList) map[string]bool {
 // GetUsablePoolList returns a list of usable cstorpools
 // which hasn't been used to create cstor volume replica
 // instances
-func getUsablePoolList(pvName string, poolList *apis.NewTestCStorPoolList) *apis.NewTestCStorPoolList {
-	usablePoolList := &apis.NewTestCStorPoolList{}
+func getUsablePoolList(pvName string, poolList *apis.CStorPoolInstanceList) *apis.CStorPoolInstanceList {
+	usablePoolList := &apis.CStorPoolInstanceList{}
 
 	pvLabel := pvSelector + "=" + pvName
 	cvrList, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).List(metav1.ListOptions{
@@ -424,8 +424,8 @@ func getUsablePoolList(pvName string, poolList *apis.NewTestCStorPoolList) *apis
 }
 
 // randomizePoolList returns randomized pool list
-func randomizePoolList(list *apis.NewTestCStorPoolList) *apis.NewTestCStorPoolList {
-	res := &apis.NewTestCStorPoolList{}
+func randomizePoolList(list *apis.CStorPoolInstanceList) *apis.CStorPoolInstanceList {
+	res := &apis.CStorPoolInstanceList{}
 
 	r := rand.New(rand.NewSource(time.Now().Unix()))
 	perm := r.Perm(len(list.Items))
