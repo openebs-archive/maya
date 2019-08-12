@@ -55,7 +55,7 @@ func TestContainsString(t *testing.T) {
 	}
 }
 
-func TestListAMinusListB(t *testing.T) {
+func TestListDiff(t *testing.T) {
 	tests := map[string]struct {
 		listA       []string
 		listB       []string
@@ -82,7 +82,7 @@ func TestListAMinusListB(t *testing.T) {
 		name := name
 		mock := mock
 		t.Run(name, func(t *testing.T) {
-			resultArr := ListAMinusListB(mock.listA, mock.listB)
+			resultArr := ListDiff(mock.listA, mock.listB)
 			if mock.expectedLen != len(resultArr) {
 				t.Fatalf("failed to test %q: expected element count '%d': actual element count '%d'", name, mock.expectedLen, len(resultArr))
 			}

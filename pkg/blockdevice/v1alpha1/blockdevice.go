@@ -204,12 +204,9 @@ func (bdl *BlockDeviceList) Filter(predicateKeys ...string) *BlockDeviceList {
 	return filteredBlockDeviceList
 }
 
-// GetUsableBlockDevices returns custom blockdevice list which can be used
+// GetUsableBlockDevices returns custom blockdevice list(wrapper over api list)
+// which contains list of blockdevice objects usable for provisioning
 func (bdl *BlockDeviceList) GetUsableBlockDevices(spcName, namespace string) (*BlockDeviceList, error) {
-	// Initialize filtered block device list
-	if bdl == nil {
-		return nil, errors.Errorf("failed to get usable blockdevices: blockdevicelist is nil")
-	}
 	filteredBlockDeviceList := &BlockDeviceList{
 		BlockDeviceList: &ndm.BlockDeviceList{},
 		errs:            nil,
@@ -220,7 +217,11 @@ func (bdl *BlockDeviceList) GetUsableBlockDevices(spcName, namespace string) (*B
 			bdcName := bdObj.Spec.ClaimRef.Name
 			bdcObj, err := bdcClient.Get(bdcName, metav1.GetOptions{})
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrapf(err,
+					"failed to get blockdeviceclaim %s details of blockdevice %s",
+					bdcName,
+					bdObj.Name,
+				)
 			}
 			if bdcObj.Labels[string(apis.StoragePoolClaimCPK)] == spcName {
 				filteredBlockDeviceList.Items = append(filteredBlockDeviceList.Items, bdObj)

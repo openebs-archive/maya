@@ -158,7 +158,7 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 	var bdCount int
 	// minRequiredDiskCount will hold the required number of disk that should be selected from a qualified
 	// node for specific pool type
-	minRequiredDiskCount := blockdevice.DefaultDiskCount[ac.poolType()]
+	minRequiredDiskCount := spcv1alpha1.DefaultDiskCount[ac.poolType()]
 
 	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
 		// List all blockdeviceclaims related to spc
@@ -170,12 +170,13 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to select node and blockdevices")
 		}
+		// customBDCList is a wrapper over blockdeviceclaim list
 		customBDCList := bdc.BlockDeviceClaimList{
 			ObjectList: bdcList,
 		}
 		// Form node and blockdevice topology for blockdevices which has bdc
-		claimedNodes := customBDCList.GetBlockDeviceNamesByNode()
-		for claimedNodeName, bdNameList := range claimedNodes {
+		claimedDevicesOnNode := customBDCList.GetBlockDeviceNamesByNode()
+		for claimedNodeName, bdNameList := range claimedDevicesOnNode {
 			qualifiedBDList := []string{}
 			filteredBlockDevices := nodeBlockDeviceMap[claimedNodeName]
 
@@ -185,7 +186,7 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 				qualifiedBDList = append(qualifiedBDList, bdNameList...)
 				if len(qualifiedBDList) < minRequiredDiskCount {
 					count := minRequiredDiskCount - len(qualifiedBDList)
-					availableBDOnNode := util.ListAMinusListB(filteredBlockDevices.Items, qualifiedBDList)
+					availableBDOnNode := util.ListDiff(filteredBlockDevices.Items, qualifiedBDList)
 					if len(availableBDOnNode) < count {
 						continue
 					}
@@ -278,7 +279,7 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
 		newBDL, err := bdl.GetUsableBlockDevices(ac.Spc.Name, ac.Namespace)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to get list of usable blockdevice list")
 		}
 		bdl = newBDL
 	}

@@ -132,8 +132,8 @@ func ContainsString(stringarr []string, element string) bool {
 	return false
 }
 
-// ListAMinusListB returns list of string which are in listA but not in listB
-func ListAMinusListB(listA []string, listB []string) []string {
+// ListDiff returns list of string which are in listA but not in listB
+func ListDiff(listA []string, listB []string) []string {
 	outputList := []string{}
 	mapListB := map[string]bool{}
 	for _, str := range listB {
