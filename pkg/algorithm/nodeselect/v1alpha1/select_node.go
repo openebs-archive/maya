@@ -153,6 +153,7 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 			Items: []string{},
 		},
 	}
+	spcObj := spcv1alpha1.SPC{Object: ac.Spc}
 	// bdCount will hold the number of block devices that will be selected from a qualified
 	// node for specific pool type
 	var bdCount int
@@ -160,7 +161,9 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 	// node for specific pool type
 	minRequiredDiskCount := spcv1alpha1.DefaultDiskCount[ac.poolType()]
 
-	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
+	// Below snippet is required to get the node and blockdevice topology from
+	// blockdeviceclaims which were created during previous reconciliation
+	if spcObj.IsAutoProvisioning() {
 		// List all blockdeviceclaims related to spc
 		// NOTE: This list contains blockdevices on which csps' are already
 		// created filter and use it
@@ -177,22 +180,22 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 		// Form node and blockdevice topology for blockdevices which has bdc
 		claimedDevicesOnNode := customBDCList.GetBlockDeviceNamesByNode()
 		for claimedNodeName, bdNameList := range claimedDevicesOnNode {
-			qualifiedBDList := []string{}
 			filteredBlockDevices := nodeBlockDeviceMap[claimedNodeName]
 
 			//Check is this node is usable or not
 			if filteredBlockDevices != nil &&
 				util.ContainsString(filteredBlockDevices.Items, bdNameList[0]) {
-				qualifiedBDList = append(qualifiedBDList, bdNameList...)
-				if len(qualifiedBDList) < minRequiredDiskCount {
-					count := minRequiredDiskCount - len(qualifiedBDList)
-					availableBDOnNode := util.ListDiff(filteredBlockDevices.Items, qualifiedBDList)
+				// check whether bdNameList contains partially created claimed BDs
+				// i.e BD count is less than required BDs
+				if len(bdNameList) < minRequiredDiskCount {
+					count := minRequiredDiskCount - len(bdNameList)
+					availableBDOnNode := util.ListDiff(filteredBlockDevices.Items, bdNameList)
 					if len(availableBDOnNode) < count {
 						continue
 					}
-					qualifiedBDList = append(qualifiedBDList, availableBDOnNode[:count]...)
+					bdNameList = append(bdNameList, availableBDOnNode[:count]...)
 				}
-				selectedBlockDevice.BlockDevices.Items = append(selectedBlockDevice.BlockDevices.Items, qualifiedBDList...)
+				selectedBlockDevice.BlockDevices.Items = append(selectedBlockDevice.BlockDevices.Items, bdNameList...)
 				selectedBlockDevice.NodeName = claimedNodeName
 				return selectedBlockDevice, nil
 			}
@@ -255,6 +258,7 @@ func (ac *Config) poolType() string {
 func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	var bdl *blockdevice.BlockDeviceList
 	diskType := ac.Spc.Spec.Type
+	spcObj := &spcv1alpha1.SPC{Object: ac.Spc}
 	diskFilterLabel := diskFilterConstraint(diskType)
 	bdList, err := ac.BlockDeviceClient.List(metav1.ListOptions{LabelSelector: diskFilterLabel})
 	if err != nil {
@@ -268,7 +272,7 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 		filterList = append(filterList, blockdevice.FilterNonSparseDevices)
 	}
 
-	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
+	if spcObj.IsAutoProvisioning() {
 		filterList = append(filterList, blockdevice.FilterNonFSType, blockdevice.FilterNonRelesedDevices)
 	}
 
@@ -276,7 +280,9 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	if len(bdl.Items) == 0 {
 		return nil, errors.Errorf("type {%s} devices are not available to provision pools in %s mode", diskType, ProvisioningType(ac.Spc))
 	}
-	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
+
+	// Below snippet is required when BDs are claimed but CSPs are not created
+	if spcObj.IsAutoProvisioning() {
 		newBDL, err := bdl.GetUsableBlockDevices(ac.Spc.Name, ac.Namespace)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get list of usable blockdevice list")
@@ -353,12 +359,10 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to build block device claim for bd {%s}", bdName)
 			}
-
 			_, err = bdcKubeclient.Create(newBDCObj.Object)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to create block device claim for bdc {%s}", bdcName)
 			}
-			ac.VisitedNodes[hostName] = true
 			glog.Infof("successfully created block device claim {%s} for block device {%s}", bdcName, bdName)
 			// As a part of reconcilation we will create pool if all the block
 			// devices are claimed
@@ -369,6 +373,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 		claimedBD.BDName = bdObj.Name
 		nodeClaimedBDs.BlockDeviceList = append(nodeClaimedBDs.BlockDeviceList, claimedBD)
 	}
+	ac.VisitedNodes[nodeClaimedBDs.NodeName] = true
 	if pendingBDCCount != 0 {
 		return nil, errors.Errorf("pending block device claim count %d on node {%s}", pendingBDCCount, nodeClaimedBDs.NodeName)
 	}
