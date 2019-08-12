@@ -50,6 +50,14 @@ type CStorPoolClusterListerExpansion interface{}
 // CStorPoolClusterNamespaceLister.
 type CStorPoolClusterNamespaceListerExpansion interface{}
 
+// CStorPoolInstanceListerExpansion allows custom methods to be added to
+// CStorPoolInstanceLister.
+type CStorPoolInstanceListerExpansion interface{}
+
+// CStorPoolInstanceNamespaceListerExpansion allows custom methods to be added to
+// CStorPoolInstanceNamespaceLister.
+type CStorPoolInstanceNamespaceListerExpansion interface{}
+
 // CStorRestoreListerExpansion allows custom methods to be added to
 // CStorRestoreLister.
 type CStorRestoreListerExpansion interface{}
@@ -81,14 +89,6 @@ type CStorVolumeReplicaListerExpansion interface{}
 // CStorVolumeReplicaNamespaceListerExpansion allows custom methods to be added to
 // CStorVolumeReplicaNamespaceLister.
 type CStorVolumeReplicaNamespaceListerExpansion interface{}
-
-// NewTestCStorPoolListerExpansion allows custom methods to be added to
-// NewTestCStorPoolLister.
-type NewTestCStorPoolListerExpansion interface{}
-
-// NewTestCStorPoolNamespaceListerExpansion allows custom methods to be added to
-// NewTestCStorPoolNamespaceLister.
-type NewTestCStorPoolNamespaceListerExpansion interface{}
 
 // RunTaskListerExpansion allows custom methods to be added to
 // RunTaskLister.

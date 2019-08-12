@@ -31,192 +31,192 @@ const (
 	APIVersion = "openebs.io/v1alpha1"
 )
 
-// Builder is the builder object for CStorPool
+// Builder is the builder object for CStorPoolInstance
 type Builder struct {
-	CSP  *CStorPool
+	CSPI *CSPI
 	errs []error
 }
 
 // NewBuilder returns an empty instance of the Builder object
 func NewBuilder() *Builder {
 	return &Builder{
-		CSP:  &CStorPool{&apis.NewTestCStorPool{}},
+		CSPI: &CSPI{&apis.CStorPoolInstance{}},
 		errs: []error{},
 	}
 }
 
 // BuilderForObject returns an instance of the Builder object based on
 // CStorPool object
-func BuilderForObject(CStorPool *CStorPool) *Builder {
+func BuilderForObject(CStorPool *CSPI) *Builder {
 	return &Builder{
-		CSP:  CStorPool,
+		CSPI: CStorPool,
 		errs: []error{},
 	}
 }
 
 // BuilderForAPIObject returns an instance of the Builder object based on
 // CStorPool api object.
-func BuilderForAPIObject(csp *apis.NewTestCStorPool) *Builder {
+func BuilderForAPIObject(cspi *apis.CStorPoolInstance) *Builder {
 	return &Builder{
-		CSP:  &CStorPool{csp},
+		CSPI: &CSPI{cspi},
 		errs: []error{},
 	}
 }
 
 // Build returns the CStorPoolClaim instance
-func (b *Builder) Build() (*CStorPool, error) {
+func (b *Builder) Build() (*CSPI, error) {
 	if len(b.errs) > 0 {
 		return nil, errors.Errorf("%+v", b.errs)
 	}
-	return b.CSP, nil
+	return b.CSPI, nil
 }
 
-// WithName sets the Name field of CSP with provided value.
+// WithName sets the Name field of CSPI with provided value.
 func (b *Builder) WithName(name string) *Builder {
 	if len(name) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build CSP object: missing CSP name"),
+			errors.New("failed to build CSPI object: missing CSPI name"),
 		)
 		return b
 	}
-	b.CSP.Object.Name = name
+	b.CSPI.Object.Name = name
 	return b
 }
 
-// WithNamespace sets the Namespace field of CSP provided arguments
+// WithNamespace sets the Namespace field of CSPI provided arguments
 func (b *Builder) WithNamespace(namespace string) *Builder {
 	if len(namespace) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build CSP object: missing CSP namespace"),
+			errors.New("failed to build CSPI object: missing CSPI namespace"),
 		)
 		return b
 	}
-	b.CSP.Object.Namespace = namespace
+	b.CSPI.Object.Namespace = namespace
 	return b
 }
 
-// WithAnnotationsNew sets the Annotations field of CSP with provided arguments
+// WithAnnotationsNew sets the Annotations field of CSPI with provided arguments
 func (b *Builder) WithAnnotationsNew(annotations map[string]string) *Builder {
 	if len(annotations) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build CSP object: missing annotations"),
+			errors.New("failed to build CSPI object: missing annotations"),
 		)
 		return b
 	}
-	b.CSP.Object.Annotations = make(map[string]string)
+	b.CSPI.Object.Annotations = make(map[string]string)
 	for key, value := range annotations {
-		b.CSP.Object.Annotations[key] = value
+		b.CSPI.Object.Annotations[key] = value
 	}
 	return b
 }
 
 // WithAnnotations appends or overwrites existing Annotations
-// values of CSP with provided arguments
+// values of CSPI with provided arguments
 func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 	if len(annotations) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build CSP object: missing annotations"),
+			errors.New("failed to build CSPI object: missing annotations"),
 		)
 		return b
 	}
-	if b.CSP.Object.Annotations == nil {
+	if b.CSPI.Object.Annotations == nil {
 		return b.WithAnnotationsNew(annotations)
 	}
 	for key, value := range annotations {
-		b.CSP.Object.Annotations[key] = value
+		b.CSPI.Object.Annotations[key] = value
 	}
 	return b
 }
 
-// WithLabelsNew sets the Labels field of CSP with provided arguments
+// WithLabelsNew sets the Labels field of CSPI with provided arguments
 func (b *Builder) WithLabelsNew(labels map[string]string) *Builder {
 	if len(labels) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build CSP object: missing labels"),
+			errors.New("failed to build CSPI object: missing labels"),
 		)
 		return b
 	}
-	b.CSP.Object.Labels = make(map[string]string)
+	b.CSPI.Object.Labels = make(map[string]string)
 	for key, value := range labels {
-		b.CSP.Object.Labels[key] = value
+		b.CSPI.Object.Labels[key] = value
 	}
 	return b
 }
 
 // WithLabels appends or overwrites existing Labels
-// values of CSP with provided arguments
+// values of CSPI with provided arguments
 func (b *Builder) WithLabels(labels map[string]string) *Builder {
 	if len(labels) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build CSP object: missing labels"),
+			errors.New("failed to build CSPI object: missing labels"),
 		)
 		return b
 	}
-	if b.CSP.Object.Labels == nil {
+	if b.CSPI.Object.Labels == nil {
 		return b.WithLabelsNew(labels)
 	}
 	for key, value := range labels {
-		b.CSP.Object.Labels[key] = value
+		b.CSPI.Object.Labels[key] = value
 	}
 	return b
 }
 
-// WithNodeSelectorByReference sets the node selector field of CSP with provided argument.
+// WithNodeSelectorByReference sets the node selector field of CSPI with provided argument.
 func (b *Builder) WithNodeSelectorByReference(nodeSelector map[string]string) *Builder {
 	if len(nodeSelector) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build CSP object: missing nodeSelector"),
+			errors.New("failed to build CSPI object: missing nodeSelector"),
 		)
 		return b
 	}
-	b.CSP.Object.Spec.NodeSelector = nodeSelector
+	b.CSPI.Object.Spec.NodeSelector = nodeSelector
 	return b
 }
 
-// WithNodeName sets the HostName field of CSP with the provided argument.
+// WithNodeName sets the HostName field of CSPI with the provided argument.
 func (b *Builder) WithNodeName(nodeName string) *Builder {
 	if len(nodeName) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build CSP object: missing node name"),
+			errors.New("failed to build CSPI object: missing node name"),
 		)
 		return b
 	}
-	b.CSP.Object.Spec.HostName = nodeName
+	b.CSPI.Object.Spec.HostName = nodeName
 	return b
 }
 
-// WithPoolConfig sets the pool config field of the CSP with the provided config.
+// WithPoolConfig sets the pool config field of the CSPI with the provided config.
 func (b *Builder) WithPoolConfig(poolConfig *apis.PoolConfig) *Builder {
 	if poolConfig == nil {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build CSP object: missing poolConfig"),
+			errors.New("failed to build CSPI object: missing poolConfig"),
 		)
 		return b
 	}
-	b.CSP.Object.Spec.PoolConfig = *poolConfig
+	b.CSPI.Object.Spec.PoolConfig = *poolConfig
 	return b
 }
 
-// WithRaidGroups sets the raid group field of the CSP with the provided raid groups.
+// WithRaidGroups sets the raid group field of the CSPI with the provided raid groups.
 func (b *Builder) WithRaidGroups(raidGroup []apis.RaidGroup) *Builder {
 	if len(raidGroup) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build CSP object: missing raidGroups"),
+			errors.New("failed to build CSPI object: missing raidGroups"),
 		)
 		return b
 	}
 
-	b.CSP.Object.Spec.RaidGroups = raidGroup
+	b.CSPI.Object.Spec.RaidGroups = raidGroup
 	return b
 }
 
@@ -225,21 +225,21 @@ func (b *Builder) WithFinalizer(finalizers ...string) *Builder {
 	if len(finalizers) == 0 {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build CSP object: missing finalizer"),
+			errors.New("failed to build CSPI object: missing finalizer"),
 		)
 		return b
 	}
-	b.CSP.Object.Finalizers = append(b.CSP.Object.Finalizers, finalizers...)
+	b.CSPI.Object.Finalizers = append(b.CSPI.Object.Finalizers, finalizers...)
 	return b
 }
 
-// WithOwnerReference sets the OwnerReference field in CSP with required
+// WithOwnerReference sets the OwnerReference field in CSPI with required
 //fields
 func (b *Builder) WithOwnerReference(spc *apis.StoragePoolClaim) *Builder {
 	if spc == nil {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build CSP object: spc object is nil"),
+			errors.New("failed to build CSPI object: spc object is nil"),
 		)
 		return b
 	}
@@ -252,17 +252,17 @@ func (b *Builder) WithOwnerReference(spc *apis.StoragePoolClaim) *Builder {
 		BlockOwnerDeletion: &trueVal,
 		Controller:         &trueVal,
 	}
-	b.CSP.Object.OwnerReferences = append(b.CSP.Object.OwnerReferences, reference)
+	b.CSPI.Object.OwnerReferences = append(b.CSPI.Object.OwnerReferences, reference)
 	return b
 }
 
-// WithCSPCOwnerReference sets the OwnerReference field in CSP with required
+// WithCSPCOwnerReference sets the OwnerReference field in CSPI with required
 //fields
-func (b *Builder) WithCSPCOwnerReference(cspc *apis.CStorPoolCluster) *Builder {
-	if cspc == nil {
+func (b *Builder) WithCSPCOwnerReference(cspic *apis.CStorPoolCluster) *Builder {
+	if cspic == nil {
 		b.errs = append(
 			b.errs,
-			errors.New("failed to build CSP object: cspc object is nil"),
+			errors.New("failed to build CSPI object: cspic object is nil"),
 		)
 		return b
 	}
@@ -270,11 +270,11 @@ func (b *Builder) WithCSPCOwnerReference(cspc *apis.CStorPoolCluster) *Builder {
 	reference := metav1.OwnerReference{
 		APIVersion:         APIVersion,
 		Kind:               StoragePoolKindCSPC,
-		UID:                cspc.ObjectMeta.UID,
-		Name:               cspc.ObjectMeta.Name,
+		UID:                cspic.ObjectMeta.UID,
+		Name:               cspic.ObjectMeta.Name,
 		BlockOwnerDeletion: &trueVal,
 		Controller:         &trueVal,
 	}
-	b.CSP.Object.OwnerReferences = append(b.CSP.Object.OwnerReferences, reference)
+	b.CSPI.Object.OwnerReferences = append(b.CSPI.Object.OwnerReferences, reference)
 	return b
 }

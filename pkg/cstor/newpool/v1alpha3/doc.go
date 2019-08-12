@@ -16,5 +16,5 @@ limitations under the License.
 
 package v1alpha3
 
-// This package caters to cstorpool related operations that
-// are a part of overall volume related provisioning.
+// This package caters to cstorpoolinstance related operations that
+// are a part of overall pool related provisioning.

@@ -28,6 +28,8 @@ type CStorPoolExpansion interface{}
 
 type CStorPoolClusterExpansion interface{}
 
+type CStorPoolInstanceExpansion interface{}
+
 type CStorRestoreExpansion interface{}
 
 type CStorVolumeExpansion interface{}
@@ -35,8 +37,6 @@ type CStorVolumeExpansion interface{}
 type CStorVolumeClaimExpansion interface{}
 
 type CStorVolumeReplicaExpansion interface{}
-
-type NewTestCStorPoolExpansion interface{}
 
 type RunTaskExpansion interface{}
 

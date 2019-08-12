@@ -92,7 +92,7 @@ func (pc *PoolConfig) CreateStoragePool() error {
 	return nil
 }
 
-func (pc *PoolConfig) createCSP(csp *apis.NewTestCStorPool) (*apis.NewTestCStorPool, error) {
+func (pc *PoolConfig) createCSP(csp *apis.CStorPoolInstance) (*apis.CStorPoolInstance, error) {
 	gotCSP, err := apiscsp.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).Create(csp)
 	return gotCSP, err
 }
@@ -103,7 +103,7 @@ func (pc *PoolConfig) createPoolDeployment(deployObj *appsv1.Deployment) error {
 }
 
 // GetPoolDeploySpec returns the pool deployment spec.
-func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.NewTestCStorPool) (*appsv1.Deployment, error) {
+func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.CStorPoolInstance) (*appsv1.Deployment, error) {
 	deployObj, err := deploy.NewBuilder().
 		WithName(csp.Name).
 		WithNamespace(csp.Namespace).
@@ -193,15 +193,15 @@ func getReplicaCount() *int32 {
 	return &count
 }
 
-func getDeployOwnerReference(csp *apis.NewTestCStorPool) []metav1.OwnerReference {
+func getDeployOwnerReference(csp *apis.CStorPoolInstance) []metav1.OwnerReference {
 	OwnerReference := []metav1.OwnerReference{
-		*metav1.NewControllerRef(csp, apis.SchemeGroupVersion.WithKind("NewTestCStorPool")),
+		*metav1.NewControllerRef(csp, apis.SchemeGroupVersion.WithKind("CStorPoolInstance")),
 	}
 	return OwnerReference
 }
 
 // TODO: Use builder for labels and annotations
-func getDeployLabels(csp *apis.NewTestCStorPool) map[string]string {
+func getDeployLabels(csp *apis.CStorPoolInstance) map[string]string {
 	return map[string]string{
 		string(apis.CStorPoolClusterCPK): csp.Annotations[string(apis.CStorPoolClusterCPK)],
 		"app":                            "cstor-pool",
@@ -216,7 +216,7 @@ func getDeployAnnotations() map[string]string {
 	}
 }
 
-func getPodLabels(csp *apis.NewTestCStorPool) map[string]string {
+func getPodLabels(csp *apis.CStorPoolInstance) map[string]string {
 	return getDeployLabels(csp)
 }
 
@@ -294,7 +294,7 @@ func getSparseDirPath() string {
 	return dir
 }
 
-func getPoolMgmtEnv(csp *apis.NewTestCStorPool) []corev1.EnvVar {
+func getPoolMgmtEnv(csp *apis.CStorPoolInstance) []corev1.EnvVar {
 	var env []corev1.EnvVar
 	return append(
 		env,
@@ -345,7 +345,7 @@ func getPoolMounts() []corev1.VolumeMount {
 	return getPoolMgmtMounts()
 }
 
-func getPoolEnv(csp *apis.NewTestCStorPool) []corev1.EnvVar {
+func getPoolEnv(csp *apis.CStorPoolInstance) []corev1.EnvVar {
 	var env []corev1.EnvVar
 	return append(
 		env,

@@ -21,7 +21,7 @@ import (
 )
 
 // Update will update the deployed pool according to given csp object
-func Update(csp *apis.NewTestCStorPool) error {
+func Update(csp *apis.CStorPoolInstance) error {
 	var err error
 	var isObjChanged bool
 	var isRaidGroupChanged bool
@@ -91,7 +91,7 @@ func Update(csp *apis.NewTestCStorPool) error {
 	if isObjChanged {
 		if _, er := OpenEBSClient.
 			OpenebsV1alpha1().
-			NewTestCStorPools(csp.Namespace).
+			CStorPoolInstances(csp.Namespace).
 			Update(csp); er != nil {
 			err = ErrorWrapf(err, "Failed to update object.. err {%s}", er.Error())
 		}

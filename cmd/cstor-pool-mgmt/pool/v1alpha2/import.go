@@ -30,7 +30,7 @@ import (
 // It will return -
 // - If pool is imported or not
 // - If any error occurred during import operation
-func Import(csp *apis.NewTestCStorPool) (bool, error) {
+func Import(csp *apis.CStorPoolInstance) (bool, error) {
 	if poolExist := checkIfPoolPresent(PoolName(csp)); poolExist {
 		return true, nil
 	}

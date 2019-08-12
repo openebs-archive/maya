@@ -20,25 +20,25 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
-// ListBuilder is the builder object for CStorPoolList
+// ListBuilder is the builder object for CSPIList
 type ListBuilder struct {
-	CSPList *CStorPoolList
+	CSPList *CSPIList
 	filters PredicateList
 }
 
 // NewListBuilder returns a new instance of ListBuilder object.
 func NewListBuilder() *ListBuilder {
 	return &ListBuilder{
-		CSPList: &CStorPoolList{
-			ObjectList: &apis.NewTestCStorPoolList{},
+		CSPList: &CSPIList{
+			ObjectList: &apis.CStorPoolInstanceList{},
 		},
 		filters: PredicateList{},
 	}
 }
 
 // ListBuilderFromList builds the list based on the
-// provided *CStorPoolList instances.
-func ListBuilderFromList(cspl *CStorPoolList) *ListBuilder {
+// provided *CSPIList instances.
+func ListBuilderFromList(cspl *CSPIList) *ListBuilder {
 	lb := NewListBuilder()
 	if cspl == nil {
 		return lb
@@ -50,7 +50,7 @@ func ListBuilderFromList(cspl *CStorPoolList) *ListBuilder {
 }
 
 // ListBuilderFromAPIList builds the list based on the provided API CSP List
-func ListBuilderFromAPIList(cspl *apis.NewTestCStorPoolList) *ListBuilder {
+func ListBuilderFromAPIList(cspl *apis.CStorPoolInstanceList) *ListBuilder {
 	lb := NewListBuilder()
 	if cspl == nil {
 		return lb
@@ -64,14 +64,14 @@ func ListBuilderFromAPIList(cspl *apis.NewTestCStorPoolList) *ListBuilder {
 // List returns the list of csp
 // instances that was built by this
 // builder
-func (lb *ListBuilder) List() *CStorPoolList {
+func (lb *ListBuilder) List() *CSPIList {
 	if lb.filters == nil || len(lb.filters) == 0 {
 		return lb.CSPList
 	}
 	filtered := NewListBuilder().List()
 	for _, cspAPI := range lb.CSPList.ObjectList.Items {
 		cspAPI := cspAPI // pin it
-		csp := BuilderForAPIObject(&cspAPI).CSP
+		csp := BuilderForAPIObject(&cspAPI).CSPI
 		if lb.filters.all(csp) {
 			filtered.ObjectList.Items = append(filtered.ObjectList.Items, *csp.Object)
 		}
@@ -85,9 +85,9 @@ func (lb *ListBuilder) WithFilter(pred ...Predicate) *ListBuilder {
 	return lb
 }
 
-// GetCStorPool returns CStorPool object from existing
+// GetCStorPool returns CStorPoolInstance object from existing
 // ListBuilder
-func (lb *ListBuilder) GetCStorPool(cspName string) *apis.NewTestCStorPool {
+func (lb *ListBuilder) GetCStorPool(cspName string) *apis.CStorPoolInstance {
 	for _, cspObj := range lb.CSPList.ObjectList.Items {
 		cspObj := cspObj
 		if cspObj.Name == cspName {

@@ -34,6 +34,8 @@ type Interface interface {
 	CStorPools() CStorPoolInformer
 	// CStorPoolClusters returns a CStorPoolClusterInformer.
 	CStorPoolClusters() CStorPoolClusterInformer
+	// CStorPoolInstances returns a CStorPoolInstanceInformer.
+	CStorPoolInstances() CStorPoolInstanceInformer
 	// CStorRestores returns a CStorRestoreInformer.
 	CStorRestores() CStorRestoreInformer
 	// CStorVolumes returns a CStorVolumeInformer.
@@ -42,8 +44,6 @@ type Interface interface {
 	CStorVolumeClaims() CStorVolumeClaimInformer
 	// CStorVolumeReplicas returns a CStorVolumeReplicaInformer.
 	CStorVolumeReplicas() CStorVolumeReplicaInformer
-	// NewTestCStorPools returns a NewTestCStorPoolInformer.
-	NewTestCStorPools() NewTestCStorPoolInformer
 	// RunTasks returns a RunTaskInformer.
 	RunTasks() RunTaskInformer
 	// StoragePools returns a StoragePoolInformer.
@@ -88,6 +88,11 @@ func (v *version) CStorPoolClusters() CStorPoolClusterInformer {
 	return &cStorPoolClusterInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
+// CStorPoolInstances returns a CStorPoolInstanceInformer.
+func (v *version) CStorPoolInstances() CStorPoolInstanceInformer {
+	return &cStorPoolInstanceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
 // CStorRestores returns a CStorRestoreInformer.
 func (v *version) CStorRestores() CStorRestoreInformer {
 	return &cStorRestoreInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
@@ -106,11 +111,6 @@ func (v *version) CStorVolumeClaims() CStorVolumeClaimInformer {
 // CStorVolumeReplicas returns a CStorVolumeReplicaInformer.
 func (v *version) CStorVolumeReplicas() CStorVolumeReplicaInformer {
 	return &cStorVolumeReplicaInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// NewTestCStorPools returns a NewTestCStorPoolInformer.
-func (v *version) NewTestCStorPools() NewTestCStorPoolInformer {
-	return &newTestCStorPoolInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // RunTasks returns a RunTaskInformer.

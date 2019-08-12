@@ -20,28 +20,28 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
-// CStorPool encapsulates CStorPool api object.
-type CStorPool struct {
-	// actual csp object
-	Object *apis.NewTestCStorPool
+// CSPI encapsulates CStorPoolInstance api object.
+type CSPI struct {
+	// actual CSPI object
+	Object *apis.CStorPoolInstance
 }
 
-// CStorPoolList encapsulates CStorPoolList api object
-type CStorPoolList struct {
-	// list of CSPs
-	ObjectList *apis.NewTestCStorPoolList
+// CSPIList encapsulates CStorPoolList api object
+type CSPIList struct {
+	// list of CSPIs
+	ObjectList *apis.CStorPoolInstanceList
 }
 
 // Predicate defines an abstraction to determine conditional checks against the
-// provided CStorPool instance
-type Predicate func(*CStorPool) bool
+// provided CStorPoolInstance
+type Predicate func(*CSPI) bool
 
 // PredicateList holds the list of Predicates
 type PredicateList []Predicate
 
 // all returns true if all the predicates succeed against the provided block
 // device instance.
-func (l PredicateList) all(c *CStorPool) bool {
+func (l PredicateList) all(c *CSPI) bool {
 	for _, pred := range l {
 		if !pred(c) {
 			return false
@@ -51,18 +51,18 @@ func (l PredicateList) all(c *CStorPool) bool {
 }
 
 // HasAnnotation is predicate to filter out based on
-// annotation in CSP instances
+// annotation in CSPI instances
 func HasAnnotation(key, value string) Predicate {
-	return func(csp *CStorPool) bool {
-		return csp.HasAnnotation(key, value)
+	return func(c *CSPI) bool {
+		return c.HasAnnotation(key, value)
 	}
 }
 
 // HasAnnotation return true if provided annotation
-// key and value are present in the the provided CSPList
+// key and value are present in the the provided CSPIList
 // instance
-func (csp *CStorPool) HasAnnotation(key, value string) bool {
-	val, ok := csp.Object.GetAnnotations()[key]
+func (c *CSPI) HasAnnotation(key, value string) bool {
+	val, ok := c.Object.GetAnnotations()[key]
 	if ok {
 		return val == value
 	}
@@ -70,32 +70,32 @@ func (csp *CStorPool) HasAnnotation(key, value string) bool {
 }
 
 // HasNodeName is predicate to filter out based on
-// node name of CSP instances.
+// node name of CSPI instances.
 func HasNodeName(nodeName string) Predicate {
-	return func(csp *CStorPool) bool {
-		return csp.HasNodeName(nodeName)
+	return func(c *CSPI) bool {
+		return c.HasNodeName(nodeName)
 	}
 }
 
-// HasNodeName returns true if the CSP belongs
+// HasNodeName returns true if the CSPI belongs
 // to the provided node name.
-func (csp *CStorPool) HasNodeName(nodeName string) bool {
-	return csp.Object.Spec.HostName == nodeName
+func (c *CSPI) HasNodeName(nodeName string) bool {
+	return c.Object.Spec.HostName == nodeName
 }
 
 // HasLabel is predicate to filter out labeled
-// CSP instances
+// CSPI instances
 func HasLabel(key, value string) Predicate {
-	return func(csp *CStorPool) bool {
-		return csp.HasLabel(key, value)
+	return func(c *CSPI) bool {
+		return c.HasLabel(key, value)
 	}
 }
 
 // HasLabel returns true if provided label
-// key and value are present in the provided CSP(CStorPool)
-// instance
-func (csp *CStorPool) HasLabel(key, value string) bool {
-	val, ok := csp.Object.GetLabels()[key]
+// key and value are present in the provided
+// CSPI
+func (c *CSPI) HasLabel(key, value string) bool {
+	val, ok := c.Object.GetLabels()[key]
 	if ok {
 		return val == value
 	}
@@ -104,18 +104,18 @@ func (csp *CStorPool) HasLabel(key, value string) bool {
 
 // IsStatus is predicate to filter out CSP instances based on argument provided
 func IsStatus(status string) Predicate {
-	return func(csp *CStorPool) bool {
-		return csp.IsStatus(status)
+	return func(c *CSPI) bool {
+		return c.IsStatus(status)
 	}
 }
 
 // IsStatus returns true if the status on
 // block device claim matches with provided status.
-func (csp *CStorPool) IsStatus(status string) bool {
-	return string(csp.Object.Status.Phase) == status
+func (c *CSPI) IsStatus(status string) bool {
+	return string(c.Object.Status.Phase) == status
 }
 
-// Len returns the length og CStorPoolList.
-func (cspl *CStorPoolList) Len() int {
-	return len(cspl.ObjectList.Items)
+// Len returns the length of CStorPoolInstanceList.
+func (c *CSPIList) Len() int {
+	return len(c.ObjectList.Items)
 }

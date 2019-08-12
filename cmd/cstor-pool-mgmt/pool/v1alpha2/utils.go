@@ -37,7 +37,7 @@ func ErrorWrapf(err error, format string, args ...interface{}) error {
 }
 
 // PoolName return pool name for given CSP object
-func PoolName(csp *apis.NewTestCStorPool) string {
+func PoolName(csp *apis.CStorPoolInstance) string {
 	return PoolPrefix + string(csp.ObjectMeta.UID)
 }
 

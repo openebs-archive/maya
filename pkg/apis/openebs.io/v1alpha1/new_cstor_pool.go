@@ -23,19 +23,19 @@ import (
 // +genclient
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=newtestcstorpool
+// +resource:path=cstorpoolinstance
 
-// NewTestCStorPool describes a cstor pool resource created as custom resource.
-type NewTestCStorPool struct {
+// CStorPoolInstance describes a cstor pool instance resource created as custom resource.
+type CStorPoolInstance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   NewCStorPoolSpec `json:"spec"`
-	Status CStorPoolStatus  `json:"status"`
+	Spec   CStorPoolInstanceSpec `json:"spec"`
+	Status CStorPoolStatus       `json:"status"`
 }
 
-// NewCStorPoolSpec is the spec listing fields for a CStorPool resource.
-type NewCStorPoolSpec struct {
+// CStorPoolInstanceSpec is the spec listing fields for a CStorPoolInstance resource.
+type CStorPoolInstanceSpec struct {
 	// HostName is the name of kubernetes node where the pool
 	// should be created.
 	HostName string `json:"hostName"`
@@ -51,12 +51,12 @@ type NewCStorPoolSpec struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=newtestcstorpool
+// +resource:path=cstorpoolinstance
 
-// NewTestCStorPoolList is a list of CStorPoolList resources
-type NewTestCStorPoolList struct {
+// CStorPoolInstanceList is a list of CStorPoolInstance resources
+type CStorPoolInstanceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
-	Items []NewTestCStorPool `json:"items"`
+	Items []CStorPoolInstance `json:"items"`
 }
