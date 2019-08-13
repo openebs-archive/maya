@@ -21,6 +21,7 @@ import (
 	"text/template"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	templates "github.com/openebs/maya/pkg/upgrade/templates"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -99,7 +100,8 @@ func cspUpgrade(cspName, openebsNamespace string) error {
 		)
 	}
 	if cspVersion == currentVersion {
-		tmpl, err := template.New("cspPatch").Parse(openebsVersionPatchTemplate)
+		tmpl, err := template.New("cspPatch").
+			Parse(templates.OpenebsVersionPatchTemplate)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for csp patch")
 		}
@@ -128,7 +130,8 @@ func cspUpgrade(cspName, openebsNamespace string) error {
 			return err
 		}
 		patchDetails.UpgradeVersion = upgradeVersion
-		tmpl, err := template.New("cspDeployPatch").Parse(cspDeployPatchTemplate)
+		tmpl, err := template.New("cspDeployPatch").
+			Parse(templates.CSPDeployPatchTemplate)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for csp deployment patch")
 		}
