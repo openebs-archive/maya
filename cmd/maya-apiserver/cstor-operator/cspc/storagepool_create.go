@@ -20,7 +20,7 @@ import (
 	"os"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
+	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"

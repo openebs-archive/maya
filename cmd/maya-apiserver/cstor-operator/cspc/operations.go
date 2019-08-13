@@ -21,7 +21,7 @@ import (
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apisbd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
-	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
+	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -54,7 +54,7 @@ func (pc *PoolConfig) expandPool() error {
 
 		cspiObj, err = pc.getCSPIWithNodeName(nodeName)
 		if err != nil {
-			return errors.Wrapf(err, "failed to cspi with node name %s", nodeName)
+			return errors.Wrapf(err, "failed to get cspi with node name %s", nodeName)
 		}
 
 		// Pool expansion for raid group types other than striped

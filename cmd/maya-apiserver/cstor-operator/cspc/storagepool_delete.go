@@ -20,7 +20,7 @@ import (
 	"github.com/golang/glog"
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
+	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

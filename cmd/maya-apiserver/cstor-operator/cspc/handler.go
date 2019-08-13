@@ -22,7 +22,7 @@ import (
 	apiscspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
+	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	"time"
 
 	"github.com/golang/glog"
