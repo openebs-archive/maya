@@ -90,6 +90,46 @@ func TestListDiff(t *testing.T) {
 	}
 }
 
+func TestListIntersection(t *testing.T) {
+	tests := map[string]struct {
+		listA       []string
+		listB       []string
+		expectedLen int
+	}{
+		"positive test case - element is present": {
+			listA:       []string{"hi", "hello", "crazzy"},
+			listB:       []string{"hello"},
+			expectedLen: 1,
+		},
+		"positive test case - ListA is empty": {
+			listA:       []string{},
+			listB:       []string{"there", "you", "go"},
+			expectedLen: 0,
+		},
+		"ListB is empty": {
+			listA:       []string{"hi there", "ok now"},
+			listB:       []string{},
+			expectedLen: 0,
+		},
+		"contains string - boundary test case - similar elements but not same": {
+			listA:       []string{"hi there", "ok now"},
+			listB:       []string{"h ithere"},
+			expectedLen: 0,
+		},
+	}
+
+	for name, mock := range tests {
+		name := name
+		mock := mock
+		t.Run(name, func(t *testing.T) {
+			resultArr := ListIntersection(mock.listA, mock.listB)
+			if mock.expectedLen != len(resultArr) {
+				t.Fatalf("failed to test %q: expected element count '%d': actual element count '%d'", name, mock.expectedLen, len(resultArr))
+			}
+		})
+	}
+}
+
 func TestContainsKey(t *testing.T) {
 	tests := map[string]struct {
 		mapOfObjs map[string]interface{}

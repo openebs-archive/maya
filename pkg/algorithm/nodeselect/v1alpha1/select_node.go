@@ -180,22 +180,23 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 		// Form node and blockdevice topology for blockdevices which has bdc
 		claimedDevicesOnNode := customBDCList.GetBlockDeviceNamesByNode()
 		for claimedNodeName, bdNameList := range claimedDevicesOnNode {
+			qualifiedBDList := []string{}
 			filteredBlockDevices := nodeBlockDeviceMap[claimedNodeName]
 
 			//Check is this node is usable or not
-			if filteredBlockDevices != nil &&
-				util.ContainsString(filteredBlockDevices.Items, bdNameList[0]) {
+			if filteredBlockDevices != nil {
+				qualifiedBDList = util.ListIntersection(filteredBlockDevices.Items, bdNameList)
 				// check whether bdNameList contains partially created claimed BDs
 				// i.e BD count is less than required BDs
-				if len(bdNameList) < minRequiredDiskCount {
-					count := minRequiredDiskCount - len(bdNameList)
-					availableBDOnNode := util.ListDiff(filteredBlockDevices.Items, bdNameList)
+				if len(qualifiedBDList) < minRequiredDiskCount {
+					count := minRequiredDiskCount - len(qualifiedBDList)
+					availableBDOnNode := util.ListDiff(filteredBlockDevices.Items, qualifiedBDList)
 					if len(availableBDOnNode) < count {
 						continue
 					}
-					bdNameList = append(bdNameList, availableBDOnNode[:count]...)
+					qualifiedBDList = append(qualifiedBDList, availableBDOnNode[:count]...)
 				}
-				selectedBlockDevice.BlockDevices.Items = append(selectedBlockDevice.BlockDevices.Items, bdNameList...)
+				selectedBlockDevice.BlockDevices.Items = append(selectedBlockDevice.BlockDevices.Items, qualifiedBDList...)
 				selectedBlockDevice.NodeName = claimedNodeName
 				return selectedBlockDevice, nil
 			}
