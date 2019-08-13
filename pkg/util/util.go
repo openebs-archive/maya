@@ -134,31 +134,31 @@ func ContainsString(stringarr []string, element string) bool {
 
 //TODO: Merge ListDiff and ListIntersection into single function using
 // some functions
+// SetOperation will decides operation performed on the lists
+type SetOperation func() bool
 
-// ListDiff returns list of string which are in listA but not in listB
-func ListDiff(listA []string, listB []string) []string {
-	outputList := []string{}
-	mapListB := map[string]bool{}
-	for _, str := range listB {
-		mapListB[str] = true
-	}
-	for _, str := range listA {
-		if !mapListB[str] {
-			outputList = append(outputList, str)
-		}
-	}
-	return outputList
+// IsInterSection returns true
+func IsInterSection() bool {
+	return true
 }
 
-// ListIntersection returns list of string which are in listA and listB
-func ListIntersection(listA []string, listB []string) []string {
+// IsDifference returns false
+func IsDifference() bool {
+	return false
+}
+
+// ListOperation returns list of string which are in listA but not in listB
+// 3rd argument is IsDifferentce. If 3rd argument is IsInterSection then below
+// function return list of string which are in listA and listB
+func ListOperation(listA []string, listB []string, operation SetOperation) []string {
 	outputList := []string{}
 	mapListB := map[string]bool{}
+	opValue := operation()
 	for _, str := range listB {
 		mapListB[str] = true
 	}
 	for _, str := range listA {
-		if mapListB[str] {
+		if mapListB[str] == opValue {
 			outputList = append(outputList, str)
 		}
 	}

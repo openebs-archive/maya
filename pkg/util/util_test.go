@@ -57,24 +57,28 @@ func TestContainsString(t *testing.T) {
 
 func TestListDiff(t *testing.T) {
 	tests := map[string]struct {
-		listA       []string
-		listB       []string
-		expectedLen int
+		listA        []string
+		listB        []string
+		expectedLen  int
+		expectedList []string
 	}{
-		"contains string - positive test case - element is present": {
-			listA:       []string{"hi", "hello", "crazzy"},
-			listB:       []string{"hello"},
-			expectedLen: 2,
+		"list diff operation - positive test case - element is present": {
+			listA:        []string{"hi", "hello", "crazzy"},
+			listB:        []string{"hello"},
+			expectedLen:  2,
+			expectedList: []string{"hi", "crazzy"},
 		},
-		"contains string - positive test case - element is not present": {
-			listA:       []string{},
-			listB:       []string{"there", "you", "go"},
-			expectedLen: 0,
+		"list diff operation - positive test case - element is not present": {
+			listA:        []string{},
+			listB:        []string{"there", "you", "go"},
+			expectedLen:  0,
+			expectedList: []string{},
 		},
 		"contains string - boundary test case - similar elements but not same": {
-			listA:       []string{"hi there", "ok now"},
-			listB:       []string{},
-			expectedLen: 2,
+			listA:        []string{"hi there", "ok now"},
+			listB:        []string{},
+			expectedLen:  2,
+			expectedList: []string{"hi there", "ok now"},
 		},
 	}
 
@@ -82,9 +86,12 @@ func TestListDiff(t *testing.T) {
 		name := name
 		mock := mock
 		t.Run(name, func(t *testing.T) {
-			resultArr := ListDiff(mock.listA, mock.listB)
+			resultArr := ListOperation(mock.listA, mock.listB, IsDifference)
 			if mock.expectedLen != len(resultArr) {
 				t.Fatalf("failed to test %q: expected element count '%d': actual element count '%d'", name, mock.expectedLen, len(resultArr))
+			}
+			if !reflect.DeepEqual(resultArr, mock.expectedList) {
+				t.Fatalf("failed to test %q: expected elements '%v': actual elements  '%v'", name, mock.expectedList, resultArr)
 			}
 		})
 	}
@@ -92,29 +99,40 @@ func TestListDiff(t *testing.T) {
 
 func TestListIntersection(t *testing.T) {
 	tests := map[string]struct {
-		listA       []string
-		listB       []string
-		expectedLen int
+		listA        []string
+		listB        []string
+		expectedLen  int
+		expectedList []string
 	}{
 		"positive test case - element is present": {
-			listA:       []string{"hi", "hello", "crazzy"},
-			listB:       []string{"hello"},
-			expectedLen: 1,
+			listA:        []string{"hi", "hello", "crazzy"},
+			listB:        []string{"hello"},
+			expectedLen:  1,
+			expectedList: []string{"hello"},
 		},
 		"positive test case - ListA is empty": {
-			listA:       []string{},
-			listB:       []string{"there", "you", "go"},
-			expectedLen: 0,
+			listA:        []string{},
+			listB:        []string{"there", "you", "go"},
+			expectedLen:  0,
+			expectedList: []string{},
 		},
 		"ListB is empty": {
-			listA:       []string{"hi there", "ok now"},
-			listB:       []string{},
-			expectedLen: 0,
+			listA:        []string{"hi there", "ok now"},
+			listB:        []string{},
+			expectedLen:  0,
+			expectedList: []string{},
 		},
-		"contains string - boundary test case - similar elements but not same": {
-			listA:       []string{"hi there", "ok now"},
-			listB:       []string{"h ithere"},
-			expectedLen: 0,
+		"List is missmatch - boundary test case - similar elements but not same": {
+			listA:        []string{"hi there", "ok now"},
+			listB:        []string{"h ithere"},
+			expectedLen:  0,
+			expectedList: []string{},
+		},
+		"List is match in different order": {
+			listA:        []string{"hi there", "ok now"},
+			listB:        []string{"ok now", "hi there"},
+			expectedLen:  2,
+			expectedList: []string{"hi there", "ok now"},
 		},
 	}
 
@@ -122,9 +140,12 @@ func TestListIntersection(t *testing.T) {
 		name := name
 		mock := mock
 		t.Run(name, func(t *testing.T) {
-			resultArr := ListIntersection(mock.listA, mock.listB)
+			resultArr := ListOperation(mock.listA, mock.listB, IsInterSection)
 			if mock.expectedLen != len(resultArr) {
 				t.Fatalf("failed to test %q: expected element count '%d': actual element count '%d'", name, mock.expectedLen, len(resultArr))
+			}
+			if !reflect.DeepEqual(resultArr, mock.expectedList) {
+				t.Fatalf("failed to test %q: expected elements '%v': actual elements  '%v'", name, mock.expectedList, resultArr)
 			}
 		})
 	}

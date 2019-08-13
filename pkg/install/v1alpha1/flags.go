@@ -17,8 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"strconv"
+
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 )
 
 // IsDefaultStorageConfigEnabled reads from env variable to check

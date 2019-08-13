@@ -192,12 +192,12 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 
 			//Check is this node is usable or not
 			if filteredBlockDevices != nil {
-				qualifiedBDList := util.ListIntersection(filteredBlockDevices.Items, bdNameList)
+				qualifiedBDList := util.ListOperation(filteredBlockDevices.Items, bdNameList, util.IsInterSection)
 				// check whether bdNameList contains partially created claimed BDs
 				// i.e BD count is less than required BDs
 				if len(qualifiedBDList) < minRequiredDiskCount {
 					count := minRequiredDiskCount - len(qualifiedBDList)
-					availableBDOnNode := util.ListDiff(filteredBlockDevices.Items, qualifiedBDList)
+					availableBDOnNode := util.ListOperation(filteredBlockDevices.Items, qualifiedBDList, util.IsDifference)
 					if len(availableBDOnNode) < count {
 						continue
 					}
