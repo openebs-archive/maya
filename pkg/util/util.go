@@ -132,6 +132,9 @@ func ContainsString(stringarr []string, element string) bool {
 	return false
 }
 
+//TODO: Merge ListDiff and ListIntersection into single function using
+// some functions
+
 // ListDiff returns list of string which are in listA but not in listB
 func ListDiff(listA []string, listB []string) []string {
 	outputList := []string{}

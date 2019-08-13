@@ -153,6 +153,8 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 			Items: []string{},
 		},
 	}
+	var bdcList *ndmapis.BlockDeviceClaimList
+	var err error
 	spcObj := spcv1alpha1.SPC{Object: ac.Spc}
 	// bdCount will hold the number of block devices that will be selected from a qualified
 	// node for specific pool type
@@ -161,13 +163,19 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 	// node for specific pool type
 	minRequiredDiskCount := spcv1alpha1.DefaultDiskCount[ac.poolType()]
 
+	defer func() {
+		if err == nil {
+			ac.VisitedNodes[selectedBlockDevice.NodeName] = true
+		}
+	}()
+
 	// Below snippet is required to get the node and blockdevice topology from
 	// blockdeviceclaims which were created during previous reconciliation
 	if spcObj.IsAutoProvisioning() {
 		// List all blockdeviceclaims related to spc
 		// NOTE: This list contains blockdevices on which csps' are already
 		// created filter and use it
-		bdcList, err := bdc.NewKubeClient().
+		bdcList, err = bdc.NewKubeClient().
 			WithNamespace(ac.Namespace).
 			List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
 		if err != nil {
@@ -196,7 +204,10 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 					}
 					qualifiedBDList = append(qualifiedBDList, availableBDOnNode[:count]...)
 				}
-				selectedBlockDevice.BlockDevices.Items = append(selectedBlockDevice.BlockDevices.Items, qualifiedBDList...)
+				selectedBlockDevice.BlockDevices.Items = append(
+					selectedBlockDevice.BlockDevices.Items,
+					qualifiedBDList[:minRequiredDiskCount]...,
+				)
 				selectedBlockDevice.NodeName = claimedNodeName
 				return selectedBlockDevice, nil
 			}
@@ -282,7 +293,8 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 		return nil, errors.Errorf("type {%s} devices are not available to provision pools in %s mode", diskType, ProvisioningType(ac.Spc))
 	}
 
-	// Below snippet is required when BDs are claimed but CSPs are not created
+	// Below snippet is required when BDs are claimed but CSPs are not created.
+	// This might be useful in a case where multiple spc's are created at a time
 	if spcObj.IsAutoProvisioning() {
 		newBDL, err := bdl.GetUsableBlockDevices(ac.Spc.Name, ac.Namespace)
 		if err != nil {
@@ -374,7 +386,6 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 		claimedBD.BDName = bdObj.Name
 		nodeClaimedBDs.BlockDeviceList = append(nodeClaimedBDs.BlockDeviceList, claimedBD)
 	}
-	ac.VisitedNodes[nodeClaimedBDs.NodeName] = true
 	if pendingBDCCount != 0 {
 		return nil, errors.Errorf("pending block device claim count %d on node {%s}", pendingBDCCount, nodeClaimedBDs.NodeName)
 	}
