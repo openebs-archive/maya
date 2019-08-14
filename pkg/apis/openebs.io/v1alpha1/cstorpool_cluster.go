@@ -117,9 +117,6 @@ type RaidGroup struct {
 	// radiz2 -- TODO
 	// Optional -- defaults to `defaultRaidGroupType` present in `PoolConfig`
 	Type string `json:"type"`
-	// Name is the name of the group.
-	// Required -- to be given by user.
-	Name string `json:"name"`
 	// IsWriteCache is to enable this group as a write cache.
 	IsWriteCache bool `json:"isWriteCache"`
 	// IsSpare is to declare this group as spare which will be

@@ -42,16 +42,6 @@ func (b *Builder) WithType(poolType string) *Builder {
 	return b
 }
 
-// WithName sets the name field of raid group with provided value.
-func (b *Builder) WithName(name string) *Builder {
-	if len(name) == 0 {
-		b.errs = append(b.errs, errors.New("failed to build raid group object: missing group name"))
-		return b
-	}
-	b.rg.object.Name = name
-	return b
-}
-
 // WithWriteCache flags the IsWriteCache field of raid group.
 func (b *Builder) WithWriteCache(cacheFile string) *Builder {
 	b.rg.object.IsWriteCache = true

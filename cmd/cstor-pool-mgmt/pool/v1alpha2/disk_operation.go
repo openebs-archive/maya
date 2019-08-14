@@ -82,7 +82,7 @@ func addNewVdevFromCSP(csp *apis.CStorPoolInstance) error {
 		}
 		if wholeGroup {
 			if er := addRaidGroup(csp, raidGroup); er != nil {
-				err = ErrorWrapf(err, "Failed to add raidGroup{%s}.. %s", raidGroup.Name, er.Error())
+				err = ErrorWrapf(err, "Failed to add raidGroup{%#v}.. %s", raidGroup, er.Error())
 			}
 		} else if len(devlist) != 0 {
 			if _, er := zfs.NewPoolExpansion().
