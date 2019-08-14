@@ -30,19 +30,17 @@ import (
 func (wh *webhook) validateCSPC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	req := ar.Request
 	response := &v1beta1.AdmissionResponse{}
-	// validates only if requested operation is CREATE or DELETE
-	if req.Operation == v1beta1.Create {
-		glog.V(5).Infof("Admission webhook create request for type %s", req.Kind.Kind)
-		return wh.validateCSPCCreateRequest(req)
-	} else if req.Operation == v1beta1.Update {
+	// validates only if requested operation is CREATE or UPDATE
+	if req.Operation == v1beta1.Update {
 		glog.V(5).Infof("Admission webhook update request for type %s", req.Kind.Kind)
 		return wh.validateCSPCUpdateRequest(req)
-	} else if req.Operation == v1beta1.Delete {
-		glog.V(5).Infof("Admission webhook delete request for type %s", req.Kind.Kind)
-		return wh.validateCSPCDeleteRequest(req)
+	} else if req.Operation == v1beta1.Create {
+		glog.V(5).Infof("Admission webhook create request for type %s", req.Kind.Kind)
+		return wh.validateCSPCCreateRequest(req)
 	}
+
 	glog.V(2).Info("Admission wehbook for PVC not " +
-		"configured for operations other than DELETE and CREATE")
+		"configured for operations other than UPDATE and CREATE")
 	return response
 }
 
@@ -111,13 +109,21 @@ func raidGroupValidation(raidGroup *apis.RaidGroup, pool *apis.PoolConfig) (bool
 		return false, fmt.Sprintf("number of block devices honouring raid type should be specified")
 	}
 
-	if raidGroup.Type != "stripe" {
+	if raidGroup.Type != string(apis.PoolStriped) {
 		if len(raidGroup.BlockDevices) != apis.SupportedPRaidType[apis.PoolType(raidGroup.Type)] {
 			return false, fmt.Sprintf("number of block devices honouring raid type should be specified")
 		}
 	} else {
 		if len(raidGroup.BlockDevices) < apis.SupportedPRaidType[apis.PoolType(raidGroup.Type)] {
 			return false, fmt.Sprintf("number of block devices honouring raid type should be specified")
+		}
+	}
+
+	for _, bd := range raidGroup.BlockDevices {
+		bd := bd
+		ok, msg := blockDeviceValidation(&bd)
+		if !ok {
+			return false, msg
 		}
 	}
 	return true, ""
@@ -130,17 +136,9 @@ func blockDeviceValidation(bd *apis.CStorPoolClusterBlockDevice) (bool, string) 
 	return true, ""
 }
 
-// validateCSPCDeleteRequest validates CSPC delete request
-// TODO: CSPC delete protection
-func (wh *webhook) validateCSPCDeleteRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
-	response := &v1beta1.AdmissionResponse{}
-	response.Allowed = true
-	// TODO: Implement for delete validations
-	return response
-}
-
 // validateCSPCUpdateRequest validates CSPC update request
 // Note : Validation aspects for CSPC create and update are the same.
 func (wh *webhook) validateCSPCUpdateRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+	// TODO : Add more validations for update case.
 	return wh.validateCSPCCreateRequest(req)
 }

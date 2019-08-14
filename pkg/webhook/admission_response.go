@@ -27,12 +27,12 @@ type AdmissionResponse struct {
 }
 
 // NewAdmissionResponse returns an empty instance of AdmissionResponse.
-func NewAdmissionResponse()*AdmissionResponse{
-	return &AdmissionResponse{}
+func NewAdmissionResponse() *AdmissionResponse {
+	return &AdmissionResponse{AR: &v1beta1.AdmissionResponse{}}
 }
 
 // WithResultAsFailure sets failure result.
-func (ar *AdmissionResponse)WithResultAsFailure(err error, code int32)*AdmissionResponse  {
+func (ar *AdmissionResponse) WithResultAsFailure(err error, code int32) *AdmissionResponse {
 	ar.AR.Result = &metav1.Status{
 		Status:  metav1.StatusFailure,
 		Code:    code,
@@ -43,29 +43,27 @@ func (ar *AdmissionResponse)WithResultAsFailure(err error, code int32)*Admission
 }
 
 // WithResultAsSuccess sets success result.
-func (ar *AdmissionResponse)WithResultAsSuccess(code int32)*AdmissionResponse  {
+func (ar *AdmissionResponse) WithResultAsSuccess(code int32) *AdmissionResponse {
 	ar.AR.Result = &metav1.Status{
-		Status:  metav1.StatusSuccess,
-		Code:    code,
+		Status: metav1.StatusSuccess,
+		Code:   code,
 	}
 	return ar
 }
 
 // SetAllowed sets allowed to true.
-func (ar *AdmissionResponse)SetAllowed()*AdmissionResponse  {
-	ar.AR.Allowed=true
+func (ar *AdmissionResponse) SetAllowed() *AdmissionResponse {
+	ar.AR.Allowed = true
 	return ar
 }
 
-// SetAllowed sets allowed to false.
-func (ar *AdmissionResponse)UnSetAllowed()*AdmissionResponse  {
-	ar.AR.Allowed=false
+// UnSetAllowed sets allowed to false.
+func (ar *AdmissionResponse) UnSetAllowed() *AdmissionResponse {
+	ar.AR.Allowed = false
 	return ar
 }
 
 // BuildForAPIObject builds for api admission response object.
-func BuildForAPIObject(ar *v1beta1.AdmissionResponse)*AdmissionResponse  {
-	return &AdmissionResponse{AR:ar}
+func BuildForAPIObject(ar *v1beta1.AdmissionResponse) *AdmissionResponse {
+	return &AdmissionResponse{AR: ar}
 }
-
-

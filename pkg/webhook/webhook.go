@@ -308,7 +308,7 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 	case "PersistentVolumeClaim":
 		return wh.validatePVC(ar)
 	case "CStorPoolCluster":
-		glog.Infof("Admission webhook request for type %s", req.Kind.Kind)
+		glog.V(2).Infof("Admission webhook request for type %s", req.Kind.Kind)
 		return wh.validateCSPC(ar)
 	default:
 		glog.V(2).Infof("Admission webhook not configured for type %s", req.Kind.Kind)
