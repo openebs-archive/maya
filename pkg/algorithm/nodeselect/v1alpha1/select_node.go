@@ -163,12 +163,6 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 	// node for specific pool type
 	minRequiredDiskCount := spcv1alpha1.DefaultDiskCount[ac.poolType()]
 
-	defer func() {
-		if err == nil {
-			ac.VisitedNodes[selectedBlockDevice.NodeName] = true
-		}
-	}()
-
 	// Below snippet is required to get the node and blockdevice topology from
 	// blockdeviceclaims which were created during previous reconciliation
 	if spcObj.IsAutoProvisioning() {
@@ -192,12 +186,12 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 
 			//Check is this node is usable or not
 			if filteredBlockDevices != nil {
-				qualifiedBDList := util.ListOperation(filteredBlockDevices.Items, bdNameList, util.IsInterSection)
+				qualifiedBDList := util.ListIntersection(filteredBlockDevices.Items, bdNameList)
 				// check whether bdNameList contains partially created claimed BDs
 				// i.e BD count is less than required BDs
 				if len(qualifiedBDList) < minRequiredDiskCount {
 					count := minRequiredDiskCount - len(qualifiedBDList)
-					availableBDOnNode := util.ListOperation(filteredBlockDevices.Items, qualifiedBDList, util.IsDifference)
+					availableBDOnNode := util.ListDiff(filteredBlockDevices.Items, qualifiedBDList)
 					if len(availableBDOnNode) < count {
 						continue
 					}
@@ -208,6 +202,7 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 					qualifiedBDList[:minRequiredDiskCount]...,
 				)
 				selectedBlockDevice.NodeName = claimedNodeName
+				ac.VisitedNodes[selectedBlockDevice.NodeName] = true
 				return selectedBlockDevice, nil
 			}
 		}
@@ -228,6 +223,9 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 		}
 		selectedBlockDevice.NodeName = node
 		break
+	}
+	if selectedBlockDevice.NodeName != "" {
+		ac.VisitedNodes[selectedBlockDevice.NodeName] = true
 	}
 	return selectedBlockDevice, nil
 }

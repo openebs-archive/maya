@@ -86,7 +86,7 @@ func TestListDiff(t *testing.T) {
 		name := name
 		mock := mock
 		t.Run(name, func(t *testing.T) {
-			resultArr := ListOperation(mock.listA, mock.listB, IsDifference)
+			resultArr := ListDiff(mock.listA, mock.listB)
 			if mock.expectedLen != len(resultArr) {
 				t.Fatalf("failed to test %q: expected element count '%d': actual element count '%d'", name, mock.expectedLen, len(resultArr))
 			}
@@ -140,7 +140,7 @@ func TestListIntersection(t *testing.T) {
 		name := name
 		mock := mock
 		t.Run(name, func(t *testing.T) {
-			resultArr := ListOperation(mock.listA, mock.listB, IsInterSection)
+			resultArr := ListIntersection(mock.listA, mock.listB)
 			if mock.expectedLen != len(resultArr) {
 				t.Fatalf("failed to test %q: expected element count '%d': actual element count '%d'", name, mock.expectedLen, len(resultArr))
 			}
