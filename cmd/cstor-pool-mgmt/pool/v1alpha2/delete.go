@@ -24,7 +24,7 @@ import (
 
 // Delete will destroy the pool for given csp.
 // It will also perform labelclear for pool disk.
-func Delete(csp *apis.NewTestCStorPool) error {
+func Delete(csp *apis.CStorPoolInstance) error {
 	glog.Infof("Destroying a pool {%s}", PoolName(csp))
 
 	// Let's check if pool exists or not

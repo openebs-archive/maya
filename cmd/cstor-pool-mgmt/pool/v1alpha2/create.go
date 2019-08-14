@@ -24,7 +24,7 @@ import (
 )
 
 // Create will create the pool for given csp object
-func Create(csp *apis.NewTestCStorPool) error {
+func Create(csp *apis.CStorPoolInstance) error {
 	var err error
 
 	// Let's check if there is any disk having the pool config
@@ -75,7 +75,7 @@ func Create(csp *apis.NewTestCStorPool) error {
 	return err
 }
 
-func createPool(csp *apis.NewTestCStorPool, r apis.RaidGroup) error {
+func createPool(csp *apis.CStorPoolInstance, r apis.RaidGroup) error {
 	ptype := r.Type
 	if len(ptype) == 0 {
 		// type is not mentioned in raidGroup,

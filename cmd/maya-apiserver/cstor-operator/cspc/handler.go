@@ -22,7 +22,7 @@ import (
 	apiscspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
+	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	"time"
 
 	"github.com/golang/glog"
@@ -187,7 +187,7 @@ func (c *Controller) syncCSPC(cspcGot *apis.CStorPoolCluster) error {
 		}
 	}
 
-	cspList, err := pc.AlgorithmConfig.GetCSPWithoutDeployment()
+	cspList, err := pc.AlgorithmConfig.GetCSPIWithoutDeployment()
 	if err != nil {
 		// Note: CSP for which pool deployment does not exists are known as orphaned.
 		message := fmt.Sprintf("Error in getting orphaned CSP :{%s}", err.Error())
@@ -233,7 +233,7 @@ func (pc *PoolConfig) create(pendingPoolCount int, cspc *apis.CStorPoolCluster) 
 	return nil
 }
 
-func (pc *PoolConfig) createDeployForCSPList(cspList []apis.NewTestCStorPool) {
+func (pc *PoolConfig) createDeployForCSPList(cspList []apis.CStorPoolInstance) {
 	for _, cspObj := range cspList {
 		cspObj := cspObj
 		err := pc.createDeployForCSP(&cspObj)
@@ -245,7 +245,7 @@ func (pc *PoolConfig) createDeployForCSPList(cspList []apis.NewTestCStorPool) {
 	}
 }
 
-func (pc *PoolConfig) createDeployForCSP(csp *apis.NewTestCStorPool) error {
+func (pc *PoolConfig) createDeployForCSP(csp *apis.CStorPoolInstance) error {
 	deployObj, err := pc.GetPoolDeploySpec(csp)
 	if err != nil {
 		return errors.Wrapf(err, "could not get deployment spec for csp {%s}", csp.Name)
@@ -265,7 +265,7 @@ func (pc *PoolConfig) createDeployForCSP(csp *apis.NewTestCStorPool) error {
 // It is necessary that CSPC resource has the CSPC finalizer on it in order to
 // execute the handler.
 func (pc *PoolConfig) handleCSPCDeletion() error {
-	err := pc.deleteAssociatedCSP()
+	err := pc.deleteAssociatedCSPI()
 
 	if err != nil {
 		return errors.Wrapf(err, "failed to handle CSPC deletion")
@@ -287,10 +287,10 @@ func (pc *PoolConfig) handleCSPCDeletion() error {
 	return nil
 }
 
-// deleteAssociatedCSP deletes the CSP resource(s) belonging to the given CSPC resource.
-// If no CSP resource exists for the CSPC, then a levelled info log is logged and function
+// deleteAssociatedCSPI deletes the CSPI resource(s) belonging to the given CSPC resource.
+// If no CSPI resource exists for the CSPC, then a levelled info log is logged and function
 // returns.
-func (pc *PoolConfig) deleteAssociatedCSP() error {
+func (pc *PoolConfig) deleteAssociatedCSPI() error {
 	err := apiscsp.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).DeleteCollection(
 		metav1.ListOptions{
 			LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + pc.AlgorithmConfig.CSPC.Name,
@@ -299,14 +299,14 @@ func (pc *PoolConfig) deleteAssociatedCSP() error {
 	)
 
 	if k8serror.IsNotFound(err) {
-		glog.V(2).Infof("Associated CSP(s) of CSPC %s is already deleted:%s", pc.AlgorithmConfig.CSPC.Name, err.Error())
+		glog.V(2).Infof("Associated CSPI(s) of CSPC %s is already deleted:%s", pc.AlgorithmConfig.CSPC.Name, err.Error())
 		return nil
 	}
 
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete associated CSP(s):%s", err.Error())
+		return errors.Wrapf(err, "failed to delete associated CSPI(s):%s", err.Error())
 	}
-	glog.Infof("Associated CSP(s) of CSPC %s deleted successfully ", pc.AlgorithmConfig.CSPC.Name)
+	glog.Infof("Associated CSPI(s) of CSPC %s deleted successfully ", pc.AlgorithmConfig.CSPC.Name)
 	return nil
 }
 
@@ -323,7 +323,7 @@ func (pc *PoolConfig) removeCSPCFinalizer() error {
 
 	if len(cspList.Items) > 0 {
 		return errors.Wrap(err, "failed to remove CSPC finalizer on associated resources as "+
-			"CSP(s) still exists for CSPC")
+			"CSPI(s) still exists for CSPC")
 	}
 
 	err = pc.removeSPCFinalizerOnAssociatedBDC()

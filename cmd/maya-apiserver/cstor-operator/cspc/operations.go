@@ -21,7 +21,7 @@ import (
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apisbd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
-	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
+	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -44,7 +44,7 @@ func (pc *PoolConfig) replaceBlockDevice() {
 func (pc *PoolConfig) expandPool() error {
 	for _, pool := range pc.AlgorithmConfig.CSPC.Spec.Pools {
 		pool := pool
-		var cspObj *apis.NewTestCStorPool
+		var cspiObj *apis.CStorPoolInstance
 		nodeName, err := nodeselect.GetNodeFromLabelSelector(pool.NodeSelector)
 		if err != nil {
 			return errors.Wrapf(err,
@@ -52,34 +52,34 @@ func (pc *PoolConfig) expandPool() error {
 					"from cspc %s", pool.NodeSelector, pc.AlgorithmConfig.CSPC.Name)
 		}
 
-		cspObj, err = pc.getCSPWithNodeName(nodeName)
+		cspiObj, err = pc.getCSPIWithNodeName(nodeName)
 		if err != nil {
-			return errors.Wrapf(err, "failed to csp with node name %s", nodeName)
+			return errors.Wrapf(err, "failed to get cspi with node name %s", nodeName)
 		}
 
 		// Pool expansion for raid group types other than striped
-		if len(pool.RaidGroups) > len(cspObj.Spec.RaidGroups) {
-			cspObj = pc.addGroupToPool(&pool, cspObj)
+		if len(pool.RaidGroups) > len(cspiObj.Spec.RaidGroups) {
+			cspiObj = pc.addGroupToPool(&pool, cspiObj)
 		}
 
 		// Pool expansion for striped raid group
-		pc.expandExistingStripedGroup(&pool, cspObj)
+		pc.expandExistingStripedGroup(&pool, cspiObj)
 
-		_, err = apiscsp.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).Update(cspObj)
+		_, err = apiscsp.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).Update(cspiObj)
 		if err != nil {
-			glog.Errorf("could not update csp %s: %s", cspObj.Name, err.Error())
+			glog.Errorf("could not update cspi %s: %s", cspiObj.Name, err.Error())
 		}
 	}
 
 	return nil
 }
 
-// addGroupToPool adds a raid group to the csp
-func (pc *PoolConfig) addGroupToPool(cspcPoolSpec *apis.PoolSpec, csp *apis.NewTestCStorPool) *apis.NewTestCStorPool {
+// addGroupToPool adds a raid group to the cspi
+func (pc *PoolConfig) addGroupToPool(cspcPoolSpec *apis.PoolSpec, cspi *apis.CStorPoolInstance) *apis.CStorPoolInstance {
 	for _, cspcRaidGroup := range cspcPoolSpec.RaidGroups {
 		validGroup := true
 		cspcRaidGroup := cspcRaidGroup
-		if !isRaidGroupPresentOnCSP(&cspcRaidGroup, csp) {
+		if !isRaidGroupPresentOnCSPI(&cspcRaidGroup, cspi) {
 			if cspcRaidGroup.Type == "" {
 				cspcRaidGroup.Type = cspcPoolSpec.PoolConfig.DefaultRaidGroupType
 			}
@@ -94,28 +94,28 @@ func (pc *PoolConfig) addGroupToPool(cspcPoolSpec *apis.PoolSpec, csp *apis.NewT
 				err := pc.isBDUsable(bd.BlockDeviceName)
 				if err != nil {
 					glog.Errorf("could not use bd %s for expanding pool "+
-						"%s:%s", bd.BlockDeviceName, csp.Name, err.Error())
+						"%s:%s", bd.BlockDeviceName, cspi.Name, err.Error())
 					validGroup = false
 					break
 				}
 			}
 			if validGroup {
-				csp.Spec.RaidGroups = append(csp.Spec.RaidGroups, cspcRaidGroup)
+				cspi.Spec.RaidGroups = append(cspi.Spec.RaidGroups, cspcRaidGroup)
 			}
 		}
 	}
-	return csp
+	return cspi
 }
 
 // expandExistingStripedGroup adds newly added block devices to the existing striped
-// groups present on CSP
-func (pc *PoolConfig) expandExistingStripedGroup(cspcPoolSpec *apis.PoolSpec, csp *apis.NewTestCStorPool) {
+// groups present on CSPI
+func (pc *PoolConfig) expandExistingStripedGroup(cspcPoolSpec *apis.PoolSpec, cspi *apis.CStorPoolInstance) {
 	for _, cspcGroup := range cspcPoolSpec.RaidGroups {
 		cspcGroup := cspcGroup
-		if getRaidGroupType(cspcGroup, cspcPoolSpec) != string(apis.PoolStriped) || !isRaidGroupPresentOnCSP(&cspcGroup, csp) {
+		if getRaidGroupType(cspcGroup, cspcPoolSpec) != string(apis.PoolStriped) || !isRaidGroupPresentOnCSPI(&cspcGroup, cspi) {
 			continue
 		}
-		pc.addBlockDeviceToGroup(&cspcGroup, csp)
+		pc.addBlockDeviceToGroup(&cspcGroup, cspi)
 	}
 }
 
@@ -127,48 +127,48 @@ func getRaidGroupType(group apis.RaidGroup, poolSpec *apis.PoolSpec) string {
 	return poolSpec.PoolConfig.DefaultRaidGroupType
 }
 
-// addBlockDeviceToGroup adds block devices to the provided raid group on CSP
-func (pc *PoolConfig) addBlockDeviceToGroup(group *apis.RaidGroup, csp *apis.NewTestCStorPool) *apis.NewTestCStorPool {
-	for i, groupOnCSP := range csp.Spec.RaidGroups {
-		groupOnCSP := groupOnCSP
-		if isRaidGroupPresentOnCSP(group, csp) {
-			if len(group.BlockDevices) > len(groupOnCSP.BlockDevices) {
-				newBDs := getAddedBlockDevicesInGroup(group, &groupOnCSP)
+// addBlockDeviceToGroup adds block devices to the provided raid group on CSPI
+func (pc *PoolConfig) addBlockDeviceToGroup(group *apis.RaidGroup, cspi *apis.CStorPoolInstance) *apis.CStorPoolInstance {
+	for i, groupOnCSPI := range cspi.Spec.RaidGroups {
+		groupOnCSPI := groupOnCSPI
+		if isRaidGroupPresentOnCSPI(group, cspi) {
+			if len(group.BlockDevices) > len(groupOnCSPI.BlockDevices) {
+				newBDs := getAddedBlockDevicesInGroup(group, &groupOnCSPI)
 				if len(newBDs) == 0 {
 					glog.V(2).Infof("No new block devices "+
-						"added for group {%+v} on csp %s", groupOnCSP, csp.Name)
+						"added for group {%+v} on cspi %s", groupOnCSPI, cspi.Name)
 				}
 				pc.ClaimBDList(newBDs)
 				for _, bdName := range newBDs {
 					err := pc.isBDUsable(bdName)
 					if err != nil {
 						glog.Errorf("could not use bd %s for "+
-							"expanding pool %s:%s", bdName, csp.Name, err.Error())
+							"expanding pool %s:%s", bdName, cspi.Name, err.Error())
 						break
 					}
-					csp.Spec.RaidGroups[i].BlockDevices =
-						append(csp.Spec.RaidGroups[i].BlockDevices,
+					cspi.Spec.RaidGroups[i].BlockDevices =
+						append(cspi.Spec.RaidGroups[i].BlockDevices,
 							apis.CStorPoolClusterBlockDevice{BlockDeviceName: bdName})
 				}
 			}
 		}
 	}
-	return csp
+	return cspi
 }
 
-// isRaidGroupPresentOnCSP returns true if the provided
-// raid group is already present on CSP
+// isRaidGroupPresentOnCSPI returns true if the provided
+// raid group is already present on CSPI
 // TODO: Validation webhook should ensure that in striped group type
 // the blockdevices are only added and existing block device are not
 // removed.
-func isRaidGroupPresentOnCSP(group *apis.RaidGroup, csp *apis.NewTestCStorPool) bool {
+func isRaidGroupPresentOnCSPI(group *apis.RaidGroup, cspi *apis.CStorPoolInstance) bool {
 	blockDeviceMap := make(map[string]bool)
 	for _, bd := range group.BlockDevices {
 		blockDeviceMap[bd.BlockDeviceName] = true
 	}
-	for _, cspRaidGroup := range csp.Spec.RaidGroups {
-		for _, cspBDs := range cspRaidGroup.BlockDevices {
-			if blockDeviceMap[cspBDs.BlockDeviceName] {
+	for _, cspiRaidGroup := range cspi.Spec.RaidGroups {
+		for _, cspiBDs := range cspiRaidGroup.BlockDevices {
+			if blockDeviceMap[cspiBDs.BlockDeviceName] {
 				return true
 			}
 		}
@@ -177,38 +177,38 @@ func isRaidGroupPresentOnCSP(group *apis.RaidGroup, csp *apis.NewTestCStorPool) 
 }
 
 // getAddedBlockDevicesInGroup returns the added block device list
-func getAddedBlockDevicesInGroup(groupOnCSPC, groupOnCSP *apis.RaidGroup) []string {
+func getAddedBlockDevicesInGroup(groupOnCSPC, groupOnCSPI *apis.RaidGroup) []string {
 	var addedBlockDevices []string
 
-	// bdPresentOnCSP is a map whose key is block devices
-	// name present on the CSP and corresponding value for
+	// bdPresentOnCSPI is a map whose key is block devices
+	// name present on the CSPI and corresponding value for
 	// the key is true.
-	bdPresentOnCSP := make(map[string]bool)
-	for _, bdCSP := range groupOnCSP.BlockDevices {
-		bdPresentOnCSP[bdCSP.BlockDeviceName] = true
+	bdPresentOnCSPI := make(map[string]bool)
+	for _, bdCSPI := range groupOnCSPI.BlockDevices {
+		bdPresentOnCSPI[bdCSPI.BlockDeviceName] = true
 	}
 
 	for _, bdCSPC := range groupOnCSPC.BlockDevices {
-		if !bdPresentOnCSP[bdCSPC.BlockDeviceName] {
+		if !bdPresentOnCSPI[bdCSPC.BlockDeviceName] {
 			addedBlockDevices = append(addedBlockDevices, bdCSPC.BlockDeviceName)
 		}
 	}
 	return addedBlockDevices
 }
 
-// getCSPWithNodeName returns a csp object with provided node name
-// TODO: Move to CSP package
-func (pc *PoolConfig) getCSPWithNodeName(nodeName string) (*apis.NewTestCStorPool, error) {
-	cspList, _ := apiscsp.
+// getCSPIWithNodeName returns a cspi object with provided node name
+// TODO: Move to CSPI package
+func (pc *PoolConfig) getCSPIWithNodeName(nodeName string) (*apis.CStorPoolInstance, error) {
+	cspiList, _ := apiscsp.
 		NewKubeClient().
 		WithNamespace(pc.AlgorithmConfig.Namespace).
 		List(metav1.ListOptions{LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + pc.AlgorithmConfig.CSPC.Name})
 
-	cspListBuilder := apiscsp.ListBuilderFromAPIList(cspList).WithFilter(apiscsp.HasNodeName(nodeName)).List()
-	if len(cspListBuilder.ObjectList.Items) == 1 {
-		return &cspListBuilder.ObjectList.Items[0], nil
+	cspiListBuilder := apiscsp.ListBuilderFromAPIList(cspiList).WithFilter(apiscsp.HasNodeName(nodeName)).List()
+	if len(cspiListBuilder.ObjectList.Items) == 1 {
+		return &cspiListBuilder.ObjectList.Items[0], nil
 	}
-	return nil, errors.New("No CSP(s) found")
+	return nil, errors.New("No CSPI(s) found")
 }
 
 // isBDUsable returns no error if BD can be used.

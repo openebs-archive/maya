@@ -18,8 +18,8 @@ package v1alpha2
 
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
 	apicspsc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -30,14 +30,14 @@ const (
 	CasTypeCStor = "cstor"
 )
 
-// GetCSPSpec returns a CSP spec that should be created and claims all the
-// block device present in the CSP spec
-func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
+// GetCSPSpec returns a CSPI spec that should be created and claims all the
+// block device present in the CSPI spec
+func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 	poolSpec, nodeName, err := ac.SelectNode()
 	if err != nil || nodeName == "" {
 		return nil, errors.Wrap(err, "failed to select a node")
 	}
-	csplabels := ac.buildLabelsForCSP(nodeName)
+	csplabels := ac.buildLabelsForCSPI(nodeName)
 	cspObj, err := apiscsp.NewBuilder().
 		WithName(ac.CSPC.Name + "-" + rand.String(4)).
 		WithNamespace(ac.Namespace).
@@ -60,9 +60,9 @@ func (ac *Config) GetCSPSpec() (*apis.NewTestCStorPool, error) {
 	return cspObj.Object, nil
 }
 
-// buildLabelsForCSP builds labels for CSP
+// buildLabelsForCSPI builds labels for CSPI
 // TODO : Improve following using builders
-func (ac *Config) buildLabelsForCSP(nodeName string) map[string]string {
+func (ac *Config) buildLabelsForCSPI(nodeName string) map[string]string {
 	labels := make(map[string]string)
 	labels[HostName] = nodeName
 	labels[string(apis.CStorPoolClusterCPK)] = ac.CSPC.Name

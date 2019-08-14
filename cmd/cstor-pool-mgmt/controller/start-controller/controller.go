@@ -41,7 +41,7 @@ import (
 
 	poolcontroller1 "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/pool-controller"
 	//poolcontroller2 "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/new-pool-controller"
-	poolcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/new-pool-controller"
+	poolcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/cstor-pool-instance"
 	//// for v1alpha2
 	//clientset2 "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset"
 	//informers2 "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/informer/externalversions"

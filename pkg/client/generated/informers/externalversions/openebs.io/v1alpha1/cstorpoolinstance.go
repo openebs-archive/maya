@@ -31,59 +31,59 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// NewTestCStorPoolInformer provides access to a shared informer and lister for
-// NewTestCStorPools.
-type NewTestCStorPoolInformer interface {
+// CStorPoolInstanceInformer provides access to a shared informer and lister for
+// CStorPoolInstances.
+type CStorPoolInstanceInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.NewTestCStorPoolLister
+	Lister() v1alpha1.CStorPoolInstanceLister
 }
 
-type newTestCStorPoolInformer struct {
+type cStorPoolInstanceInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewNewTestCStorPoolInformer constructs a new informer for NewTestCStorPool type.
+// NewCStorPoolInstanceInformer constructs a new informer for CStorPoolInstance type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewNewTestCStorPoolInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredNewTestCStorPoolInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewCStorPoolInstanceInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredCStorPoolInstanceInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredNewTestCStorPoolInformer constructs a new informer for NewTestCStorPool type.
+// NewFilteredCStorPoolInstanceInformer constructs a new informer for CStorPoolInstance type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredNewTestCStorPoolInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredCStorPoolInstanceInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenebsV1alpha1().NewTestCStorPools(namespace).List(options)
+				return client.OpenebsV1alpha1().CStorPoolInstances(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenebsV1alpha1().NewTestCStorPools(namespace).Watch(options)
+				return client.OpenebsV1alpha1().CStorPoolInstances(namespace).Watch(options)
 			},
 		},
-		&openebsiov1alpha1.NewTestCStorPool{},
+		&openebsiov1alpha1.CStorPoolInstance{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *newTestCStorPoolInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredNewTestCStorPoolInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *cStorPoolInstanceInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredCStorPoolInstanceInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *newTestCStorPoolInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&openebsiov1alpha1.NewTestCStorPool{}, f.defaultInformer)
+func (f *cStorPoolInstanceInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&openebsiov1alpha1.CStorPoolInstance{}, f.defaultInformer)
 }
 
-func (f *newTestCStorPoolInformer) Lister() v1alpha1.NewTestCStorPoolLister {
-	return v1alpha1.NewNewTestCStorPoolLister(f.Informer().GetIndexer())
+func (f *cStorPoolInstanceInformer) Lister() v1alpha1.CStorPoolInstanceLister {
+	return v1alpha1.NewCStorPoolInstanceLister(f.Informer().GetIndexer())
 }

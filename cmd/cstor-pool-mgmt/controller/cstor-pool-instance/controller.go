@@ -70,7 +70,7 @@ func NewCStorPoolController(
 	cStorInformerFactory informers.SharedInformerFactory) *CStorPoolController {
 
 	// obtain references to shared index informers for the cStorPool resources
-	cStorPoolInformer := cStorInformerFactory.Openebs().V1alpha1().NewTestCStorPools()
+	cStorPoolInformer := cStorInformerFactory.Openebs().V1alpha1().CStorPoolInstances()
 
 	zpool.KubeClient = kubeclientset
 	zpool.OpenEBSClient = clientset
@@ -107,7 +107,7 @@ func NewCStorPoolController(
 	// Set up an event handler for when CstorPool resources change.
 	cStorPoolInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			csp := obj.(*apis.NewTestCStorPool)
+			csp := obj.(*apis.CStorPoolInstance)
 			if !IsRightCStorPoolMgmt(csp) {
 				return
 			}
@@ -115,7 +115,7 @@ func NewCStorPoolController(
 		},
 
 		UpdateFunc: func(oldVar, newVar interface{}) {
-			csp := newVar.(*apis.NewTestCStorPool)
+			csp := newVar.(*apis.CStorPoolInstance)
 
 			if !IsRightCStorPoolMgmt(csp) {
 				return
@@ -130,7 +130,7 @@ func NewCStorPoolController(
 // enqueueCstorPool takes a CStorPool resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
 // passed resources of any type other than CStorPools.
-func (c *CStorPoolController) enqueueCStorPool(obj *apis.NewTestCStorPool) {
+func (c *CStorPoolController) enqueueCStorPool(obj *apis.CStorPoolInstance) {
 	key, err := cache.MetaNamespaceKeyFunc(obj)
 	if err != nil {
 		runtime.HandleError(err)

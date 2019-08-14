@@ -95,7 +95,7 @@ func (c *CStorPoolController) reconcile(key string) error {
 	return c.updateStatus(csp)
 }
 
-func (c *CStorPoolController) destroy(csp *apis.NewTestCStorPool) error {
+func (c *CStorPoolController) destroy(csp *apis.CStorPoolInstance) error {
 	var phase apis.CStorPoolPhase
 
 	// DeletePool is to delete cstor zpool.
@@ -124,12 +124,12 @@ updatestatus:
 	csp.Status.Phase = phase
 	_, _ = zpool.OpenEBSClient.
 		OpenebsV1alpha1().
-		NewTestCStorPools(csp.Namespace).
+		CStorPoolInstances(csp.Namespace).
 		Update(csp)
 	return err
 }
 
-func (c *CStorPoolController) update(csp *apis.NewTestCStorPool) error {
+func (c *CStorPoolController) update(csp *apis.CStorPoolInstance) error {
 	err := zpool.Update(csp)
 	if err != nil {
 		c.recorder.Event(csp,
@@ -141,7 +141,7 @@ func (c *CStorPoolController) update(csp *apis.NewTestCStorPool) error {
 	return c.updateStatus(csp)
 }
 
-func (c *CStorPoolController) updateStatus(csp *apis.NewTestCStorPool) error {
+func (c *CStorPoolController) updateStatus(csp *apis.CStorPoolInstance) error {
 	var status apis.CStorPoolStatus
 	var err error
 	pool := zpool.PoolName(csp)
@@ -186,7 +186,7 @@ func (c *CStorPoolController) updateStatus(csp *apis.NewTestCStorPool) error {
 		csp.Status = status
 		_, err = zpool.OpenEBSClient.
 			OpenebsV1alpha1().
-			NewTestCStorPools(csp.Namespace).
+			CStorPoolInstances(csp.Namespace).
 			Update(csp)
 		return err
 	}
@@ -194,7 +194,7 @@ func (c *CStorPoolController) updateStatus(csp *apis.NewTestCStorPool) error {
 }
 
 // getCSPObjFromKey returns object corresponding to the resource key
-func (c *CStorPoolController) getCSPObjFromKey(key string) (*apis.NewTestCStorPool, error) {
+func (c *CStorPoolController) getCSPObjFromKey(key string) (*apis.CStorPoolInstance, error) {
 	// Convert the key(namespace/name) string into a distinct name
 	ns, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
@@ -204,7 +204,7 @@ func (c *CStorPoolController) getCSPObjFromKey(key string) (*apis.NewTestCStorPo
 
 	csp, err := c.clientset.
 		OpenebsV1alpha1().
-		NewTestCStorPools(ns).
+		CStorPoolInstances(ns).
 		Get(name, metav1.GetOptions{})
 	if err != nil {
 		// The cStorPool resource may no longer exist, in which case we stop
@@ -220,14 +220,14 @@ func (c *CStorPoolController) getCSPObjFromKey(key string) (*apis.NewTestCStorPo
 }
 
 // removeFinalizer is to remove finalizer of cstorpool resource.
-func (c *CStorPoolController) removeFinalizer(csp *apis.NewTestCStorPool) error {
+func (c *CStorPoolController) removeFinalizer(csp *apis.CStorPoolInstance) error {
 	if len(csp.Finalizers) == 0 {
 		return nil
 	}
 	csp.Finalizers = []string{}
 	_, err := c.clientset.
 		OpenebsV1alpha1().
-		NewTestCStorPools(csp.Namespace).
+		CStorPoolInstances(csp.Namespace).
 		Update(csp)
 	if err != nil {
 		return err

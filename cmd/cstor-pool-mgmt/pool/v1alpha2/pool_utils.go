@@ -131,7 +131,7 @@ func checkIfDeviceUsed(path string, t zpool.Topology) bool {
 	return isUsed
 }
 
-func checkIfPoolNotImported(csp *apis.NewTestCStorPool) (string, bool, error) {
+func checkIfPoolNotImported(csp *apis.CStorPoolInstance) (string, bool, error) {
 	ret, err := zfs.NewPoolImport().
 		WithDirectory(SparseDir).
 		WithDirectory(DevDir).

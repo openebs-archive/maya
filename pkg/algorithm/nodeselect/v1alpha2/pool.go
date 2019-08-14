@@ -19,7 +19,7 @@ package v1alpha2
 import (
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	apiscsp "github.com/openebs/maya/pkg/cstor/newpool/v1alpha3"
+	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	"github.com/pkg/errors"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -60,9 +60,9 @@ func (c *Config) IsPoolPending() bool {
 	return false
 }
 
-// GetCSPWithoutDeployment gets the CSPs for whom the pool deployment does not exists.
-func (c *Config) GetCSPWithoutDeployment() ([]apis.NewTestCStorPool, error) {
-	var cspList []apis.NewTestCStorPool
+// GetCSPIWithoutDeployment gets the CSPIs for whom the pool deployment does not exists.
+func (c *Config) GetCSPIWithoutDeployment() ([]apis.CStorPoolInstance, error) {
+	var cspList []apis.CStorPoolInstance
 	cspGotList, err := apiscsp.NewKubeClient().WithNamespace(c.Namespace).List(metav1.ListOptions{LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + c.CSPC.Name})
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not list csp for cspc {%s}", c.CSPC.Name)
