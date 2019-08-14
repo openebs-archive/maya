@@ -47,9 +47,9 @@ func NewBuilder() *Builder {
 
 // BuilderForObject returns an instance of the Builder object based on
 // CStorPool object
-func BuilderForObject(CStorPool *CSPI) *Builder {
+func BuilderForObject(cspi *CSPI) *Builder {
 	return &Builder{
-		CSPI: CStorPool,
+		CSPI: cspi,
 		errs: []error{},
 	}
 }
