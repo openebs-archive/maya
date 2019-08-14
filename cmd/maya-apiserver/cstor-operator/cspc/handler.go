@@ -37,17 +37,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// TODO: Following will be used in future PRs.
-//var (
-//	// supportedPool is a map holding the supported raid configurations.
-//	supportedPool = map[apis.CasPoolValString]bool{
-//		apis.PoolTypeStripedCPV:  true,
-//		apis.PoolTypeMirroredCPV: true,
-//		apis.PoolTypeRaidzCPV:    true,
-//		apis.PoolTypeRaidz2CPV:   true,
-//	}
-//)
-
 type clientSet struct {
 	oecs openebs.Interface
 }
