@@ -68,7 +68,7 @@ func Create(csp *apis.CStorPoolInstance) error {
 	// Lets update it with extra config, if provided
 	for _, r := range raidGroups {
 		if e := addRaidGroup(csp, r); e != nil {
-			err = ErrorWrapf(err, "Failed to add raidGroup{%s}.. %s", r.Name, e.Error())
+			err = ErrorWrapf(err, "Failed to add raidGroup{%#v}.. %s", r, e.Error())
 		}
 	}
 
