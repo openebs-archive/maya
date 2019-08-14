@@ -56,6 +56,11 @@ type Config struct {
 	CspClient cstorpool.CstorpoolInterface
 	// ProvisioningType tells the type of provisioning i.e. manual or auto.
 	ProvisioningType string
+	// VisitedNodes is a map which contains the node names which has already been
+	// processed for pool provisioning
+	VisitedNodes map[string]bool
+	// Namespace where OpenEBS is deployed
+	Namespace string
 }
 
 // getDiskK8sClient returns an instance of kubernetes client for Disk.
@@ -124,6 +129,7 @@ func NewConfig(spc *apis.StoragePoolClaim) *Config {
 		CspClient:         cspK8sClient,
 		SpClient:          spK8sClient,
 		ProvisioningType:  pT,
+		VisitedNodes:      map[string]bool{},
 	}
 	return ac
 }

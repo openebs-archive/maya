@@ -113,6 +113,11 @@ func (spc *SPC) HasFinalizer(finalizer string) bool {
 	return util.ContainsString(finalizersList, finalizer)
 }
 
+// IsAutoProvisioning returns true if the spc is auto provisioning type
+func (spc *SPC) IsAutoProvisioning() bool {
+	return spc.Object.Spec.BlockDevices.BlockDeviceList == nil
+}
+
 // RemoveFinalizer removes the given finalizer from the object.
 func (spc *SPC) RemoveFinalizer(finalizer string) error {
 	if len(spc.Object.Finalizers) == 0 {

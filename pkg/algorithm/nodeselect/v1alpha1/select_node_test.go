@@ -116,11 +116,11 @@ func fakeAlgorithmConfig(spc *v1alpha1.StoragePoolClaim) *Config {
 		Clientset:     openebsFakeClientset.NewSimpleClientset(),
 	}
 	ac := &Config{
-		Spc: spc,
-
+		Spc:               spc,
 		BlockDeviceClient: bdClient,
 		CspClient:         cspK8sClient,
 		SpClient:          spK8sClient,
+		VisitedNodes:      map[string]bool{},
 	}
 
 	return ac

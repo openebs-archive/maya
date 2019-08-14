@@ -47,10 +47,8 @@ type CasPoolBuilder struct {
 // 1. It receives storagepoolclaim object from the spc watcher event handler.
 // 2. After successful validation, it will call a worker function for actual storage creation
 //    via the cas template specified in storagepoolclaim.
-func (c *Controller) CreateStoragePool(spcGot *apis.StoragePoolClaim) error {
-	poolconfig := c.NewPoolCreateConfig(spcGot)
-	newCasPool, err := poolconfig.getCasPool(spcGot)
-
+func (pc *PoolCreateConfig) CreateStoragePool(spcGot *apis.StoragePoolClaim) error {
+	newCasPool, err := pc.getCasPool(spcGot)
 	if err != nil {
 		return errors.Wrapf(err, "failed to build cas pool for spc %s", spcGot.Name)
 	}

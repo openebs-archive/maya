@@ -55,6 +55,102 @@ func TestContainsString(t *testing.T) {
 	}
 }
 
+func TestListDiff(t *testing.T) {
+	tests := map[string]struct {
+		listA        []string
+		listB        []string
+		expectedLen  int
+		expectedList []string
+	}{
+		"list diff operation - positive test case - element is present": {
+			listA:        []string{"hi", "hello", "crazzy"},
+			listB:        []string{"hello"},
+			expectedLen:  2,
+			expectedList: []string{"hi", "crazzy"},
+		},
+		"list diff operation - positive test case - element is not present": {
+			listA:        []string{},
+			listB:        []string{"there", "you", "go"},
+			expectedLen:  0,
+			expectedList: []string{},
+		},
+		"contains string - boundary test case - similar elements but not same": {
+			listA:        []string{"hi there", "ok now"},
+			listB:        []string{},
+			expectedLen:  2,
+			expectedList: []string{"hi there", "ok now"},
+		},
+	}
+
+	for name, mock := range tests {
+		name := name
+		mock := mock
+		t.Run(name, func(t *testing.T) {
+			resultArr := ListDiff(mock.listA, mock.listB)
+			if mock.expectedLen != len(resultArr) {
+				t.Fatalf("failed to test %q: expected element count '%d': actual element count '%d'", name, mock.expectedLen, len(resultArr))
+			}
+			if !reflect.DeepEqual(resultArr, mock.expectedList) {
+				t.Fatalf("failed to test %q: expected elements '%v': actual elements  '%v'", name, mock.expectedList, resultArr)
+			}
+		})
+	}
+}
+
+func TestListIntersection(t *testing.T) {
+	tests := map[string]struct {
+		listA        []string
+		listB        []string
+		expectedLen  int
+		expectedList []string
+	}{
+		"positive test case - element is present": {
+			listA:        []string{"hi", "hello", "crazzy"},
+			listB:        []string{"hello"},
+			expectedLen:  1,
+			expectedList: []string{"hello"},
+		},
+		"positive test case - ListA is empty": {
+			listA:        []string{},
+			listB:        []string{"there", "you", "go"},
+			expectedLen:  0,
+			expectedList: []string{},
+		},
+		"ListB is empty": {
+			listA:        []string{"hi there", "ok now"},
+			listB:        []string{},
+			expectedLen:  0,
+			expectedList: []string{},
+		},
+		"List is missmatch - boundary test case - similar elements but not same": {
+			listA:        []string{"hi there", "ok now"},
+			listB:        []string{"h ithere"},
+			expectedLen:  0,
+			expectedList: []string{},
+		},
+		"List is match in different order": {
+			listA:        []string{"hi there", "ok now"},
+			listB:        []string{"ok now", "hi there"},
+			expectedLen:  2,
+			expectedList: []string{"hi there", "ok now"},
+		},
+	}
+
+	for name, mock := range tests {
+		name := name
+		mock := mock
+		t.Run(name, func(t *testing.T) {
+			resultArr := ListIntersection(mock.listA, mock.listB)
+			if mock.expectedLen != len(resultArr) {
+				t.Fatalf("failed to test %q: expected element count '%d': actual element count '%d'", name, mock.expectedLen, len(resultArr))
+			}
+			if !reflect.DeepEqual(resultArr, mock.expectedList) {
+				t.Fatalf("failed to test %q: expected elements '%v': actual elements  '%v'", name, mock.expectedList, resultArr)
+			}
+		})
+	}
+}
+
 func TestContainsKey(t *testing.T) {
 	tests := map[string]struct {
 		mapOfObjs map[string]interface{}

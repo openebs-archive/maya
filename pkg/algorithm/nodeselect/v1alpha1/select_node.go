@@ -24,6 +24,7 @@ import (
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
+	util "github.com/openebs/maya/pkg/util"
 	volume "github.com/openebs/maya/pkg/volume"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,7 +45,7 @@ type ClaimedBDDetails struct {
 
 // NodeBlockDeviceSelector selects a node and block devices attached to it.
 func (ac *Config) NodeBlockDeviceSelector() (*nodeBlockDevice, error) {
-	var filteredNodeBDs map[string]*blockDeviceList
+	//var filteredNodeBDs map[string]*blockDeviceList
 	listBD, err := ac.getBlockDevice()
 	if err != nil {
 		return nil, err
@@ -57,50 +58,12 @@ func (ac *Config) NodeBlockDeviceSelector() (*nodeBlockDevice, error) {
 		return nil, err
 	}
 
-	filteredNodeBDs = nodeBlockDeviceMap
-	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
-		filteredNodeBDs, err = ac.getFilteredNodeBlockDevices(nodeBlockDeviceMap)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	selectedBD := ac.selectNode(filteredNodeBDs)
-
-	return selectedBD, nil
-}
-
-// getFilteredNodeBlockDevices returns the map of node name and block device
-// list if no claims are present on list of block devices. If claims are present
-// then it retunrns those block devices on which claims are created
-func (ac *Config) getFilteredNodeBlockDevices(nodeBDs map[string]*blockDeviceList) (map[string]*blockDeviceList, error) {
-	namespace := env.Get(env.OpenEBSNamespace)
-	bdcKubeclient := bdc.NewKubeClient().
-		WithNamespace(namespace)
-	bdcList, err := bdcKubeclient.List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
+	selectedBD, err := ac.selectNode(nodeBlockDeviceMap)
 	if err != nil {
 		return nil, err
 	}
 
-	customBDCList := &bdc.BlockDeviceClaimList{
-		ObjectList: bdcList,
-	}
-
-	nodeClaimedBDs := customBDCList.GetBlockDeviceNamesByNode()
-
-	newNodeBDMap := make(map[string]*blockDeviceList)
-	for node, bdList := range nodeBDs {
-		if len(nodeClaimedBDs[node]) == 0 {
-			newNodeBDMap[node] = &blockDeviceList{
-				Items: bdList.Items,
-			}
-		} else {
-			newNodeBDMap[node] = &blockDeviceList{
-				Items: nodeClaimedBDs[node],
-			}
-		}
-	}
-	return newNodeBDMap, nil
+	return selectedBD, nil
 }
 
 // getUsedBlockDeviceMap gives list of disks that has already been used for pool provisioning.
@@ -138,10 +101,12 @@ func (ac *Config) getUsedNodeMap() (map[string]int, error) {
 }
 
 func (ac *Config) getCandidateNode(listBlockDevice *ndmapis.BlockDeviceList) (map[string]*blockDeviceList, error) {
+	// get used blockdevice from csp present in cluster
 	usedDiskMap, err := ac.getUsedBlockDeviceMap()
 	if err != nil {
 		return nil, err
 	}
+	// get used node names from csp related to spc
 	usedNodeMap, err := ac.getUsedNodeMap()
 	if err != nil {
 		return nil, err
@@ -150,21 +115,27 @@ func (ac *Config) getCandidateNode(listBlockDevice *ndmapis.BlockDeviceList) (ma
 	// and nodeBlockDevice struct as value.
 	nodeBlockDeviceMap := make(map[string]*blockDeviceList)
 	for _, value := range listBlockDevice.Items {
+		nodeName := value.Labels[string(apis.HostNameCPK)]
 		// If the disk is already being used, do not consider this as a part for provisioning pool.
 		if usedDiskMap[value.Name] == 1 {
 			continue
 		}
 		// If the node is already being used for a given spc, do not consider this as a part for provisioning pool.
-		if usedNodeMap[value.Labels[string(apis.HostNameCPK)]] == 1 {
+		if usedNodeMap[nodeName] == 1 {
 			continue
 		}
-		if nodeBlockDeviceMap[value.Labels[string(apis.HostNameCPK)]] == nil {
+		//If node is already visited in this reconciliation then continue with
+		//other nodes
+		if ac.VisitedNodes[nodeName] {
+			continue
+		}
+		if nodeBlockDeviceMap[nodeName] == nil {
 			// Entry to this block means first time the hostname will be mapped for the first time.
 			// Obviously, this entry of hostname(node) is for a usable disk and initialize diskCount to 1.
-			nodeBlockDeviceMap[value.Labels[string(apis.HostNameCPK)]] = &blockDeviceList{Items: []string{value.Name}}
+			nodeBlockDeviceMap[nodeName] = &blockDeviceList{Items: []string{value.Name}}
 		} else {
 			// Entry to this block means the hostname was already mapped and it has more than one disk and at least two disks.
-			nodeDisk := nodeBlockDeviceMap[value.Labels[string(apis.HostNameCPK)]]
+			nodeDisk := nodeBlockDeviceMap[nodeName]
 			// Add the current disk to the diskList for this node.
 			nodeDisk.Items = append(nodeDisk.Items, value.Name)
 		}
@@ -172,7 +143,9 @@ func (ac *Config) getCandidateNode(listBlockDevice *ndmapis.BlockDeviceList) (ma
 	return nodeBlockDeviceMap, nil
 }
 
-func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) *nodeBlockDevice {
+// selectNode returns node name and list of blockdevice(nodeBlockDevice) can be used to
+// provision cstor pools
+func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*nodeBlockDevice, error) {
 	// selectedBlockDevice will hold a node capable to form pool and list of disks attached to it.
 	selectedBlockDevice := &nodeBlockDevice{
 		NodeName: "",
@@ -180,12 +153,61 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) *no
 			Items: []string{},
 		},
 	}
+	var bdcList *ndmapis.BlockDeviceClaimList
+	var err error
+	spcObj := spcv1alpha1.SPC{Object: ac.Spc}
 	// bdCount will hold the number of block devices that will be selected from a qualified
 	// node for specific pool type
 	var bdCount int
 	// minRequiredDiskCount will hold the required number of disk that should be selected from a qualified
 	// node for specific pool type
 	minRequiredDiskCount := spcv1alpha1.DefaultDiskCount[ac.poolType()]
+
+	// Below snippet is required to get the node and blockdevice topology from
+	// blockdeviceclaims which were created during previous reconciliation
+	if spcObj.IsAutoProvisioning() {
+		// List all blockdeviceclaims related to spc
+		// NOTE: This list contains blockdevices on which csps' are already
+		// created filter and use it
+		bdcList, err = bdc.NewKubeClient().
+			WithNamespace(ac.Namespace).
+			List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to select node and blockdevices")
+		}
+		// customBDCList is a wrapper over blockdeviceclaim list
+		customBDCList := bdc.BlockDeviceClaimList{
+			ObjectList: bdcList,
+		}
+		// Form node and blockdevice topology for blockdevices which has bdc
+		claimedDevicesOnNode := customBDCList.GetBlockDeviceNamesByNode()
+		for claimedNodeName, bdNameList := range claimedDevicesOnNode {
+			filteredBlockDevices := nodeBlockDeviceMap[claimedNodeName]
+
+			//Check is this node is usable or not
+			if filteredBlockDevices != nil {
+				qualifiedBDList := util.ListIntersection(filteredBlockDevices.Items, bdNameList)
+				// check whether bdNameList contains partially created claimed BDs
+				// i.e BD count is less than required BDs
+				if len(qualifiedBDList) < minRequiredDiskCount {
+					count := minRequiredDiskCount - len(qualifiedBDList)
+					availableBDOnNode := util.ListDiff(filteredBlockDevices.Items, qualifiedBDList)
+					if len(availableBDOnNode) < count {
+						continue
+					}
+					qualifiedBDList = append(qualifiedBDList, availableBDOnNode[:count]...)
+				}
+				selectedBlockDevice.BlockDevices.Items = append(
+					selectedBlockDevice.BlockDevices.Items,
+					qualifiedBDList[:minRequiredDiskCount]...,
+				)
+				selectedBlockDevice.NodeName = claimedNodeName
+				ac.VisitedNodes[selectedBlockDevice.NodeName] = true
+				return selectedBlockDevice, nil
+			}
+		}
+	}
+
 	for node, val := range nodeBlockDeviceMap {
 		// If the current block device count on the node is less than the required disks
 		// then this is a dirty node and it will not qualify.
@@ -202,7 +224,10 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) *no
 		selectedBlockDevice.NodeName = node
 		break
 	}
-	return selectedBlockDevice
+	if selectedBlockDevice.NodeName != "" {
+		ac.VisitedNodes[selectedBlockDevice.NodeName] = true
+	}
+	return selectedBlockDevice, nil
 }
 
 // diskFilterConstraint takes a value for key "ndm.io/disk-type" and form a label.
@@ -242,6 +267,7 @@ func (ac *Config) poolType() string {
 func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	var bdl *blockdevice.BlockDeviceList
 	diskType := ac.Spc.Spec.Type
+	spcObj := &spcv1alpha1.SPC{Object: ac.Spc}
 	diskFilterLabel := diskFilterConstraint(diskType)
 	bdList, err := ac.BlockDeviceClient.List(metav1.ListOptions{LabelSelector: diskFilterLabel})
 	if err != nil {
@@ -255,13 +281,23 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 		filterList = append(filterList, blockdevice.FilterNonSparseDevices)
 	}
 
-	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
+	if spcObj.IsAutoProvisioning() {
 		filterList = append(filterList, blockdevice.FilterNonFSType, blockdevice.FilterNonRelesedDevices)
 	}
 
 	bdl = bdList.Filter(filterList...)
 	if len(bdl.Items) == 0 {
 		return nil, errors.Errorf("type {%s} devices are not available to provision pools in %s mode", diskType, ProvisioningType(ac.Spc))
+	}
+
+	// Below snippet is required when BDs are claimed but CSPs are not created.
+	// This might be useful in a case where multiple spc's are created at a time
+	if spcObj.IsAutoProvisioning() {
+		newBDL, err := bdl.GetUsableBlockDevices(ac.Spc.Name, ac.Namespace)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get list of usable blockdevice list")
+		}
+		bdl = newBDL
 	}
 	return bdl.BlockDeviceList, nil
 }
@@ -333,7 +369,6 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to build block device claim for bd {%s}", bdName)
 			}
-
 			_, err = bdcKubeclient.Create(newBDCObj.Object)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to create block device claim for bdc {%s}", bdcName)
