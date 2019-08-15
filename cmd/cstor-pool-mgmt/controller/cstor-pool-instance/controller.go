@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package poolcontroller
+package poolinstancecontroller
 
 import (
 	"github.com/golang/glog"
@@ -38,18 +38,18 @@ import (
 	//openebsScheme "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset/scheme"
 )
 
-const poolControllerName = "CStorPool"
+const poolControllerName = "CStorPoolInstance"
 
-// CStorPoolController is the controller implementation for CStorPool resources.
-type CStorPoolController struct {
+// CStorPoolInstanceController is the controller implementation for CStorPoolInstance resources.
+type CStorPoolInstanceController struct {
 	// kubeclientset is a standard kubernetes clientset
 	kubeclientset kubernetes.Interface
 
 	// clientset is a openebs custom resource package generated for custom API group.
 	clientset clientset.Interface
 
-	// cStorPoolSynced is used for caches sync to get populated
-	cStorPoolSynced cache.InformerSynced
+	// cStorPoolInstanceSynced is used for caches sync to get populated
+	cStorPoolInstanceSynced cache.InformerSynced
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
@@ -62,15 +62,15 @@ type CStorPoolController struct {
 	recorder record.EventRecorder
 }
 
-// NewCStorPoolController returns a new instance of CStorPool controller
-func NewCStorPoolController(
+// NewCStorPoolInstanceController returns a new instance of CStorPoolInstance controller
+func NewCStorPoolInstanceController(
 	kubeclientset kubernetes.Interface,
 	clientset clientset.Interface,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
-	cStorInformerFactory informers.SharedInformerFactory) *CStorPoolController {
+	cStorInformerFactory informers.SharedInformerFactory) *CStorPoolInstanceController {
 
-	// obtain references to shared index informers for the cStorPool resources
-	cStorPoolInformer := cStorInformerFactory.Openebs().V1alpha1().CStorPoolInstances()
+	// obtain references to shared index informers for the cStorPoolInstance resources
+	cStorPoolInstanceInformer := cStorInformerFactory.Openebs().V1alpha1().CStorPoolInstances()
 
 	zpool.KubeClient = kubeclientset
 	zpool.OpenEBSClient = clientset
@@ -82,8 +82,8 @@ func NewCStorPoolController(
 	}
 
 	// Create event broadcaster to receive events and send them to any EventSink, watcher, or log.
-	// Add NewCstorPoolController types to the default Kubernetes Scheme so Events can be
-	// logged for CstorPool Controller types.
+	// Add NewCstorPoolInstanceController types to the default Kubernetes Scheme so Events can be
+	// logged for CstorPoolInstance Controller types.
 	glog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
@@ -94,43 +94,43 @@ func NewCStorPoolController(
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclientset.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: poolControllerName})
 
-	controller := &CStorPoolController{
+	controller := &CStorPoolInstanceController{
 		kubeclientset:   kubeclientset,
 		clientset:       clientset,
-		cStorPoolSynced: cStorPoolInformer.Informer().HasSynced,
+		cStorPoolInstanceSynced: cStorPoolInstanceInformer.Informer().HasSynced,
 		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), poolControllerName),
 		recorder:        recorder,
 	}
 
 	glog.Info("Setting up event handlers for CSP")
 
-	// Set up an event handler for when CstorPool resources change.
-	cStorPoolInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	// Set up an event handler for when CstorPoolInstance resources change.
+	cStorPoolInstanceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			csp := obj.(*apis.CStorPoolInstance)
-			if !IsRightCStorPoolMgmt(csp) {
+			cspi := obj.(*apis.CStorPoolInstance)
+			if !IsRightCStorPoolInstanceMgmt(cspi) {
 				return
 			}
-			controller.enqueueCStorPool(csp)
+			controller.enqueueCStorPoolInstance(cspi)
 		},
 
 		UpdateFunc: func(oldVar, newVar interface{}) {
-			csp := newVar.(*apis.CStorPoolInstance)
+			cspi := newVar.(*apis.CStorPoolInstance)
 
-			if !IsRightCStorPoolMgmt(csp) {
+			if !IsRightCStorPoolInstanceMgmt(cspi) {
 				return
 			}
-			controller.enqueueCStorPool(csp)
+			controller.enqueueCStorPoolInstance(cspi)
 		},
 	})
 
 	return controller
 }
 
-// enqueueCstorPool takes a CStorPool resource and converts it into a namespace/name
+// enqueueCstorPoolInstance takes a CStorPoolInstance resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
-// passed resources of any type other than CStorPools.
-func (c *CStorPoolController) enqueueCStorPool(obj *apis.CStorPoolInstance) {
+// passed resources of any type other than CStorPoolInstances.
+func (c *CStorPoolInstanceController) enqueueCStorPoolInstance(obj *apis.CStorPoolInstance) {
 	key, err := cache.MetaNamespaceKeyFunc(obj)
 	if err != nil {
 		runtime.HandleError(err)

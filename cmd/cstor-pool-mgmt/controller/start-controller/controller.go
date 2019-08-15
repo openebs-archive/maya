@@ -39,9 +39,9 @@ import (
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	"github.com/openebs/maya/pkg/signals"
 
-	poolcontroller1 "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/pool-controller"
+	poolcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/pool-controller"
 	//poolcontroller2 "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/new-pool-controller"
-	poolcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/cstor-pool-instance"
+	poolcontrollerinstance "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/cstor-pool-instance"
 	//// for v1alpha2
 	//clientset2 "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset"
 	//informers2 "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/informer/externalversions"
@@ -111,13 +111,12 @@ func StartControllers(kubeconfig string) {
 	// openebsInformerFactory2 constructs a new instance of openebs sharedInformerFactory.
 	//openebsInformerFactory2 := informers.NewSharedInformerFactory(openebsClient2, getSyncInterval())
 
-	//TODO: Remove below code
 	//// Instantiate the cStor Pool and VolumeReplica controllers.
-	cStorPoolController1 := poolcontroller1.NewCStorPoolController(kubeClient, openebsClient, kubeInformerFactory,
+	cStorPoolController := poolcontroller.NewCStorPoolController(kubeClient, openebsClient, kubeInformerFactory,
 		openebsInformerFactory)
 
-	// Instantiate the cStor Pool and VolumeReplica controllers.
-	cStorPoolController := poolcontroller.NewCStorPoolController(kubeClient, openebsClient, kubeInformerFactory,
+	// Instantiate the cStor Pool Instance and VolumeReplica controllers.
+	cStorPoolInstanceController := poolcontrollerinstance.NewCStorPoolInstanceController(kubeClient, openebsClient, kubeInformerFactory,
 		openebsInformerFactory)
 
 	volumeReplicaController := replicacontroller.NewCStorVolumeReplicaController(kubeClient, openebsClient, kubeInformerFactory,
@@ -142,7 +141,7 @@ func StartControllers(kubeconfig string) {
 
 	// Run controller for cStorPool.
 	go func() {
-		if err = cStorPoolController1.Run(NumThreads, stopCh); err != nil {
+		if err = cStorPoolController.Run(NumThreads, stopCh); err != nil {
 			glog.Fatalf("Error running CStorPool controller: %s", err.Error())
 		}
 		wg.Done()
@@ -152,7 +151,7 @@ func StartControllers(kubeconfig string) {
 
 	// Run controller for cStorPool.
 	go func() {
-		if err = cStorPoolController.Run(NumThreads, stopCh); err != nil {
+		if err = cStorPoolInstanceController.Run(NumThreads, stopCh); err != nil {
 			glog.Fatalf("Error running CStorPool controller: %s", err.Error())
 		}
 		wg.Done()
