@@ -60,10 +60,11 @@ type LabelSelector string
 const (
 	MayaAPIServerLabelSelector             LabelSelector = "name=maya-apiserver"
 	OpenEBSProvisionerLabelSelector        LabelSelector = "name=openebs-provisioner"
-	OpenEBSLocalPVProvisionerLabelSelector LabelSelector = "name=openebs-localpv-provisioner"
+	OpenEBSLocalPVProvisionerLabelSelector LabelSelector = "openebs.io/component-name=openebs-localpv-provisioner"
 	OpenEBSSnapshotOperatorLabelSelector   LabelSelector = "name=openebs-snapshot-operator"
 	OpenEBSAdmissionServerLabelSelector    LabelSelector = "app=admission-webhook"
-	OpenEBSNDMLabelSelector                LabelSelector = "name=openebs-ndm"
+	OpenEBSNDMLabelSelector                LabelSelector = "openebs.io/component-name=openebs-ndm"
+	OpenEBSNDMOperatorLabelSelector        LabelSelector = "openebs.io/component-name=ndm-operator"
 	OpenEBSCStorPoolLabelSelector          LabelSelector = "app=cstor-pool"
 )
 
