@@ -95,11 +95,11 @@ func NewCStorPoolInstanceController(
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: poolControllerName})
 
 	controller := &CStorPoolInstanceController{
-		kubeclientset:   kubeclientset,
-		clientset:       clientset,
+		kubeclientset:           kubeclientset,
+		clientset:               clientset,
 		cStorPoolInstanceSynced: cStorPoolInstanceInformer.Informer().HasSynced,
-		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), poolControllerName),
-		recorder:        recorder,
+		workqueue:               workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), poolControllerName),
+		recorder:                recorder,
 	}
 
 	glog.Info("Setting up event handlers for CSP")
