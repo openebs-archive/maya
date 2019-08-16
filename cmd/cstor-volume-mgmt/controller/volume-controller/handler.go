@@ -451,12 +451,16 @@ func (c *CStorVolumeController) updateCVWithCondition(
 	cstorVolume *apis.CStorVolume,
 	conditionStatus apis.CStorVolumeCondition, condType apis.CStorVolumeConditionType) (*apis.CStorVolume, error) {
 	//cvCopy := cStorVolume.DeepCopy()
-	cvBuilder := cstorvolume.
+	cvObj, err := cstorvolume.
 		BuilderFromAPI(cstorVolume).
-		WithCondition(conditionStatus, condType)
-	cvObj, err := cvBuilder.Build()
+		WithCondition(conditionStatus, condType).
+		Build()
 	if err != nil {
-		return nil, err
+		return nil, pkg_errors.Wrapf(
+			err,
+			"failed to build existing cstorvolume {%s} with conditions",
+			cstorVolume.Name,
+		)
 	}
 
 	newCVObj, err := c.clientset.
