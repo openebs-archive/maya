@@ -22,7 +22,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/openebs/maya/pkg/upgrade/templates"
+	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	retry "github.com/openebs/maya/pkg/util/retry"

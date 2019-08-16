@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/openebs/maya/pkg/upgrade/templates"
+	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
