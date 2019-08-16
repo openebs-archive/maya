@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package poolcontroller
+package poolinstancecontroller
 
 import (
 	"os"
@@ -30,69 +30,69 @@ const (
 	PoolPrefix string = "cstor-"
 )
 
-// IsRightCStorPoolMgmt is to check if the pool request is for this pod.
-func IsRightCStorPoolMgmt(csp *apis.CStorPoolInstance) bool {
-	return os.Getenv(string(common.OpenEBSIOCStorID)) == string(csp.ObjectMeta.UID)
+// IsRightCStorPoolInstanceMgmt is to check if the pool request is for this pod.
+func IsRightCStorPoolInstanceMgmt(cspi *apis.CStorPoolInstance) bool {
+	return os.Getenv(string(common.OpenEBSIOCStorID)) == string(cspi.ObjectMeta.UID)
 }
 
-// IsDestroyed is to check if the call is for cStorPool destroy.
-func IsDestroyed(csp *apis.CStorPoolInstance) bool {
-	return csp.ObjectMeta.DeletionTimestamp != nil
+// IsDestroyed is to check if the call is for cStorPoolInstance destroy.
+func IsDestroyed(cspi *apis.CStorPoolInstance) bool {
+	return cspi.ObjectMeta.DeletionTimestamp != nil
 }
 
-// IsOnlyStatusChange is to check only status change of cStorPool object.
-func IsOnlyStatusChange(ocsp, ncsp *apis.CStorPoolInstance) bool {
-	if reflect.DeepEqual(ocsp.Spec, ncsp.Spec) &&
-		!reflect.DeepEqual(ocsp.Status, ncsp.Status) {
+// IsOnlyStatusChange is to check only status change of cStorPoolInstance object.
+func IsOnlyStatusChange(ocspi, ncspi *apis.CStorPoolInstance) bool {
+	if reflect.DeepEqual(ocspi.Spec, ncspi.Spec) &&
+		!reflect.DeepEqual(ocspi.Status, ncspi.Status) {
 		return true
 	}
 	return false
 }
 
-// IsStatusChange is to check only status change of cStorPool object.
+// IsStatusChange is to check only status change of cStorPoolInstance object.
 func IsStatusChange(oldStatus, newStatus apis.CStorPoolStatus) bool {
 	return !reflect.DeepEqual(oldStatus, newStatus)
 }
 
-// IsSyncEvent is to check if ResourceVersion of cStorPool object is not modifed.
-func IsSyncEvent(ocsp, ncsp *apis.CStorPoolInstance) bool {
-	return ncsp.ResourceVersion == ocsp.ResourceVersion
+// IsSyncEvent is to check if ResourceVersion of cStorPoolInstance object is not modifed.
+func IsSyncEvent(ocspi, ncspi *apis.CStorPoolInstance) bool {
+	return ncspi.ResourceVersion == ocspi.ResourceVersion
 }
 
-// IsEmptyStatus is to check if the status of cStorPool object is empty.
-func IsEmptyStatus(csp *apis.CStorPoolInstance) bool {
-	return csp.Status.Phase == apis.CStorPoolStatusEmpty
+// IsEmptyStatus is to check if the status of cStorPoolInstance object is empty.
+func IsEmptyStatus(cspi *apis.CStorPoolInstance) bool {
+	return cspi.Status.Phase == apis.CStorPoolStatusEmpty
 }
 
-// IsPendingStatus is to check if the status of cStorPool object is pending.
-func IsPendingStatus(csp *apis.CStorPoolInstance) bool {
-	return csp.Status.Phase == apis.CStorPoolStatusPending
+// IsPendingStatus is to check if the status of cStorPoolInstance object is pending.
+func IsPendingStatus(cspi *apis.CStorPoolInstance) bool {
+	return cspi.Status.Phase == apis.CStorPoolStatusPending
 }
 
-// IsErrorDuplicate is to check if the status of cStorPool object is error-duplicate.
-func IsErrorDuplicate(csp *apis.CStorPoolInstance) bool {
-	return csp.Status.Phase == apis.CStorPoolStatusErrorDuplicate
+// IsErrorDuplicate is to check if the status of cStorPoolInstance object is error-duplicate.
+func IsErrorDuplicate(cspi *apis.CStorPoolInstance) bool {
+	return cspi.Status.Phase == apis.CStorPoolStatusErrorDuplicate
 }
 
 // IsDeletionFailedBefore is to make sure no other operation should happen if the
-// status of cStorPool is deletion-failed.
-func IsDeletionFailedBefore(csp *apis.CStorPoolInstance) bool {
-	return csp.Status.Phase == apis.CStorPoolStatusDeletionFailed
+// status of cStorPoolInstance is deletion-failed.
+func IsDeletionFailedBefore(cspi *apis.CStorPoolInstance) bool {
+	return cspi.Status.Phase == apis.CStorPoolStatusDeletionFailed
 }
 
 // IsUIDSet check if UID is set or not
-func IsUIDSet(csp *apis.CStorPoolInstance) bool {
-	return len(csp.ObjectMeta.UID) != 0
+func IsUIDSet(cspi *apis.CStorPoolInstance) bool {
+	return len(cspi.ObjectMeta.UID) != 0
 }
 
 // IsReconcileDisabled check if reconciliation is disabled for given object or not
-func IsReconcileDisabled(csp *apis.CStorPoolInstance) bool {
-	return csp.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true"
+func IsReconcileDisabled(cspi *apis.CStorPoolInstance) bool {
+	return cspi.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true"
 }
 
-// IsHostNameChanged check if hostname for CSP object is changed
-func IsHostNameChanged(ocsp, ncsp *apis.CStorPoolInstance) bool {
-	return ncsp.Spec.HostName != ocsp.Spec.HostName
+// IsHostNameChanged check if hostname for CSPI object is changed
+func IsHostNameChanged(ocspi, ncspi *apis.CStorPoolInstance) bool {
+	return ncspi.Spec.HostName != ocspi.Spec.HostName
 }
 
 // IsEmpty check if string is empty or not
@@ -110,7 +110,7 @@ func ErrorWrapf(err error, format string, args ...interface{}) error {
 	return errors.Wrapf(err, format, args...)
 }
 
-// PoolName return pool name for given CSP object
-func PoolName(csp *apis.CStorPoolInstance) string {
-	return PoolPrefix + string(csp.ObjectMeta.UID)
+// PoolName return pool name for given CSPI object
+func PoolName(cspi *apis.CStorPoolInstance) string {
+	return PoolPrefix + string(cspi.ObjectMeta.UID)
 }

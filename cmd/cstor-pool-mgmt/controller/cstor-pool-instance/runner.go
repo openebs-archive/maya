@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package poolcontroller
+package poolinstancecontroller
 
 import (
 	"fmt"
@@ -30,27 +30,27 @@ import (
 // as syncing informer caches and starting workers. It will block until stopCh
 // is closed, at which point it will shutdown the workqueue and wait for
 // workers to finish processing their current work items.
-func (c *CStorPoolController) Run(threadiness int, stopCh <-chan struct{}) error {
+func (c *CStorPoolInstanceController) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer runtime.HandleCrash()
 	defer c.workqueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches
-	glog.Info("Starting CStorPool controller")
+	glog.Info("Starting CStorPoolInstance controller")
 
 	// Wait for the k8s caches to be synced before starting workers
 	glog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, c.cStorPoolSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.cStorPoolInstanceSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
-	glog.Info("Starting CStorPool workers")
-	// Launch worker to process CStorPool resources
+	glog.Info("Starting CStorPoolInstance workers")
+	// Launch worker to process CStorPoolInstance resources
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, common.ResourceWorkerInterval, stopCh)
 	}
 
-	glog.Info("Started CStorPool workers")
+	glog.Info("Started CStorPoolInstance workers")
 	<-stopCh
-	glog.Info("Shutting down CStorPool workers")
+	glog.Info("Shutting down CStorPoolInstance workers")
 
 	return nil
 }
@@ -58,14 +58,14 @@ func (c *CStorPoolController) Run(threadiness int, stopCh <-chan struct{}) error
 // runWorker is a long-running function that will continually call the
 // processNextWorkItem function in order to read and process a message on the
 // workqueue.
-func (c *CStorPoolController) runWorker() {
+func (c *CStorPoolInstanceController) runWorker() {
 	for c.processNextWorkItem() {
 	}
 }
 
 // processNextWorkItem will read a single work item off the workqueue and
 // attempt to process it, by calling the syncHandler.
-func (c *CStorPoolController) processNextWorkItem() bool {
+func (c *CStorPoolInstanceController) processNextWorkItem() bool {
 	obj, shutdown := c.workqueue.Get()
 	if shutdown {
 		return false
@@ -97,7 +97,7 @@ func (c *CStorPoolController) processNextWorkItem() bool {
 			return nil
 		}
 		// Run the reconcile, passing it the namespace/name string of the
-		// cStorPool resource to be synced.
+		// cStorPoolInstance resource to be synced.
 		if err := c.reconcile(q.Key); err != nil {
 			return fmt.Errorf("error syncing '%s': %s", q.Key, err.Error())
 		}

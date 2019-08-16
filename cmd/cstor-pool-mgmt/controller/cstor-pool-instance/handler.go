@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package poolcontroller
+package poolinstancecontroller
 
 import (
 	"fmt"
@@ -33,35 +33,35 @@ import (
 
 // reconcile will ensure that pool for given
 // key is created and running
-func (c *CStorPoolController) reconcile(key string) error {
+func (c *CStorPoolInstanceController) reconcile(key string) error {
 	var err error
 	var isImported bool
 
-	csp, err := c.getCSPObjFromKey(key)
-	if err != nil || csp == nil {
+	cspi, err := c.getCSPIObjFromKey(key)
+	if err != nil || cspi == nil {
 		return err
 	}
 
-	if IsReconcileDisabled(csp) {
-		c.recorder.Event(csp,
+	if IsReconcileDisabled(cspi) {
+		c.recorder.Event(cspi,
 			corev1.EventTypeWarning,
 			fmt.Sprintf("reconcile is disabled via %q annotation", string(apis.OpenEBSDisableReconcileKey)),
 			"Skipping reconcile")
 		return nil
 	}
 
-	if IsDestroyed(csp) {
-		return c.destroy(csp)
+	if IsDestroyed(cspi) {
+		return c.destroy(cspi)
 	}
 
 	// take a lock for common package for updating variables
 	common.SyncResources.Mux.Lock()
 
 	// try to import pool
-	isImported, err = zpool.Import(csp)
+	isImported, err = zpool.Import(cspi)
 	if isImported {
 		if err != nil {
-			c.recorder.Event(csp,
+			c.recorder.Event(cspi,
 				corev1.EventTypeWarning,
 				string(common.FailureImported),
 				fmt.Sprintf("Failed to import pool due to '%s'", err.Error()))
@@ -70,39 +70,39 @@ func (c *CStorPoolController) reconcile(key string) error {
 		}
 		zpool.CheckImportedPoolVolume()
 		common.SyncResources.Mux.Unlock()
-		return c.update(csp)
+		return c.update(cspi)
 	}
 
-	if IsEmptyStatus(csp) || IsPendingStatus(csp) {
-		err = zpool.Create(csp)
+	if IsEmptyStatus(cspi) || IsPendingStatus(cspi) {
+		err = zpool.Create(cspi)
 		if err != nil {
 			// We will try to create it in next event
-			_ = zpool.Delete(csp)
-			c.recorder.Event(csp,
+			_ = zpool.Delete(cspi)
+			c.recorder.Event(cspi,
 				corev1.EventTypeWarning,
 				string(common.FailureCreate),
 				fmt.Sprintf("Failed to create pool due to '%s'", err.Error()))
 			common.SyncResources.Mux.Unlock()
 			return err
 		}
-		c.recorder.Event(csp,
+		c.recorder.Event(cspi,
 			corev1.EventTypeNormal,
 			string(common.SuccessCreated),
 			fmt.Sprintf("Pool created successfully"))
 	}
 	common.SyncResources.Mux.Unlock()
 
-	return c.updateStatus(csp)
+	return c.updateStatus(cspi)
 }
 
-func (c *CStorPoolController) destroy(csp *apis.CStorPoolInstance) error {
+func (c *CStorPoolInstanceController) destroy(cspi *apis.CStorPoolInstance) error {
 	var phase apis.CStorPoolPhase
 
 	// DeletePool is to delete cstor zpool.
 	// It will also clear the label for relevant disk
-	err := zpool.Delete(csp)
+	err := zpool.Delete(cspi)
 	if err != nil {
-		c.recorder.Event(csp,
+		c.recorder.Event(cspi,
 			corev1.EventTypeWarning,
 			string(common.FailureDestroy),
 			fmt.Sprintf("Failed to delete pool due to '%s'", err.Error()))
@@ -110,41 +110,41 @@ func (c *CStorPoolController) destroy(csp *apis.CStorPoolInstance) error {
 		goto updatestatus
 	}
 
-	// removeFinalizer is to remove finalizer of cStorPool resource.
-	err = c.removeFinalizer(csp)
+	// removeFinalizer is to remove finalizer of cStorPoolInstance resource.
+	err = c.removeFinalizer(cspi)
 	if err != nil {
 		// Object will exist. Let's set status as offline
 		phase = apis.CStorPoolStatusDeletionFailed
 		goto updatestatus
 	}
-	glog.Infof("Pool %s deleted successfully", csp.Name)
+	glog.Infof("Pool %s deleted successfully", cspi.Name)
 	return nil
 
 updatestatus:
-	csp.Status.Phase = phase
+	cspi.Status.Phase = phase
 	_, _ = zpool.OpenEBSClient.
 		OpenebsV1alpha1().
-		CStorPoolInstances(csp.Namespace).
-		Update(csp)
+		CStorPoolInstances(cspi.Namespace).
+		Update(cspi)
 	return err
 }
 
-func (c *CStorPoolController) update(csp *apis.CStorPoolInstance) error {
-	err := zpool.Update(csp)
+func (c *CStorPoolInstanceController) update(cspi *apis.CStorPoolInstance) error {
+	err := zpool.Update(cspi)
 	if err != nil {
-		c.recorder.Event(csp,
+		c.recorder.Event(cspi,
 			corev1.EventTypeWarning,
 			string(common.FailedSynced),
 			fmt.Sprintf("Failed to update pool due to '%s'", err.Error()))
 		return err
 	}
-	return c.updateStatus(csp)
+	return c.updateStatus(cspi)
 }
 
-func (c *CStorPoolController) updateStatus(csp *apis.CStorPoolInstance) error {
+func (c *CStorPoolInstanceController) updateStatus(cspi *apis.CStorPoolInstance) error {
 	var status apis.CStorPoolStatus
 	var err error
-	pool := zpool.PoolName(csp)
+	pool := zpool.PoolName(cspi)
 
 	state, er := zpool.GetPropertyValue(pool, "health")
 	if er != nil {
@@ -175,26 +175,26 @@ func (c *CStorPoolController) updateStatus(csp *apis.CStorPoolInstance) error {
 	}
 
 	if err != nil {
-		c.recorder.Event(csp,
+		c.recorder.Event(cspi,
 			corev1.EventTypeWarning,
 			string(common.FailureStatusSync),
 			fmt.Sprintf("Failed to sync due to '%s'", err.Error()))
 		return err
 	}
 
-	if IsStatusChange(csp.Status, status) {
-		csp.Status = status
+	if IsStatusChange(cspi.Status, status) {
+		cspi.Status = status
 		_, err = zpool.OpenEBSClient.
 			OpenebsV1alpha1().
-			CStorPoolInstances(csp.Namespace).
-			Update(csp)
+			CStorPoolInstances(cspi.Namespace).
+			Update(cspi)
 		return err
 	}
 	return nil
 }
 
-// getCSPObjFromKey returns object corresponding to the resource key
-func (c *CStorPoolController) getCSPObjFromKey(key string) (*apis.CStorPoolInstance, error) {
+// getCSPIObjFromKey returns object corresponding to the resource key
+func (c *CStorPoolInstanceController) getCSPIObjFromKey(key string) (*apis.CStorPoolInstance, error) {
 	// Convert the key(namespace/name) string into a distinct name
 	ns, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
@@ -202,38 +202,38 @@ func (c *CStorPoolController) getCSPObjFromKey(key string) (*apis.CStorPoolInsta
 		return nil, nil
 	}
 
-	csp, err := c.clientset.
+	cspi, err := c.clientset.
 		OpenebsV1alpha1().
 		CStorPoolInstances(ns).
 		Get(name, metav1.GetOptions{})
 	if err != nil {
-		// The cStorPool resource may no longer exist, in which case we stop
+		// The cStorPoolInstance resource may no longer exist, in which case we stop
 		// processing.
 		if k8serror.IsNotFound(err) {
-			runtime.HandleError(fmt.Errorf("CSP '%s' in work queue no longer exists", key))
+			runtime.HandleError(fmt.Errorf("CSPI '%s' in work queue no longer exists", key))
 			return nil, nil
 		}
 
 		return nil, err
 	}
-	return csp, nil
+	return cspi, nil
 }
 
-// removeFinalizer is to remove finalizer of cstorpool resource.
-func (c *CStorPoolController) removeFinalizer(csp *apis.CStorPoolInstance) error {
-	if len(csp.Finalizers) == 0 {
+// removeFinalizer is to remove finalizer of cstorpoolinstance resource.
+func (c *CStorPoolInstanceController) removeFinalizer(cspi *apis.CStorPoolInstance) error {
+	if len(cspi.Finalizers) == 0 {
 		return nil
 	}
-	csp.Finalizers = []string{}
+	cspi.Finalizers = []string{}
 	_, err := c.clientset.
 		OpenebsV1alpha1().
-		CStorPoolInstances(csp.Namespace).
-		Update(csp)
+		CStorPoolInstances(cspi.Namespace).
+		Update(cspi)
 	if err != nil {
 		return err
 	}
 	glog.Infof("Removed Finalizer: %v, %v",
-		csp.Name,
-		string(csp.GetUID()))
+		cspi.Name,
+		string(cspi.GetUID()))
 	return nil
 }
