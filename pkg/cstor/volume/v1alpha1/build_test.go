@@ -615,7 +615,7 @@ func TestBuilderWithConditions(t *testing.T) {
 	for name, mock := range tests {
 		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
-			b := mock.builder.WithCondition(mock.condition)
+			b := mock.builder.WithCondition(mock.condition, mock.condition.Type)
 			if len(b.errs) != 0 {
 				t.Fatalf("Test %q failed: expected error to be nil", name)
 			}
