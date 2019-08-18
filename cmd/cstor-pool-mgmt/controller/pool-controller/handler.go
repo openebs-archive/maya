@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -137,6 +138,9 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 	case common.QOpAdd:
 		glog.Infof("Processing cStorPool added event: %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
 
+		if IsCStorPoolCreateStatuses(cStorPoolGot) {
+			return c.cStorPoolCreate(cStorPoolGot)
+		}
 		// lock is to synchronize pool and volumereplica. Until certain pool related
 		// operations are over, the volumereplica threads will be held.
 		status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
@@ -149,7 +153,11 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 	case common.QOpSync:
 		// Check if pool is not imported/created earlier due to any failure or failure in getting lease
 		// try to import/create pool here as part of reconcile.
-		if IsPendingStatus(cStorPoolGot) {
+
+		if IsCStorPoolCreateStatuses(cStorPoolGot) {
+			return c.cStorPoolCreate(cStorPoolGot)
+		}
+		if isPendingStatus(cStorPoolGot) {
 			status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
 			return status, err
 		}
@@ -159,6 +167,43 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 	}
 	glog.Errorf("ignored event '%s' for cstor pool '%s'", string(operation), string(cStorPoolGot.ObjectMeta.Name))
 	return string(apis.CStorPoolStatusInvalid), nil
+}
+
+// cStorPoolCreate does create of pool, and, if it fails, returns CreateFailed
+func (c *CStorPoolController) cStorPoolCreate(cStorPoolGot *apis.CStorPool) (string, error) {
+	if !IsCStorPoolCreateStatuses(cStorPoolGot) {
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureCreate), string(common.MessageImproperPoolStatus))
+		return string(cStorPoolGot.Status.Phase), fmt.Errorf("invalid status %s for create pool %s", cStorPoolGot.Status.Phase, cStorPoolGot.Name)
+	}
+
+	devIDList, err := c.getDeviceIDs(cStorPoolGot)
+	if err != nil {
+		return string(apis.CStorPoolStatusCreateFailed), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
+	}
+
+	// ValidatePool is to check if pool attributes are correct.
+	err = pool.ValidatePool(cStorPoolGot, devIDList)
+	if err != nil {
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
+		return string(apis.CStorPoolStatusCreateFailed), err
+	}
+
+	// IsInitStatus is to check if initial status of cstorpool object is `init`.
+	if len(common.InitialImportedPoolVol) != 0 {
+		glog.Errorf("failed to handle add event: invalid status %v for pool %v with existing volumes", string(cStorPoolGot.Status.Phase), string(cStorPoolGot.GetUID()))
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageImproperPoolStatus))
+		return string(apis.CStorPoolStatusCreateFailed), err
+	}
+	// CreatePool is to create cstor pool.
+	err = pool.CreatePool(cStorPoolGot, devIDList)
+	if err != nil {
+		glog.Errorf("Pool creation failure: %v", string(cStorPoolGot.GetUID()))
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureCreate), string(common.MessageResourceFailCreate))
+		return string(apis.CStorPoolStatusCreateFailed), err
+	}
+	glog.Infof("Pool creation successful: %v", string(cStorPoolGot.GetUID()))
+	c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
+	return string(apis.CStorPoolStatusOnline), nil
 }
 
 // cStorPoolAddEvent does import of pool, and, if it fails, attemps to create pool based on CSP CR state
@@ -209,7 +254,7 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 		if common.CheckIfPresent(existingPool, string(pool.PoolPrefix)+string(cStorPoolGot.GetUID())) {
 			// In the last attempt, ignore and update the status.
 			if i == cnt-1 {
-				if IsPendingStatus(cStorPoolGot) || IsEmptyStatus(cStorPoolGot) {
+				if isPendingStatus(cStorPoolGot) || isEmptyStatus(cStorPoolGot) {
 					// Pool CR status is init. This means pool deployment was done
 					// successfully, but before updating the CR to Online status,
 					// the watcher container got restarted.
@@ -271,31 +316,6 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 		common.SyncResources.IsImported = false
 	}
 
-	// ValidatePool is to check if pool attributes are correct.
-	err = pool.ValidatePool(cStorPoolGot, devIDList)
-	if err != nil {
-		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
-		return string(apis.CStorPoolStatusOffline), err
-	}
-
-	// IsInitStatus is to check if initial status of cstorpool object is `init`.
-	if IsEmptyStatus(cStorPoolGot) || IsPendingStatus(cStorPoolGot) {
-		if len(common.InitialImportedPoolVol) != 0 {
-			glog.Errorf("failed to handle add event: invalid status %v for pool %v with existing volumes", string(cStorPoolGot.Status.Phase), string(cStorPoolGot.GetUID()))
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageImproperPoolStatus))
-			return string(apis.CStorPoolStatusOffline), err
-		}
-		// CreatePool is to create cstor pool.
-		err = pool.CreatePool(cStorPoolGot, devIDList)
-		if err != nil {
-			glog.Errorf("Pool creation failure: %v", string(cStorPoolGot.GetUID()))
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureCreate), string(common.MessageResourceFailCreate))
-			return string(apis.CStorPoolStatusOffline), err
-		}
-		glog.Infof("Pool creation successful: %v", string(cStorPoolGot.GetUID()))
-		c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
-		return string(apis.CStorPoolStatusOnline), nil
-	}
 	glog.Infof("Not init status %v: %v, %v", string(cStorPoolGot.Status.Phase), cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
 
 	return string(apis.CStorPoolStatusOffline), importPoolErr
@@ -440,8 +460,19 @@ func IsOnlyStatusChange(oldCStorPool, newCStorPool *apis.CStorPool) bool {
 	return false
 }
 
+// IsCStorPoolCreateStatuses is to check if the status of cStorPool object is to create pools.
+func IsCStorPoolCreateStatuses(cstorPool *apis.CStorPool) bool {
+	status := string(cstorPool.Status.Phase)
+	if strings.EqualFold(status, string(apis.CStorPoolStatusInit)) || strings.EqualFold(status, string(apis.CStorPoolStatusCreateFailed)) {
+		glog.V(4).Infof("cStorPool status %s for %v", status, string(cstorPool.ObjectMeta.UID))
+		return true
+	}
+	glog.V(4).Infof("cstor pool '%s': uid '%s': phase '%s': is_empty_status: false", string(cstorPool.ObjectMeta.Name), string(cstorPool.ObjectMeta.UID), cstorPool.Status.Phase)
+	return false
+}
+
 // IsEmptyStatus is to check if the status of cStorPool object is empty.
-func IsEmptyStatus(cStorPool *apis.CStorPool) bool {
+func isEmptyStatus(cStorPool *apis.CStorPool) bool {
 	if string(cStorPool.Status.Phase) == string(apis.CStorPoolStatusEmpty) {
 		glog.Infof("cStorPool empty status: %v", string(cStorPool.ObjectMeta.UID))
 		return true
@@ -450,8 +481,8 @@ func IsEmptyStatus(cStorPool *apis.CStorPool) bool {
 	return false
 }
 
-// IsPendingStatus is to check if the status of cStorPool object is pending.
-func IsPendingStatus(cStorPool *apis.CStorPool) bool {
+// isPendingStatus is to check if the status of cStorPool object is pending.
+func isPendingStatus(cStorPool *apis.CStorPool) bool {
 	if string(cStorPool.Status.Phase) == string(apis.CStorPoolStatusPending) {
 		glog.Infof("cStorPool pending: %v", string(cStorPool.ObjectMeta.UID))
 		return true

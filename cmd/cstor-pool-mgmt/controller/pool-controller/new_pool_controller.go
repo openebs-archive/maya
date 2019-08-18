@@ -123,7 +123,11 @@ func NewCStorPoolController(
 			q.Operation = common.QOpAdd
 			glog.Infof("cStorPool Added event : %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
 			controller.recorder.Event(cStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
-			cStorPool.Status.Phase = apis.CStorPoolStatusPending
+
+			if !IsCStorPoolCreateStatuses(cStorPool) {
+				cStorPool.Status.Phase = apis.CStorPoolStatusPending
+			}
+
 			cStorPool, _ = controller.clientset.OpenebsV1alpha1().CStorPools().Update(cStorPool)
 			controller.enqueueCStorPool(cStorPool, q)
 		},
