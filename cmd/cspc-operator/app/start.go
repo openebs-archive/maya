@@ -41,7 +41,10 @@ func Start() error {
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
 
-	flag.Set("logtostderr", "true")
+	err := flag.Set("logtostderr", "true")
+	if err != nil {
+		return errors.Wrap(err, "failed to set logtostderr flag")
+	}
 	flag.Parse()
 
 	cfg, err := getClusterConfig(*kubeconfig)
