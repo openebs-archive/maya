@@ -14,7 +14,7 @@ RUN apk add --no-cache \
     libc6-compat \
     ca-certificates
 
-ADD cspc-operator /usr/local/bin/cspc-operator
+COPY cspc-operator /usr/local/bin/cspc-operator
 
 
 ARG BUILD_DATE
