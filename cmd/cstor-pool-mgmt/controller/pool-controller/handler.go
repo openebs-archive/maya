@@ -157,7 +157,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		if IsCStorPoolCreateStatuses(cStorPoolGot) {
 			return c.cStorPoolCreate(cStorPoolGot)
 		}
-		if isPendingStatus(cStorPoolGot) {
+		if IsPendingStatus(cStorPoolGot) {
 			status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
 			return status, err
 		}
@@ -206,7 +206,7 @@ func (c *CStorPoolController) cStorPoolCreate(cStorPoolGot *apis.CStorPool) (str
 	return string(apis.CStorPoolStatusOnline), nil
 }
 
-// cStorPoolAddEvent does import of pool, and, if it fails, attemps to create pool based on CSP CR state
+// cStorPoolAddEvent does import of pool
 func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (string, error) {
 	if pool.ImportedCStorPools == nil {
 		pool.ImportedCStorPools = map[string]*apis.CStorPool{}
@@ -254,7 +254,7 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 		if common.CheckIfPresent(existingPool, string(pool.PoolPrefix)+string(cStorPoolGot.GetUID())) {
 			// In the last attempt, ignore and update the status.
 			if i == cnt-1 {
-				if isPendingStatus(cStorPoolGot) || isEmptyStatus(cStorPoolGot) {
+				if IsPendingStatus(cStorPoolGot) || IsEmptyStatus(cStorPoolGot) {
 					// Pool CR status is init. This means pool deployment was done
 					// successfully, but before updating the CR to Online status,
 					// the watcher container got restarted.
@@ -472,7 +472,7 @@ func IsCStorPoolCreateStatuses(cstorPool *apis.CStorPool) bool {
 }
 
 // IsEmptyStatus is to check if the status of cStorPool object is empty.
-func isEmptyStatus(cStorPool *apis.CStorPool) bool {
+func IsEmptyStatus(cStorPool *apis.CStorPool) bool {
 	if string(cStorPool.Status.Phase) == string(apis.CStorPoolStatusEmpty) {
 		glog.Infof("cStorPool empty status: %v", string(cStorPool.ObjectMeta.UID))
 		return true
@@ -481,8 +481,8 @@ func isEmptyStatus(cStorPool *apis.CStorPool) bool {
 	return false
 }
 
-// isPendingStatus is to check if the status of cStorPool object is pending.
-func isPendingStatus(cStorPool *apis.CStorPool) bool {
+// IsPendingStatus is to check if the status of cStorPool object is pending.
+func IsPendingStatus(cStorPool *apis.CStorPool) bool {
 	if string(cStorPool.Status.Phase) == string(apis.CStorPoolStatusPending) {
 		glog.Infof("cStorPool pending: %v", string(cStorPool.ObjectMeta.UID))
 		return true
