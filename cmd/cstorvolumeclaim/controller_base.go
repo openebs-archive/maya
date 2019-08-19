@@ -210,32 +210,13 @@ func (c *CVCController) addCVC(obj interface{}) {
 // updateCVC is the update event handler for CstorVolumeClaim
 func (c *CVCController) updateCVC(oldObj, newObj interface{}) {
 
-	oldCVC, ok := oldObj.(*apis.CStorVolumeClaim)
-	if !ok || oldCVC == nil {
-		runtime.HandleError(fmt.Errorf("Couldn't get cvc object %#v", oldCVC))
-		return
-	}
-
 	newCVC, ok := newObj.(*apis.CStorVolumeClaim)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Couldn't get cvc object %#v", newCVC))
 		return
 	}
 
-	//newSize := newCVC.Spec.Capacity[corev1.ResourceStorage]
-	//oldSize := oldCVC.Spec.Capacity[corev1.ResourceStorage]
-
-	// We perform additional checks to avoid double processing of CVCs, as we will also receive Update event when:
-	// 1. Administrator/Users may introduce other changes(such as add labels, modify annotations, etc.)
-	//    unrelated to volume resize.
-	// 2. Informer will resync and send Update event periodically without any changes.
-	//
-	// We add the CVC into work queue when the new size is larger then the old size
-	// or when CVC status is not "Bound".
-
-	//	if newSize.Cmp(oldSize) > 0 || newCVC.Status.Phase != apis.CStorVolumeClaimPhaseBound {
 	c.enqueueCVC(newCVC)
-	//	}
 }
 
 // deleteCVC is the delete event handler for CstorVolumeClaim

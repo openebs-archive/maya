@@ -26,7 +26,6 @@ import (
 	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -135,6 +134,7 @@ func (c *CVCController) enqueueCVC(obj interface{}) {
 // synCVC is the function which tries to converge to a desired state for the
 // CStorVolumeClaims
 func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
+	var err error
 	// CStor Volume Claim should be deleted. Check if deletion timestamp is set
 	// and remove finalizer.
 	if c.isClaimDeletionCandidate(cvc) {
@@ -151,8 +151,6 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 		return nil
 	}
 
-	//NodeID indicates where the volume is needed to be mounted, i.e the node
-	// where the app has been scheduled.
 	nodeID := cvc.Publish.NodeID
 	if nodeID == "" {
 		// We choose to absorb the error here as the worker would requeue the
@@ -162,29 +160,9 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 		return nil
 	}
 
-	// Get the cstorvolume with the name specified, if not found create all the
-	// required resources
-	_, err := c.cvLister.CStorVolumes(cvc.Namespace).Get(volName)
-	if k8serror.IsNotFound(err) {
-		glog.Infof("create cstor based volume using cvc %+v", cvc)
-		_, err = c.createVolumeOperation(cvc)
-	}
-	// If an error occurs during Get/Create, we'll requeue the item so we can
-	// attempt processing again later. This could have been caused by a
-	// temporary network failure, or any other transient reason.
-	if err != nil {
-		return err
-	}
-
-	// IsCVRPending checks for the pending cstorvolume replica and requeue the
-	// create operation if count doesn't matches the desired count
-	pending, err := c.IsCVRPending(cvc)
-	if err != nil {
-		return err
-	}
-	if pending {
-		glog.Infof("create remaining volume replica %+v", cvc)
-		_, err = c.createVolumeOperation(cvc)
+	if cvc.Status.Phase == apis.CStorVolumeClaimPhasePending {
+		glog.Infof("provisioning cstor volume %+v", cvc)
+		cvc, err = c.createVolumeOperation(cvc)
 	}
 	// If an error occurs during Get/Create, we'll requeue the item so we can
 	// attempt processing again later. This could have been caused by a
@@ -270,7 +248,7 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 		return nil, err
 	}
 
-	// update the cstorvolume reference, phase as "Bound" and requested
+	// update the cstorvolume reference, phase as "Bound" and desired
 	// capacity
 	cvc.Spec.CStorVolumeRef = volumeRef
 	cvc.Status.Phase = apis.CStorVolumeClaimPhaseBound
@@ -399,28 +377,13 @@ func BaseLabels(cvc *apis.CStorVolumeClaim) map[string]string {
 	return base
 }
 
-// cvcNeedResize returns true if a cvc requests a resize operation.
+// cvcNeedResize returns true if a cvc desired a resize operation.
 func (c *CVCController) cvcNeedResize(cvc *apis.CStorVolumeClaim) bool {
-	// only bound cstorvolumeclaim can be resized
-	if cvc.Status.Phase != apis.CStorVolumeClaimPhaseBound {
-		return false
-	}
 
-	cv, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cvc.Namespace).
-		Get(cvc.Name, metav1.GetOptions{})
-	if err != nil {
-		runtime.HandleError(fmt.Errorf("falied to get cv %s: %v", cvc.Name, err))
-		return false
-	}
+	desiredCVCSize := cvc.Spec.Capacity[corev1.ResourceStorage]
+	actualCVCSize := cvc.Status.Capacity[corev1.ResourceStorage]
 
-	requestCVCSize := cvc.Spec.Capacity[v1.ResourceStorage]
-	actualCVCSize := cvc.Status.Capacity[v1.ResourceStorage]
-	if requestCVCSize.Cmp(actualCVCSize) > 0 {
-		return true
-	}
-
-	actualCVSize := cv.Spec.Capacity
-	return requestCVCSize.Cmp(actualCVSize) > 0
+	return desiredCVCSize.Cmp(actualCVCSize) > 0
 }
 
 // resizeCVC will:
@@ -436,9 +399,19 @@ func (c *CVCController) resizeCVC(cvc *apis.CStorVolumeClaim) error {
 		runtime.HandleError(fmt.Errorf("falied to get cv %s: %v", cvc.Name, err))
 		return err
 	}
+	desiredCVCSize := cvc.Spec.Capacity[corev1.ResourceStorage]
 
-	requestCVCSize := cvc.Spec.Capacity[v1.ResourceStorage]
-	if requestCVCSize.Cmp(cv.Spec.Capacity) > 0 {
+	if (cv.Spec.Capacity).Cmp(cv.Status.Capacity) != 0 &&
+		desiredCVCSize.Cmp(cv.Spec.Capacity) != 0 {
+
+		c.recorder.Event(cvc, corev1.EventTypeNormal, string(apis.CStorVolumeClaimResizing),
+			fmt.Sprintf("Resize already in progress %s", cvc.Name))
+
+		return fmt.Errorf("ResizeInProgress from: %v to: %v",
+			cv.Status.Capacity, cv.Spec.Capacity)
+	}
+
+	if desiredCVCSize.Cmp(cv.Spec.Capacity) > 0 {
 		if updatedCVC, err = c.markCVCResizeInProgress(cvc); err != nil {
 			glog.Errorf("failed to mark cvc %q as resizing: %v", cvc.Name, err)
 			return err
@@ -448,14 +421,14 @@ func (c *CVCController) resizeCVC(cvc *apis.CStorVolumeClaim) error {
 		c.recorder.Event(cvc, corev1.EventTypeNormal, string(apis.CStorVolumeClaimResizing),
 			fmt.Sprintf("CVCController is resizing volume %s", cvc.Name))
 
-		err = c.resizeVolume(cvc, cv)
+		err = c.resizeVolume(cv, desiredCVCSize)
 		if err != nil {
 			// Record an event to indicate that resize operation is failed.
 			c.recorder.Eventf(cvc, corev1.EventTypeWarning, string(apis.CStorVolumeClaimResizeFailed), err.Error())
 		}
 		return err
 	}
-	if requestCVCSize.Cmp(cv.Status.Capacity) == 0 {
+	if desiredCVCSize.Cmp(cv.Status.Capacity) == 0 {
 		// Resize volume succeeded mark it as resizing finished.
 		return c.markCVCResizeFinished(cvc)
 	}
@@ -479,7 +452,7 @@ type resizeProcessStatus struct {
 	processed bool
 }
 
-// MergeResizeConditionsOfCVC updates cvc with requested resize conditions
+// MergeResizeConditionsOfCVC updates cvc with desired resize conditions
 // leaving other conditions untouched.
 func MergeResizeConditionsOfCVC(oldConditions, resizeConditions []apis.CStorVolumeClaimCondition) []apis.CStorVolumeClaimCondition {
 
@@ -561,25 +534,23 @@ func getPatchData(oldObj, newObj interface{}) ([]byte, error) {
 	return patchBytes, nil
 }
 
-// resizeVolume resize the volume to request size, and update CV's capacity
-func (c *CVCController) resizeVolume(
-	cvc *apis.CStorVolumeClaim,
-	cv *apis.CStorVolume) error {
+// resizeVolume resize the volume to desired size, and update CV's capacity
+//func (c *CVCController) resizeVolume(
+//	cvc *apis.CStorVolumeClaim,
+//	cv *apis.CStorVolume) error {
+//
+//	newSize := cvc.Spec.Capacity[corev1.ResourceStorage]
+//	err := c.UpdateCVCapacity(cv, newSize)
+//	if err != nil {
+//		glog.Errorf("failed to update capacity of CV %q to %s : %v", cv.Name, newSize.String(), err)
+//		return err
+//	}
+//	glog.V(4).Infof("successfully Updated capacity of CV %q to %s", cv.Name, newSize.String())
+//	return err
+//}
 
-	newSize := cvc.Spec.Capacity[corev1.ResourceStorage]
-	err := c.UpdateCVCapacity(cv, newSize)
-	if err != nil {
-		glog.Errorf("failed to update capacity of CV %q to %s : %v", cv.Name, newSize.String(), err)
-		return err
-	}
-	glog.V(4).Infof("successfully Updated capacity of CV %q to %s", cv.Name, newSize.String())
-
-	return err
-
-}
-
-// UpdateCVCapacity updates CV capacity with requested size.
-func (c *CVCController) UpdateCVCapacity(cv *apis.CStorVolume, newCapacity resource.Quantity) error {
+// resizeVolume resize the volume to desired size, and update CV's capacity
+func (c *CVCController) resizeVolume(cv *apis.CStorVolume, newCapacity resource.Quantity) error {
 	newCV := cv.DeepCopy()
 	newCV.Spec.Capacity = newCapacity
 
