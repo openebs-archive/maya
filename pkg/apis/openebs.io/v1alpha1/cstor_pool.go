@@ -76,11 +76,10 @@ type CStorPoolAttr struct {
 type CStorPoolPhase string
 
 // Status written onto CStorPool and CStorVolumeReplica objects.
-// Resetting state to either Empty or Pending need to be done with care,
+// Resetting state to either Init or CreateFailed need to be done with care,
 // as, label clear and pool creation depends on this state.
 const (
 	// CStorPoolStatusEmpty ensures the create operation is to be done, if import fails.
-	// Check comment
 	CStorPoolStatusEmpty CStorPoolPhase = ""
 	// CStorPoolStatusOnline signifies that the pool is online.
 	CStorPoolStatusOnline CStorPoolPhase = "Healthy"
@@ -103,8 +102,11 @@ const (
 	// CStorPoolStatusErrorDuplicate ensures error due to duplicate resource.
 	CStorPoolStatusErrorDuplicate CStorPoolPhase = "ErrorDuplicate"
 	// CStorPoolStatusPending ensures pending task for cstorpool.
-	// Check comment
 	CStorPoolStatusPending CStorPoolPhase = "Pending"
+	// CStorPoolStatusInit is initial state of CSP, before pool creation.
+	CStorPoolStatusInit CStorPoolPhase = "Init"
+	// CStorPoolStatusCreateFailed is state when pool creation failed
+	CStorPoolStatusCreateFailed CStorPoolPhase = "PoolCreationFailed"
 )
 
 // CStorPoolStatus is for handling status of pool.
