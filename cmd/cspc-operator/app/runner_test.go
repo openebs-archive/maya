@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cspc
+package app
 
 import (
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"

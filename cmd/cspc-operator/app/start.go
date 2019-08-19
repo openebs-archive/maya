@@ -14,14 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cspc
+package app
 
 import (
-	"sync"
-
+	"flag"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
-
 	"time"
 
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
@@ -35,16 +33,21 @@ import (
 )
 
 var (
-	kubeconfig string
+	kubeconfig = flag.String("kubeconfig", "", "Path for kube config")
 )
 
 // Start starts the cstor-operator.
-func Start(controllerMtx *sync.RWMutex) error {
+func Start() error {
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
 
-	// Get in cluster config
-	cfg, err := getClusterConfig(kubeconfig)
+	err := flag.Set("logtostderr", "true")
+	if err != nil {
+		return errors.Wrap(err, "failed to set logtostderr flag")
+	}
+	flag.Parse()
+
+	cfg, err := getClusterConfig(*kubeconfig)
 	if err != nil {
 		return errors.Wrap(err, "error building kubeconfig")
 	}
@@ -74,7 +77,7 @@ func Start(controllerMtx *sync.RWMutex) error {
 	// If multiple controllers happen to call this AddToScheme same time,
 	// it causes panic with error saying concurrent map access.
 	// This lock is used to serialize the AddToScheme call of all controllers.
-	controllerMtx.Lock()
+	//controllerMtx.Lock()
 
 	controller, err := NewControllerBuilder().
 		withKubeClient(kubeClient).
@@ -87,7 +90,7 @@ func Start(controllerMtx *sync.RWMutex) error {
 		withWorkqueueRateLimiting().Build()
 
 	// blocking call, can't use defer to release the lock
-	controllerMtx.Unlock()
+	//controllerMtx.Unlock()
 
 	if err != nil {
 		return errors.Wrapf(err, "error building controller instance")
@@ -100,20 +103,11 @@ func Start(controllerMtx *sync.RWMutex) error {
 	return controller.Run(2, stopCh)
 }
 
-// Cannot be unit tested
 // GetClusterConfig return the config for k8s.
 func getClusterConfig(kubeconfig string) (*rest.Config, error) {
-	var masterURL string
-	cfg, err := rest.InClusterConfig()
-	if err != nil {
-		glog.Errorf("Failed to get k8s Incluster config. %+v", err)
-		if kubeconfig == "" {
-			return nil, errors.Wrap(err, "kubeconfig is empty")
-		}
-		cfg, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
-		if err != nil {
-			return nil, errors.Wrap(err, "error building kubeconfig")
-		}
+	if kubeconfig != "" {
+		return clientcmd.BuildConfigFromFlags("", kubeconfig)
 	}
-	return cfg, err
+	glog.V(2).Info("Kubeconfig flag is empty")
+	return rest.InClusterConfig()
 }

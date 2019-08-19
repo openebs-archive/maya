@@ -78,6 +78,7 @@ M_EXPORTER_REPO_NAME?=m-exporter
 ADMISSION_SERVER_REPO_NAME?=admission-server
 M_APISERVER_REPO_NAME?=m-apiserver
 M_UPGRADE_REPO_NAME?=m-upgrade
+CSPC_OPERATOR_REPO_NAME?=cspc-operator
 
 ifeq (${IMAGE_TAG}, )
   IMAGE_TAG = ci
@@ -101,6 +102,8 @@ WEBHOOK=admission-server
 POOL_MGMT=cstor-pool-mgmt
 VOLUME_MGMT=cstor-volume-mgmt
 EXPORTER=maya-exporter
+CSPC_OPERATOR=cspc-operator
+
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
@@ -109,7 +112,7 @@ include ./buildscripts/provisioner-localpv/Makefile.mk
 include ./buildscripts/upgrade/Makefile.mk
 include ./buildscripts/upgrade-082090/Makefile.mk
 
-all: compile-tests mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image upgrade-image provisioner-localpv-image
+all: compile-tests mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image cspc-operator-image upgrade-image provisioner-localpv-image
 
 mayactl:
 	@echo "----------------------------"
@@ -332,6 +335,16 @@ admission-server-image:
 	@cd buildscripts/${WEBHOOK} && sudo docker build -t ${HUB_USER}/${ADMISSION_SERVER_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/${WEBHOOK}/${WEBHOOK}
 
+cspc-operator-image:
+	@echo "----------------------------"
+	@echo -n "--> cspc-operator image "
+	@echo "${HUB_USER}/${CSPC_OPERATOR_REPO_NAME}:${IMAGE_TAG}"
+	@echo "----------------------------"
+	@PNAME=${CSPC_OPERATOR} CTLNAME=${CSPC_OPERATOR} sh -c "'$(PWD)/buildscripts/build.sh'"
+	@cp bin/${CSPC_OPERATOR}/${CSPC_OPERATOR} buildscripts/cspc-operator/
+	@cd buildscripts/${CSPC_OPERATOR} && sudo docker build -t ${HUB_USER}/${CSPC_OPERATOR_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/${CSPC_OPERATOR}/${CSPC_OPERATOR}
+
 # Use this to build only the maya apiserver.
 apiserver:
 	@echo "----------------------------"
@@ -370,7 +383,8 @@ deploy-images:
 	@DIMAGE="openebs/cstor-pool-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/cstor-volume-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/admission-server" ./buildscripts/push
+	@DIMAGE="openebs/cspc-operator" ./buildscripts/push
 	@DIMAGE="${HUB_USER}/${M_UPGRADE_REPO_NAME}" ./buildscripts/push
 	@DIMAGE="openebs/provisioner-localpv" ./buildscripts/push
 
-.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image testv
+.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image cspc-operator-image testv

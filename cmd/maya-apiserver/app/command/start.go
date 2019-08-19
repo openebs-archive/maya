@@ -18,7 +18,6 @@ package command
 
 import (
 	"fmt"
-	"github.com/openebs/maya/cmd/maya-apiserver/cstor-operator/cspc"
 	"os"
 	"os/signal"
 	"reflect"
@@ -80,9 +79,6 @@ General Options :
 
 // gracefulTimeout controls how long we wait before forcefully terminating
 const gracefulTimeout = 5 * time.Second
-
-// EnableCSPCController is a flag to control launching of CSPC controller
-const EnableCSPCController = true
 
 // CmdStartOptions is a cli implementation that runs a maya apiserver.
 // The command will not end unless a shutdown message is sent on the
@@ -216,15 +212,6 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 		}
 
 	}()
-
-	if EnableCSPCController {
-		go func() {
-			err := cspc.Start(&ControllerMutex)
-			if err != nil {
-				glog.Errorf("Failed to start CStorPoolCluster controller: %s", err.Error())
-			}
-		}()
-	}
 
 	go func() {
 		err := cvc.Start(&ControllerMutex)

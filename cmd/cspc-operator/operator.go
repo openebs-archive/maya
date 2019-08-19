@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The OpenEBS Authors
+Copyright 2019 The OpenEBS Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,29 +13,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cspc
+
+package main
 
 import (
-	"sync"
-	"testing"
-	"time"
+	"github.com/golang/glog"
+	"github.com/openebs/maya/cmd/cspc-operator/app"
+	"os"
 )
 
-func TestStart(t *testing.T) {
-	var err error
-	var errchannel = make(chan error)
-	go func() {
-		var mux = sync.RWMutex{}
-		err = Start(&mux)
-		errchannel <- err
-	}()
-	select {
-	case err1 := <-errchannel:
-		err = err1
-	case <-time.After(5 * time.Second):
-		err = nil
+func main() {
+	if err := app.Start(); err != nil {
+		glog.Errorf("Failed to start the controller:{%s}", err.Error())
+		os.Exit(1)
 	}
-	if err == nil {
-		t.Fatal("Error should not be nil as no incluster config is present")
-	}
+	os.Exit(0)
 }

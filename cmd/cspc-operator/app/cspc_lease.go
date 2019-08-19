@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cspc
+package app
 
 import (
 	"encoding/json"
@@ -130,7 +130,7 @@ func (sl *Lease) Release() {
 }
 
 func (sl *Lease) getPodName() string {
-	podName := env.Get(env.OpenEBSMayaPodName)
+	podName := env.Get(env.CSPCOperatorPodName)
 	podNameSpace := env.Get(env.OpenEBSNamespace)
 	return podNameSpace + "/" + podName
 }

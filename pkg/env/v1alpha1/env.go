@@ -51,6 +51,12 @@ const (
 	// This environment variable is set via kubernetes downward API
 	OpenEBSMayaPodName ENVKey = "OPENEBS_MAYA_POD_NAME"
 
+	// CSPCOperatorPodName is the environment variable to get cspc-operator pod
+	// name
+	//
+	// This environment variable is set via kubernetes downward API
+	CSPCOperatorPodName ENVKey = "CSPC_OPERATOR_POD_NAME"
+
 	// OpenEBSServiceAccount is the environment variable to get openebs
 	// serviceaccount
 	//

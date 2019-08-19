@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cspc
+package app
 
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -139,7 +139,7 @@ func TestHold(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			var newSpcLease Lease
 			var gotError bool
-			os.Setenv(string(env.OpenEBSMayaPodName), test.podName)
+			os.Setenv(string(env.CSPCOperatorPodName), test.podName)
 			os.Setenv(string(env.OpenEBSNamespace), test.podNamespace)
 			newSpcLease = Lease{test.fakestoragepoolclaim, CSPCLeaseKey, focs.oecs, fakeKubeClient}
 			// Hold is the function under test.
@@ -162,7 +162,7 @@ func TestHold(t *testing.T) {
 				t.Errorf("Test case failed: expected lease value '%v' but got '%v' ", test.expectedResult, cspcGot.Annotations[CSPCLeaseKey])
 
 			}
-			os.Unsetenv(string(env.OpenEBSMayaPodName))
+			os.Unsetenv(string(env.CSPCOperatorPodName))
 			os.Unsetenv(string(env.OpenEBSNamespace))
 		})
 	}
