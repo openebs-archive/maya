@@ -188,7 +188,6 @@ func (c *CStorPoolController) cStorPoolCreate(cStorPoolGot *apis.CStorPool) (str
 		return string(apis.CStorPoolStatusCreateFailed), err
 	}
 
-	// IsInitStatus is to check if initial status of cstorpool object is `init`.
 	if len(common.InitialImportedPoolVol) != 0 {
 		glog.Errorf("failed to handle add event: invalid status %v for pool %v with existing volumes", string(cStorPoolGot.Status.Phase), string(cStorPoolGot.GetUID()))
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageImproperPoolStatus))
