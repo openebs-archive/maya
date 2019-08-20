@@ -28,7 +28,7 @@ import (
 //FileOperator operates on files
 type FileOperator interface {
 	Write(filename string, data []byte, perm os.FileMode) error
-	Updatefile(filename, updateStorageVal string, index int, perm os.FileMode) error
+	Updatefile(fileName, updateStorageVal, searchString string, perm os.FileMode) error
 	GetLineDetails(filename, searchString string) (int, string, error)
 }
 
@@ -62,17 +62,23 @@ func (r RealFileOperator) GetLineDetails(filename, searchString string) (int, st
 }
 
 // Updatefile updates the line number with the given string
-func (r RealFileOperator) Updatefile(filename, updatedVal string, index int, perm os.FileMode) error {
-	buffer, err := ioutil.ReadFile(filepath.Clean(filename))
+func (r RealFileOperator) Updatefile(fileName, updatedVal, searchString string, perm os.FileMode) error {
+	buffer, err := ioutil.ReadFile(filepath.Clean(fileName))
 	if err != nil {
-		return errors.Wrapf(err, "failed to read %s file", filename)
+		return errors.Wrapf(err, "failed to read %s file", fileName)
 	}
 	lines := strings.Split(string(buffer), "\n")
-	lines[index] = updatedVal
-	newbuffer := strings.Join(lines, "\n")
-	glog.V(4).Infof("content in a file %s\n", lines)
-	err = r.Write(filename, []byte(newbuffer), perm)
-	return err
+	for index, line := range lines {
+		// If searchString found then update and return
+		if strings.Contains(line, searchString) {
+			lines[index] = updatedVal
+			newbuffer := strings.Join(lines, "\n")
+			glog.V(4).Infof("content in a file %s\n", lines)
+			err = r.Write(fileName, []byte(newbuffer), perm)
+			return err
+		}
+	}
+	return errors.Errorf("failed to find %s in file %s", searchString, fileName)
 }
 
 //TestFileOperator is used as a dummy FileOperator
@@ -84,7 +90,7 @@ func (r TestFileOperator) Write(filename string, data []byte, perm os.FileMode) 
 }
 
 //Updatefile is to mock Updatefile operation for FileOperator interface
-func (r TestFileOperator) Updatefile(filename, updateStorageVal string, index int, perm os.FileMode) error {
+func (r TestFileOperator) Updatefile(fileName, updateStorageVal, searchString string, perm os.FileMode) error {
 	return nil
 }
 

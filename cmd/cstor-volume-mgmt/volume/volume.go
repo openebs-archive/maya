@@ -27,7 +27,6 @@ import (
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cvapis "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
-	v1_strings "github.com/openebs/maya/pkg/string/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -200,14 +199,6 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) ([]byte, error) {
 
 // ResizeTargetVolume sends resize volume command to istgt and get the response
 func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
-	index, _, err := FileOperatorVar.GetLineDetails(util.IstgtConfPath, "LUN0 Storage")
-	if err != nil {
-		return errors.Wrapf(err,
-			"failed to get storage details from %s file",
-			util.IstgtConfPath)
-	} else if index == -1 {
-		return errors.Errorf("storage details not found in file %s", util.IstgtConfPath)
-	}
 	// send resize command to istgt and read the response
 	resizeCmd := getResizeCommand(cStorVolume)
 	sockResp, err := UnixSockVar.SendCommand(resizeCmd)
@@ -218,17 +209,17 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 			util.IstgtResizeCmd,
 			cStorVolume.Name)
 	}
-	if v1_strings.MakeList(sockResp...).Contains("ERR") {
-		err = errors.Errorf("%v", sockResp)
-		return errors.Wrapf(
-			err,
-			"failed to execute istgt %s command on volume %s",
-			util.IstgtResizeCmd,
-			cStorVolume.Name)
+	for _, resp := range sockResp {
+		if strings.Contains(resp, "ERR") {
+			return errors.Wrapf(
+				err,
+				"failed to execute istgt %s command on volume %s",
+				util.IstgtResizeCmd,
+				cStorVolume.Name)
+		}
 	}
-
 	updateStorageVal := fmt.Sprintf("  LUN0 Storage %s 32K", cStorVolume.Spec.Capacity.String())
-	err = FileOperatorVar.Updatefile(util.IstgtConfPath, updateStorageVal, index, 0644)
+	err = FileOperatorVar.Updatefile(util.IstgtConfPath, updateStorageVal, "LUN0 Storage", 0644)
 	if err != nil {
 		return errors.Wrapf(err,
 			"failed to update %s file with %s details",
@@ -240,6 +231,7 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 }
 
 // getResizeCommand returns resize used to resize volumes
+// Ex command for resize: Resize volname 10G 10 30
 func getResizeCommand(cstorVolume *apis.CStorVolume) string {
 	return fmt.Sprintf("%s %s %s %v %v", util.IstgtResizeCmd,
 		cstorVolume.Name,
