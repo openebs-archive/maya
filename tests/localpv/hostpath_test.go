@@ -85,6 +85,7 @@ var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
 				WithSelectorMatchLabelsNew(labelselector).
 				WithPodTemplateSpecBuilder(
 					pts.NewBuilder().
+						WithLabelsNew(labelselector).
 						WithContainerBuildersNew(
 							container.NewBuilder().
 								WithName("busybox").

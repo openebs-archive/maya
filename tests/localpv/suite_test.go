@@ -54,21 +54,21 @@ var _ = BeforeSuite(func() {
 
 	ops = tests.NewOperations(tests.WithKubeConfigPath(kubeConfigPath))
 
-	By("waiting for maya-apiserver pod to come into running state")
-	podCount := ops.GetPodRunningCountEventually(
-		string(artifacts.OpenebsNamespace),
-		string(artifacts.MayaAPIServerLabelSelector),
-		1,
-	)
-	Expect(podCount).To(Equal(1))
-
 	By("waiting for openebs-localpv-provisioner pod to come into running state")
-	podCount = ops.GetPodRunningCountEventually(
+	provPodCount := ops.GetPodRunningCountEventually(
 		string(artifacts.OpenebsNamespace),
 		string(artifacts.OpenEBSLocalPVProvisionerLabelSelector),
 		1,
 	)
-	Expect(podCount).To(Equal(1))
+	Expect(provPodCount).To(Equal(1))
+
+	By("waiting for openebs-ndm-operator pod to come into running state")
+	ndmPodCount := ops.GetPodRunningCountEventually(
+		string(artifacts.OpenebsNamespace),
+		string(artifacts.OpenEBSNDMOperatorLabelSelector),
+		1,
+	)
+	Expect(ndmPodCount).To(Equal(1))
 
 	By("building a namespace")
 	namespaceObj, err = ns.NewBuilder().
