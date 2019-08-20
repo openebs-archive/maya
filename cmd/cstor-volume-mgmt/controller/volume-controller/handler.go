@@ -409,9 +409,6 @@ func (c *CStorVolumeController) resizeCStorVolume(
 	// NOTE: We are processing resize process only after updating CV resize conditions
 	// so in below call there is no chance of geting new CVCondition instance
 	conditionStatus := customCVObj.GetCVCondition(apis.CStorVolumeResizing)
-	if err != nil {
-		return nil, pkg_errors.Wrapf(err, "condition %s not found", apis.CStorVolumeResizing)
-	}
 	desiredCap := copyCV.Spec.Capacity.String()
 
 	err = volume.ResizeTargetVolume(copyCV)
