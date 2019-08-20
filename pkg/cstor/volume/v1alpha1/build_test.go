@@ -554,11 +554,13 @@ func TestBuilderWithConsistencyFactor(t *testing.T) {
 
 func TestBuilderWithConditions(t *testing.T) {
 	tests := map[string]struct {
+		condType  apis.CStorVolumeConditionType
 		condition apis.CStorVolumeCondition
 		builder   *Builder
 		expectLen int
 	}{
 		"Test Builder with existing condition": {
+			condType: apis.CStorVolumeResizing,
 			condition: apis.CStorVolumeCondition{
 				Type:          apis.CStorVolumeResizing,
 				Status:        apis.ConditionSuccess,
@@ -580,6 +582,7 @@ func TestBuilderWithConditions(t *testing.T) {
 			expectLen: 1,
 		},
 		"Test Builder without condition": {
+			condType: apis.CStorVolumeConditionType("Unknown"),
 			condition: apis.CStorVolumeCondition{
 				Type:          apis.CStorVolumeConditionType("Unknown"),
 				Status:        apis.ConditionSuccess,
@@ -591,6 +594,7 @@ func TestBuilderWithConditions(t *testing.T) {
 			expectLen: 1,
 		},
 		"Test Builder with new condition": {
+			condType: apis.CStorVolumeConditionType("Unknown"),
 			condition: apis.CStorVolumeCondition{
 				Type:          apis.CStorVolumeConditionType("Unknown"),
 				Status:        apis.ConditionSuccess,
@@ -611,11 +615,29 @@ func TestBuilderWithConditions(t *testing.T) {
 			}},
 			expectLen: 2,
 		},
+		"Test Builder by deleting condition": {
+			condType:  apis.CStorVolumeResizing,
+			condition: apis.CStorVolumeCondition{},
+			builder: &Builder{cstorvolume: &CStorVolume{
+				object: &apis.CStorVolume{
+					Status: apis.CStorVolumeStatus{
+						Conditions: []apis.CStorVolumeCondition{
+							apis.CStorVolumeCondition{
+								Type:          apis.CStorVolumeResizing,
+								Status:        apis.ConditionInProgress,
+								LastProbeTime: metav1.Now(),
+							},
+						},
+					},
+				},
+			}},
+			expectLen: 0,
+		},
 	}
 	for name, mock := range tests {
 		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
-			b := mock.builder.WithCondition(mock.condition, mock.condition.Type)
+			b := mock.builder.WithCondition(mock.condition, mock.condType)
 			if len(b.errs) != 0 {
 				t.Fatalf("Test %q failed: expected error to be nil", name)
 			}

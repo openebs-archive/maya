@@ -306,19 +306,28 @@ func (b *Builder) WithReplicationFactor(replicationfactor int) *Builder {
 func (b *Builder) WithCondition(
 	conditionStatus apis.CStorVolumeCondition,
 	condType apis.CStorVolumeConditionType) *Builder {
-	isCondPresent := false
-	for i, cond := range b.cstorvolume.object.Status.Conditions {
-		if cond.Type == condType {
-			b.cstorvolume.object.Status.Conditions[i] = conditionStatus
+	newConditions := []apis.CStorVolumeCondition{}
+	var isCondPresent, isDelete bool
+	//If conditionStatus is empty then we need to delete condType from status
+	if conditionStatus.Type == "" {
+		isDelete = true
+	}
+	for _, cond := range b.cstorvolume.object.Status.Conditions {
+		if cond.Type == condType && isDelete {
 			isCondPresent = true
+			continue
+		}
+		if cond.Type == condType {
+			newConditions = append(newConditions, conditionStatus)
+			isCondPresent = true
+		} else {
+			newConditions = append(newConditions, cond)
 		}
 	}
 	if !isCondPresent {
-		b.cstorvolume.object.Status.Conditions = append(
-			b.cstorvolume.object.Status.Conditions,
-			conditionStatus,
-		)
+		newConditions = append(newConditions, conditionStatus)
 	}
+	b.cstorvolume.object.Status.Conditions = newConditions
 	return b
 }
 
