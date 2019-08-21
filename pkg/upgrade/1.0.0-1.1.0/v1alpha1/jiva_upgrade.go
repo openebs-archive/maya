@@ -175,7 +175,7 @@ func getController(controllerLabel, namespace string) (*controllerDetails, error
 func patchReplica(replicaObj *replicaDetails, namespace string) error {
 	if replicaObj.version == currentVersion {
 		tmpl, err := template.New("replicaPatch").
-			Parse(templates.JivaReplicaPatchTemplate)
+			Parse(templates.JivaReplicaPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for replica patch")
 		}
@@ -204,7 +204,7 @@ func patchReplica(replicaObj *replicaDetails, namespace string) error {
 func patchController(controllerObj *controllerDetails, namespace string) error {
 	if controllerObj.version == currentVersion {
 		tmpl, err := template.New("controllerPatch").
-			Parse(templates.JivaTargetPatchTemplate)
+			Parse(templates.JivaTargetPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for controller patch")
 		}

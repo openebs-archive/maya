@@ -17,8 +17,8 @@ limitations under the License.
 package templates
 
 var (
-	// JivaReplicaPatchTemplate is generic template for replica patch
-	JivaReplicaPatchTemplate = `{
+	// JivaReplicaPatch is generic template for replica patch
+	JivaReplicaPatch = `{
 		"metadata": {
 		   "labels": {
 			  "openebs.io/version": "{{.UpgradeVersion}}",

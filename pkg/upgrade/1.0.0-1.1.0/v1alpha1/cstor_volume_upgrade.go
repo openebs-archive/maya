@@ -110,7 +110,7 @@ func patchTargetDeploy(d *appsv1.Deployment, ns string) error {
 	}
 	if version == currentVersion {
 		tmpl, err := template.New("targetPatch").
-			Parse(templates.CstorTargetPatchTemplate)
+			Parse(templates.CstorTargetPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for cstor target deployment patch")
 		}
@@ -164,7 +164,7 @@ func patchCV(pvLabel, namespace string) error {
 	}
 	if version == currentVersion {
 		tmpl, err := template.New("cvPatch").
-			Parse(templates.OpenebsVersionPatchTemplate)
+			Parse(templates.OpenebsVersionPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for cstorvolume patch")
 		}
@@ -206,7 +206,7 @@ func patchCVR(cvrName, namespace string) error {
 	}
 	if version == currentVersion {
 		tmpl, err := template.New("cvPatch").
-			Parse(templates.OpenebsVersionPatchTemplate)
+			Parse(templates.OpenebsVersionPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for cstorvolumereplica patch")
 		}

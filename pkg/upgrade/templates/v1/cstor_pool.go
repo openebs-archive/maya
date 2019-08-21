@@ -17,8 +17,8 @@ limitations under the License.
 package templates
 
 var (
-	// CSPDeployPatchTemplate is used for patching cstor pool deployment
-	CSPDeployPatchTemplate = `{
+	// CSPDeployPatch is used for patching cstor pool deployment
+	CSPDeployPatch = `{
 		"metadata": {
 		   "labels": {
 			  "openebs.io/version": "{{.UpgradeVersion}}"

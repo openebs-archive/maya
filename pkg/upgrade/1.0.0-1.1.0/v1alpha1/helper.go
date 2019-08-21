@@ -150,7 +150,7 @@ func patchService(targetServiceLabel, namespace string) error {
 	}
 	if version == currentVersion {
 		tmpl, err := template.New("servicePatch").
-			Parse(templates.OpenebsVersionPatchTemplate)
+			Parse(templates.OpenebsVersionPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for service patch")
 		}

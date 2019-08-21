@@ -101,7 +101,7 @@ func cspUpgrade(cspName, openebsNamespace string) error {
 	}
 	if cspVersion == currentVersion {
 		tmpl, err := template.New("cspPatch").
-			Parse(templates.OpenebsVersionPatchTemplate)
+			Parse(templates.OpenebsVersionPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for csp patch")
 		}
@@ -131,7 +131,7 @@ func cspUpgrade(cspName, openebsNamespace string) error {
 		}
 		patchDetails.UpgradeVersion = upgradeVersion
 		tmpl, err := template.New("cspDeployPatch").
-			Parse(templates.CSPDeployPatchTemplate)
+			Parse(templates.CSPDeployPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for csp deployment patch")
 		}

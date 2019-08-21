@@ -17,8 +17,8 @@ limitations under the License.
 package templates
 
 var (
-	// CstorTargetPatchTemplate is used to patch target deployment for cstor volume
-	CstorTargetPatchTemplate = `{
+	// CstorTargetPatch is used to patch target deployment for cstor volume
+	CstorTargetPatch = `{
 		"metadata": {
 		   "labels": {
 			  "openebs.io/version": "{{.UpgradeVersion}}"

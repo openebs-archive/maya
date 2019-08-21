@@ -17,8 +17,8 @@ limitations under the License.
 package templates
 
 var (
-	// OpenebsVersionPatchTemplate is generic template for openebs version patch
-	OpenebsVersionPatchTemplate = `{
+	// OpenebsVersionPatch is generic template for openebs version patch
+	OpenebsVersionPatch = `{
 	"metadata": {
 	   "labels": {
 		  "openebs.io/version": "{{.}}"
