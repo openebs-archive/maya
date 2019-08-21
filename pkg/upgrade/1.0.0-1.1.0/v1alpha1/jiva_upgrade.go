@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"text/template"
 
+	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
+
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -172,7 +174,8 @@ func getController(controllerLabel, namespace string) (*controllerDetails, error
 
 func patchReplica(replicaObj *replicaDetails, namespace string) error {
 	if replicaObj.version == currentVersion {
-		tmpl, err := template.New("replicaPatch").Parse(replicaPatchTemplate)
+		tmpl, err := template.New("replicaPatch").
+			Parse(templates.JivaReplicaPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for replica patch")
 		}
@@ -200,7 +203,8 @@ func patchReplica(replicaObj *replicaDetails, namespace string) error {
 
 func patchController(controllerObj *controllerDetails, namespace string) error {
 	if controllerObj.version == currentVersion {
-		tmpl, err := template.New("controllerPatch").Parse(targetPatchTemplate)
+		tmpl, err := template.New("controllerPatch").
+			Parse(templates.JivaTargetPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for controller patch")
 		}

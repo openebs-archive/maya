@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"text/template"
 
+	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
+
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -107,7 +109,8 @@ func patchTargetDeploy(d *appsv1.Deployment, ns string) error {
 		)
 	}
 	if version == currentVersion {
-		tmpl, err := template.New("targetPatch").Parse(cstorTargetPatchTemplate)
+		tmpl, err := template.New("targetPatch").
+			Parse(templates.CstorTargetPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for cstor target deployment patch")
 		}
@@ -160,7 +163,8 @@ func patchCV(pvLabel, namespace string) error {
 		)
 	}
 	if version == currentVersion {
-		tmpl, err := template.New("cvPatch").Parse(openebsVersionPatchTemplate)
+		tmpl, err := template.New("cvPatch").
+			Parse(templates.OpenebsVersionPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for cstorvolume patch")
 		}
@@ -201,7 +205,8 @@ func patchCVR(cvrName, namespace string) error {
 		)
 	}
 	if version == currentVersion {
-		tmpl, err := template.New("cvPatch").Parse(openebsVersionPatchTemplate)
+		tmpl, err := template.New("cvPatch").
+			Parse(templates.OpenebsVersionPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for cstorvolumereplica patch")
 		}

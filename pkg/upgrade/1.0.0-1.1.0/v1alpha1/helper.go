@@ -22,6 +22,8 @@ import (
 	"text/template"
 	"time"
 
+	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
+
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	retry "github.com/openebs/maya/pkg/util/retry"
 	appsv1 "k8s.io/api/apps/v1"
@@ -147,7 +149,8 @@ func patchService(targetServiceLabel, namespace string) error {
 		)
 	}
 	if version == currentVersion {
-		tmpl, err := template.New("servicePatch").Parse(openebsVersionPatchTemplate)
+		tmpl, err := template.New("servicePatch").
+			Parse(templates.OpenebsVersionPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for service patch")
 		}
