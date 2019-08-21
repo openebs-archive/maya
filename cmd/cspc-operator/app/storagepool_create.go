@@ -252,7 +252,7 @@ func getPoolMgmtImage() string {
 func getPoolImage() string {
 	image, present := os.LookupEnv("OPENEBS_IO_CSTOR_POOL_IMAGE")
 	if !present {
-		image = "openebs/cstor-pool:ci"
+		image = "openebs/cspi-mgmt:ci"
 	}
 	return image
 }

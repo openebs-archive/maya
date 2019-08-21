@@ -73,6 +73,7 @@ HUB_USER?=openebs
 # format of docker image name is <hub-user>/<repo-name>[:<tag>].
 # so final name will be ${HUB_USER}/${*_REPO_NAME}:${IMAGE_TAG}
 CSTOR_POOL_MGMT_REPO_NAME?=cstor-pool-mgmt
+CSPI_MGMT_REPO_NAME?=cspi-mgmt
 CSTOR_VOLUME_MGMT_REPO_NAME?=cstor-volume-mgmt
 M_EXPORTER_REPO_NAME?=m-exporter
 ADMISSION_SERVER_REPO_NAME?=admission-server
@@ -100,6 +101,7 @@ MAYACTL=mayactl
 APISERVER=maya-apiserver
 WEBHOOK=admission-server
 POOL_MGMT=cstor-pool-mgmt
+CSPI_MGMT=cspi-mgmt
 VOLUME_MGMT=cstor-volume-mgmt
 EXPORTER=maya-exporter
 CSPC_OPERATOR=cspc-operator
@@ -283,6 +285,22 @@ pool-mgmt-image: cstor-pool-mgmt
 	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t ${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
 	@rm buildscripts/cstor-pool-mgmt/${POOL_MGMT}
 
+#Use this to build cspi-mgmt
+cspi-mgmt:
+	@echo "----------------------------"
+	@echo "--> cspi-mgmt           "
+	@echo "----------------------------"
+	@PNAME="cspi-mgmt" CTLNAME=${CSPI_MGMT} sh -c "'$(PWD)/buildscripts/build.sh'"
+
+cspi-mgmt-image: cspi-mgmt
+	@echo "----------------------------"
+	@echo -n "--> cspi-mgmt image "
+	@echo "${HUB_USER}/${CSPI_MGMT_REPO_NAME}:${IMAGE_TAG}"
+	@echo "----------------------------"
+	@cp bin/cspi-mgmt/${CSPI_MGMT} buildscripts/cspi-mgmt/
+	@cd buildscripts/cspi-mgmt && sudo docker build -t ${HUB_USER}/${CSPI_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
+	@rm buildscripts/cspi-mgmt/${CSPI_MGMT}
+
 #Use this to build cstor-volume-mgmt
 cstor-volume-mgmt:
 	@echo "----------------------------"
@@ -381,10 +399,11 @@ deploy-images:
 	@DIMAGE="openebs/m-apiserver" ./buildscripts/push
 	@DIMAGE="openebs/m-exporter" ./buildscripts/push
 	@DIMAGE="openebs/cstor-pool-mgmt" ./buildscripts/push
+	@DIMAGE="openebs/cspi-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/cstor-volume-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/admission-server" ./buildscripts/push
 	@DIMAGE="openebs/cspc-operator" ./buildscripts/push
 	@DIMAGE="${HUB_USER}/${M_UPGRADE_REPO_NAME}" ./buildscripts/push
 	@DIMAGE="openebs/provisioner-localpv" ./buildscripts/push
 
-.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image cspc-operator-image testv
+.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image cspc-operator-image cspi-mgmt-image testv

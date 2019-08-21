@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors.
+Copyright 2017 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,36 +14,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package startcontroller
+package app
 
 import (
-	"fmt"
+	"flag"
+	"github.com/golang/glog"
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/backup-controller"
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/replica-controller"
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/restore"
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
+	"github.com/pkg/errors"
 	"os"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
+	"github.com/openebs/maya/pkg/signals"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+)
 
-	backupcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/backup-controller"
-	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
-	replicacontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/replica-controller"
-	restorecontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/restore"
-	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
-
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
-	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
-	"github.com/openebs/maya/pkg/signals"
-
-	poolcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/pool-controller"
-	//poolcontroller2 "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/new-pool-controller"
-	//// for v1alpha2
-	//clientset2 "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/clientset/internalclientset"
-	//informers2 "github.com/openebs/maya/pkg/client/generated/openebs.io/v1alpha2/informer/externalversions"
+var (
+	kubeconfig = flag.String("kubeconfig", "", "Path for kube config")
 )
 
 const (
@@ -53,36 +50,33 @@ const (
 	NumRoutinesThatFollow = 1
 )
 
-// StartControllers instantiates CStorPool and CStorVolumeReplica controllers
-// and watches them.
-func StartControllers(kubeconfig string) {
-	// Set up signals to handle the first shutdown signal gracefully.
+// Start starts the cspi-mgmt controller.
+func Start() error {
+	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
 
-	cfg, err := getClusterConfig(kubeconfig)
+	err := flag.Set("logtostderr", "true")
 	if err != nil {
-		glog.Fatalf(err.Error())
+		return errors.Wrap(err, "failed to set logtostderr flag")
+	}
+	flag.Parse()
+
+	cfg, err := getClusterConfig(*kubeconfig)
+	if err != nil {
+		return errors.Wrap(err, "error building kubeconfig")
 	}
 
+	// Building Kubernetes Clientset
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		glog.Fatalf("Error building kubernetes clientset: %s", err.Error())
+		return errors.Wrap(err, "error building kubernetes clientset")
 	}
-
+	common.Init()
+	// Building OpenEBS Clientset
 	openebsClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		glog.Fatalf("Error building openebs clientset: %s", err.Error())
+		return errors.Wrap(err, "error building openebs clientset")
 	}
-
-	//TODO: Remove below code
-	//openebsClient2, err := clientset.NewForConfig(cfg)
-	//if err != nil {
-	//	glog.Fatalf("Error building openebs clientset: %s", err.Error())
-	//}
-
-	common.Init()
-
-	// Blocking call for checking status of zrepl running in cstor-pool container.
 	pool.CheckForZreplInitial(common.InitialZreplRetryInterval)
 	go func() {
 		// CheckForZreplContinuous is continuous health checker for status of
@@ -95,11 +89,6 @@ func StartControllers(kubeconfig string) {
 		glog.Errorf("Zrepl/Pool is not available, Shutting down")
 		os.Exit(1)
 	}()
-	// Blocking call for checking status of CStorPool CRD.
-	common.CheckForCStorPoolCRD(openebsClient)
-
-	// Blocking call for checking status of CStorVolumeReplica CRD.
-	common.CheckForCStorVolumeReplicaCRD(openebsClient)
 
 	// NewSharedInformerFactory constructs a new instance of k8s sharedInformerFactory.
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, getSyncInterval())
@@ -107,13 +96,9 @@ func StartControllers(kubeconfig string) {
 	// openebsInformerFactory constructs a new instance of openebs sharedInformerFactory.
 	openebsInformerFactory := informers.NewSharedInformerFactory(openebsClient, getSyncInterval())
 
-	// openebsInformerFactory2 constructs a new instance of openebs sharedInformerFactory.
-	//openebsInformerFactory2 := informers.NewSharedInformerFactory(openebsClient2, getSyncInterval())
-
-	//// Instantiate the cStor Pool and VolumeReplica controllers.
-	cStorPoolController := poolcontroller.NewCStorPoolController(kubeClient, openebsClient, kubeInformerFactory,
+	// Instantiate the cStor Pool Instance and VolumeReplica controllers.
+	cStorPoolInstanceController := NewCStorPoolInstanceController(kubeClient, openebsClient, kubeInformerFactory,
 		openebsInformerFactory)
-
 	volumeReplicaController := replicacontroller.NewCStorVolumeReplicaController(kubeClient, openebsClient, kubeInformerFactory,
 		openebsInformerFactory)
 
@@ -127,17 +112,18 @@ func StartControllers(kubeconfig string) {
 
 	go kubeInformerFactory.Start(stopCh)
 	go openebsInformerFactory.Start(stopCh)
-	//go openebsInformerFactory2.Start(stopCh)
+	// Blocking call for checking status of zrepl running in cstor-pool container.
 
 	// Waitgroup for starting pool and VolumeReplica controller goroutines.
 	var wg sync.WaitGroup
 	//TODO: Remove below code
+
 	wg.Add(NumRoutinesThatFollow)
 
-	// Run controller for cStorPool.
+	// Run controller for cStorPoolInstance
 	go func() {
-		if err = cStorPoolController.Run(NumThreads, stopCh); err != nil {
-			glog.Fatalf("Error running CStorPool controller: %s", err.Error())
+		if err = cStorPoolInstanceController.Run(NumThreads, stopCh); err != nil {
+			glog.Fatalf("Error running CStorPoolInstance controller: %s", err.Error())
 		}
 		wg.Done()
 	}()
@@ -174,23 +160,16 @@ func StartControllers(kubeconfig string) {
 	}()
 
 	wg.Wait()
+	return nil
 }
 
 // GetClusterConfig return the config for k8s.
 func getClusterConfig(kubeconfig string) (*rest.Config, error) {
-	var masterURL string
-	cfg, err := rest.InClusterConfig()
-	if err != nil {
-		glog.Errorf("Failed to get k8s Incluster config. %+v", err)
-		if len(kubeconfig) == 0 {
-			return nil, fmt.Errorf("kubeconfig is empty: %v", err.Error())
-		}
-		cfg, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
-		if err != nil {
-			return nil, fmt.Errorf("Error building kubeconfig: %s", err.Error())
-		}
+	if kubeconfig != "" {
+		return clientcmd.BuildConfigFromFlags("", kubeconfig)
 	}
-	return cfg, err
+	glog.V(2).Info("Kubeconfig flag is empty")
+	return rest.InClusterConfig()
 }
 
 // getSyncInterval gets the resync interval from environment variable.
