@@ -114,7 +114,7 @@ include ./buildscripts/provisioner-localpv/Makefile.mk
 include ./buildscripts/upgrade/Makefile.mk
 include ./buildscripts/upgrade-082090/Makefile.mk
 
-all: compile-tests mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image cspc-operator-image upgrade-image provisioner-localpv-image
+all: compile-tests mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image cspc-operator-image cspi-mgmt-image upgrade-image provisioner-localpv-image
 
 mayactl:
 	@echo "----------------------------"
