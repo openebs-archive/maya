@@ -211,11 +211,12 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 	}
 	for _, resp := range sockResp {
 		if strings.Contains(resp, "ERR") {
-			return errors.Wrapf(
-				err,
-				"failed to execute istgt %s command on volume %s",
+			return errors.Errorf(
+				"failed to execute istgt %s command on volume %s resp: %s",
 				util.IstgtResizeCmd,
-				cStorVolume.Name)
+				cStorVolume.Name,
+				resp,
+			)
 		}
 	}
 	updateStorageVal := fmt.Sprintf("  LUN0 Storage %s 32K", cStorVolume.Spec.Capacity.String())
