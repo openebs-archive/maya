@@ -401,36 +401,36 @@ func (c *CVCController) resizeCVC(cvc *apis.CStorVolumeClaim) error {
 	}
 	desiredCVCSize := cvc.Spec.Capacity[corev1.ResourceStorage]
 
-	if (cv.Spec.Capacity).Cmp(cv.Status.Capacity) != 0 &&
-		desiredCVCSize.Cmp(cv.Spec.Capacity) != 0 {
-
+	if (cv.Spec.Capacity).Cmp(cv.Status.Capacity) > 0 {
 		c.recorder.Event(cvc, corev1.EventTypeNormal, string(apis.CStorVolumeClaimResizing),
 			fmt.Sprintf("Resize already in progress %s", cvc.Name))
 
-		return fmt.Errorf("ResizeInProgress from: %v to: %v",
-			cv.Status.Capacity, cv.Spec.Capacity)
+		glog.Warningf("Resize already in progress on %q from: %v to: %v",
+			cvc.Name, cv.Status.Capacity.String(), cv.Spec.Capacity.String())
+		return nil
 	}
 
-	if desiredCVCSize.Cmp(cv.Spec.Capacity) > 0 {
-		if updatedCVC, err = c.markCVCResizeInProgress(cvc); err != nil {
-			glog.Errorf("failed to mark cvc %q as resizing: %v", cvc.Name, err)
-			return err
-		}
-		cvc = updatedCVC
-		// Record an event to indicate that cvc-controller is resizing this volume.
-		c.recorder.Event(cvc, corev1.EventTypeNormal, string(apis.CStorVolumeClaimResizing),
-			fmt.Sprintf("CVCController is resizing volume %s", cvc.Name))
-
-		err = c.resizeVolume(cv, desiredCVCSize)
-		if err != nil {
-			// Record an event to indicate that resize operation is failed.
-			c.recorder.Eventf(cvc, corev1.EventTypeWarning, string(apis.CStorVolumeClaimResizeFailed), err.Error())
-		}
-		return err
-	}
+	// markCVC as resized finished
 	if desiredCVCSize.Cmp(cv.Status.Capacity) == 0 {
 		// Resize volume succeeded mark it as resizing finished.
 		return c.markCVCResizeFinished(cvc)
+	}
+
+	//if desiredCVCSize.Cmp(cv.Spec.Capacity) > 0 {
+	if updatedCVC, err = c.markCVCResizeInProgress(cvc); err != nil {
+		glog.Errorf("failed to mark cvc %q as resizing: %v", cvc.Name, err)
+		return err
+	}
+	cvc = updatedCVC
+	// Record an event to indicate that cvc-controller is resizing this volume.
+	c.recorder.Event(cvc, corev1.EventTypeNormal, string(apis.CStorVolumeClaimResizing),
+		fmt.Sprintf("CVCController is resizing volume %s", cvc.Name))
+
+	err = c.resizeCV(cv, desiredCVCSize)
+	if err != nil {
+		// Record an event to indicate that resize operation is failed.
+		c.recorder.Eventf(cvc, corev1.EventTypeWarning, string(apis.CStorVolumeClaimResizeFailed), err.Error())
+		return err
 	}
 	return nil
 }
@@ -534,23 +534,8 @@ func getPatchData(oldObj, newObj interface{}) ([]byte, error) {
 	return patchBytes, nil
 }
 
-// resizeVolume resize the volume to desired size, and update CV's capacity
-//func (c *CVCController) resizeVolume(
-//	cvc *apis.CStorVolumeClaim,
-//	cv *apis.CStorVolume) error {
-//
-//	newSize := cvc.Spec.Capacity[corev1.ResourceStorage]
-//	err := c.UpdateCVCapacity(cv, newSize)
-//	if err != nil {
-//		glog.Errorf("failed to update capacity of CV %q to %s : %v", cv.Name, newSize.String(), err)
-//		return err
-//	}
-//	glog.V(4).Infof("successfully Updated capacity of CV %q to %s", cv.Name, newSize.String())
-//	return err
-//}
-
-// resizeVolume resize the volume to desired size, and update CV's capacity
-func (c *CVCController) resizeVolume(cv *apis.CStorVolume, newCapacity resource.Quantity) error {
+// resizeCV resize the cstor volume to desired size, and update CV's capacity
+func (c *CVCController) resizeCV(cv *apis.CStorVolume, newCapacity resource.Quantity) error {
 	newCV := cv.DeepCopy()
 	newCV.Spec.Capacity = newCapacity
 
