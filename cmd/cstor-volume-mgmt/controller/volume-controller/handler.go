@@ -147,7 +147,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 			_, err = c.resizeCStorVolume(cStorVolumeGot)
 			if err != nil {
 				glog.Errorf(
-					"failed to resize cstorvolume %s from %s capacity to %s error %v",
+					"failed to resize cstorvolume %s from %s to %s error %v",
 					cStorVolumeGot.Name,
 					cStorVolumeGot.Status.Capacity.String(),
 					cStorVolumeGot.Spec.Capacity.String(),
@@ -183,8 +183,9 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 			updatedCV, err = c.resizeCStorVolume(cStorVolumeGot)
 			if err != nil {
 				glog.Errorf(
-					"failed to resize cstorvolume %s with capacity %s error %v",
+					"failed to resize cstorvolume %s from %s to %s error %v",
 					cStorVolumeGot.Name,
+					cStorVolumeGot.Status.Capacity.String(),
 					cStorVolumeGot.Spec.Capacity.String(),
 					err,
 				)
@@ -425,7 +426,7 @@ func (c *CStorVolumeController) resizeCStorVolume(
 	err = volume.ResizeTargetVolume(copyCV)
 	if err != nil {
 		eventMessage = fmt.Sprintf(
-			"failed to resize cstorvolume from %s to %s capacity error %v",
+			"failed to resize cstorvolume from %s to %s error %v",
 			cStorVolume.Status.Capacity.String(),
 			desiredCap,
 			err,

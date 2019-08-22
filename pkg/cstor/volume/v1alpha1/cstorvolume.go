@@ -45,7 +45,7 @@ type ListBuilder struct {
 	filters PredicateList
 }
 
-// Conditions
+// Conditions enables building CRUD operations on cstorvolume conditions
 type Conditions []apis.CStorVolumeCondition
 
 // GetResizeCondition will return resize condtion related to
@@ -130,10 +130,7 @@ func (c *CStorVolume) IsResizePending() bool {
 	// Cmp returns 0 if the curCapacity is equal to desiredCapacity,
 	// -1 if the curCapacity is less than desiredCapacity, or 1 if the
 	// curCapacity is greater than desiredCapacity.
-	if curCapacity.Cmp(desiredCapacity) == -1 {
-		return true
-	}
-	return false
+	return curCapacity.Cmp(desiredCapacity) == -1
 }
 
 // GetCVCondition returns corresponding cstorvolume condition based argument passed
@@ -186,7 +183,7 @@ func NewForAPIObject(obj *apis.CStorVolume) *CStorVolume {
 	}
 }
 
-// AddCodition appends the new condition to existing conditions
+// AddCondition appends the new condition to existing conditions
 func (c Conditions) AddCondition(cond apis.CStorVolumeCondition) []apis.CStorVolumeCondition {
 	c = append(c, cond)
 	return c
