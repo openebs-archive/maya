@@ -45,6 +45,9 @@ type ListBuilder struct {
 	filters PredicateList
 }
 
+// Conditions
+type Conditions []apis.CStorVolumeCondition
+
 // GetResizeCondition will return resize condtion related to
 // cstorvolume condtions
 func GetResizeCondition() apis.CStorVolumeCondition {
@@ -124,9 +127,6 @@ func IsHealthy() Predicate {
 func (c *CStorVolume) IsResizePending() bool {
 	curCapacity := c.object.Status.Capacity
 	desiredCapacity := c.object.Spec.Capacity
-	if curCapacity.IsZero() {
-		return false
-	}
 	// Cmp returns 0 if the curCapacity is equal to desiredCapacity,
 	// -1 if the curCapacity is less than desiredCapacity, or 1 if the
 	// curCapacity is greater than desiredCapacity.
@@ -184,4 +184,31 @@ func NewForAPIObject(obj *apis.CStorVolume) *CStorVolume {
 	return &CStorVolume{
 		object: obj,
 	}
+}
+
+// AddCodition appends the new condition to existing conditions
+func (c Conditions) AddCondition(cond apis.CStorVolumeCondition) []apis.CStorVolumeCondition {
+	c = append(c, cond)
+	return c
+}
+
+// DeleteCondition deletes the condition from conditions
+func (c Conditions) DeleteCondition(cond apis.CStorVolumeCondition) []apis.CStorVolumeCondition {
+	newConditions := []apis.CStorVolumeCondition{}
+	for _, condObj := range c {
+		if condObj.Type != cond.Type {
+			newConditions = append(newConditions, condObj)
+		}
+	}
+	return newConditions
+}
+
+// UpdateCondition updates the condition if it is present in Conditions
+func (c Conditions) UpdateCondition(cond apis.CStorVolumeCondition) []apis.CStorVolumeCondition {
+	for i, condObj := range c {
+		if condObj.Type == cond.Type {
+			c[i] = cond
+		}
+	}
+	return c
 }
