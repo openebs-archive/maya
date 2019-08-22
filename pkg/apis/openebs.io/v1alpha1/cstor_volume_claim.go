@@ -67,12 +67,28 @@ type CStorVolumeClaimPublish struct {
 // CStorVolumeClaimPhase represents the current phase of CStorVolumeClaim.
 type CStorVolumeClaimPhase string
 
+const (
+	//CStorVolumeClaimPhasePending indicates that the cvc is still waiting for
+	//the cstorvolume to be created and bound
+	CStorVolumeClaimPhasePending CStorVolumeClaimPhase = "Pending"
+
+	//CStorVolumeClaimPhaseBound indiacates that the cstorvolume has been
+	//provisioned and bound to the cstor volume claim
+	CStorVolumeClaimPhaseBound CStorVolumeClaimPhase = "Bound"
+
+	//CStorVolumeClaimPhaseFailed indiacates that the cstorvolume provisioning
+	//has failed
+	CStorVolumeClaimPhaseFailed CStorVolumeClaimPhase = "Failed"
+)
+
 // CStorVolumeClaimStatus is for handling status of CstorVolume Claim.
 // defines the observed state of CStorVolumeClaim
 type CStorVolumeClaimStatus struct {
 	// Phase represents the current phase of CStorVolumeClaim.
-	Phase     CStorVolumeClaimPhase       `json:"phase"`
-	Condition []CStorVolumeClaimCondition `json:"condition,omitempty"`
+	Phase CStorVolumeClaimPhase `json:"phase"`
+	// Capacity the actual resources of the underlying volume.
+	Capacity   corev1.ResourceList         `json:"capacity,omitempty"`
+	Conditions []CStorVolumeClaimCondition `json:"condition,omitempty"`
 }
 
 // CStorVolumeClaimCondition contains details about state of cstor volume
@@ -80,6 +96,12 @@ type CStorVolumeClaimCondition struct {
 	// Current Condition of cstor volume claim. If underlying persistent volume is being
 	// resized then the Condition will be set to 'ResizeStarted' etc
 	Type CStorVolumeClaimConditionType `json:"type"`
+	// Last time we probed the condition.
+	// +optional
+	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
+	// Last time the condition transitioned from one status to another.
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 	// Reason is a brief CamelCase string that describes any failure
 	Reason string `json:"reason"`
 	// Human-readable message indicating details about last transition.
@@ -88,6 +110,18 @@ type CStorVolumeClaimCondition struct {
 
 // CStorVolumeClaimConditionType is a valid value of CstorVolumeClaimCondition.Type
 type CStorVolumeClaimConditionType string
+
+// These constants are CVC condition types related to resize operation.
+const (
+	// CStorVolumeClaimResizePending ...
+	CStorVolumeClaimResizing CStorVolumeClaimConditionType = "Resizing"
+	// CStorVolumeClaimResizeFailed ...
+	CStorVolumeClaimResizeFailed CStorVolumeClaimConditionType = "VolumeResizeFailed"
+	// CStorVolumeClaimResizeSuccess ...
+	CStorVolumeClaimResizeSuccess CStorVolumeClaimConditionType = "VolumeResizeSuccessful"
+	// CStorVolumeClaimResizePending ...
+	CStorVolumeClaimResizePending CStorVolumeClaimConditionType = "VolumeResizePending"
+)
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true

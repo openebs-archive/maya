@@ -208,12 +208,14 @@ func (c *CVCController) addCVC(obj interface{}) {
 }
 
 // updateCVC is the update event handler for CstorVolumeClaim
-func (c *CVCController) updateCVC(oldCVC, newCVC interface{}) {
-	newCVC, ok := newCVC.(*apis.CStorVolumeClaim)
+func (c *CVCController) updateCVC(oldObj, newObj interface{}) {
+
+	newCVC, ok := newObj.(*apis.CStorVolumeClaim)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Couldn't get cvc object %#v", newCVC))
 		return
 	}
+
 	c.enqueueCVC(newCVC)
 }
 
