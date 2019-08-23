@@ -20,6 +20,8 @@ import (
 	"flag"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"os"
+	"strconv"
 	"time"
 
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
@@ -34,6 +36,11 @@ import (
 
 var (
 	kubeconfig = flag.String("kubeconfig", "", "Path for kube config")
+)
+
+const (
+	// ResyncInterval is sync interval of the watcher
+	ResyncInterval = 30 * time.Second
 )
 
 // Start starts the cstor-operator.
@@ -70,8 +77,8 @@ func Start() error {
 		return errors.Wrap(err, "error building ndm clientset")
 	}
 
-	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
-	spcInformerFactory := informers.NewSharedInformerFactory(openebsClient, time.Second*30)
+	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, getSyncInterval())
+	spcInformerFactory := informers.NewSharedInformerFactory(openebsClient, getSyncInterval())
 	// Build() fn of all controllers calls AddToScheme to adds all types of this
 	// clientset into the given scheme.
 	// If multiple controllers happen to call this AddToScheme same time,
@@ -110,4 +117,15 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 	}
 	glog.V(2).Info("Kubeconfig flag is empty")
 	return rest.InClusterConfig()
+}
+
+// getSyncInterval gets the resync interval from environment variable.
+// If missing or zero then default to 30 seconds
+// otherwise return the obtained value
+func getSyncInterval() time.Duration {
+	resyncInterval, err := strconv.Atoi(os.Getenv("RESYNC_INTERVAL"))
+	if err != nil || resyncInterval == 0 {
+		glog.Warningf("Incorrect resync interval %q obtained from env, defaulting to %q seconds", resyncInterval, ResyncInterval)
+	}
+	return time.Duration(resyncInterval) * time.Second
 }

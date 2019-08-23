@@ -20,7 +20,6 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
 )
@@ -28,11 +27,14 @@ import (
 const (
 	// PoolPrefix is prefix for pool name
 	PoolPrefix string = "cstor-"
+	// OpenEBSIOCSPIID is the environment variable specified in pod.
+	// It holds the UID of the CSPI
+	OpenEBSIOCSPIID string = "OPENEBS_IO_CSPI_ID"
 )
 
 // IsRightCStorPoolInstanceMgmt is to check if the pool request is for this pod.
 func IsRightCStorPoolInstanceMgmt(cspi *apis.CStorPoolInstance) bool {
-	return os.Getenv(string(common.OpenEBSIOCStorID)) == string(cspi.ObjectMeta.UID)
+	return os.Getenv(string(OpenEBSIOCSPIID)) == string(cspi.GetUID())
 }
 
 // IsDestroyed is to check if the call is for cStorPoolInstance destroy.
