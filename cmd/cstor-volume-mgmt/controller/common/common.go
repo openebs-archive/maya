@@ -57,6 +57,9 @@ const (
 	// MessageResourceFailCreate holds message for corresponding failed create resource.
 	MessageResourceFailCreate EventReason = "Resource creation failed"
 
+	// FailureUpdate holds status for corresponding failed update resource.
+	FailureUpdate EventReason = "FailUpdate"
+
 	// SuccessImported holds status for corresponding imported resource.
 	SuccessImported EventReason = "Imported"
 	// MessageResourceImported holds message for corresponding imported resource.
@@ -81,6 +84,11 @@ const (
 	AlreadyPresent EventReason = "AlreadyPresent"
 	// MessageResourceAlreadyPresent holds message for corresponding already present resource.
 	MessageResourceAlreadyPresent EventReason = "Resource already present"
+
+	// SuccessUpdated holds status for corresponding updated resource.
+	SuccessUpdated EventReason = "Updated"
+	// MessageResourceUpdated holds message for corresponding updated resource.
+	MessageResourceUpdated EventReason = "Resource updated successfully"
 )
 
 const (

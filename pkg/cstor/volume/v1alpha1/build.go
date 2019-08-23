@@ -39,6 +39,11 @@ func NewBuilder() *Builder {
 	return &Builder{cstorvolume: &CStorVolume{object: &apis.CStorVolume{}}}
 }
 
+// BuilderFromAPI returns builder instance from core API
+func BuilderFromAPI(cStorVolume *apis.CStorVolume) *Builder {
+	return &Builder{cstorvolume: &CStorVolume{object: cStorVolume}}
+}
+
 // WithName sets the Name field of CStorVolume with provided value.
 func (b *Builder) WithName(name string) *Builder {
 	if len(name) == 0 {

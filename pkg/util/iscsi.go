@@ -29,6 +29,8 @@ const (
 	IstgtExecuteQuietCmd = "-q"
 	ReplicaStatus        = "Replica status"
 	WaitTimeForIscsi     = 3 * time.Second
+	// IstgtResizeCmd holds the command to trigger resize
+	IstgtResizeCmd = "RESIZE"
 )
 
 func CheckForIscsi(UnixSockVar UnixSock) {

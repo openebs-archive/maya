@@ -16,6 +16,14 @@ package v1alpha1
 
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	//IoWaitTime is the time interval for which the IO has to be stopped before doing snapshot operation
+	IoWaitTime = 10
+	//TotalWaitTime is the max time duration to wait for doing snapshot operation on all the replicas
+	TotalWaitTime = 60
 )
 
 // CStorVolume a wrapper for CStorVolume object
@@ -35,6 +43,23 @@ type CStorVolumeList struct {
 type ListBuilder struct {
 	list    *CStorVolumeList
 	filters PredicateList
+}
+
+// Conditions enables building CRUD operations on cstorvolume conditions
+type Conditions []apis.CStorVolumeCondition
+
+// GetResizeCondition will return resize condtion related to
+// cstorvolume condtions
+func GetResizeCondition() apis.CStorVolumeCondition {
+	resizeConditions := apis.CStorVolumeCondition{
+		Type:               apis.CStorVolumeResizing,
+		Status:             apis.ConditionInProgress,
+		LastProbeTime:      metav1.Now(),
+		LastTransitionTime: metav1.Now(),
+		Reason:             "Resizing",
+		Message:            "Triggered resize by changing capacity in spec",
+	}
+	return resizeConditions
 }
 
 // NewListBuilder returns a new instance
@@ -86,16 +111,47 @@ type Predicate func(*CStorVolume) bool
 
 // IsHealthy returns true if the CVR is in
 // healthy state
-func (p *CStorVolume) IsHealthy() bool {
-	return p.object.Status.Phase == "Healthy"
+func (c *CStorVolume) IsHealthy() bool {
+	return c.object.Status.Phase == "Healthy"
 }
 
 // IsHealthy is a predicate to filter out cstorvolumes
 // which is healthy
 func IsHealthy() Predicate {
-	return func(p *CStorVolume) bool {
-		return p.IsHealthy()
+	return func(c *CStorVolume) bool {
+		return c.IsHealthy()
 	}
+}
+
+// IsResizePending return true if resize is in progress
+func (c *CStorVolume) IsResizePending() bool {
+	curCapacity := c.object.Status.Capacity
+	desiredCapacity := c.object.Spec.Capacity
+	// Cmp returns 0 if the curCapacity is equal to desiredCapacity,
+	// -1 if the curCapacity is less than desiredCapacity, or 1 if the
+	// curCapacity is greater than desiredCapacity.
+	return curCapacity.Cmp(desiredCapacity) == -1
+}
+
+// GetCVCondition returns corresponding cstorvolume condition based argument passed
+func (c *CStorVolume) GetCVCondition(
+	condType apis.CStorVolumeConditionType) apis.CStorVolumeCondition {
+	for _, cond := range c.object.Status.Conditions {
+		if condType == cond.Type {
+			return cond
+		}
+	}
+	return apis.CStorVolumeCondition{}
+}
+
+// IsConditionPresent returns true if condition is available
+func (c *CStorVolume) IsConditionPresent(condType apis.CStorVolumeConditionType) bool {
+	for _, cond := range c.object.Status.Conditions {
+		if condType == cond.Type {
+			return true
+		}
+	}
+	return false
 }
 
 // PredicateList holds a list of cstor volume
@@ -125,4 +181,31 @@ func NewForAPIObject(obj *apis.CStorVolume) *CStorVolume {
 	return &CStorVolume{
 		object: obj,
 	}
+}
+
+// AddCondition appends the new condition to existing conditions
+func (c Conditions) AddCondition(cond apis.CStorVolumeCondition) []apis.CStorVolumeCondition {
+	c = append(c, cond)
+	return c
+}
+
+// DeleteCondition deletes the condition from conditions
+func (c Conditions) DeleteCondition(cond apis.CStorVolumeCondition) []apis.CStorVolumeCondition {
+	newConditions := []apis.CStorVolumeCondition{}
+	for _, condObj := range c {
+		if condObj.Type != cond.Type {
+			newConditions = append(newConditions, condObj)
+		}
+	}
+	return newConditions
+}
+
+// UpdateCondition updates the condition if it is present in Conditions
+func (c Conditions) UpdateCondition(cond apis.CStorVolumeCondition) []apis.CStorVolumeCondition {
+	for i, condObj := range c {
+		if condObj.Type == cond.Type {
+			c[i] = cond
+		}
+	}
+	return c
 }

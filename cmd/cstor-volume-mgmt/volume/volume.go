@@ -26,6 +26,7 @@ import (
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	cvapis "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -196,6 +197,51 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) ([]byte, error) {
 	return dataBytes, nil
 }
 
+// ResizeTargetVolume sends resize volume command to istgt and get the response
+func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
+	// send resize command to istgt and read the response
+	resizeCmd := getResizeCommand(cStorVolume)
+	sockResp, err := UnixSockVar.SendCommand(resizeCmd)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to execute istgt %s command on volume %s",
+			util.IstgtResizeCmd,
+			cStorVolume.Name)
+	}
+	for _, resp := range sockResp {
+		if strings.Contains(resp, "ERR") {
+			return errors.Errorf(
+				"failed to execute istgt %s command on volume %s resp: %s",
+				util.IstgtResizeCmd,
+				cStorVolume.Name,
+				resp,
+			)
+		}
+	}
+	updateStorageVal := fmt.Sprintf("  LUN0 Storage %s 32K", cStorVolume.Spec.Capacity.String())
+	err = FileOperatorVar.Updatefile(util.IstgtConfPath, updateStorageVal, "LUN0 Storage", 0644)
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to update %s file with %s details",
+			util.IstgtConfPath,
+			updateStorageVal)
+	}
+	glog.Infof("Updated '%s' file with capacity '%s'", util.IstgtConfPath, updateStorageVal)
+	return nil
+}
+
+// getResizeCommand returns resize used to resize volumes
+// Ex command for resize: Resize volname 10G 10 30
+func getResizeCommand(cstorVolume *apis.CStorVolume) string {
+	return fmt.Sprintf("%s %s %s %v %v", util.IstgtResizeCmd,
+		cstorVolume.Name,
+		cstorVolume.Spec.Capacity.String(),
+		cvapis.IoWaitTime,
+		cvapis.TotalWaitTime,
+	)
+}
+
 // CheckValidVolume checks for validity of CStorVolume resource.
 func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 	if len(string(cStorVolume.ObjectMeta.UID)) == 0 {
@@ -210,7 +256,6 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 	if len(string(cStorVolume.UID)) == 0 {
 		return fmt.Errorf("volumeID cannot be empty")
 	}
-	// TODO: Need to check for nil
 	if cStorVolume.Spec.Capacity.IsZero() {
 		return fmt.Errorf("capacity cannot be zero")
 	}

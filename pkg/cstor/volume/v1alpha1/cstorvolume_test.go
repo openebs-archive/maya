@@ -86,3 +86,150 @@ func TestList(t *testing.T) {
 		})
 	}
 }
+
+func TestAddCondition(t *testing.T) {
+	tests := map[string]struct {
+		fakeCond   apis.CStorVolumeCondition
+		conditions []apis.CStorVolumeCondition
+		expectLen  int
+	}{
+		"Test by Adding with existing conditions": {
+			conditions: []apis.CStorVolumeCondition{
+				apis.CStorVolumeCondition{
+					Type:          apis.CStorVolumeResizing,
+					Status:        apis.ConditionInProgress,
+					LastProbeTime: metav1.Now(),
+				},
+				apis.CStorVolumeCondition{
+					Type:          apis.CStorVolumeConditionType("Unknown1"),
+					Status:        apis.ConditionSuccess,
+					LastProbeTime: metav1.Now(),
+				},
+			},
+			fakeCond: apis.CStorVolumeCondition{
+				Type:          apis.CStorVolumeConditionType("Unknown2"),
+				Status:        apis.ConditionSuccess,
+				LastProbeTime: metav1.Now(),
+			},
+			expectLen: 3,
+		},
+		"Test by Adding without conditions": {
+			conditions: []apis.CStorVolumeCondition{},
+			fakeCond: apis.CStorVolumeCondition{
+				Type:          apis.CStorVolumeResizing,
+				Status:        apis.ConditionInProgress,
+				LastProbeTime: metav1.Now(),
+			},
+			expectLen: 1,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			newConds := Conditions(mock.conditions).AddCondition(mock.fakeCond)
+			if mock.expectLen != len(newConds) {
+				t.Fatalf(
+					"Test %q failed: expected condition length %d but got %d",
+					name,
+					mock.expectLen,
+					len(mock.conditions),
+				)
+			}
+		})
+	}
+}
+
+func TestDeleteCondition(t *testing.T) {
+	tests := map[string]struct {
+		fakeCond   apis.CStorVolumeCondition
+		conditions []apis.CStorVolumeCondition
+		expectLen  int
+	}{
+		"Test by deleting with existing conditions": {
+			conditions: []apis.CStorVolumeCondition{
+				apis.CStorVolumeCondition{
+					Type:          apis.CStorVolumeResizing,
+					Status:        apis.ConditionInProgress,
+					LastProbeTime: metav1.Now(),
+				},
+				apis.CStorVolumeCondition{
+					Type:          apis.CStorVolumeConditionType("Unknown1"),
+					Status:        apis.ConditionSuccess,
+					LastProbeTime: metav1.Now(),
+				},
+			},
+			fakeCond: apis.CStorVolumeCondition{
+				Type:          apis.CStorVolumeConditionType("Unknown1"),
+				Status:        apis.ConditionSuccess,
+				LastProbeTime: metav1.Now(),
+			},
+			expectLen: 1,
+		},
+		"Test by deleting without having any conditions": {
+			conditions: []apis.CStorVolumeCondition{},
+			fakeCond: apis.CStorVolumeCondition{
+				Type:          apis.CStorVolumeResizing,
+				Status:        apis.ConditionInProgress,
+				LastProbeTime: metav1.Now(),
+			},
+			expectLen: 0,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			newConds := Conditions(mock.conditions).DeleteCondition(mock.fakeCond)
+			if mock.expectLen != len(newConds) {
+				t.Fatalf(
+					"Test %q failed: expected condition length %d but got %d",
+					name,
+					mock.expectLen,
+					len(mock.conditions),
+				)
+			}
+		})
+	}
+}
+
+func TestUpdateCondition(t *testing.T) {
+	tests := map[string]struct {
+		fakeCond   apis.CStorVolumeCondition
+		conditions []apis.CStorVolumeCondition
+		expectLen  int
+	}{
+		"Test by updating the conditions": {
+			conditions: []apis.CStorVolumeCondition{
+				apis.CStorVolumeCondition{
+					Type:          apis.CStorVolumeResizing,
+					Status:        apis.ConditionInProgress,
+					LastProbeTime: metav1.Now(),
+				},
+				apis.CStorVolumeCondition{
+					Type:          apis.CStorVolumeConditionType("Unknown1"),
+					Status:        apis.ConditionSuccess,
+					LastProbeTime: metav1.Now(),
+				},
+			},
+			fakeCond: apis.CStorVolumeCondition{
+				Type:          apis.CStorVolumeResizing,
+				Status:        apis.ConditionSuccess,
+				LastProbeTime: metav1.Now(),
+			},
+			expectLen: 2,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			newConds := Conditions(mock.conditions).UpdateCondition(mock.fakeCond)
+			if mock.expectLen != len(newConds) {
+				t.Fatalf(
+					"Test %q failed: expected condition length %d but got %d",
+					name,
+					mock.expectLen,
+					len(mock.conditions),
+				)
+			}
+		})
+	}
+}
