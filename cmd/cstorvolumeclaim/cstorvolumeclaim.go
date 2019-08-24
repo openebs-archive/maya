@@ -117,18 +117,18 @@ func getTargetServiceOwnerReference(claim *apis.CStorVolumeClaim) []metav1.Owner
 // getCVRLabels get the labels for cstorvolumereplica
 func getCVRLabels(pool *apis.CStorPoolInstance, volumeName string) map[string]string {
 	return map[string]string{
-		"cstorpool.openebs.io/name":    pool.Name,
-		"cstorpool.openebs.io/uid":     string(pool.UID),
-		"cstorvolume.openebs.io/name":  volumeName,
-		"openebs.io/persistent-volume": volumeName,
-		"openebs.io/version":           version.GetVersion(),
+		"cstorpoolinstance.openebs.io/name": pool.Name,
+		"cstorpoolinstance.openebs.io/uid":  string(pool.UID),
+		"cstorvolume.openebs.io/name":       volumeName,
+		"openebs.io/persistent-volume":      volumeName,
+		"openebs.io/version":                version.GetVersion(),
 	}
 }
 
 // getCVRAnnotations get the annotations for cstorvolumereplica
 func getCVRAnnotations(pool *apis.CStorPoolInstance) map[string]string {
 	return map[string]string{
-		"cstorpool.openebs.io/hostname": pool.Labels["kubernetes.io/hostname"],
+		"cstorpoolinstance.openebs.io/hostname": pool.Labels["kubernetes.io/hostname"],
 	}
 }
 

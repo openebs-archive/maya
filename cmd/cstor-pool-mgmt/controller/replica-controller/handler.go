@@ -160,7 +160,7 @@ func (c *CStorVolumeReplicaController) cVREventHandler(
 	// cvr is created at zfs in the form poolname/volname
 	fullVolName :=
 		string(pool.PoolPrefix) +
-			cvrObj.Labels["cstorpool.openebs.io/uid"] + "/" +
+			cvrObj.Labels["cstorpoolinstance.openebs.io/uid"] + "/" +
 			cvrObj.Labels["cstorvolume.openebs.io/name"]
 
 	switch operation {
@@ -382,10 +382,10 @@ func (c *CStorVolumeReplicaController) getVolumeReplicaResource(
 // IsRightCStorVolumeReplica is to check if the cvr
 // request is for particular pod/application.
 func IsRightCStorVolumeReplica(cVR *apis.CStorVolumeReplica) bool {
-	if os.Getenv(string(common.OpenEBSIOCStorID)) == string(cVR.ObjectMeta.Labels["cstorpool.openebs.io/uid"]) {
+	if os.Getenv(string(common.OpenEBSIOCSPIID)) == string(cVR.ObjectMeta.Labels["cstorpoolinstance.openebs.io/uid"]) {
 		return true
 	}
-	return false
+	return os.Getenv(string(common.OpenEBSIOCStorID)) == string(cVR.ObjectMeta.Labels["cstorpool.openebs.io/uid"])
 }
 
 // IsDestroyEvent is to check if the call is for CStorVolumeReplica destroy.

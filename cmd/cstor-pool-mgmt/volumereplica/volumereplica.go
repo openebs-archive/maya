@@ -63,7 +63,7 @@ const (
 
 const (
 	// CStorPoolUIDKey is the key for csp object uid which is present in cvr labels.
-	CStorPoolUIDKey = "cstorpool.openebs.io/uid"
+	CStorPoolUIDKey = "cstorpoolinstance.openebs.io/uid"
 	// PvNameKey is the key for pv object uid which is present in cvr labels.
 	PvNameKey = "cstorvolume.openebs.io/name"
 	// PoolPrefix is the prefix of zpool name.
@@ -114,7 +114,7 @@ func CheckValidVolumeReplica(cVR *apis.CStorVolumeReplica) error {
 		err = fmt.Errorf("Capacity cannot be empty")
 		return err
 	}
-	if len(cVR.Labels["cstorpool.openebs.io/uid"]) == 0 {
+	if len(cVR.Labels["cstorpoolinstance.openebs.io/uid"]) == 0 {
 		err = fmt.Errorf("Pool cannot be empty")
 		return err
 	}

@@ -139,6 +139,10 @@ type Environment string
 const (
 	// OpenEBSIOCStorID is the environment variable specified in pod.
 	OpenEBSIOCStorID Environment = "OPENEBS_IO_CSTOR_ID"
+
+	// OpenEBSIOCSPIID is the environment variable specified in pod.
+	// It holds the UID of the CSPI
+	OpenEBSIOCSPIID string = "OPENEBS_IO_CSPI_ID"
 )
 
 // QueueOperation determines the type of operation
@@ -181,13 +185,13 @@ func PoolNameHandler(cVR *apis.CStorVolumeReplica, cnt int) bool {
 	for i := 0; ; i++ {
 		poolname, _ := pool.GetPoolName()
 		if reflect.DeepEqual(poolname, []string{}) ||
-			!CheckIfPresent(poolname, string(pool.PoolPrefix)+cVR.Labels["cstorpool.openebs.io/uid"]) {
+			!CheckIfPresent(poolname, string(pool.PoolPrefix)+cVR.Labels["cstorpoolinstance.openebs.io/uid"]) {
 			glog.Warningf("Attempt %v: No pool found", i+1)
 			time.Sleep(PoolNameHandlerInterval)
 			if i > cnt {
 				return false
 			}
-		} else if CheckIfPresent(poolname, string(pool.PoolPrefix)+cVR.Labels["cstorpool.openebs.io/uid"]) {
+		} else if CheckIfPresent(poolname, string(pool.PoolPrefix)+cVR.Labels["cstorpoolinstance.openebs.io/uid"]) {
 			return true
 		}
 	}

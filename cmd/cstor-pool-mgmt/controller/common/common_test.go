@@ -158,8 +158,8 @@ func TestPoolNameHandler(t *testing.T) {
 					Name: "VolumeReplicaResource1",
 					UID:  "abcd123",
 					Labels: map[string]string{
-						"cstorpool.openebs.io/uid":  "123abc",
-						"cstorpool.openebs.io/name": "cstor-123abc",
+						"cstorpoolinstance.openebs.io/uid":  "123abc",
+						"cstorpoolinstance.openebs.io/name": "cstor-123abc",
 					},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
