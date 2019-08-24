@@ -126,6 +126,7 @@ func getSyncInterval() time.Duration {
 	resyncInterval, err := strconv.Atoi(os.Getenv("RESYNC_INTERVAL"))
 	if err != nil || resyncInterval == 0 {
 		glog.Warningf("Incorrect resync interval %q obtained from env, defaulting to %q seconds", resyncInterval, ResyncInterval)
+		return ResyncInterval
 	}
 	return time.Duration(resyncInterval) * time.Second
 }
