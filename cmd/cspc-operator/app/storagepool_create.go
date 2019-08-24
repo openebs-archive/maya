@@ -126,7 +126,8 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.CStorPoolInstance) (*appsv1.De
 						WithName(PoolMgmtContainerName).
 						WithImagePullPolicy(corev1.PullIfNotPresent).
 						WithPrivilegedSecurityContext(&privileged).
-						WithEnvsNew(getPoolMgmtEnv(csp)).
+						WithEnvsNew(getPoolMgmtEnv(pc.AlgorithmConfig.CSPC)).
+						WithEnvs(getCSPIUIDAsEnv(csp)).
 						// TODO : Resource and Limit
 						WithVolumeMountsNew(getPoolMgmtMounts()),
 					// For CStor-Pool container
@@ -239,9 +240,9 @@ func getDeployMatchLabels() map[string]string {
 // retrieves the value of the environment variable named
 // by the key.
 func getPoolMgmtImage() string {
-	image, present := os.LookupEnv("OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE")
+	image, present := os.LookupEnv("OPENEBS_IO_CSPI_MGMT_IMAGE")
 	if !present {
-		image = "openebs/cstor-pool-mgmt:ci"
+		image = "quay.io/openebs/cspi-mgmt:ci"
 	}
 	return image
 }
@@ -252,7 +253,7 @@ func getPoolMgmtImage() string {
 func getPoolImage() string {
 	image, present := os.LookupEnv("OPENEBS_IO_CSTOR_POOL_IMAGE")
 	if !present {
-		image = "openebs/cspi-mgmt:ci"
+		image = "quay.io/openebs/cstor-pool:ci"
 	}
 	return image
 }
@@ -263,7 +264,7 @@ func getPoolImage() string {
 func getMayaExporterImage() string {
 	image, present := os.LookupEnv("OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE")
 	if !present {
-		image = "openebs/m-exporter:ci"
+		image = "quay.io/openebs/m-exporter:ci"
 	}
 	return image
 }
@@ -294,13 +295,24 @@ func getSparseDirPath() string {
 	return dir
 }
 
-func getPoolMgmtEnv(csp *apis.CStorPoolInstance) []corev1.EnvVar {
+func getCSPIUIDAsEnv(cspi *apis.CStorPoolInstance) []corev1.EnvVar {
+	var env []corev1.EnvVar
+	return append(
+		env,
+		corev1.EnvVar{
+			Name:  "OPENEBS_IO_CSPI_ID",
+			Value: string(cspi.GetUID()),
+		},
+	)
+}
+
+func getPoolMgmtEnv(cspc *apis.CStorPoolCluster) []corev1.EnvVar {
 	var env []corev1.EnvVar
 	return append(
 		env,
 		corev1.EnvVar{
 			Name:  "OPENEBS_IO_CSTOR_ID",
-			Value: string(csp.GetUID()),
+			Value: string(cspc.GetUID()),
 		},
 		corev1.EnvVar{
 			Name: "RESYNC_INTERVAL",

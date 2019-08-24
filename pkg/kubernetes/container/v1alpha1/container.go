@@ -358,6 +358,33 @@ func (b *Builder) WithEnvsNew(envs []corev1.EnvVar) *Builder {
 	return b
 }
 
+// WithEnvs sets the envs of the container
+func (b *Builder) WithEnvs(envs []corev1.EnvVar) *Builder {
+	if envs == nil {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: nil envs"),
+		)
+		return b
+	}
+
+	if len(envs) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: missing envs"),
+		)
+		return b
+	}
+
+	if b.con.Env == nil {
+		b.WithEnvsNew(envs)
+		return b
+	}
+
+	b.con.Env = append(b.con.Env, envs...)
+	return b
+}
+
 // WithLivenessProbe sets the liveness probe of the container
 func (b *Builder) WithLivenessProbe(liveness *corev1.Probe) *Builder {
 	if liveness == nil {
