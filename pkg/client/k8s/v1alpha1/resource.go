@@ -22,6 +22,7 @@ package v1alpha1
 import (
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -217,6 +218,17 @@ func (r *createOrUpdate) Apply(obj *unstructured.Unstructured, subresources ...s
 			return r.options.Creator.Create(obj, subresources...)
 		}
 		return nil, err
+	}
+	// NOTE: We are returning same unstructured object in case if spc and sc are
+	// already installed
+	if obj.GetKind() == "StoragePoolClaim" || obj.GetKind() == "StorageClass" {
+		glog.Infof(
+			"{%s/%s} already exist in cluster",
+			obj.GroupVersionKind(),
+			obj.GetName(),
+		)
+		resource, err = obj, nil
+		return
 	}
 	return r.options.Updater.Update(resource, obj, subresources...)
 }
