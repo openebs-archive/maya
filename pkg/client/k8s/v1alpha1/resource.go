@@ -219,15 +219,14 @@ func (r *createOrUpdate) Apply(obj *unstructured.Unstructured, subresources ...s
 		}
 		return nil, err
 	}
-	// NOTE: We are returning same unstructured object in case if spc and sc are
-	// already installed
-	if obj.GetKind() == "StoragePoolClaim" || obj.GetKind() == "StorageClass" {
+	// NOTE: We are returning installed unstructured object resources
+	// in case if they are already installed
+	if !canResourceOverWrite(resource.GetKind()) {
 		glog.Infof(
 			"{%s/%s} already exist in cluster",
-			obj.GroupVersionKind(),
-			obj.GetName(),
+			resource.GroupVersionKind(),
+			resource.GetName(),
 		)
-		resource, err = obj, nil
 		return
 	}
 	return r.options.Updater.Update(resource, obj, subresources...)
@@ -313,4 +312,14 @@ func (g *Get) Get(name string, opts metav1.GetOptions, subresources ...string) (
 		return
 	}
 	return g.options.Getter.Get(name, opts, subresources...)
+}
+
+func canResourceOverWrite(kind string) bool {
+	// NOTE: Don't update storageclass and storagepoolclaim resources with
+	// default configurations if they are already present in cluster because
+	// user may be already configured pools and volumes with those resources
+	if kind == "StoragePoolClaim" || kind == "StorageClass" {
+		return false
+	}
+	return true
 }
