@@ -21,6 +21,7 @@ import (
 	"github.com/openebs/maya/tests"
 	"github.com/openebs/maya/tests/cstor"
 
+	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -32,20 +33,15 @@ import (
 )
 
 var (
-	openebsNamespace      = "openebs"
-	nsName                = "cstor-provision"
-	scName                = "cstor-volume"
-	openebsCASConfigValue = `
-- name: ReplicaCount
-  value: $count
-- name: StoragePoolClaim
-  value: $spcName
-`
+	openebsNamespace   = "openebs"
+	nsName             = "cstor-provision"
+	scName             = "cstor-volume"
 	openebsProvisioner = "openebs-csi.openebs.io"
-	spcName            = "sparse-pool-auto"
+	cspcName           = "sparse-pool-auto"
 	nsObj              *corev1.Namespace
 	scObj              *storagev1.StorageClass
-	spcObj             *apis.StoragePoolClaim
+	cspcObj            *apis.CStorPoolCluster
+	bdList             *ndmapis.BlockDeviceList
 	pvcObj             *corev1.PersistentVolumeClaim
 	podObj             *corev1.Pod
 	targetLabel        = "openebs.io/target=cstor-target"
@@ -80,6 +76,8 @@ var _ = BeforeSuite(func() {
 	By("creating above namespace")
 	nsObj, err = ops.NSClient.Create(nsObj)
 	Expect(err).To(BeNil(), "while creating namespace {%s}", nsObj.Name)
+	bdList, err = ops.BDClient.List(metav1.ListOptions{})
+	Expect(err).To(BeNil(), "while gettting blockdevices")
 })
 
 var _ = AfterSuite(func() {

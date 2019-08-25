@@ -21,15 +21,16 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	poolspec "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
+	rgrp "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/raidgroups"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	k8svolume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
-	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/openebs/maya/tests/cstor"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,29 +45,45 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 
 	BeforeEach(func() {
 		When(" creating a cstor based volume", func() {
-			By("building a storagepoolclaim")
-			spcObj = spc.NewBuilder().
-				WithGenerateName(spcName).
-				WithDiskType(string(apis.TypeSparseCPV)).
-				WithMaxPool(cstor.PoolCount).
-				WithOverProvisioning(false).
-				WithPoolType(string(apis.PoolTypeStripedCPV)).
-				Build().Object
+			By("building a cstorpoolcluster")
+			nodeSelector := map[string]string{string(apis.HostNameCPK): "127.0.0.1"}
 
-			By("creating above storagepoolclaim")
-			spcObj, err = ops.SPCClient.Create(spcObj)
+			var cspcBDList []*apis.CStorPoolClusterBlockDevice
+			for _, bd := range bdList.Items {
+				for _, cspcbd := range cspcBDList {
+					cspcbd.BlockDeviceName = bd.Name
+				}
+			}
+			poolspec := poolspec.NewBuilder().
+				WithNodeSelector(nodeSelector).
+				WithCompression("off").
+				//WithDefaultRaidGroupType("").
+				WithRaidGroupBuilder(
+					rgrp.NewBuilder().
+						WithType("stripe").
+						WithCSPCBlockDeviceList(cspcBDList),
+				)
+			cspc, err := cspc.NewBuilder().
+				WithName(cspcName).
+				WithPoolSpecBuilder(poolspec).
+				Build()
+			Expect(err).To(BeNil(), "while creating cstorpoolcluster {%s}", cspc)
+
+			By("creating above cstorpoolcluster")
+			cspcObj, err = ops.CSPCClient.Create(cspcObj)
 			Expect(err).To(BeNil(),
-				"while creating spc with prefix {%s}", spcName)
+				"while creating spc with prefix {%s}", cspcName)
 
 			By("verifying healthy cstorpool count")
-			cspCount := ops.GetHealthyCSPCount(spcObj.Name, cstor.PoolCount)
+			cspCount := ops.GetHealthyCSPCount(cspcObj.Name, cstor.PoolCount)
 			Expect(cspCount).To(Equal(cstor.PoolCount),
 				"while checking healthy cstor pool count")
 
 			By("building SC parameters with generated SPC name")
 			parameters := map[string]string{
 				"replicaCount":     strconv.Itoa(cstor.ReplicaCount),
-				"storagePoolClaim": spcObj.Name,
+				"storagePoolClaim": cspcObj.Name,
+				"cas-type":         "cstor",
 			}
 
 			By("building a storageclass")
@@ -89,8 +106,8 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 			func() {
 				By("deleting storagepoolclaim")
 				_, err = ops.SPCClient.Delete(
-					spcObj.Name, &metav1.DeleteOptions{})
-				Expect(err).To(BeNil(), "while deleting spc {%s}", spcObj.Name)
+					cspcObj.Name, &metav1.DeleteOptions{})
+				Expect(err).To(BeNil(), "while deleting cspc {%s}", cspcObj.Name)
 				By("deleting storageclass")
 				err = ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
 				Expect(err).To(BeNil(),
