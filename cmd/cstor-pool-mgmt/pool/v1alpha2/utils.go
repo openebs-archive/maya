@@ -17,6 +17,9 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"os"
+
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
 )
@@ -38,7 +41,7 @@ func ErrorWrapf(err error, format string, args ...interface{}) error {
 
 // PoolName return pool name for given CSP object
 func PoolName(csp *apis.CStorPoolInstance) string {
-	return PoolPrefix + string(csp.ObjectMeta.UID)
+	return PoolPrefix + os.Getenv(string(common.OpenEBSIOPoolName))
 }
 
 // IsEmpty check if string is empty or not

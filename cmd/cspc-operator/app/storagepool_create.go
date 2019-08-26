@@ -126,8 +126,8 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.CStorPoolInstance) (*appsv1.De
 						WithName(PoolMgmtContainerName).
 						WithImagePullPolicy(corev1.PullIfNotPresent).
 						WithPrivilegedSecurityContext(&privileged).
-						WithEnvsNew(getPoolMgmtEnv(pc.AlgorithmConfig.CSPC)).
-						WithEnvs(getCSPIUIDAsEnv(csp)).
+						WithEnvsNew(getPoolMgmtEnv(csp)).
+						WithEnvs(getCSPIUIDAsEnv(pc.AlgorithmConfig.CSPC)).
 						// TODO : Resource and Limit
 						WithVolumeMountsNew(getPoolMgmtMounts()),
 					// For CStor-Pool container
@@ -140,6 +140,7 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.CStorPoolInstance) (*appsv1.De
 						WithPortsNew(getContainerPort(12000, 3232, 3233)).
 						WithLivenessProbe(getPoolLivenessProbe()).
 						WithEnvsNew(getPoolEnv(csp)).
+						WithEnvs(getCSPIUIDAsEnv(pc.AlgorithmConfig.CSPC)).
 						WithLifeCycle(getPoolLifeCycle()).
 						WithVolumeMountsNew(getPoolMounts()),
 					// For maya exporter
@@ -295,24 +296,24 @@ func getSparseDirPath() string {
 	return dir
 }
 
-func getCSPIUIDAsEnv(cspi *apis.CStorPoolInstance) []corev1.EnvVar {
+func getCSPIUIDAsEnv(cspc *apis.CStorPoolCluster) []corev1.EnvVar {
+	var env []corev1.EnvVar
+	return append(
+		env,
+		corev1.EnvVar{
+			Name:  "OPENEBS_IO_POOL_NAME",
+			Value: string(cspc.GetUID()),
+		},
+	)
+}
+
+func getPoolMgmtEnv(cspi *apis.CStorPoolInstance) []corev1.EnvVar {
 	var env []corev1.EnvVar
 	return append(
 		env,
 		corev1.EnvVar{
 			Name:  "OPENEBS_IO_CSPI_ID",
 			Value: string(cspi.GetUID()),
-		},
-	)
-}
-
-func getPoolMgmtEnv(cspc *apis.CStorPoolCluster) []corev1.EnvVar {
-	var env []corev1.EnvVar
-	return append(
-		env,
-		corev1.EnvVar{
-			Name:  "OPENEBS_IO_CSTOR_ID",
-			Value: string(cspc.GetUID()),
 		},
 		corev1.EnvVar{
 			Name: "RESYNC_INTERVAL",
@@ -342,7 +343,7 @@ func getPoolLivenessProbe() *corev1.Probe {
 	probe := &corev1.Probe{
 		Handler: corev1.Handler{
 			Exec: &corev1.ExecAction{
-				Command: []string{"/bin/sh", "-c", "zfs set io.openebs:livenesstimestap='$(date)' cstor-$OPENEBS_IO_CSTOR_ID"},
+				Command: []string{"/bin/sh", "-c", "zfs set io.openebs:livenesstimestap='$(date)' cstor-$OPENEBS_IO_POOL_NAME"},
 			},
 		},
 		FailureThreshold:    3,
