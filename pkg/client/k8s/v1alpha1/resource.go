@@ -226,7 +226,7 @@ func (r *createOrUpdate) Apply(obj *unstructured.Unstructured, subresources ...s
 	// in case if they are already present in the cluster
 	if !r.ForceOverWrite {
 		glog.Infof(
-			"skip updation of resource {%s/%s} in namespace {%s}"+
+			"skip updation of resource {%s/%s} in namespace {%s}, "+
 				"since resource already exists in cluster",
 			resource.GroupVersionKind(),
 			resource.GetName(),
