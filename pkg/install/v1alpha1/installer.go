@@ -112,8 +112,9 @@ func (i *simpleInstaller) Install() []error {
 	ul := i.setRules(ulist)
 	for _, unstruct := range ul {
 		cu := k8s.CreateOrUpdate(k8s.GroupVersionResourceFromGVK(unstruct), unstruct.GetNamespace())
+		cu.ForceOverWrite = CanResourceOverWrite(unstruct.GetKind())
 		u, err := cu.Apply(unstruct)
-		if err == nil {
+		if err == nil && !cu.ForceOverWrite {
 			glog.V(2).Infof(
 				"{%s/%s} installed successfully at namespace {%s}",
 				u.GroupVersionKind(),
@@ -139,4 +140,15 @@ func SimpleInstaller() Installer {
 		artifactTemplater: t,
 		envLister:         e,
 	}
+}
+
+// CanResourceOverWrite returns true if resources need to update else false
+func CanResourceOverWrite(kind string) bool {
+	// NOTE: Don't update storageclass and storagepoolclaim resources with
+	// default configurations if they are already present in cluster because
+	// user may be already configured pools and volumes with those resources
+	if kind == "StoragePoolClaim" || kind == "StorageClass" {
+		return false
+	}
+	return true
 }
