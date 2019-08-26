@@ -28,6 +28,9 @@ type DeviceClaimSpec struct {
 	HostName        string               `json:"hostName"`                     // Node name from where blockdevice has to be claimed.
 	Details         DeviceClaimDetails   `json:"deviceClaimDetails,omitempty"` // Details of the device to be claimed
 	BlockDeviceName string               `json:"blockDeviceName,omitempty"`    // BlockDeviceName is the reference to the block-device backing this claim
+	// BlockDeviceNodeAttributes is the attributes on the node from which a BD should
+	// be selected for this claim. It can include nodename, failure domain etc.
+	BlockDeviceNodeAttributes BlockDeviceNodeAttributes `json:"blockDeviceNodeAttributes,omitempty"`
 }
 
 // DeviceClaimStatus defines the observed state of BlockDeviceClaim
@@ -95,6 +98,13 @@ const (
 	// already existing
 	VolumeModeFileSystem BlockDeviceVolumeMode = "FileSystem"
 )
+
+// BlockDeviceNodeAttributes contains the attributes of the node from which the BD should
+// be selected for claiming
+type BlockDeviceNodeAttributes struct {
+	NodeName string `json:"nodeName,omitempty"`
+	HostName string `json:"hostName,omitempty"`
+}
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -23,6 +23,8 @@ import (
 
 // DeviceSpec defines the desired state of BlockDevice
 type DeviceSpec struct {
+	// NodeAttributes has the details of the node in which this BD is attached
+	NodeAttributes  NodeAttribute       `json:"nodeAttributes"`
 	Path            string              `json:"path"`                      //Path contain devpath (e.g. /dev/sdb)
 	Capacity        DeviceCapacity      `json:"capacity"`                  //Capacity
 	Details         DeviceDetails       `json:"details"`                   //Details contains static attributes (model, serial ..)
@@ -32,6 +34,12 @@ type DeviceSpec struct {
 	Partitioned     string              `json:"partitioned"`               //BlockDevice has partions or not (YES/NO)
 	ParentDevice    string              `json:"parentDevice,omitempty"`    //ParentDevice has the UUID of the parent device
 	AggregateDevice string              `json:"aggregateDevice,omitempty"` //AggregateDevice has the UUID of the aggregate device created from this device
+}
+
+// NodeAttribute defines the various attributes of the node
+type NodeAttribute struct {
+	// NodeName is the name of the node in which the device is attached
+	NodeName string `json:"nodeName"`
 }
 
 // DeviceCapacity defines the physical and logical size of the block device
