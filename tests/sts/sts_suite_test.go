@@ -78,7 +78,7 @@ var _ = BeforeSuite(func() {
 
 	// Installing the artifacts to kubernetes cluster
 	for _, artifact := range artifactsOpenEBS {
-		cu := k8s.CreateOrUpdate(
+		cu := k8s.NewResourceCreateOrUpdater(
 			k8s.GroupVersionResourceFromGVK(artifact),
 			artifact.GetNamespace(),
 		)
