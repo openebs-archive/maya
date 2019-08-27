@@ -114,7 +114,7 @@ func (i *simpleInstaller) Install() []error {
 		cu := k8s.CreateOrUpdate(k8s.GroupVersionResourceFromGVK(unstruct), unstruct.GetNamespace())
 		cu.ForceOverWrite = CanResourceOverWrite(unstruct.GetKind())
 		u, err := cu.Apply(unstruct)
-		if err == nil && !cu.ForceOverWrite {
+		if err == nil && cu.ForceOverWrite {
 			glog.V(2).Infof(
 				"{%s/%s} installed successfully at namespace {%s}",
 				u.GroupVersionKind(),
