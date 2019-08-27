@@ -113,6 +113,20 @@ func (u *UpgradeOptions) RunJivaVolumeUpgrade(cmd *cobra.Command) error {
 				u.resourceKind,
 				u.jivaVolume.pvName)
 		}
+	case "1.1.0-1.2.0":
+		glog.Infof("Upgrading to 1.2.0")
+		err := upgrade100to110.Exec(u.fromVersion, u.toVersion,
+			u.resourceKind,
+			u.jivaVolume.pvName,
+			u.openebsNamespace,
+			u.imageURLPrefix,
+			u.toVersionImageTag)
+		if err != nil {
+			glog.Error(err)
+			return errors.Wrapf(err, "Failed to upgrade %s{%s}",
+				u.resourceKind,
+				u.jivaVolume.pvName)
+		}
 	default:
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)
 	}

@@ -102,6 +102,18 @@ func (u *UpgradeOptions) RunCStorVolumeUpgrade(cmd *cobra.Command) error {
 			fmt.Println(err)
 			return errors.Errorf("Failed to upgrade CStor Volume %v:", u.cstorVolume.pvName)
 		}
+	case "1.1.0-1.2.0":
+		fmt.Println("Upgrading to 1.2.0")
+		err := upgrade100to110.Exec(u.fromVersion, u.toVersion,
+			u.resourceKind,
+			u.cstorVolume.pvName,
+			u.openebsNamespace,
+			u.imageURLPrefix,
+			u.toVersionImageTag)
+		if err != nil {
+			fmt.Println(err)
+			return errors.Errorf("Failed to upgrade CStor Volume %v:", u.cstorVolume.pvName)
+		}
 	default:
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)
 	}
