@@ -62,7 +62,7 @@ func (b *Builder) WithReadCache() *Builder {
 
 // WithCSPCBlockDeviceList sets the blockdevices field with provided value
 func (b *Builder) WithCSPCBlockDeviceList(cspcBDList []*apisv1alpha1.CStorPoolClusterBlockDevice) *Builder {
-	if cspcBDList == nil {
+	if len(cspcBDList) == 0 {
 		b.errs = append(
 			b.errs,
 			errors.New("failed to build raid group object: nil cspc blockdevice lisr"),

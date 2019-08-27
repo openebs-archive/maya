@@ -48,7 +48,6 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 	BeforeEach(func() {
 		When(" creating a cstor based volume", func() {
 			By("building a cstorpoolcluster")
-			nodeSelector := map[string]string{}
 
 			var cspcBDList []*apis.CStorPoolClusterBlockDevice
 			for _, bd := range bdList.Items {
@@ -63,7 +62,7 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 					BlockDeviceName: bd.Name,
 				})
 			}
-			nodeSelector = map[string]string{string(apis.HostNameCPK): nodeName}
+			nodeSelector := map[string]string{string(apis.HostNameCPK): nodeName}
 			poolspec := poolspec.NewBuilder().
 				WithNodeSelector(nodeSelector).
 				WithCompression("off").
