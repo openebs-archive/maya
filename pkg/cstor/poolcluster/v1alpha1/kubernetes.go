@@ -121,7 +121,7 @@ type KubeclientBuildOption func(*Kubeclient)
 func (k *Kubeclient) WithDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *clientset.Clientset, err error) {
-			config, err := kclient.New().Config()
+			config, err := kclient.GetConfig(kclient.New())
 			if err != nil {
 				return nil, err
 			}
@@ -130,7 +130,7 @@ func (k *Kubeclient) WithDefaults() {
 	}
 	if k.getClientsetForPath == nil {
 		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.Clientset, err error) {
-			config, err := kclient.New(kclient.WithKubeConfigPath(kubeConfigPath)).Config()
+			config, err := kclient.GetConfig(kclient.New(kclient.WithKubeConfigPath(kubeConfigPath)))
 			if err != nil {
 				return nil, err
 			}

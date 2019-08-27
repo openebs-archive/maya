@@ -43,6 +43,26 @@ func (b *Builder) WithName(name string) *Builder {
 	return b
 }
 
+// WithNamespace sets the Namespace field of CSPC with provided value.
+func (b *Builder) WithNamespace(namespace string) *Builder {
+	if len(namespace) == 0 {
+		b.errs = append(b.errs, errors.New("failed to build CSPC object: missing CSPC namespace"))
+		return b
+	}
+	b.cspc.object.Namespace = namespace
+	return b
+}
+
+// WithGenerateName appends a random string after the name
+func (b *Builder) WithGenerateName(name string) *Builder {
+	if len(name) == 0 {
+		b.errs = append(b.errs, errors.New("failed to build CSPC object: missing CSPC name"))
+		return b
+	}
+	b.cspc.object.GenerateName = name + "-"
+	return b
+}
+
 // WithPoolSpecBuilder adds a pool to this cspc object.
 //
 // NOTE:
@@ -67,4 +87,12 @@ func (b *Builder) Build() (*CSPC, error) {
 		return nil, errors.Errorf("%+v", b.errs)
 	}
 	return b.cspc, nil
+}
+
+// GetObj returns the CSPC  instance
+func (b *Builder) GetObj() (*apisv1alpha1.CStorPoolCluster, error) {
+	if len(b.errs) > 0 {
+		return nil, errors.Errorf("%+v", b.errs)
+	}
+	return b.cspc.object, nil
 }

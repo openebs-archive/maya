@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	poolspec "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
@@ -38,51 +39,60 @@ import (
 
 var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 	var (
-		err     error
-		pvcName = "cstor-volume-claim"
-		appName = "busybox-cstor"
+		err      error
+		pvcName  = "cstor-volume-claim"
+		appName  = "busybox-cstor"
+		nodeName string
 	)
 
 	BeforeEach(func() {
 		When(" creating a cstor based volume", func() {
 			By("building a cstorpoolcluster")
-			nodeSelector := map[string]string{string(apis.HostNameCPK): "127.0.0.1"}
+			nodeSelector := map[string]string{}
 
 			var cspcBDList []*apis.CStorPoolClusterBlockDevice
 			for _, bd := range bdList.Items {
-				for _, cspcbd := range cspcBDList {
-					cspcbd.BlockDeviceName = bd.Name
+				if string(bd.Status.ClaimState) == "Claimed" {
+					continue
 				}
+				if nodeName != "" && nodeName != bd.Labels[string(apis.HostNameCPK)] {
+					continue
+				}
+				nodeName = bd.Labels[string(apis.HostNameCPK)]
+				cspcBDList = append(cspcBDList, &apis.CStorPoolClusterBlockDevice{
+					BlockDeviceName: bd.Name,
+				})
 			}
+			nodeSelector = map[string]string{string(apis.HostNameCPK): nodeName}
 			poolspec := poolspec.NewBuilder().
 				WithNodeSelector(nodeSelector).
 				WithCompression("off").
-				//WithDefaultRaidGroupType("").
 				WithRaidGroupBuilder(
 					rgrp.NewBuilder().
 						WithType("stripe").
 						WithCSPCBlockDeviceList(cspcBDList),
 				)
-			cspc, err := cspc.NewBuilder().
+			cspcObj, err = cspc.NewBuilder().
 				WithName(cspcName).
+				WithNamespace("openebs").
 				WithPoolSpecBuilder(poolspec).
-				Build()
-			Expect(err).To(BeNil(), "while creating cstorpoolcluster {%s}", cspc)
+				GetObj()
+			Expect(err).To(BeNil(), "while creating cstorpoolcluster {%s}", cspcName)
 
 			By("creating above cstorpoolcluster")
-			cspcObj, err = ops.CSPCClient.Create(cspcObj)
+			cspcObj, err = ops.CSPCClient.WithNamespace("openebs").Create(cspcObj)
 			Expect(err).To(BeNil(),
-				"while creating spc with prefix {%s}", cspcName)
+				"while creating cspc with prefix {%s}", cspcName)
 
 			By("verifying healthy cstorpool count")
-			cspCount := ops.GetHealthyCSPCount(cspcObj.Name, cstor.PoolCount)
+			cspCount := ops.GetHealthyCSPICount(cspcObj.Name, cstor.PoolCount)
 			Expect(cspCount).To(Equal(cstor.PoolCount),
 				"while checking healthy cstor pool count")
 
 			By("building SC parameters with generated SPC name")
 			parameters := map[string]string{
 				"replicaCount":     strconv.Itoa(cstor.ReplicaCount),
-				"storagePoolClaim": cspcObj.Name,
+				"cstorPoolCluster": cspcObj.Name,
 				"cas-type":         "cstor",
 			}
 
@@ -104,8 +114,8 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 	AfterEach(func() {
 		By("deleting resources created for testing cstor volume provisioning",
 			func() {
-				By("deleting storagepoolclaim")
-				_, err = ops.SPCClient.Delete(
+				By("deleting cstorpoolcluster")
+				err = ops.CSPCClient.Delete(
 					cspcObj.Name, &metav1.DeleteOptions{})
 				Expect(err).To(BeNil(), "while deleting cspc {%s}", cspcObj.Name)
 				By("deleting storageclass")

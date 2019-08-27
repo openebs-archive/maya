@@ -37,7 +37,7 @@ var (
 	nsName             = "cstor-provision"
 	scName             = "cstor-volume"
 	openebsProvisioner = "openebs-csi.openebs.io"
-	cspcName           = "sparse-pool-auto"
+	cspcName           = "cspc-sparse"
 	nsObj              *corev1.Namespace
 	scObj              *storagev1.StorageClass
 	cspcObj            *apis.CStorPoolCluster
