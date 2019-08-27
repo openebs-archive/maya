@@ -139,6 +139,12 @@ type Environment string
 const (
 	// OpenEBSIOCStorID is the environment variable specified in pod.
 	OpenEBSIOCStorID Environment = "OPENEBS_IO_CSTOR_ID"
+	// OpenEBSIOCSPIID is cstorpoolinstance name as environment variable
+	// specified in pool instance pods.
+	OpenEBSIOCSPIID Environment = "OPENEBS_IO_CSPI_ID"
+	// OpenEBSIOPoolName is cstorpoolcluster name as environment variable
+	// specified in pod instance pods.
+	OpenEBSIOPoolName Environment = "OPENEBS_IO_POOL_NAME"
 )
 
 // QueueOperation determines the type of operation
@@ -181,13 +187,13 @@ func PoolNameHandler(cVR *apis.CStorVolumeReplica, cnt int) bool {
 	for i := 0; ; i++ {
 		poolname, _ := pool.GetPoolName()
 		if reflect.DeepEqual(poolname, []string{}) ||
-			!CheckIfPresent(poolname, string(pool.PoolPrefix)+cVR.Labels["cstorpool.openebs.io/uid"]) {
+			!CheckIfPresent(poolname, volumereplica.PoolNameFromCVR(cVR)) {
 			glog.Warningf("Attempt %v: No pool found", i+1)
 			time.Sleep(PoolNameHandlerInterval)
 			if i > cnt {
 				return false
 			}
-		} else if CheckIfPresent(poolname, string(pool.PoolPrefix)+cVR.Labels["cstorpool.openebs.io/uid"]) {
+		} else if CheckIfPresent(poolname, volumereplica.PoolNameFromCVR(cVR)) {
 			return true
 		}
 	}
@@ -259,7 +265,7 @@ func CheckForCStorPool() {
 			time.Sleep(PoolNameHandlerInterval)
 			continue
 		}
-		glog.Info("CStorPool found")
+		glog.Infof("CStorPool found %v", poolname)
 		break
 	}
 }

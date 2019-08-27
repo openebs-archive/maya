@@ -18,6 +18,7 @@ package volumereplica
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -99,6 +100,49 @@ type Stats struct {
 // RunnerVar the runner variable for executing binaries.
 var RunnerVar util.Runner
 
+// PoolNameFromCVR gets the name of cstorpool from cstorvolumereplica label
+// if not found then gets cstorpoolinstance name from the OPENEBS_IO_POOL_NAME
+// env
+func PoolNameFromCVR(cvr *apis.CStorVolumeReplica) string {
+	poolname := cvr.Labels[CStorPoolUIDKey]
+	if strings.TrimSpace(poolname) == "" {
+		poolname = os.Getenv(string("OPENEBS_IO_POOL_NAME"))
+		if strings.TrimSpace(poolname) == "" {
+			return ""
+		}
+	}
+	return PoolPrefix + poolname
+}
+
+// PoolNameFromBackup gets the name of cstorpool from cstorvolumereplica label
+// if not found then gets cstorpoolinstance name from the OPENEBS_IO_POOL_NAME
+// env
+func PoolNameFromBackup(bkp *apis.CStorBackup) string {
+	poolname := bkp.Labels[CStorPoolUIDKey]
+	if strings.TrimSpace(poolname) == "" {
+		poolname = os.Getenv(string("OPENEBS_IO_POOL_NAME"))
+		if strings.TrimSpace(poolname) == "" {
+			return ""
+		}
+	}
+	return PoolPrefix + poolname
+
+}
+
+// PoolNameFromRestore gets the name of cstorPool from cstorvolumereplica label
+// if not found then gets cstorPoolInstance name from the OPENEBS_IO_POOL_NAME
+// env
+func PoolNameFromRestore(rst *apis.CStorRestore) string {
+	poolname := rst.Labels[CStorPoolUIDKey]
+	if strings.TrimSpace(poolname) == "" {
+		poolname = os.Getenv(string("OPENEBS_IO_POOL_NAME"))
+		if strings.TrimSpace(poolname) == "" {
+			return ""
+		}
+	}
+	return PoolPrefix + poolname
+}
+
 // CheckValidVolumeReplica checks for validity of cStor replica resource.
 func CheckValidVolumeReplica(cVR *apis.CStorVolumeReplica) error {
 	var err error
@@ -114,8 +158,14 @@ func CheckValidVolumeReplica(cVR *apis.CStorVolumeReplica) error {
 		err = fmt.Errorf("Capacity cannot be empty")
 		return err
 	}
-	if len(cVR.Labels["cstorpool.openebs.io/uid"]) == 0 {
+	if len(cVR.Labels["cstorpool.openebs.io/uid"]) == 0 &&
+		len(cVR.Labels["cstorpoolinstance.openebs.io/uid"]) == 0 {
 		err = fmt.Errorf("Pool cannot be empty")
+		return err
+	}
+	if len(cVR.Labels["cstorpool.openebs.io/uid"]) != 0 &&
+		len(cVR.Labels["cstorpoolinstance.openebs.io/uid"]) != 0 {
+		err = fmt.Errorf("Both pool types related labels are available")
 		return err
 	}
 	return nil
@@ -133,12 +183,12 @@ func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolNam
 		dataset := strings.Split(fullVolName, "/")[0]
 		glog.Infof("Creating clone volume: %s from snapshot %s", fullVolName, srcVolume+"@"+snapName)
 		// zfs snapshots are named as dataset/volname@snapname
-		cmd = builldVolumeCloneCommand(cStorVolumeReplica, dataset+"/"+srcVolume+"@"+snapName, fullVolName)
+		cmd = buildVolumeCloneCommand(cStorVolumeReplica, dataset+"/"+srcVolume+"@"+snapName, fullVolName)
 	} else {
 		// Parse capacity unit on CVR to support backward compatibility
 		volCapacity := parseCapacityUnit(cStorVolumeReplica.Spec.Capacity)
 		cStorVolumeReplica.Spec.Capacity = volCapacity
-		cmd = builldVolumeCreateCommand(cStorVolumeReplica, fullVolName, quorum)
+		cmd = buildVolumeCreateCommand(cStorVolumeReplica, fullVolName, quorum)
 	}
 
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, cmd...)
@@ -155,7 +205,7 @@ func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolNam
 }
 
 // builldVolumeCreateCommand returns volume create command along with attributes as a string array
-func builldVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolName string, quorum bool) []string {
+func buildVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolName string, quorum bool) []string {
 	var createVolCmd []string
 
 	openebsVolname := "io.openebs:volname=" + cStorVolumeReplica.ObjectMeta.Name
@@ -185,7 +235,7 @@ func builldVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, full
 }
 
 // builldVolumeCloneCommand returns volume clone command along with attributes as a string array
-func builldVolumeCloneCommand(cStorVolumeReplica *apis.CStorVolumeReplica, snapName, fullVolName string) []string {
+func buildVolumeCloneCommand(cStorVolumeReplica *apis.CStorVolumeReplica, snapName, fullVolName string) []string {
 	var cloneVolCmd []string
 
 	openebsVolname := "io.openebs:volname=" + cStorVolumeReplica.ObjectMeta.Name
@@ -212,7 +262,7 @@ func CreateVolumeBackup(bkp *apis.CStorBackup) error {
 	var err error
 
 	// Parse capacity unit on CVR to support backward compatibility
-	cmd = builldVolumeBackupCommand(bkp.ObjectMeta.Labels["cstorpool.openebs.io/uid"], bkp.Spec.VolumeName, bkp.Spec.PrevSnapName, bkp.Spec.SnapName, bkp.Spec.BackupDest)
+	cmd = buildVolumeBackupCommand(PoolNameFromBackup(bkp), bkp.Spec.VolumeName, bkp.Spec.PrevSnapName, bkp.Spec.SnapName, bkp.Spec.BackupDest)
 
 	glog.Infof("Backup Command for volume: %v created, Cmd: %v\n", bkp.Spec.VolumeName, cmd)
 
@@ -230,15 +280,15 @@ func CreateVolumeBackup(bkp *apis.CStorBackup) error {
 }
 
 // builldVolumeBackupCommand returns volume create command along with attributes as a string array
-func builldVolumeBackupCommand(poolName, fullVolName, oldSnapName, newSnapName, backupDest string) []string {
+func buildVolumeBackupCommand(poolName, fullVolName, oldSnapName, newSnapName, backupDest string) []string {
 	var startBackupCmd []string
 
 	bkpAddr := strings.Split(backupDest, ":")
 	if oldSnapName == "" {
-		startBackupCmd = append(startBackupCmd, VolumeReplicaOperator, BackupCmd, "cstor-"+poolName+"/"+fullVolName+"@"+newSnapName, "| nc -w 3 "+bkpAddr[0]+" "+bkpAddr[1])
+		startBackupCmd = append(startBackupCmd, VolumeReplicaOperator, BackupCmd, poolName+"/"+fullVolName+"@"+newSnapName, "| nc -w 3 "+bkpAddr[0]+" "+bkpAddr[1])
 	} else {
 		startBackupCmd = append(startBackupCmd, VolumeReplicaOperator, BackupCmd,
-			"-i", "cstor-"+poolName+"/"+fullVolName+"@"+oldSnapName, "cstor-"+poolName+"/"+fullVolName+"@"+newSnapName, "| nc -w 3 "+bkpAddr[0]+" "+bkpAddr[1])
+			"-i", poolName+"/"+fullVolName+"@"+oldSnapName, poolName+"/"+fullVolName+"@"+newSnapName, "| nc -w 3 "+bkpAddr[0]+" "+bkpAddr[1])
 	}
 	return startBackupCmd
 }
@@ -249,7 +299,7 @@ func CreateVolumeRestore(rst *apis.CStorRestore) error {
 	var retryCount int
 	var err error
 
-	cmd = builldVolumeRestoreCommand(rst.ObjectMeta.Labels["cstorpool.openebs.io/uid"], rst.Spec.VolumeName, rst.Spec.RestoreSrc)
+	cmd = buildVolumeRestoreCommand(PoolNameFromRestore(rst), rst.Spec.VolumeName, rst.Spec.RestoreSrc)
 
 	glog.Infof("Restore Command for volume: %v created, Cmd: %v\n", rst.Spec.VolumeName, cmd)
 
@@ -267,7 +317,7 @@ func CreateVolumeRestore(rst *apis.CStorRestore) error {
 }
 
 // builldVolumeRestoreCommand returns restore command along with attributes as a string array
-func builldVolumeRestoreCommand(poolName, fullVolName, restoreSrc string) []string {
+func buildVolumeRestoreCommand(poolName, fullVolName, restoreSrc string) []string {
 	var restorecmd []string
 
 	restorAddr := strings.Split(restoreSrc, ":")
@@ -375,15 +425,12 @@ func GetVolumeName(cVR *apis.CStorVolumeReplica) (string, error) {
 	if cVR.Labels == nil {
 		return "", fmt.Errorf("no labels found on cvr object")
 	}
-	cspUID := cVR.Labels[CStorPoolUIDKey]
-	if strings.TrimSpace(cspUID) == "" {
-		return "", fmt.Errorf("csp uid not found on cvr label")
-	}
+	poolname := PoolNameFromCVR(cVR)
 	pvName := cVR.Labels[PvNameKey]
 	if strings.TrimSpace(pvName) == "" {
 		return "", fmt.Errorf("pv name not found on cvr label")
 	}
-	volumeName = PoolPrefix + cspUID + "/" + pvName
+	volumeName = poolname + "/" + pvName
 	return volumeName, nil
 }
 
