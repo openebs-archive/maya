@@ -139,9 +139,11 @@ type Environment string
 const (
 	// OpenEBSIOCStorID is the environment variable specified in pod.
 	OpenEBSIOCStorID Environment = "OPENEBS_IO_CSTOR_ID"
-	// OpenEBSIOCSPIID is the environment variable specified in pod.
+	// OpenEBSIOCSPIID is cstorpoolinstance name as environment variable
+	// specified in pool instance pods.
 	OpenEBSIOCSPIID Environment = "OPENEBS_IO_CSPI_ID"
-	// OpenEBSIOPoolName is the environment variable specified in pod.
+	// OpenEBSIOPoolName is cstorpoolcluster name as environment variable
+	// specified in pod instance pods.
 	OpenEBSIOPoolName Environment = "OPENEBS_IO_POOL_NAME"
 )
 

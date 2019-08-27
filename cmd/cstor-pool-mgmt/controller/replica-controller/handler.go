@@ -160,7 +160,6 @@ func (c *CStorVolumeReplicaController) cVREventHandler(
 	// cvr is created at zfs in the form poolname/volname
 	fullVolName :=
 		volumereplica.PoolNameFromCVR(cvrObj) + "/" +
-			//cvrObj.Labels["cstorpool.openebs.io/uid"] + "/" +
 			cvrObj.Labels["cstorvolume.openebs.io/name"]
 
 	switch operation {
@@ -379,32 +378,16 @@ func (c *CStorVolumeReplicaController) getVolumeReplicaResource(
 	return cStorVolumeReplicaUpdated, nil
 }
 
-/*
-func PoolName(cvr *apis.CStorVolumeReplica) string {
-	if string(cvr.ObjectMeta.Labels["cstorpool.openebs.io/uid"]) != "" {
-		return cvr.Labels["cstorpool.openebs.io/uid"]
-	}
-	if string(cvr.ObjectMeta.Labels["cstorpoolinstance.openebs.io/uid"]) != "" {
-		return os.Getenv(string(common.OpenEBSIOPoolName))
-	}
-	return ""
-}
-*/
-
 // IsRightCStorVolumeReplica is to check if the cvr
 // request is for particular pod/application.
 func IsRightCStorVolumeReplica(cVR *apis.CStorVolumeReplica) bool {
 	if strings.TrimSpace(string(cVR.ObjectMeta.Labels["cstorpool.openebs.io/uid"])) != "" {
-		if os.Getenv(string(common.OpenEBSIOCStorID)) == string(cVR.ObjectMeta.Labels["cstorpool.openebs.io/uid"]) {
-			return true
-		}
-		return false
+		return os.Getenv(string(common.OpenEBSIOCStorID)) ==
+			string(cVR.ObjectMeta.Labels["cstorpool.openebs.io/uid"])
 	}
 	if strings.TrimSpace(string(cVR.ObjectMeta.Labels["cstorpoolinstance.openebs.io/uid"])) != "" {
-		if os.Getenv(string(common.OpenEBSIOCSPIID)) == string(cVR.ObjectMeta.Labels["cstorpoolinstance.openebs.io/uid"]) {
-			return true
-		}
-		return false
+		return os.Getenv(string(common.OpenEBSIOCSPIID)) ==
+			string(cVR.ObjectMeta.Labels["cstorpoolinstance.openebs.io/uid"])
 	}
 	return false
 }

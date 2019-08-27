@@ -127,7 +127,7 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.CStorPoolInstance) (*appsv1.De
 						WithImagePullPolicy(corev1.PullIfNotPresent).
 						WithPrivilegedSecurityContext(&privileged).
 						WithEnvsNew(getPoolMgmtEnv(csp)).
-						WithEnvs(getCSPIUIDAsEnv(pc.AlgorithmConfig.CSPC)).
+						WithEnvs(getPoolUIDAsEnv(pc.AlgorithmConfig.CSPC)).
 						// TODO : Resource and Limit
 						WithVolumeMountsNew(getPoolMgmtMounts()),
 					// For CStor-Pool container
@@ -140,7 +140,7 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.CStorPoolInstance) (*appsv1.De
 						WithPortsNew(getContainerPort(12000, 3232, 3233)).
 						WithLivenessProbe(getPoolLivenessProbe()).
 						WithEnvsNew(getPoolEnv(csp)).
-						WithEnvs(getCSPIUIDAsEnv(pc.AlgorithmConfig.CSPC)).
+						WithEnvs(getPoolUIDAsEnv(pc.AlgorithmConfig.CSPC)).
 						WithLifeCycle(getPoolLifeCycle()).
 						WithVolumeMountsNew(getPoolMounts()),
 					// For maya exporter
@@ -296,7 +296,7 @@ func getSparseDirPath() string {
 	return dir
 }
 
-func getCSPIUIDAsEnv(cspc *apis.CStorPoolCluster) []corev1.EnvVar {
+func getPoolUIDAsEnv(cspc *apis.CStorPoolCluster) []corev1.EnvVar {
 	var env []corev1.EnvVar
 	return append(
 		env,
