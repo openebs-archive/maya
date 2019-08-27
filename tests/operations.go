@@ -27,6 +27,8 @@ import (
 	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
+	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
@@ -73,9 +75,11 @@ type Operations struct {
 	NSClient       *ns.Kubeclient
 	SnapClient     *snap.Kubeclient
 	CSPClient      *csp.Kubeclient
+	CSPIClient     *cspi.Kubeclient
 	SPCClient      *spc.Kubeclient
 	SVCClient      *svc.Kubeclient
 	CVClient       *cv.Kubeclient
+	CSPCClient     *cspc.Kubeclient
 	CVRClient      *cvr.Kubeclient
 	URClient       *result.Kubeclient
 	UnstructClient *unstruct.Kubeclient
@@ -165,6 +169,12 @@ func (ops *Operations) withDefaults() {
 	if ops.CSPClient == nil {
 		ops.CSPClient, err = csp.KubeClient().WithKubeConfigPath(ops.KubeConfigPath)
 		Expect(err).To(BeNil(), "while initilizing csp client")
+	}
+	if ops.CSPCClient == nil {
+		ops.CSPCClient = cspc.NewKubeClient(cspc.WithKubeConfigPath(ops.KubeConfigPath))
+	}
+	if ops.CSPIClient == nil {
+		ops.CSPIClient = cspi.NewKubeClient(cspi.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.CVClient == nil {
 		ops.CVClient = cv.NewKubeclient(cv.WithKubeConfigPath(ops.KubeConfigPath))
@@ -576,6 +586,26 @@ func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) 
 		time.Sleep(5 * time.Second)
 	}
 	return cspCount
+}
+
+// GetHealthyCSPICount gets healthy csp based on spcName
+func (ops *Operations) GetHealthyCSPICount(cspcName string, expectedCSPICount int) int {
+	var cspiCount int
+	for i := 0; i < maxRetry; i++ {
+		cspiAPIList, err := ops.CSPIClient.List(metav1.ListOptions{})
+		Expect(err).To(BeNil())
+		cspiCount = cspi.
+			ListBuilderFromAPIList(cspiAPIList).
+			List().
+			Filter(cspi.HasLabel(string(apis.CStorPoolClusterCPK), cspcName), cspi.IsStatus("ONLINE\n")).
+			Len()
+
+		if cspiCount == expectedCSPICount {
+			return cspiCount
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return cspiCount
 }
 
 // GetBDCCountEventually gets BDC resource count based on provided list option.

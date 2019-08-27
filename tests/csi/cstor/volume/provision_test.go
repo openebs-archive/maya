@@ -23,13 +23,15 @@ import (
 	. "github.com/onsi/gomega"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	poolspec "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
+	rgrp "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/raidgroups"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	k8svolume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
-	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/openebs/maya/tests/cstor"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,36 +39,60 @@ import (
 
 var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 	var (
-		err     error
-		pvcName = "cstor-volume-claim"
-		appName = "busybox-cstor"
+		err      error
+		pvcName  = "cstor-volume-claim"
+		appName  = "busybox-cstor"
+		nodeName string
 	)
 
 	BeforeEach(func() {
 		When(" creating a cstor based volume", func() {
-			By("building a storagepoolclaim")
-			spcObj = spc.NewBuilder().
-				WithGenerateName(spcName).
-				WithDiskType(string(apis.TypeSparseCPV)).
-				WithMaxPool(cstor.PoolCount).
-				WithOverProvisioning(false).
-				WithPoolType(string(apis.PoolTypeStripedCPV)).
-				Build().Object
+			By("building a cstorpoolcluster")
 
-			By("creating above storagepoolclaim")
-			spcObj, err = ops.SPCClient.Create(spcObj)
+			var cspcBDList []*apis.CStorPoolClusterBlockDevice
+			for _, bd := range bdList.Items {
+				if string(bd.Status.ClaimState) == "Claimed" {
+					continue
+				}
+				if nodeName != "" && nodeName != bd.Labels[string(apis.HostNameCPK)] {
+					continue
+				}
+				nodeName = bd.Labels[string(apis.HostNameCPK)]
+				cspcBDList = append(cspcBDList, &apis.CStorPoolClusterBlockDevice{
+					BlockDeviceName: bd.Name,
+				})
+			}
+			nodeSelector := map[string]string{string(apis.HostNameCPK): nodeName}
+			poolspec := poolspec.NewBuilder().
+				WithNodeSelector(nodeSelector).
+				WithCompression("off").
+				WithRaidGroupBuilder(
+					rgrp.NewBuilder().
+						WithType("stripe").
+						WithCSPCBlockDeviceList(cspcBDList),
+				)
+			cspcObj, err = cspc.NewBuilder().
+				WithName(cspcName).
+				WithNamespace("openebs").
+				WithPoolSpecBuilder(poolspec).
+				GetObj()
+			Expect(err).To(BeNil(), "while creating cstorpoolcluster {%s}", cspcName)
+
+			By("creating above cstorpoolcluster")
+			cspcObj, err = ops.CSPCClient.WithNamespace("openebs").Create(cspcObj)
 			Expect(err).To(BeNil(),
-				"while creating spc with prefix {%s}", spcName)
+				"while creating cspc with prefix {%s}", cspcName)
 
 			By("verifying healthy cstorpool count")
-			cspCount := ops.GetHealthyCSPCount(spcObj.Name, cstor.PoolCount)
+			cspCount := ops.GetHealthyCSPICount(cspcObj.Name, cstor.PoolCount)
 			Expect(cspCount).To(Equal(cstor.PoolCount),
 				"while checking healthy cstor pool count")
 
 			By("building SC parameters with generated SPC name")
 			parameters := map[string]string{
 				"replicaCount":     strconv.Itoa(cstor.ReplicaCount),
-				"storagePoolClaim": spcObj.Name,
+				"cstorPoolCluster": cspcObj.Name,
+				"cas-type":         "cstor",
 			}
 
 			By("building a storageclass")
@@ -87,10 +113,10 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 	AfterEach(func() {
 		By("deleting resources created for testing cstor volume provisioning",
 			func() {
-				By("deleting storagepoolclaim")
-				_, err = ops.SPCClient.Delete(
-					spcObj.Name, &metav1.DeleteOptions{})
-				Expect(err).To(BeNil(), "while deleting spc {%s}", spcObj.Name)
+				By("deleting cstorpoolcluster")
+				err = ops.CSPCClient.Delete(
+					cspcObj.Name, &metav1.DeleteOptions{})
+				Expect(err).To(BeNil(), "while deleting cspc {%s}", cspcObj.Name)
 				By("deleting storageclass")
 				err = ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
 				Expect(err).To(BeNil(),

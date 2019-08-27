@@ -85,6 +85,27 @@ func (lb *ListBuilder) WithFilter(pred ...Predicate) *ListBuilder {
 	return lb
 }
 
+// Filter will filter the csp instances
+// if all the predicates succeed against that
+// csp.
+func (l *CSPIList) Filter(p ...Predicate) *CSPIList {
+	var plist PredicateList
+	plist = append(plist, p...)
+	if len(plist) == 0 {
+		return l
+	}
+
+	filtered := NewListBuilder().List()
+	for _, cspAPI := range l.ObjectList.Items {
+		cspAPI := cspAPI // pin it
+		CSPI := BuilderForAPIObject(&cspAPI).CSPI
+		if plist.all(CSPI) {
+			filtered.ObjectList.Items = append(filtered.ObjectList.Items, *CSPI.Object)
+		}
+	}
+	return filtered
+}
+
 // GetCStorPool returns CStorPoolInstance object from existing
 // ListBuilder
 func (lb *ListBuilder) GetCStorPool(cspName string) *apis.CStorPoolInstance {
