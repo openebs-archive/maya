@@ -198,7 +198,7 @@ func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolNam
 				"msg=Unable to create clone volume: %s for snapshot %s reason=%v",
 				fullVolName, fullVolName, snapName, string(stdoutStderr))
 		} else {
-			glog.Errorf("ecode=maya.volume.clone.failed rname=%s msg=Unable to create volume %s",
+			glog.Errorf("ecode=maya.volume.create.failed rname=%s msg=Unable to create volume %s",
 				" reason=%v", fullVolName, fullVolName, string(stdoutStderr))
 		}
 
