@@ -187,7 +187,7 @@ func checkForPoolExistence(cStorPool *apis.CStorPool, blockDeviceList []string) 
 func CreatePool(cStorPool *apis.CStorPool, blockDeviceList []string) error {
 	exists := checkForPoolExistence(cStorPool, blockDeviceList)
 	if exists == true {
-		glog.Errorf("ecode=maya.pool.create.failed rname=%v msg=Faile to create pool ",
+		glog.Errorf("ecode=maya.pool.create.failed rname=%v msg=Faile to create pool " +
 			"reason=pool %v exists, but failed to import",
 			cStorPool.Name, string(cStorPool.ObjectMeta.UID))
 		return errors.Errorf("pool %v exists, but failed to import", string(cStorPool.ObjectMeta.UID))
