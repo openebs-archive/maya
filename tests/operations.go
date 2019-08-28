@@ -48,6 +48,7 @@ import (
 	"github.com/openebs/maya/tests/artifacts"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
@@ -345,6 +346,20 @@ func (ops *Operations) IsPVCBoundEventually(pvcName string) bool {
 			Get(pvcName, metav1.GetOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
 		return pvc.NewForAPIObject(volume).IsBound()
+	},
+		120, 10).
+		Should(BeTrue())
+}
+
+// VerifyCapacity checks if the pvc capacity has been updated
+func (ops *Operations) VerifyCapacity(pvcName, capacity string) bool {
+	return Eventually(func() bool {
+		volume, err := ops.PVCClient.
+			Get(pvcName, metav1.GetOptions{})
+		Expect(err).ShouldNot(HaveOccurred())
+		actualCapacity := volume.Status.Capacity[corev1.ResourceStorage]
+		desiredCapacity, _ := resource.ParseQuantity(capacity)
+		return (desiredCapacity.Cmp(actualCapacity) == 0)
 	},
 		120, 10).
 		Should(BeTrue())
