@@ -17,7 +17,6 @@ limitations under the License.
 package executor
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/golang/glog"
@@ -84,12 +83,12 @@ func (u *UpgradeOptions) RunCStorSPCUpgrade(cmd *cobra.Command) error {
 
 	switch from + "-" + to {
 	case "0.9.0-1.0.0":
-		fmt.Println("Upgrading to 1.0.0")
+		glog.Infof("Upgrading to 1.0.0")
 		err := upgrade090to100.Exec(u.resourceKind,
 			u.cstorSPC.spcName,
 			u.openebsNamespace)
 		if err != nil {
-			fmt.Println(err)
+			glog.Error(err)
 			return errors.Errorf("Failed to upgrade cStor SPC %v:", u.cstorSPC.spcName)
 		}
 	case "1.0.0-1.1.0", "1.0.0-1.2.0", "1.1.0-1.2.0":
@@ -101,7 +100,7 @@ func (u *UpgradeOptions) RunCStorSPCUpgrade(cmd *cobra.Command) error {
 			u.imageURLPrefix,
 			u.toVersionImageTag)
 		if err != nil {
-			fmt.Println(err)
+			glog.Error(err)
 			return errors.Errorf("Failed to upgrade cStor SPC %v:", u.cstorSPC.spcName)
 		}
 	default:

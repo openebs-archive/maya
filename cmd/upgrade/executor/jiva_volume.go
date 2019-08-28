@@ -17,7 +17,6 @@ limitations under the License.
 package executor
 
 import (
-	//"fmt"
 	"strings"
 
 	"github.com/golang/glog"
