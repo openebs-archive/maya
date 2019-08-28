@@ -35,7 +35,7 @@ type UpgradeOptions struct {
 	jivaVolume        JivaVolumeOptions
 	cstorSPC          CStorSPCOptions
 	cstorVolume       CStorVolumeOptions
-	upgradeTask       UpgradeTaskOptions
+	resource          ResourceOptions
 }
 
 var (

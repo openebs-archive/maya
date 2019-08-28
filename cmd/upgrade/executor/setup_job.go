@@ -42,7 +42,7 @@ func NewJob() *cobra.Command {
 		NewUpgradeJivaVolumeJob(),
 		NewUpgradeCStorSPCJob(),
 		NewUpgradeCStorVolumeJob(),
-		NewUpgradeTaskJob(),
+		NewUpgradeResourceJob(),
 	)
 
 	cmd.PersistentFlags().StringVarP(&options.fromVersion,

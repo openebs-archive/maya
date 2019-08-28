@@ -31,7 +31,7 @@ import (
 )
 
 var (
-	upgradeTaskJobUpgradeCmdHelpText = `
+	resourceUpgradeCmdHelpText = `
 This command upgrades the resource mentioned in the UpgradeTask CR.
 The name of the UpgradeTask CR is extracted from the ENV UPGRADE_TASK
 
@@ -39,75 +39,77 @@ Usage: upgrade resource
 `
 )
 
-// UpgradeTaskOptions stores information required for upgradeTask upgrade
-type UpgradeTaskOptions struct {
-	resourceName string
+// ResourceOptions stores information required for upgradeTask upgrade
+type ResourceOptions struct {
+	name string
 }
 
-// NewUpgradeTaskJob upgrade a resource from upgradeTask
-func NewUpgradeTaskJob() *cobra.Command {
+// NewUpgradeResourceJob upgrade a resource from upgradeTask
+func NewUpgradeResourceJob() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "resource",
 		Short:   "Upgrade a resource using the details specified in the UpgradeTask CR.",
-		Long:    upgradeTaskJobUpgradeCmdHelpText,
+		Long:    resourceUpgradeCmdHelpText,
 		Example: `upgrade resource`,
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(options.InitializeFromUpgradeTask(cmd), util.Fatal)
+			util.CheckErr(options.InitializeFromUpgradeTaskResource(cmd), util.Fatal)
 			util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
-			util.CheckErr(options.RunUpgradeTaskUpgradeChecks(cmd), util.Fatal)
+			util.CheckErr(options.RunResourcekUpgradeChecks(cmd), util.Fatal)
 			util.CheckErr(options.InitializeDefaults(cmd), util.Fatal)
-			util.CheckErr(options.RunUpgradeTaskUpgrade(cmd), util.Fatal)
+			util.CheckErr(options.RunResourceUpgrade(cmd), util.Fatal)
 		},
 	}
 
 	return cmd
 }
 
-// InitializeFromUpgradeTask will populate the UpgradeOptions from given UpgradeTask
-func (u *UpgradeOptions) InitializeFromUpgradeTask(cmd *cobra.Command) error {
-	utaskName := getUpgradeTask()
+// InitializeFromUpgradeTaskResource will populate the UpgradeOptions from given UpgradeTask
+func (u *UpgradeOptions) InitializeFromUpgradeTaskResource(cmd *cobra.Command) error {
+	upgradeTaskCRName := getUpgradeTaskCRName()
 	if len(strings.TrimSpace(u.openebsNamespace)) == 0 {
 		return errors.Errorf("Cannot execute upgrade job: namespace is missing")
 	}
-	utaskObj, _ := utask.NewKubeClient().WithNamespace(u.openebsNamespace).
-		Get(utaskName, metav1.GetOptions{})
-
-	if len(strings.TrimSpace(utaskObj.Spec.FromVersion)) != 0 {
-		u.fromVersion = utaskObj.Spec.FromVersion
+	upgradeTaskCRObj, err := utask.NewKubeClient().WithNamespace(u.openebsNamespace).
+		Get(upgradeTaskCRName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	if len(strings.TrimSpace(upgradeTaskCRObj.Spec.FromVersion)) != 0 {
+		u.fromVersion = upgradeTaskCRObj.Spec.FromVersion
 	}
 
-	if len(strings.TrimSpace(utaskObj.Spec.ToVersion)) != 0 {
-		u.toVersion = utaskObj.Spec.ToVersion
+	if len(strings.TrimSpace(upgradeTaskCRObj.Spec.ToVersion)) != 0 {
+		u.toVersion = upgradeTaskCRObj.Spec.ToVersion
 	}
 
 	switch {
-	case utaskObj.Spec.ResourceSpec.JivaVolume != nil:
+	case upgradeTaskCRObj.Spec.ResourceSpec.JivaVolume != nil:
 		u.resourceKind = "jivaVolume"
-		u.upgradeTask.resourceName = utaskObj.Spec.ResourceSpec.JivaVolume.PVName
+		u.resource.name = upgradeTaskCRObj.Spec.ResourceSpec.JivaVolume.PVName
 
-	case utaskObj.Spec.ResourceSpec.CStorPool != nil:
+	case upgradeTaskCRObj.Spec.ResourceSpec.CStorPool != nil:
 		u.resourceKind = "cstorPool"
-		u.upgradeTask.resourceName = utaskObj.Spec.ResourceSpec.CStorPool.PoolName
+		u.resource.name = upgradeTaskCRObj.Spec.ResourceSpec.CStorPool.PoolName
 
-	case utaskObj.Spec.ResourceSpec.CStorVolume != nil:
+	case upgradeTaskCRObj.Spec.ResourceSpec.CStorVolume != nil:
 		u.resourceKind = "cstorVolume"
-		u.upgradeTask.resourceName = utaskObj.Spec.ResourceSpec.CStorVolume.PVName
+		u.resource.name = upgradeTaskCRObj.Spec.ResourceSpec.CStorVolume.PVName
 	}
 
 	return nil
 }
 
-// RunUpgradeTaskUpgradeChecks will ensure the sanity of the upgradeTask upgrade options
-func (u *UpgradeOptions) RunUpgradeTaskUpgradeChecks(cmd *cobra.Command) error {
-	if len(strings.TrimSpace(u.upgradeTask.resourceName)) == 0 {
+// RunResourcekUpgradeChecks will ensure the sanity of the upgradeTask upgrade options
+func (u *UpgradeOptions) RunResourcekUpgradeChecks(cmd *cobra.Command) error {
+	if len(strings.TrimSpace(u.resource.name)) == 0 {
 		return errors.Errorf("Cannot execute upgrade job: resource name is missing")
 	}
 
 	return nil
 }
 
-// RunUpgradeTaskUpgrade upgrades the given upgradeTask
-func (u *UpgradeOptions) RunUpgradeTaskUpgrade(cmd *cobra.Command) error {
+// RunResourceUpgrade upgrades the given upgradeTask
+func (u *UpgradeOptions) RunResourceUpgrade(cmd *cobra.Command) error {
 
 	from := strings.Split(u.fromVersion, "-")[0]
 	to := strings.Split(u.toVersion, "-")[0]
@@ -117,12 +119,12 @@ func (u *UpgradeOptions) RunUpgradeTaskUpgrade(cmd *cobra.Command) error {
 		glog.Infof("Upgrading to %s", u.toVersion)
 		err := upgrade100to120.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
-			u.upgradeTask.resourceName,
+			u.resource.name,
 			u.openebsNamespace,
 			u.imageURLPrefix,
 			u.toVersionImageTag)
 		if err != nil {
-			return errors.Errorf("Failed to upgrade %v %v:", u.resourceKind, u.upgradeTask.resourceName)
+			return errors.Errorf("Failed to upgrade %v %v:", u.resourceKind, u.resource.name)
 		}
 	default:
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)
