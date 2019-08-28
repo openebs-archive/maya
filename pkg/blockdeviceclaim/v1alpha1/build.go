@@ -212,7 +212,20 @@ func (b *Builder) WithHostName(hName string) *Builder {
 		)
 		return b
 	}
-	b.BDC.Object.Spec.HostName = hName
+	b.BDC.Object.Spec.BlockDeviceNodeAttributes.HostName = hName
+	return b
+}
+
+// WithNodeName sets the node name field of BDC provided arguments
+func (b *Builder) WithNodeName(nName string) *Builder {
+	if len(nName) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: missing node name"),
+		)
+		return b
+	}
+	b.BDC.Object.Spec.BlockDeviceNodeAttributes.NodeName = nName
 	return b
 }
 

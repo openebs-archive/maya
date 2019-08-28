@@ -21,13 +21,40 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DeviceClaimSpec defines the desired state of BlockDeviceClaim
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=blockDeviceClaim
+// +k8s:openapi-gen=true
+
+// BlockDeviceClaim is the Schema for the BlockDeviceClaim CR
+type BlockDeviceClaim struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   DeviceClaimSpec   `json:"spec,omitempty"`
+	Status DeviceClaimStatus `json:"status,omitempty"`
+}
+
+// DeviceClaimSpec defines the request details for a BlockDevice
 type DeviceClaimSpec struct {
-	Resources       DeviceClaimResources `json:"resources"`                    // the resources in the claim like Capacity, IOPS
-	DeviceType      string               `json:"deviceType"`                   // DeviceType represents the type of drive like SSD, HDD etc.,
-	HostName        string               `json:"hostName"`                     // Node name from where blockdevice has to be claimed.
-	Details         DeviceClaimDetails   `json:"deviceClaimDetails,omitempty"` // Details of the device to be claimed
-	BlockDeviceName string               `json:"blockDeviceName,omitempty"`    // BlockDeviceName is the reference to the block-device backing this claim
+	// Resources will help with placing claims on Capacity, IOPS
+	Resources DeviceClaimResources `json:"resources"`
+
+	// DeviceType represents the type of drive like SSD, HDD etc.,
+	DeviceType string `json:"deviceType"`
+
+	// Node name from where blockdevice has to be claimed.
+	HostName string `json:"hostName"`
+
+	// Details of the device to be claimed
+	Details DeviceClaimDetails `json:"deviceClaimDetails,omitempty"`
+
+	// BlockDeviceName is the reference to the block-device backing this claim
+	BlockDeviceName string `json:"blockDeviceName,omitempty"`
+
+	// BlockDeviceNodeAttributes is the attributes on the node from which a BD should
+	// be selected for this claim. It can include nodename, failure domain etc.
+	BlockDeviceNodeAttributes BlockDeviceNodeAttributes `json:"blockDeviceNodeAttributes,omitempty"`
 }
 
 // DeviceClaimStatus defines the observed state of BlockDeviceClaim
@@ -96,18 +123,18 @@ const (
 	VolumeModeFileSystem BlockDeviceVolumeMode = "FileSystem"
 )
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=blockDeviceClaim
-// +k8s:openapi-gen=true
+// BlockDeviceNodeAttributes contains the attributes of the node from which the BD should
+// be selected for claiming. A BDC can specify one or more attributes. When multiple values
+// are specified, the NDM Operator will claim a Block Device that matches all
+// the requested attributes.
+type BlockDeviceNodeAttributes struct {
+	// NodeName represents the name of the Kubernetes node resource
+	// where the BD should be present
+	NodeName string `json:"nodeName,omitempty"`
 
-// BlockDeviceClaim is the Schema for the block device claim API
-type BlockDeviceClaim struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   DeviceClaimSpec   `json:"spec,omitempty"`
-	Status DeviceClaimStatus `json:"status,omitempty"`
+	// HostName represents the hostname of the Kubernetes node resource
+	// where the BD should be present
+	HostName string `json:"hostName,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
