@@ -26,7 +26,7 @@ import (
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	upgrade090to100 "github.com/openebs/maya/pkg/upgrade/0.9.0-1.0.0/v1alpha1"
-	upgrade100to110 "github.com/openebs/maya/pkg/upgrade/1.0.0-1.1.0/v1alpha1"
+	upgrade100to120 "github.com/openebs/maya/pkg/upgrade/1.0.0-1.1.0/v1alpha1"
 )
 
 // JivaVolumeOptions stores information required for jiva volume upgrade
@@ -99,9 +99,9 @@ func (u *UpgradeOptions) RunJivaVolumeUpgrade(cmd *cobra.Command) error {
 				u.resourceKind,
 				u.jivaVolume.pvName)
 		}
-	case "1.0.0-1.1.0":
-		glog.Infof("Upgrading to 1.1.0")
-		err := upgrade100to110.Exec(u.fromVersion, u.toVersion,
+	case "1.0.0-1.1.0", "1.0.0-1.2.0", "1.1.0-1.2.0":
+		glog.Infof("Upgrading to %s", u.toVersion)
+		err := upgrade100to120.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
 			u.jivaVolume.pvName,
 			u.openebsNamespace,
@@ -113,20 +113,7 @@ func (u *UpgradeOptions) RunJivaVolumeUpgrade(cmd *cobra.Command) error {
 				u.resourceKind,
 				u.jivaVolume.pvName)
 		}
-	case "1.1.0-1.2.0":
-		glog.Infof("Upgrading to 1.2.0")
-		err := upgrade100to110.Exec(u.fromVersion, u.toVersion,
-			u.resourceKind,
-			u.jivaVolume.pvName,
-			u.openebsNamespace,
-			u.imageURLPrefix,
-			u.toVersionImageTag)
-		if err != nil {
-			glog.Error(err)
-			return errors.Wrapf(err, "Failed to upgrade %s{%s}",
-				u.resourceKind,
-				u.jivaVolume.pvName)
-		}
+
 	default:
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)
 	}

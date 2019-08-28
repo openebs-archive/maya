@@ -17,23 +17,25 @@ limitations under the License.
 package executor
 
 import (
-	"fmt"
 	"strings"
+
+	"github.com/golang/glog"
 
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
-	upgrade100to110 "github.com/openebs/maya/pkg/upgrade/1.0.0-1.1.0/v1alpha1"
+	upgrade100to120 "github.com/openebs/maya/pkg/upgrade/1.0.0-1.1.0/v1alpha1"
 	utask "github.com/openebs/maya/pkg/upgrade/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
 	upgradeTaskJobUpgradeCmdHelpText = `
-This command upgrades the resource mentioned in upgradeTask env
+This command upgrades the resource mentioned in the UpgradeTask CR.
+The name of the UpgradeTask CR is extracted from the ENV UPGRADE_TASK
 
-Usage: upgrade upgrade-task
+Usage: upgrade resource
 `
 )
 
@@ -45,10 +47,10 @@ type UpgradeTaskOptions struct {
 // NewUpgradeTaskJob upgrade a resource from upgradeTask
 func NewUpgradeTaskJob() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "upgrade-task",
-		Short:   "Upgrade UpgradeTask Resource",
+		Use:     "resource",
+		Short:   "Upgrade a resource using the details specified in the UpgradeTask CR.",
 		Long:    upgradeTaskJobUpgradeCmdHelpText,
-		Example: `upgrade upgrade-task`,
+		Example: `upgrade resource`,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.InitializeFromUpgradeTask(cmd), util.Fatal)
 			util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
@@ -111,28 +113,15 @@ func (u *UpgradeOptions) RunUpgradeTaskUpgrade(cmd *cobra.Command) error {
 	to := strings.Split(u.toVersion, "-")[0]
 
 	switch from + "-" + to {
-	case "1.0.0-1.1.0":
-		fmt.Println("Upgrading to 1.1.0")
-		err := upgrade100to110.Exec(u.fromVersion, u.toVersion,
+	case "1.0.0-1.1.0", "1.0.0-1.2.0", "1.1.0-1.2.0":
+		glog.Infof("Upgrading to %s", u.toVersion)
+		err := upgrade100to120.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
 			u.upgradeTask.resourceName,
 			u.openebsNamespace,
 			u.imageURLPrefix,
 			u.toVersionImageTag)
 		if err != nil {
-			fmt.Println(err)
-			return errors.Errorf("Failed to upgrade %v %v:", u.resourceKind, u.upgradeTask.resourceName)
-		}
-	case "1.1.0-1.2.0":
-		fmt.Println("Upgrading to 1.2.0")
-		err := upgrade100to110.Exec(u.fromVersion, u.toVersion,
-			u.resourceKind,
-			u.upgradeTask.resourceName,
-			u.openebsNamespace,
-			u.imageURLPrefix,
-			u.toVersionImageTag)
-		if err != nil {
-			fmt.Println(err)
 			return errors.Errorf("Failed to upgrade %v %v:", u.resourceKind, u.upgradeTask.resourceName)
 		}
 	default:
