@@ -54,7 +54,7 @@ func NewUpgradeResourceJob() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.InitializeFromUpgradeTaskResource(cmd), util.Fatal)
 			util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
-			util.CheckErr(options.RunResourcekUpgradeChecks(cmd), util.Fatal)
+			util.CheckErr(options.RunResourceUpgradeChecks(cmd), util.Fatal)
 			util.CheckErr(options.InitializeDefaults(cmd), util.Fatal)
 			util.CheckErr(options.RunResourceUpgrade(cmd), util.Fatal)
 		},
@@ -99,8 +99,8 @@ func (u *UpgradeOptions) InitializeFromUpgradeTaskResource(cmd *cobra.Command) e
 	return nil
 }
 
-// RunResourcekUpgradeChecks will ensure the sanity of the upgradeTask upgrade options
-func (u *UpgradeOptions) RunResourcekUpgradeChecks(cmd *cobra.Command) error {
+// RunResourceUpgradeChecks will ensure the sanity of the upgradeTask upgrade options
+func (u *UpgradeOptions) RunResourceUpgradeChecks(cmd *cobra.Command) error {
 	if len(strings.TrimSpace(u.resource.name)) == 0 {
 		return errors.Errorf("Cannot execute upgrade job: resource name is missing")
 	}
