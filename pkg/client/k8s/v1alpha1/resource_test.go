@@ -28,4 +28,4 @@ var _ ResourceCreator = &resource{}
 var _ ResourceUpdater = &resource{}
 
 // verify if createOrUpdate struct is an implementation of ResourceApplier
-var _ ResourceApplier = &createOrUpdate{}
+var _ ResourceApplier = &ResourceCreateOrUpdater{}

@@ -108,7 +108,7 @@ var _ = Describe("StatefulSet", func() {
 		replicaAntiAffinityLabel := "openebs.io/replica-anti-affinity=" + STSUnstructured.GetName()
 
 		// Apply sts storageclass
-		cu := k8s.CreateOrUpdate(
+		cu := k8s.NewResourceCreateOrUpdater(
 			k8s.GroupVersionResourceFromGVK(SCUnstructured),
 			SCUnstructured.GetNamespace(),
 		)
@@ -116,7 +116,7 @@ var _ = Describe("StatefulSet", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// Apply the sts
-		cu = k8s.CreateOrUpdate(
+		cu = k8s.NewResourceCreateOrUpdater(
 			k8s.GroupVersionResourceFromGVK(STSUnstructured),
 			stsNamespace,
 		)

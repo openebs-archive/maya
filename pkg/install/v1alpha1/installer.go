@@ -26,6 +26,15 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// A map of resources that is restricted to be updated by this
+// installer. In other words, resources whose Kind matches the
+// key of this map will not be considered for update by this
+// installer
+var restrictUpdates = map[string]bool{
+	"StoragePoolClaim": true,
+	"StorageClass":     true,
+}
+
 // Installer abstracts installation
 type Installer interface {
 	Install() (errors []error)
@@ -111,14 +120,18 @@ func (i *simpleInstaller) Install() []error {
 	ulist := i.prepareResources()
 	ul := i.setRules(ulist)
 	for _, unstruct := range ul {
-		cu := k8s.CreateOrUpdate(k8s.GroupVersionResourceFromGVK(unstruct), unstruct.GetNamespace())
-		u, err := cu.Apply(unstruct)
+		applier := k8s.NewResourceCreateOrUpdater(
+			k8s.GroupVersionResourceFromGVK(unstruct),
+			unstruct.GetNamespace(),
+			k8s.ResourceCreateOrUpdaterSkipUpdate(restrictUpdates[unstruct.GetKind()]),
+		)
+		u, err := applier.Apply(unstruct)
 		if err == nil {
 			glog.V(2).Infof(
-				"{%s/%s} installed successfully at namespace {%s}",
+				"Installer: %s %s/%s applied successfully",
 				u.GroupVersionKind(),
-				u.GetName(),
 				u.GetNamespace(),
+				u.GetName(),
 			)
 		} else {
 			i.addError(err)

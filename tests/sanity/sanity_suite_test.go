@@ -62,7 +62,10 @@ var _ = BeforeSuite(func() {
 
 	// Installing the artifacts to kubernetes cluster
 	for _, artifact := range artifacts {
-		cu := k8s.CreateOrUpdate(k8s.GroupVersionResourceFromGVK(artifact), artifact.GetNamespace())
+		cu := k8s.NewResourceCreateOrUpdater(
+			k8s.GroupVersionResourceFromGVK(artifact),
+			artifact.GetNamespace(),
+		)
 		_, err := cu.Apply(artifact)
 		Expect(err).ShouldNot(HaveOccurred())
 	}

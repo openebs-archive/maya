@@ -20,8 +20,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -67,6 +69,11 @@ type ResourceDeleter interface {
 type resource struct {
 	gvr       schema.GroupVersionResource // identify a resource
 	namespace string                      // namespace where this resource is to be operated at
+}
+
+// String implements Stringer interface
+func (r *resource) String() string {
+	return r.gvr.String()
 }
 
 // Resource returns a new resource instance
@@ -170,55 +177,105 @@ func (r *resource) List(opts metav1.ListOptions) (u *unstructured.UnstructuredLi
 	return
 }
 
-// ResourceApplyOptions is a utility instance used during the resource's apply
-// operation
-type ResourceApplyOptions struct {
+// ResourceCreateOrUpdater as the name suggests manages to either
+// create or update a given resource. It does so by implementing
+// ResourceApplier interface
+type ResourceCreateOrUpdater struct {
+	*resource
+
+	// Various executors required to perform Apply
+	// This is how this instance decouples its dependencies
 	Getter  ResourceGetter
 	Creator ResourceCreator
 	Updater ResourceUpdater
+
+	// IsSkipUpdate will not update this resource if set to true.
+	// In other words, enabling this flag can only create the
+	// resource in the cluster if not created previously
+	IsSkipUpdate bool
 }
 
-// createOrUpdate is a resource that is suitable to be executed as an apply
-// operation
-type createOrUpdate struct {
-	*resource
-	options ResourceApplyOptions // options used during resource's apply operation
+// ResourceCreateOrUpdaterOption is a typed function used to
+// build an instance of ResourceCreateOrUpdater
+//
+// NOTE:
+//	This follows the pattern known as "functional options". It
+// is a function that operates on a given structure as a value
+// to build (initialise, configure, sensible defaults, etc) this
+// same structure.
+type ResourceCreateOrUpdaterOption func(*ResourceCreateOrUpdater)
+
+// ResourceCreateOrUpdaterSkipUpdate sets IsSkipUpdate based
+// on the provided flag
+func ResourceCreateOrUpdaterSkipUpdate(skip bool) ResourceCreateOrUpdaterOption {
+	return func(r *ResourceCreateOrUpdater) {
+		r.IsSkipUpdate = skip
+	}
 }
 
-// CreateOrUpdate returns a new instance of createOrUpdate resource
-func CreateOrUpdate(gvr schema.GroupVersionResource, namespace string) *createOrUpdate {
+// NewResourceCreateOrUpdater returns a new instance of
+// ResourceCreateOrUpdater
+func NewResourceCreateOrUpdater(
+	gvr schema.GroupVersionResource,
+	namespace string,
+	options ...ResourceCreateOrUpdaterOption,
+) *ResourceCreateOrUpdater {
 	resource := Resource(gvr, namespace)
-	options := ResourceApplyOptions{Getter: resource, Creator: resource, Updater: resource}
-	return &createOrUpdate{resource: resource, options: options}
+	t := &ResourceCreateOrUpdater{
+		resource: resource,
+		Getter:   resource,
+		Creator:  resource,
+		Updater:  resource,
+	}
+	for _, o := range options {
+		o(t)
+	}
+	return t
+}
+
+// String implements Stringer interface
+func (r *ResourceCreateOrUpdater) String() string {
+	if r.resource == nil {
+		return fmt.Sprint("ResourceCreateOrUpdater")
+	}
+	return fmt.Sprintf("ResourceCreateOrUpdater %s", r.resource)
 }
 
 // Apply applies a resource to the kubernetes cluster. In other words, it
-// creates a new resource if it does not exist or updates the existing resource.
-func (r *createOrUpdate) Apply(obj *unstructured.Unstructured, subresources ...string) (resource *unstructured.Unstructured, err error) {
-	if r.options.Getter == nil {
-		err = errors.New("nil resource getter instance: failed to apply resource")
+// creates a new resource if it does not exist or updates the existing
+// resource.
+func (r *ResourceCreateOrUpdater) Apply(
+	obj *unstructured.Unstructured,
+	subresources ...string,
+) (resource *unstructured.Unstructured, err error) {
+	if r.Getter == nil {
+		err = errors.Errorf("%s: Apply failed: Nil getter", r)
 		return
 	}
-	if r.options.Creator == nil {
-		err = errors.New("nil resource creator instance: failed to apply resource")
+	if r.Creator == nil {
+		err = errors.Errorf("%s: Apply failed: Nil creator", r)
 		return
 	}
-	if r.options.Updater == nil {
-		err = errors.New("nil resource updater instance: failed to apply resource")
+	if r.Updater == nil {
+		err = errors.Errorf("%s: Apply failed: Nil updater", r)
 		return
 	}
 	if obj == nil {
-		err = errors.New("nil resource instance: failed to apply resource")
+		err = errors.Errorf("%s: Apply failed: Nil resource", r)
 		return
 	}
-	resource, err = r.options.Getter.Get(obj.GetName(), metav1.GetOptions{})
+	resource, err = r.Getter.Get(obj.GetName(), metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
-			return r.options.Creator.Create(obj, subresources...)
+			return r.Creator.Create(obj, subresources...)
 		}
 		return nil, err
 	}
-	return r.options.Updater.Update(resource, obj, subresources...)
+	if r.IsSkipUpdate {
+		glog.V(2).Infof("%s: Skipping update", r)
+		return resource, nil
+	}
+	return r.Updater.Update(resource, obj, subresources...)
 }
 
 // ResourceDeleteOptions is a utility instance used during the resource's delete operations

@@ -45,7 +45,10 @@ var _ = Describe("Sanity", func() {
 
 			// Installing the artifacts to kubernetes cluster
 			for _, artifact := range artifacts {
-				cu := k8s.CreateOrUpdate(k8s.GroupVersionResourceFromGVK(artifact), artifact.GetNamespace())
+				cu := k8s.NewResourceCreateOrUpdater(
+					k8s.GroupVersionResourceFromGVK(artifact),
+					artifact.GetNamespace(),
+				)
 				_, err := cu.Apply(artifact)
 				Expect(err).ShouldNot(HaveOccurred())
 				time.Sleep(waitTime * time.Second)
@@ -63,7 +66,10 @@ var _ = Describe("Sanity", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Installing the artifacts to kubernetes cluster
-			cu := k8s.CreateOrUpdate(k8s.GroupVersionResourceFromGVK(artifact), artifact.GetNamespace())
+			cu := k8s.NewResourceCreateOrUpdater(
+				k8s.GroupVersionResourceFromGVK(artifact),
+				artifact.GetNamespace(),
+			)
 			pvc, err := cu.Apply(artifact)
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -256,7 +262,10 @@ var _ = Describe("Sanity", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Installing the artifacts to kubernetes cluster
-			cu := k8s.CreateOrUpdate(k8s.GroupVersionResourceFromGVK(artifact), artifact.GetNamespace())
+			cu := k8s.NewResourceCreateOrUpdater(
+				k8s.GroupVersionResourceFromGVK(artifact),
+				artifact.GetNamespace(),
+			)
 			pvc, err := cu.Apply(artifact)
 			Expect(err).ShouldNot(HaveOccurred())
 
