@@ -23,6 +23,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+const (
+	// k8sNodeLabelKeyHostname is the label key used by Kubernetes
+	// to store the hostname on the node resource.
+	k8sNodeLabelKeyHostname = "kubernetes.io/hostname"
+)
+
 // Builder is the builder object for Pod
 type Builder struct {
 	pod  *Pod
@@ -112,6 +118,24 @@ func (b *Builder) WithNodeName(nodeName string) *Builder {
 		return b
 	}
 	b.pod.object.Spec.NodeName = nodeName
+	return b
+}
+
+// WithNodeSelectorHostnameNew sets the Pod NodeSelector to the provided hostname value
+// This function replaces (resets) the NodeSelector to use only hostname selector
+func (b *Builder) WithNodeSelectorHostnameNew(hostname string) *Builder {
+	if len(hostname) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build Pod object: missing Pod hostname"),
+		)
+		return b
+	}
+
+	b.pod.object.Spec.NodeSelector = map[string]string{
+		k8sNodeLabelKeyHostname: hostname,
+	}
+
 	return b
 }
 
