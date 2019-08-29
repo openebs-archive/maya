@@ -22,19 +22,20 @@ import (
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
 )
 
-// Delete will destroy the pool for given csp.
+// Delete will destroy the pool for given cspi.
 // It will also perform labelclear for pool disk.
-func Delete(csp *apis.CStorPoolInstance) error {
-	glog.Infof("Destroying a pool {%s}", PoolName(csp))
+func Delete(cspi *apis.CStorPoolInstance) error {
+	glog.Infof("Destroying a pool {%s}", PoolName(cspi))
 
 	// Let's check if pool exists or not
-	if poolExist := checkIfPoolPresent(PoolName(csp)); !poolExist {
+	if poolExist := checkIfPoolPresent(PoolName(cspi)); !poolExist {
+		glog.Infof("Pool %s not imported.. so, can't destroy", PoolName(cspi))
 		return nil
 	}
 
 	// First delete a pool
 	ret, err := zfs.NewPoolDestroy().
-		WithPool(PoolName(csp)).
+		WithPool(PoolName(cspi)).
 		Execute()
 	if err != nil {
 		glog.Errorf("Failed to destroy a pool {%s}.. %s", ret, err.Error())
@@ -43,7 +44,7 @@ func Delete(csp *apis.CStorPoolInstance) error {
 
 	// We successfully deleted the pool.
 	// We also need to clear the label for attached disk
-	for _, r := range csp.Spec.RaidGroups {
+	for _, r := range cspi.Spec.RaidGroups {
 		vlist, err := getPathForBdevList(r.BlockDevices)
 		if err != nil {
 			glog.Errorf("Failed to fetch vdev path, skipping labelclear.. %s", err.Error())
