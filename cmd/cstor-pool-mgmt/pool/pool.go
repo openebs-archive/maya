@@ -172,7 +172,7 @@ func GetDevPathIfNotSlashDev(devID string) string {
 	}
 	lastindex := strings.LastIndexByte(devID, '/')
 	if lastindex == -1 {
-		lastindex = len(devID)
+		return ""
 	}
 	devidbytes := []rune(devID)
 	return string(devidbytes[0:lastindex])
