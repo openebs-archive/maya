@@ -124,6 +124,8 @@ func checkIfDeviceUsed(path string, t zpool.Topology) bool {
 
 func checkIfPoolNotImported(cspi *apis.CStorPoolInstance) (string, bool, error) {
 	var cmdOut []byte
+	var err error
+
 	bdPath, err := getPathForBDev(cspi.Spec.RaidGroups[0].BlockDevices[0].BlockDeviceName)
 	if err != nil {
 		return "", false, err
@@ -136,7 +138,8 @@ func checkIfPoolNotImported(cspi *apis.CStorPoolInstance) (string, bool, error) 
 			return string(cmdOut), true, nil
 		}
 	}
-
+	// there are some cases when import is succesful but zpool command return
+	// noisy errors, hence better to check contains before return error
 	cmdOut, err = zfs.NewPoolImport().Execute()
 	if strings.Contains(string(cmdOut), PoolName(cspi)) {
 		return string(cmdOut), true, nil

@@ -265,7 +265,7 @@ func CheckForCStorPool() {
 			time.Sleep(PoolNameHandlerInterval)
 			continue
 		}
-		if SyncResources.IsImported == true {
+		if SyncResources.IsImported {
 			break
 		}
 		glog.Infof("CStorPool found %v, but not imported", poolname)

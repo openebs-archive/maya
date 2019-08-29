@@ -65,7 +65,7 @@ func Import(cspi *apis.CStorPoolInstance) (bool, error) {
 		}
 	}
 
-	if poolImported == false {
+	if !poolImported {
 		cmdOut, err = zfs.NewPoolImport().
 			WithCachefile(cspi.Spec.PoolConfig.CacheFile).
 			WithProperty("cachefile", cspi.Spec.PoolConfig.CacheFile).

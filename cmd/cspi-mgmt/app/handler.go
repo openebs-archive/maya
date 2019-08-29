@@ -75,7 +75,7 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 			c.recorder.Event(cspi,
 				corev1.EventTypeWarning,
 				string(common.FailedSynced),
-				fmt.Sprintf("%s", err.Error()))
+				err.Error())
 		}
 		return nil
 	}
@@ -104,7 +104,7 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 		c.recorder.Event(cspi,
 			corev1.EventTypeWarning,
 			string(common.FailureStatusSync),
-			fmt.Sprintf("%s", err.Error()))
+			err.Error())
 	}
 	return nil
 }
@@ -198,10 +198,6 @@ func (c *CStorPoolInstanceController) updateStatus(cspi *apis.CStorPoolInstance)
 			CStorPoolInstances(cspi.Namespace).
 			Update(cspi)
 		if err != nil {
-			c.recorder.Event(cspi,
-				corev1.EventTypeWarning,
-				string(common.FailureStatusSync),
-				fmt.Sprintf("Failed to updateStatus due to '%s'", err.Error()))
 			return fmt.Errorf("Failed to updateStatus due to '%s'", err.Error())
 		}
 	}
