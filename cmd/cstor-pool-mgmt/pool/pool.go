@@ -160,23 +160,31 @@ func importPoolBuilder(cStorPool *apis.CStorPool, importOptions *ImportOptions) 
 	return importAttr
 }
 
-// GetDevPath gets the path from given deviceID
-func GetDevPath(devid string) string {
-	lastindex := strings.LastIndexByte(devid, '/')
-	if lastindex == -1 {
-		lastindex = len(devid)
+// GetDevPathIfNotSlashDev gets the path from given deviceID if its not prefix
+// to "/dev"
+func GetDevPathIfNotSlashDev(devID string) string {
+	if len(devID) == 0 {
+		return ""
 	}
-	devid_bytes := []rune(devid)
-	return string(devid_bytes[0:lastindex])
+
+	if strings.HasPrefix(devID, "/dev") {
+		return ""
+	}
+	lastindex := strings.LastIndexByte(devID, '/')
+	if lastindex == -1 {
+		return ""
+	}
+	devidbytes := []rune(devID)
+	return string(devidbytes[0:lastindex])
 }
 
-// CreatePool creates a new cStor pool.
+// checkForPoolExistence checks cStor pool existence.
 func checkForPoolExistence(cStorPool *apis.CStorPool, blockDeviceList []string) bool {
 	var importOptions ImportOptions
 
 	// First device in the list is picked under assumption that all pool devices resides
 	// in same place.
-	importOptions.DevPath = GetDevPath(blockDeviceList[0])
+	importOptions.DevPath = GetDevPathIfNotSlashDev(blockDeviceList[0])
 	importOptions.dontImport = true
 	stdoutStderr, _ := ImportPool(cStorPool, &importOptions)
 	glog.Infof("checkForPoolExistence output: %v", stdoutStderr)
@@ -186,7 +194,7 @@ func checkForPoolExistence(cStorPool *apis.CStorPool, blockDeviceList []string) 
 // CreatePool creates a new cStor pool.
 func CreatePool(cStorPool *apis.CStorPool, blockDeviceList []string) error {
 	exists := checkForPoolExistence(cStorPool, blockDeviceList)
-	if exists == true {
+	if exists {
 		glog.Errorf("pool %v exists, but failed to import", string(cStorPool.ObjectMeta.UID))
 		return errors.Errorf("pool %v exists, but failed to import", string(cStorPool.ObjectMeta.UID))
 	}

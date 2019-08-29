@@ -295,7 +295,7 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
 	}
 
-	devPath := pool.GetDevPath(devIDList[0])
+	devPath := pool.GetDevPathIfNotSlashDev(devIDList[0])
 	// Trigger import with dev path
 	importOptions.CachefileFlag = false
 	importOptions.DevPath = devPath
