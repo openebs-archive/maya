@@ -167,20 +167,45 @@ func (bdc *BlockDeviceClaim) IsStatus(status string) bool {
 	return string(bdc.Object.Status.Phase) == status
 }
 
+// GetSpecHostName return hostName from spec of blockdeviceclaim
+func (bdc *BlockDeviceClaim) GetSpecHostName() string {
+	return bdc.Object.Spec.HostName
+}
+
+// GetNodeAtributesHostName return hostName from blockdeviceclaim attribute hostName
+func (bdc *BlockDeviceClaim) GetNodeAtributesHostName() string {
+	return bdc.Object.Spec.BlockDeviceNodeAttributes.HostName
+}
+
+// GetHostName return hostName from blockdeviceclaim
+func (bdc *BlockDeviceClaim) GetHostName() string {
+	hostName := bdc.GetNodeAtributesHostName()
+	if hostName == "" {
+		return bdc.GetSpecHostName()
+	}
+	return hostName
+}
+
 // Len returns the length og BlockDeviceClaimList.
 func (bdcl *BlockDeviceClaimList) Len() int {
 	return len(bdcl.ObjectList.Items)
 }
 
-// GetBlockDeviceNamesByNode returns map of node name and corresponding block devices to that
-// node from block device claim list
+// GetBlockDeviceNamesByNode returns map of node name and corresponding blockdevices to that
+// node from blockdeviceclaim list
 func (bdcl *BlockDeviceClaimList) GetBlockDeviceNamesByNode() map[string][]string {
 	newNodeBDList := make(map[string][]string)
 	if bdcl == nil {
 		return newNodeBDList
 	}
 	for _, bdc := range bdcl.ObjectList.Items {
-		newNodeBDList[bdc.Spec.HostName] = append(newNodeBDList[bdc.Spec.HostName], bdc.Spec.BlockDeviceName)
+		bdc := bdc
+		bdcObj := BlockDeviceClaim{Object: &bdc}
+		hostName := bdcObj.GetHostName()
+		newNodeBDList[hostName] = append(
+			newNodeBDList[hostName],
+			bdcObj.Object.Spec.BlockDeviceName,
+		)
 	}
 	return newNodeBDList
 }
