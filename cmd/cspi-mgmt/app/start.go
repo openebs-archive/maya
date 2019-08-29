@@ -79,19 +79,6 @@ func Start() error {
 		return errors.Wrap(err, "error building openebs clientset")
 	}
 	pool.CheckForZreplInitial(common.InitialZreplRetryInterval)
-	/*
-	   * go func() {
-	   		// CheckForZreplContinuous is continuous health checker for status of
-	   		// zrepl in cstor-pool container.
-	   		// When zrepl is getting terminated and restarted very fast: zpool status
-	   		// goroutine may miss this failure. To resolve, we’ll give InitialTimeDelay y
-	   		// for zrepl container such that the period(x) of the goroutine thread will
-	   		// be half that of this initialTimeDelay y. (x = 1/2 y).
-	   		pool.CheckForZreplContinuous(common.ContinuousZreplRetryInterval)
-	   		glog.Errorf("Zrepl/Pool is not available, Shutting down")
-	   		os.Exit(1)
-	   	}()
-	*/
 
 	// NewSharedInformerFactory constructs a new instance of k8s sharedInformerFactory.
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, getSyncInterval())

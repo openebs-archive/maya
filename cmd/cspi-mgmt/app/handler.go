@@ -21,6 +21,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
+	"github.com/pkg/errors"
 
 	zpool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -149,7 +150,7 @@ updatestatus:
 func (c *CStorPoolInstanceController) update(cspi *apis.CStorPoolInstance) error {
 	err := zpool.Update(cspi)
 	if err != nil {
-		return fmt.Errorf("Failed to update pool due to %s", err.Error())
+		return errors.Errorf("Failed to update pool due to %s", err.Error())
 	}
 	return c.updateStatus(cspi)
 }
@@ -188,7 +189,7 @@ func (c *CStorPoolInstanceController) updateStatus(cspi *apis.CStorPoolInstance)
 	}
 
 	if err != nil {
-		return fmt.Errorf("Failed to sync due to %s", err.Error())
+		return errors.Errorf("Failed to sync due to %s", err.Error())
 	}
 
 	if IsStatusChange(cspi.Status, status) {
@@ -198,7 +199,7 @@ func (c *CStorPoolInstanceController) updateStatus(cspi *apis.CStorPoolInstance)
 			CStorPoolInstances(cspi.Namespace).
 			Update(cspi)
 		if err != nil {
-			return fmt.Errorf("Failed to updateStatus due to '%s'", err.Error())
+			return errors.Errorf("Failed to updateStatus due to '%s'", err.Error())
 		}
 	}
 	return nil

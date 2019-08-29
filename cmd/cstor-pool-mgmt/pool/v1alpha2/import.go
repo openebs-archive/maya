@@ -74,12 +74,12 @@ func Import(cspi *apis.CStorPoolInstance) (bool, error) {
 	}
 
 	if err != nil {
+		// TODO may be possible that there is no pool exists..
 		glog.Errorf("Failed to import pool : %s : %s", cmdOut, err.Error())
-		// We return error as nil because pool doesn't exist
 		return false, err
 	}
 
-	glog.Infof("Pool Import successful: %v", string(cspi.GetUID()))
+	glog.Infof("Pool Import successful: %v", string(PoolName(cspi)))
 	return true, nil
 }
 
