@@ -17,9 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
+	"strings"
 	"text/template"
 
+	"github.com/golang/glog"
+	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
@@ -194,9 +196,9 @@ func patchReplica(replicaObj *replicaDetails, namespace string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch replica deployment")
 		}
-		fmt.Println(replicaObj.name, " patched")
+		glog.Infof("%s patched", replicaObj.name)
 	} else {
-		fmt.Printf("replica deployment already in %s version\n", upgradeVersion)
+		glog.Infof("replica deployment already in %s version", upgradeVersion)
 	}
 	return nil
 }
@@ -223,9 +225,9 @@ func patchController(controllerObj *controllerDetails, namespace string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch replica deployment")
 		}
-		fmt.Println(controllerObj.name, " patched")
+		glog.Infof("%s patched", controllerObj.name)
 	} else {
-		fmt.Printf("controller deployment already in %s version\n", upgradeVersion)
+		glog.Infof("controller deployment already in %s version\n", upgradeVersion)
 	}
 	return nil
 }
@@ -275,7 +277,7 @@ func getPVCDeploymentsNamespace(
 	return ns, nil
 }
 
-func jivaUpgrade(pvName, openebsNamespace string) error {
+func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 
 	var (
 		pvLabel         = "openebs.io/persistent-volume=" + pvName
@@ -283,44 +285,235 @@ func jivaUpgrade(pvName, openebsNamespace string) error {
 		controllerLabel = "openebs.io/controller=jiva-controller," + pvLabel
 		serviceLabel    = "openebs.io/controller-service=jiva-controller-svc," + pvLabel
 		ns              string
-		err             error
+		err, uerr       error
 	)
+
+	var utaskObj *utask.UpgradeTask
+	utaskObj, uerr = getOrCreateUpgradeTask("jivaVolume", pvName, openebsNamespace)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
+	}
+
+	utaskObj, uerr = updateUpgradeDetailedStatus(
+		utaskObj,
+		utask.UpgradeDetailedStatuses{
+			Step: utask.PreUpgrade,
+			Status: utask.Status{
+				Phase: utask.StepWaiting,
+			},
+		},
+		openebsNamespace,
+	)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
+	}
 
 	ns, err = getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get namespace for pvc deployments")
+		utaskObj, uerr = updateUpgradeDetailedStatus(
+			utaskObj,
+			utask.UpgradeDetailedStatuses{
+				Step: utask.PreUpgrade,
+				Status: utask.Status{
+					Phase:   utask.StepErrored,
+					Message: "failed to get namespace for pvc deployments",
+					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+				},
+			},
+			openebsNamespace,
+		)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+		return utaskObj, errors.Wrapf(err, "failed to get namespace for pvc deployments")
 	}
 
 	// fetching replica deployment details
 	replicaObj, err := getReplica(replicaLabel, ns)
 	if err != nil {
-		return err
+		utaskObj, uerr = updateUpgradeDetailedStatus(
+			utaskObj,
+			utask.UpgradeDetailedStatuses{
+				Step: utask.PreUpgrade,
+				Status: utask.Status{
+					Phase:   utask.StepErrored,
+					Message: "failed to get replica details",
+					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+				},
+			},
+			openebsNamespace,
+		)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+		return utaskObj, err
 	}
 	replicaObj.patchDetails.PVName = pvName
 
 	// fetching controller deployment details
 	controllerObj, err := getController(controllerLabel, ns)
 	if err != nil {
-		return err
+		utaskObj, uerr = updateUpgradeDetailedStatus(
+			utaskObj,
+			utask.UpgradeDetailedStatuses{
+				Step: utask.PreUpgrade,
+				Status: utask.Status{
+					Phase:   utask.StepErrored,
+					Message: "failed to get target details",
+					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+				},
+			},
+			openebsNamespace,
+		)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+		return utaskObj, err
+	}
+
+	utaskObj, uerr = updateUpgradeDetailedStatus(
+		utaskObj,
+		utask.UpgradeDetailedStatuses{
+			Step: utask.PreUpgrade,
+			Status: utask.Status{
+				Phase:   utask.StepCompleted,
+				Message: "Pre-upgrade steps were successful",
+			},
+		},
+		openebsNamespace,
+	)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
+	}
+
+	utaskObj, uerr = updateUpgradeDetailedStatus(
+		utaskObj,
+		utask.UpgradeDetailedStatuses{
+			Step: utask.ReplicaUpgrade,
+			Status: utask.Status{
+				Phase: utask.StepWaiting,
+			},
+		},
+		openebsNamespace,
+	)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
 	}
 
 	// replica patch
 	err = patchReplica(replicaObj, ns)
 	if err != nil {
-		return err
+		utaskObj, uerr = updateUpgradeDetailedStatus(
+			utaskObj,
+			utask.UpgradeDetailedStatuses{
+				Step: utask.ReplicaUpgrade,
+				Status: utask.Status{
+					Phase:   utask.StepErrored,
+					Message: "failed to patch replica depoyment",
+					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+				},
+			},
+			openebsNamespace,
+		)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+		return utaskObj, err
+	}
+
+	utaskObj, uerr = updateUpgradeDetailedStatus(
+		utaskObj,
+		utask.UpgradeDetailedStatuses{
+			Step: utask.ReplicaUpgrade,
+			Status: utask.Status{
+				Phase:   utask.StepCompleted,
+				Message: "Replica upgrade was successful",
+			},
+		},
+		openebsNamespace,
+	)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
+	}
+
+	utaskObj, uerr = updateUpgradeDetailedStatus(
+		utaskObj,
+		utask.UpgradeDetailedStatuses{
+			Step: utask.TargetUpgrade,
+			Status: utask.Status{
+				Phase: utask.StepWaiting,
+			},
+		},
+		openebsNamespace,
+	)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
 	}
 
 	// controller patch
 	err = patchController(controllerObj, ns)
 	if err != nil {
-		return err
+		utaskObj, uerr = updateUpgradeDetailedStatus(
+			utaskObj,
+			utask.UpgradeDetailedStatuses{
+				Step: utask.TargetUpgrade,
+				Status: utask.Status{
+					Phase:   utask.StepErrored,
+					Message: "failed to patch target depoyment",
+					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+				},
+			},
+			openebsNamespace,
+		)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+		return utaskObj, err
 	}
 
 	err = patchService(serviceLabel, ns)
 	if err != nil {
-		return err
+		utaskObj, uerr = updateUpgradeDetailedStatus(
+			utaskObj,
+			utask.UpgradeDetailedStatuses{
+				Step: utask.TargetUpgrade,
+				Status: utask.Status{
+					Phase:   utask.StepErrored,
+					Message: "failed to patch target service",
+					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+				},
+			},
+			openebsNamespace,
+		)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+		return utaskObj, err
 	}
 
-	fmt.Println("Upgrade Successful for", pvName)
-	return nil
+	utaskObj, uerr = updateUpgradeDetailedStatus(
+		utaskObj,
+		utask.UpgradeDetailedStatuses{
+			Step: utask.TargetUpgrade,
+			Status: utask.Status{
+				Phase:   utask.StepCompleted,
+				Message: "Target upgrade was successful",
+			},
+		},
+		openebsNamespace,
+	)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
+	}
+
+	utaskObj.Status.Phase = utask.UpgradeSuccess
+	utaskObj.Status.CompletedTime = metav1.Now()
+	utaskObj, uerr = utaskClient.WithNamespace(openebsNamespace).
+		Update(utaskObj)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
+	}
+
+	glog.Info("Upgrade Successful for", pvName)
+	return utaskObj, nil
 }

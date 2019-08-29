@@ -17,9 +17,12 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
+	"strings"
 	"text/template"
 
+	"github.com/golang/glog"
+	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
@@ -102,7 +105,7 @@ func patchTargetDeploy(d *appsv1.Deployment, ns string) error {
 	}
 	if (version != currentVersion) && (version != upgradeVersion) {
 		return errors.Errorf(
-			"target deployment version %s is neither %s nor %s\n",
+			"target deployment version %s is neither %s nor %s",
 			version,
 			currentVersion,
 			upgradeVersion,
@@ -134,9 +137,9 @@ func patchTargetDeploy(d *appsv1.Deployment, ns string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch target deployment %s", d.Name)
 		}
-		fmt.Printf("target deployment %s patched\n", d.Name)
+		glog.Infof("target deployment %s patched", d.Name)
 	} else {
-		fmt.Printf("target deployment already in %s version\n", upgradeVersion)
+		glog.Infof("target deployment already in %s version", upgradeVersion)
 	}
 	return nil
 }
@@ -156,7 +159,7 @@ func patchCV(pvLabel, namespace string) error {
 	version := cvObject.Items[0].Labels["openebs.io/version"]
 	if (version != currentVersion) && (version != upgradeVersion) {
 		return errors.Errorf(
-			"cstorvolume version %s is neither %s nor %s\n",
+			"cstorvolume version %s is neither %s nor %s",
 			version,
 			currentVersion,
 			upgradeVersion,
@@ -183,9 +186,9 @@ func patchCV(pvLabel, namespace string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch cstorvolume %s", cvObject.Items[0].Name)
 		}
-		fmt.Printf("cstorvolume %s patched\n", cvObject.Items[0].Name)
+		glog.Infof("cstorvolume %s patched", cvObject.Items[0].Name)
 	} else {
-		fmt.Printf("cstorvolume already in %s version\n", upgradeVersion)
+		glog.Infof("cstorvolume already in %s version", upgradeVersion)
 	}
 	return nil
 }
@@ -198,7 +201,7 @@ func patchCVR(cvrName, namespace string) error {
 	version := cvrObject.Labels["openebs.io/version"]
 	if (version != currentVersion) && (version != upgradeVersion) {
 		return errors.Errorf(
-			"cstorvolume version %s is neither %s nor %s\n",
+			"cstorvolume version %s is neither %s nor %s",
 			version,
 			currentVersion,
 			upgradeVersion,
@@ -225,69 +228,302 @@ func patchCVR(cvrName, namespace string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch cstorvolumereplica %s", cvrObject.Name)
 		}
-		fmt.Printf("cstorvolumereplica %s patched\n", cvrObject.Name)
+		glog.Infof("cstorvolumereplica %s patched", cvrObject.Name)
 	} else {
-		fmt.Printf("cstorvolume replica already in %s version\n", upgradeVersion)
+		glog.Infof("cstorvolume replica already in %s version", upgradeVersion)
 	}
 	return nil
 }
 
-func cstorVolumeUpgrade(pvName, openebsNamespace string) error {
-	pvLabel := "openebs.io/persistent-volume=" + pvName
-	targetLabel := pvLabel + ",openebs.io/target=cstor-target"
-	targetServiceLabel := pvLabel + ",openebs.io/target-service=cstor-target-svc"
-
-	err := verifyCSPVersion(pvLabel, openebsNamespace)
-	if err != nil {
-		return err
-	}
-
-	ns, err := getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
-	if err != nil {
-		return err
-	}
-
-	targetDeployObj, err := getDeployment(targetLabel, ns)
-	if err != nil {
-		return err
-	}
-
-	err = patchTargetDeploy(targetDeployObj, ns)
-	if err != nil {
-		return err
-	}
-
-	err = patchService(targetServiceLabel, ns)
-	if err != nil {
-		return err
-	}
-
-	err = patchCV(pvLabel, ns)
-	if err != nil {
-		return err
-	}
-
+func getCVRList(pvLabel, openebsNamespace string) (*apis.CStorVolumeReplicaList, error) {
 	cvrList, err := cvrClient.WithNamespace(openebsNamespace).List(
 		metav1.ListOptions{
 			LabelSelector: pvLabel,
 		},
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(cvrList.Items) == 0 {
-		return errors.Errorf("no cvr found for %s, in %s", pvName, openebsNamespace)
+		return nil, errors.Errorf("no cvr found for label %s, in %s", pvLabel, openebsNamespace)
 	}
 	for _, cvrObj := range cvrList.Items {
 		if cvrObj.Name == "" {
-			return errors.Errorf("missing cvr name")
+			return nil, errors.Errorf("missing cvr name for %v", cvrObj)
 		}
-		err = patchCVR(cvrObj.Name, openebsNamespace)
-		if err != nil {
-			return err
-		}
+	}
+	return cvrList, nil
+}
 
+func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
+	var (
+		pvLabel            = "openebs.io/persistent-volume=" + pvName
+		targetLabel        = pvLabel + ",openebs.io/target=cstor-target"
+		targetServiceLabel = pvLabel + ",openebs.io/target-service=cstor-target-svc"
+		err, uerr          error
+		utaskObj           *utask.UpgradeTask
+	)
+
+	utaskObj, uerr = getOrCreateUpgradeTask("cstorVolume", pvName, openebsNamespace)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
 	}
 
-	return nil
+	utaskObj, uerr = updateUpgradeDetailedStatus(
+		utaskObj,
+		utask.UpgradeDetailedStatuses{
+			Step: utask.PreUpgrade,
+			Status: utask.Status{
+				Phase: utask.StepWaiting,
+			},
+		},
+		openebsNamespace,
+	)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
+	}
+
+	err = verifyCSPVersion(pvLabel, openebsNamespace)
+	if err != nil {
+		utaskObj, uerr = updateUpgradeDetailedStatus(
+			utaskObj,
+			utask.UpgradeDetailedStatuses{
+				Step: utask.PreUpgrade,
+				Status: utask.Status{
+					Phase:   utask.StepErrored,
+					Message: "failed to verify csp for cstor volume",
+					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+				},
+			},
+			openebsNamespace,
+		)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+		return utaskObj, err
+	}
+
+	ns, err := getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
+	if err != nil {
+		utaskObj, uerr = updateUpgradeDetailedStatus(
+			utaskObj,
+			utask.UpgradeDetailedStatuses{
+				Step: utask.PreUpgrade,
+				Status: utask.Status{
+					Phase:   utask.StepErrored,
+					Message: "failed to get namespace for pvc deployments",
+					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+				},
+			},
+			openebsNamespace,
+		)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+		return utaskObj, err
+	}
+
+	targetDeployObj, err := getDeployment(targetLabel, ns)
+	if err != nil {
+		utaskObj, uerr = updateUpgradeDetailedStatus(
+			utaskObj,
+			utask.UpgradeDetailedStatuses{
+				Step: utask.PreUpgrade,
+				Status: utask.Status{
+					Phase:   utask.StepErrored,
+					Message: "failed to get target details",
+					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+				},
+			},
+			openebsNamespace,
+		)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+		return utaskObj, err
+	}
+
+	cvrList, err := getCVRList(pvLabel, openebsNamespace)
+	if err != nil {
+		utaskObj, uerr = updateUpgradeDetailedStatus(
+			utaskObj,
+			utask.UpgradeDetailedStatuses{
+				Step: utask.PreUpgrade,
+				Status: utask.Status{
+					Phase:   utask.StepErrored,
+					Message: "failed to get replica details",
+					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+				},
+			},
+			openebsNamespace,
+		)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+		return utaskObj, err
+	}
+	utaskObj, uerr = updateUpgradeDetailedStatus(
+		utaskObj,
+		utask.UpgradeDetailedStatuses{
+			Step: utask.PreUpgrade,
+			Status: utask.Status{
+				Phase:   utask.StepCompleted,
+				Message: "Pre-upgrade steps were successful",
+			},
+		},
+		openebsNamespace,
+	)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
+	}
+
+	utaskObj, uerr = updateUpgradeDetailedStatus(
+		utaskObj,
+		utask.UpgradeDetailedStatuses{
+			Step: utask.TargetUpgrade,
+			Status: utask.Status{
+				Phase: utask.StepWaiting,
+			},
+		},
+		openebsNamespace,
+	)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
+	}
+
+	err = patchTargetDeploy(targetDeployObj, ns)
+	if err != nil {
+		utaskObj, uerr = updateUpgradeDetailedStatus(
+			utaskObj,
+			utask.UpgradeDetailedStatuses{
+				Step: utask.TargetUpgrade,
+				Status: utask.Status{
+					Phase:   utask.StepErrored,
+					Message: "failed to patch target deployment",
+					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+				},
+			},
+			openebsNamespace,
+		)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+		return utaskObj, err
+	}
+
+	err = patchService(targetServiceLabel, ns)
+	if err != nil {
+		utaskObj, uerr = updateUpgradeDetailedStatus(
+			utaskObj,
+			utask.UpgradeDetailedStatuses{
+				Step: utask.TargetUpgrade,
+				Status: utask.Status{
+					Phase:   utask.StepErrored,
+					Message: "failed to patch target service",
+					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+				},
+			},
+			openebsNamespace,
+		)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+		return utaskObj, err
+	}
+
+	err = patchCV(pvLabel, ns)
+	if err != nil {
+		utaskObj, uerr = updateUpgradeDetailedStatus(
+			utaskObj,
+			utask.UpgradeDetailedStatuses{
+				Step: utask.TargetUpgrade,
+				Status: utask.Status{
+					Phase:   utask.StepErrored,
+					Message: "failed to patch cstor volume",
+					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+				},
+			},
+			openebsNamespace,
+		)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+		return utaskObj, err
+	}
+
+	utaskObj, uerr = updateUpgradeDetailedStatus(
+		utaskObj,
+		utask.UpgradeDetailedStatuses{
+			Step: utask.TargetUpgrade,
+			Status: utask.Status{
+				Phase:   utask.StepCompleted,
+				Message: "Target upgrade was successful",
+			},
+		},
+		openebsNamespace,
+	)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
+	}
+
+	utaskObj, uerr = updateUpgradeDetailedStatus(
+		utaskObj,
+		utask.UpgradeDetailedStatuses{
+			Step: utask.ReplicaUpgrade,
+			Status: utask.Status{
+				Phase: utask.StepWaiting,
+			},
+		},
+		openebsNamespace,
+	)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
+	}
+
+	for _, cvrObj := range cvrList.Items {
+		err = patchCVR(cvrObj.Name, openebsNamespace)
+		if err != nil {
+			utaskObj, uerr = updateUpgradeDetailedStatus(
+				utaskObj,
+				utask.UpgradeDetailedStatuses{
+					Step: utask.ReplicaUpgrade,
+					Status: utask.Status{
+						Phase:   utask.StepErrored,
+						Message: "failed to patch cstor volume replica",
+						Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					},
+				},
+				openebsNamespace,
+			)
+			if uerr != nil && isENVPresent {
+				return nil, uerr
+			}
+			return utaskObj, err
+		}
+	}
+
+	utaskObj, uerr = updateUpgradeDetailedStatus(
+		utaskObj,
+		utask.UpgradeDetailedStatuses{
+			Step: utask.ReplicaUpgrade,
+			Status: utask.Status{
+				Phase:   utask.StepCompleted,
+				Message: "Replica upgrade was successful",
+			},
+		},
+		openebsNamespace,
+	)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
+	}
+
+	utaskObj.Status.Phase = utask.UpgradeSuccess
+	utaskObj.Status.CompletedTime = metav1.Now()
+	utaskObj, uerr = utaskClient.WithNamespace(openebsNamespace).
+		Update(utaskObj)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
+	}
+	glog.Infof("Upgrade Successful for cstor volume %s", pvName)
+	return utaskObj, nil
 }

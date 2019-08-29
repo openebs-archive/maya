@@ -17,16 +17,19 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
 	"strings"
 	"text/template"
 	"time"
 
-	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
-
+	"github.com/golang/glog"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
+	utask "github.com/openebs/maya/pkg/upgrade/v1alpha2"
 	retry "github.com/openebs/maya/pkg/util/retry"
 	appsv1 "k8s.io/api/apps/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 )
@@ -168,9 +171,141 @@ func patchService(targetServiceLabel, namespace string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch service %s", targetServiceName)
 		}
-		fmt.Printf("targetservice %s patched\n", targetServiceName)
+		glog.Infof("targetservice %s patched", targetServiceName)
 	} else {
-		fmt.Printf("service already in %s version\n", upgradeVersion)
+		glog.Infof("service already in %s version", upgradeVersion)
 	}
 	return nil
+}
+
+// createUtask creates a UpgradeTask CR for the resource
+func createUtask(utaskObj *apis.UpgradeTask, openebsNamespace string,
+) (*apis.UpgradeTask, error) {
+	var err error
+	if utaskObj == nil {
+		return nil, errors.Errorf("failed to create upgradetask : nil object")
+	}
+	utaskObj, err = utaskClient.WithNamespace(openebsNamespace).Create(utaskObj)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create upgradetask")
+	}
+	return utaskObj, nil
+}
+
+func updateUpgradeDetailedStatus(utaskObj *apis.UpgradeTask,
+	uStatusObj apis.UpgradeDetailedStatuses, openebsNamespace string,
+) (*apis.UpgradeTask, error) {
+	var err error
+	if !utask.IsValidStatus(uStatusObj) {
+		return nil, errors.Errorf(
+			"failed to update upgradetask status: invalid status %v",
+			uStatusObj,
+		)
+	}
+	uStatusObj.LastUpdatedTime = metav1.Now()
+	if uStatusObj.Phase == apis.StepWaiting {
+		uStatusObj.StartTime = uStatusObj.LastUpdatedTime
+		utaskObj.Status.UpgradeDetailedStatuses = append(
+			utaskObj.Status.UpgradeDetailedStatuses,
+			uStatusObj,
+		)
+	} else {
+		l := len(utaskObj.Status.UpgradeDetailedStatuses)
+		uStatusObj.StartTime = utaskObj.Status.UpgradeDetailedStatuses[l-1].StartTime
+		utaskObj.Status.UpgradeDetailedStatuses[l-1] = uStatusObj
+	}
+	utaskObj, err = utaskClient.WithNamespace(openebsNamespace).Update(utaskObj)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update upgradetask ")
+	}
+	return utaskObj, nil
+}
+
+// getOrCreateUpgradeTask fetches upgrade task if provided or creates a new upgradetask CR
+func getOrCreateUpgradeTask(kind, name, openebsNamespace string) (*apis.UpgradeTask, error) {
+	var utaskObj *apis.UpgradeTask
+	var err error
+	if openebsNamespace == "" {
+		return nil, errors.Errorf("missing openebsNamespace")
+	}
+	if kind == "" {
+		return nil, errors.Errorf("missing kind for upgradeTask")
+	}
+	if name == "" {
+		return nil, errors.Errorf("missing name for upgradeTask")
+	}
+	utaskName := menv.Get("UPGRADE_TASK")
+	if utaskName == "" {
+		// TODO builder
+		utaskObj = &apis.UpgradeTask{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: openebsNamespace,
+			},
+			Spec: apis.UpgradeTaskSpec{
+				FromVersion: currentVersion,
+				ToVersion:   upgradeVersion,
+				ImageTag:    imageTag,
+				ImagePrefix: urlPrefix,
+			},
+			Status: apis.UpgradeTaskStatus{
+				Phase:     apis.UpgradeStarted,
+				StartTime: metav1.Now(),
+			},
+		}
+		switch kind {
+		case "jivaVolume":
+			utaskObj.Name = "upgrade-jiva-volume-" + name
+			utaskObj.Spec.ResourceSpec = apis.ResourceSpec{
+				JivaVolume: &apis.JivaVolume{
+					PVName: name,
+				},
+			}
+		case "cstorPool":
+			utaskObj.Name = "upgrade-cstor-pool-" + name
+			utaskObj.Spec.ResourceSpec = apis.ResourceSpec{
+				CStorPool: &apis.CStorPool{
+					PoolName: name,
+				},
+			}
+		case "cstorVolume":
+			utaskObj.Name = "upgrade-cstor-volume-" + name
+			utaskObj.Spec.ResourceSpec = apis.ResourceSpec{
+				CStorVolume: &apis.CStorVolume{
+					PVName: name,
+				},
+			}
+		}
+		utaskObj1, err1 := utaskClient.WithNamespace(openebsNamespace).
+			Get(utaskObj.Name, metav1.GetOptions{})
+		if err1 != nil {
+			if k8serror.IsNotFound(err1) {
+				utaskObj, err = createUtask(utaskObj, openebsNamespace)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				return nil, err1
+			}
+		} else {
+			utaskObj = utaskObj1
+		}
+	} else {
+		isENVPresent = true
+		utaskObj, err = utaskClient.WithNamespace(openebsNamespace).
+			Get(utaskName, metav1.GetOptions{})
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get upgradetask %s", utaskName)
+		}
+		if utaskObj.Status.StartTime.IsZero() {
+			utaskObj.Status.Phase = apis.UpgradeStarted
+			utaskObj.Status.StartTime = metav1.Now()
+		}
+	}
+	utaskObj.Status.UpgradeDetailedStatuses = []apis.UpgradeDetailedStatuses{}
+	utaskObj, err = utaskClient.WithNamespace(openebsNamespace).
+		Update(utaskObj)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update upgradetask %s", utaskName)
+	}
+	return utaskObj, nil
 }

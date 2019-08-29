@@ -18,15 +18,20 @@ package v1alpha1
 
 import (
 	"bytes"
+	"fmt"
 
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
+	job "github.com/openebs/maya/pkg/kubernetes/job"
 	pv "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
+	utask "github.com/openebs/maya/pkg/upgrade/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -36,7 +41,10 @@ var (
 	urlPrefix      = ""
 	imageTag       = ""
 
-	buffer bytes.Buffer
+	buffer   bytes.Buffer
+	utaskObj *apis.UpgradeTask
+
+	isENVPresent bool
 
 	cvClient      = cv.NewKubeclient()
 	cvrClient     = cvr.NewKubeclient()
@@ -44,7 +52,9 @@ var (
 	serviceClient = svc.NewKubeClient()
 	pvClient      = pv.NewKubeClient()
 	podClient     = pod.NewKubeClient()
+	jobClient     = job.NewKubeClient()
 	cspClient     = csp.KubeClient()
+	utaskClient   = utask.NewKubeClient()
 )
 
 // Exec ...
@@ -86,27 +96,77 @@ func Exec(fromVersion, toVersion, kind, name,
 
 	switch kind {
 	case "jivaVolume":
-		err = jivaUpgrade(name, openebsNamespace)
-		if err != nil {
-			return err
-		}
+		utaskObj, err = jivaUpgrade(name, openebsNamespace)
+
 	case "storagePoolClaim":
-		err = spcUpgrade(name, openebsNamespace)
-		if err != nil {
-			return err
-		}
+		utaskObj, err = spcUpgrade(name, openebsNamespace)
+
 	case "cstorPool":
-		err = cspUpgrade(name, openebsNamespace)
-		if err != nil {
-			return err
-		}
+		utaskObj, err = cspUpgrade(name, openebsNamespace)
+
 	case "cstorVolume":
-		err = cstorVolumeUpgrade(name, openebsNamespace)
-		if err != nil {
-			return err
-		}
+		utaskObj, err = cstorVolumeUpgrade(name, openebsNamespace)
+
 	default:
-		return errors.Errorf("Invalid kind for upgrade")
+		err = errors.Errorf("Invalid kind for upgrade")
+	}
+
+	fmt.Println(err)
+
+	if err != nil {
+		fmt.Println("enter the if block")
+		if utaskObj != nil {
+			backoffLimit, uerr := getBackoffLimit(openebsNamespace)
+			if uerr != nil {
+				fmt.Println("error is returned")
+				fmt.Println(uerr)
+				return uerr
+			}
+			if utaskObj.Status.Retries == backoffLimit {
+				utaskObj.Status.Phase = apis.UpgradeError
+				utaskObj.Status.CompletedTime = metav1.Now()
+			}
+			utaskObj.Status.Retries = utaskObj.Status.Retries + 1
+			_, uerr = utaskClient.WithNamespace(openebsNamespace).
+				Update(utaskObj)
+			if uerr != nil && isENVPresent {
+				fmt.Println("error is returned")
+				fmt.Println(uerr)
+				return uerr
+			}
+		}
+		fmt.Println("error is returned")
+		fmt.Println(err)
+		return err
+	}
+	if utaskObj != nil {
+		utaskObj.Status.Phase = apis.UpgradeSuccess
+		utaskObj.Status.CompletedTime = metav1.Now()
+		_, uerr := utaskClient.WithNamespace(openebsNamespace).
+			Update(utaskObj)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
 	}
 	return nil
+}
+
+func getBackoffLimit(openebsNamespace string) (int, error) {
+	podName := menv.Get("POD_NAME")
+	podObj, err := podClient.WithNamespace(openebsNamespace).
+		Get(podName, metav1.GetOptions{})
+	if err != nil {
+		return 0, err
+	}
+	jobObj, err := jobClient.WithNamespace(openebsNamespace).
+		Get(podObj.OwnerReferences[0].Name, metav1.GetOptions{})
+	if err != nil {
+		return 0, err
+	}
+	// if backoffLimit not present it returns the default as 6
+	if jobObj.Spec.BackoffLimit == nil {
+		return 6, nil
+	}
+	backoffLimit := int(*jobObj.Spec.BackoffLimit)
+	return backoffLimit, nil
 }
