@@ -199,6 +199,7 @@ func (bdcl *BlockDeviceClaimList) GetBlockDeviceNamesByNode() map[string][]strin
 		return newNodeBDList
 	}
 	for _, bdc := range bdcl.ObjectList.Items {
+		bdc := bdc
 		bdcObj := BlockDeviceClaim{Object: &bdc}
 		hostName := bdcObj.GetHostName()
 		newNodeBDList[hostName] = append(
