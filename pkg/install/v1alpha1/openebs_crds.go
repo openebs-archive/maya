@@ -136,6 +136,22 @@ spec:
     shortNames:
     - cspi
   additionalPrinterColumns:
+  - JSONPath: .spec.hostName
+    name: HostName
+    description: Host name where cstorpool instances scheduled
+    type: string
+  - JSONPath: .status.capacity.used
+    name: Allocated
+    description: The amount of storage space within the pool that has been physically allocated
+    type: string
+  - JSONPath: .status.capacity.free
+    name: Free
+    description: The amount of free space available in the pool
+    type: string
+  - JSONPath: .status.capacity.total
+    name: Capacity
+    description: Total size of the storage pool
+    type: string
   - JSONPath: .status.phase
     name: Status
     description: Identifies the current health of the pool
