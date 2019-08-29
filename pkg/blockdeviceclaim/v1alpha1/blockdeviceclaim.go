@@ -177,7 +177,7 @@ func (bdc *BlockDeviceClaim) GetNodeAtributesHostName() string {
 	return bdc.Object.Spec.BlockDeviceNodeAttributes.HostName
 }
 
-// GetHostName return hostName from blcokdeviceclaim
+// GetHostName return hostName from blockdeviceclaim
 func (bdc *BlockDeviceClaim) GetHostName() string {
 	hostName := bdc.GetNodeAtributesHostName()
 	if hostName == "" {
@@ -191,8 +191,8 @@ func (bdcl *BlockDeviceClaimList) Len() int {
 	return len(bdcl.ObjectList.Items)
 }
 
-// GetBlockDeviceNamesByNode returns map of node name and corresponding block devices to that
-// node from block device claim list
+// GetBlockDeviceNamesByNode returns map of node name and corresponding blockdevices to that
+// node from blockdeviceclaim list
 func (bdcl *BlockDeviceClaimList) GetBlockDeviceNamesByNode() map[string][]string {
 	newNodeBDList := make(map[string][]string)
 	if bdcl == nil {
