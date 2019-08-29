@@ -44,10 +44,10 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 	//Before using the path for local PV, make sure it is created.
 	initCmdsForPath := []string{"mkdir", "-m", "0777", "-p"}
 	podOpts := &HelperPodOptions{
-		cmdsForPath: initCmdsForPath,
-		name:        name,
-		path:        path,
-		nodeName:    nodeHostname,
+		cmdsForPath:  initCmdsForPath,
+		name:         name,
+		path:         path,
+		nodeHostname: nodeHostname,
 	}
 
 	iErr := p.createInitPod(podOpts)
@@ -119,10 +119,10 @@ func (p *Provisioner) DeleteHostPath(pv *v1.PersistentVolume) (err error) {
 	glog.Infof("Deleting volume %v at %v:%v", pv.Name, node, path)
 	cleanupCmdsForPath := []string{"rm", "-rf"}
 	podOpts := &HelperPodOptions{
-		cmdsForPath: cleanupCmdsForPath,
-		name:        pv.Name,
-		path:        path,
-		nodeName:    node,
+		cmdsForPath:  cleanupCmdsForPath,
+		name:         pv.Name,
+		path:         path,
+		nodeHostname: node,
 	}
 
 	if err := p.createCleanupPod(podOpts); err != nil {
