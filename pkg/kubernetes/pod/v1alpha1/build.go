@@ -121,8 +121,9 @@ func (b *Builder) WithNodeName(nodeName string) *Builder {
 	return b
 }
 
-// WithNodeSelectorHostname sets the Pod NodeSelector to the provided hostname value
-func (b *Builder) WithNodeSelectorHostname(hostname string) *Builder {
+// WithNodeSelectorHostnameNew sets the Pod NodeSelector to the provided hostname value
+// This function replaces (resets) the NodeSelector to use only hostname selector
+func (b *Builder) WithNodeSelectorHostnameNew(hostname string) *Builder {
 	if len(hostname) == 0 {
 		b.errs = append(
 			b.errs,

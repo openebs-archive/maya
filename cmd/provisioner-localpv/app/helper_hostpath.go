@@ -93,7 +93,7 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 	initPod, _ := pod.NewBuilder().
 		WithName("init-" + pOpts.name).
 		WithRestartPolicy(corev1.RestartPolicyNever).
-		WithNodeSelectorHostname(pOpts.nodeHostname).
+		WithNodeSelectorHostnameNew(pOpts.nodeHostname).
 		WithContainerBuilder(
 			container.NewBuilder().
 				WithName("local-path-init").
@@ -170,7 +170,7 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 	cleanerPod, _ := pod.NewBuilder().
 		WithName("cleanup-" + pOpts.name).
 		WithRestartPolicy(corev1.RestartPolicyNever).
-		WithNodeSelectorHostname(pOpts.nodeHostname).
+		WithNodeSelectorHostnameNew(pOpts.nodeHostname).
 		WithContainerBuilder(
 			container.NewBuilder().
 				WithName("local-path-cleanup").
