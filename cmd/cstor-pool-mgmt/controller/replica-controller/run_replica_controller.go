@@ -121,7 +121,7 @@ func (c *CStorVolumeReplicaController) processNextWorkItem() bool {
 		// Finally, if no error occurs we forget this item so that it
 		// does not get queued again until another change happens
 		c.workqueue.Forget(obj)
-		glog.v(4).Infof(
+		glog.V(4).Infof(
 			"workqueue item {%s} processed successfully for {%s} operation",
 			q.Key,
 			string(q.Operation),
