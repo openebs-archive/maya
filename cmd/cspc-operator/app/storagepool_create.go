@@ -207,7 +207,7 @@ func getDeployLabels(csp *apis.CStorPoolInstance) map[string]string {
 	return map[string]string{
 		string(apis.CStorPoolClusterCPK): csp.Annotations[string(apis.CStorPoolClusterCPK)],
 		"app":                            "cstor-pool",
-		"openebs.io/cstor-pool":          csp.Name,
+		"openebs.io/cstor-pool-instance": csp.Name,
 		"openebs.io/version":             version.GetVersion(),
 	}
 }

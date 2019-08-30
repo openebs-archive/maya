@@ -21,6 +21,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
+	"github.com/pkg/errors"
 
 	zpool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -66,24 +67,31 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 				string(common.FailureImported),
 				fmt.Sprintf("Failed to import pool due to '%s'", err.Error()))
 			common.SyncResources.Mux.Unlock()
-			return err
+			return nil
 		}
 		zpool.CheckImportedPoolVolume()
 		common.SyncResources.Mux.Unlock()
-		return c.update(cspi)
+		err = c.update(cspi)
+		if err != nil {
+			c.recorder.Event(cspi,
+				corev1.EventTypeWarning,
+				string(common.FailedSynced),
+				err.Error())
+		}
+		return nil
 	}
 
 	if IsEmptyStatus(cspi) || IsPendingStatus(cspi) {
 		err = zpool.Create(cspi)
 		if err != nil {
 			// We will try to create it in next event
-			_ = zpool.Delete(cspi)
 			c.recorder.Event(cspi,
 				corev1.EventTypeWarning,
 				string(common.FailureCreate),
 				fmt.Sprintf("Failed to create pool due to '%s'", err.Error()))
+			_ = zpool.Delete(cspi)
 			common.SyncResources.Mux.Unlock()
-			return err
+			return nil
 		}
 		c.recorder.Event(cspi,
 			corev1.EventTypeNormal,
@@ -92,7 +100,14 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 	}
 	common.SyncResources.Mux.Unlock()
 
-	return c.updateStatus(cspi)
+	err = c.updateStatus(cspi)
+	if err != nil {
+		c.recorder.Event(cspi,
+			corev1.EventTypeWarning,
+			string(common.FailureStatusSync),
+			err.Error())
+	}
+	return nil
 }
 
 func (c *CStorPoolInstanceController) destroy(cspi *apis.CStorPoolInstance) error {
@@ -114,6 +129,7 @@ func (c *CStorPoolInstanceController) destroy(cspi *apis.CStorPoolInstance) erro
 	err = c.removeFinalizer(cspi)
 	if err != nil {
 		// Object will exist. Let's set status as offline
+		glog.Errorf("removeFinalizer failed %s", err.Error())
 		phase = apis.CStorPoolStatusDeletionFailed
 		goto updatestatus
 	}
@@ -122,21 +138,19 @@ func (c *CStorPoolInstanceController) destroy(cspi *apis.CStorPoolInstance) erro
 
 updatestatus:
 	cspi.Status.Phase = phase
-	_, _ = zpool.OpenEBSClient.
+	if _, er := zpool.OpenEBSClient.
 		OpenebsV1alpha1().
 		CStorPoolInstances(cspi.Namespace).
-		Update(cspi)
+		Update(cspi); er != nil {
+		glog.Errorf("Update failed %s", er.Error())
+	}
 	return err
 }
 
 func (c *CStorPoolInstanceController) update(cspi *apis.CStorPoolInstance) error {
 	err := zpool.Update(cspi)
 	if err != nil {
-		c.recorder.Event(cspi,
-			corev1.EventTypeWarning,
-			string(common.FailedSynced),
-			fmt.Sprintf("Failed to update pool due to '%s'", err.Error()))
-		return err
+		return errors.Errorf("Failed to update pool due to %s", err.Error())
 	}
 	return c.updateStatus(cspi)
 }
@@ -175,11 +189,7 @@ func (c *CStorPoolInstanceController) updateStatus(cspi *apis.CStorPoolInstance)
 	}
 
 	if err != nil {
-		c.recorder.Event(cspi,
-			corev1.EventTypeWarning,
-			string(common.FailureStatusSync),
-			fmt.Sprintf("Failed to sync due to '%s'", err.Error()))
-		return err
+		return errors.Errorf("Failed to sync due to %s", err.Error())
 	}
 
 	if IsStatusChange(cspi.Status, status) {
@@ -188,7 +198,9 @@ func (c *CStorPoolInstanceController) updateStatus(cspi *apis.CStorPoolInstance)
 			OpenebsV1alpha1().
 			CStorPoolInstances(cspi.Namespace).
 			Update(cspi)
-		return err
+		if err != nil {
+			return errors.Errorf("Failed to updateStatus due to '%s'", err.Error())
+		}
 	}
 	return nil
 }

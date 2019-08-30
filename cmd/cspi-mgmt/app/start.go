@@ -18,17 +18,18 @@ package app
 
 import (
 	"flag"
-	"github.com/golang/glog"
-	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/backup-controller"
-	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
-	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/replica-controller"
-	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/restore"
-	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
-	"github.com/pkg/errors"
 	"os"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/golang/glog"
+	backupcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/backup-controller"
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
+	replicacontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/replica-controller"
+	restorecontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/restore"
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
+	"github.com/pkg/errors"
 
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
@@ -78,17 +79,6 @@ func Start() error {
 		return errors.Wrap(err, "error building openebs clientset")
 	}
 	pool.CheckForZreplInitial(common.InitialZreplRetryInterval)
-	go func() {
-		// CheckForZreplContinuous is continuous health checker for status of
-		// zrepl in cstor-pool container.
-		// When zrepl is getting terminated and restarted very fast: zpool status
-		// goroutine may miss this failure. To resolve, we’ll give InitialTimeDelay y
-		// for zrepl container such that the period(x) of the goroutine thread will
-		// be half that of this initialTimeDelay y. (x = 1/2 y).
-		pool.CheckForZreplContinuous(common.ContinuousZreplRetryInterval)
-		glog.Errorf("Zrepl/Pool is not available, Shutting down")
-		os.Exit(1)
-	}()
 
 	// NewSharedInformerFactory constructs a new instance of k8s sharedInformerFactory.
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, getSyncInterval())
