@@ -43,6 +43,7 @@ import (
 	typed_oe_v1alpha1 "github.com/openebs/maya/pkg/client/generated/clientset/versioned/typed/openebs.io/v1alpha1"
 	typed_ndm_v1alpha1 "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/typed/ndm/v1alpha1"
 
+	typed_apps_v1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	typed_apps_v1beta1 "k8s.io/client-go/kubernetes/typed/apps/v1beta1"
 	typed_core_v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	typed_ext_v1beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
@@ -1039,6 +1040,17 @@ func (k *K8sClient) CreateAppsV1B1DeploymentAsRaw(d *api_apps_v1beta1.Deployment
 	//return
 }
 
+// CreateAppsV1DeploymentAsRaw creates a K8s Deployment based on apps/v1
+// apiVersion
+func (k *K8sClient) CreateAppsV1DeploymentAsRaw(d *api_apps_v1.Deployment) (result []byte, err error) {
+	deploy, err := k.CreateAppsV1Deployment(d)
+	if err != nil {
+		return
+	}
+
+	return json.Marshal(deploy)
+}
+
 // CreateCoreV1ServiceAsRaw creates a K8s Service
 func (k *K8sClient) CreateCoreV1ServiceAsRaw(s *api_core_v1.Service) (result []byte, err error) {
 	svc, err := k.CreateCoreV1Service(s)
@@ -1151,6 +1163,10 @@ func (k *K8sClient) appsV1B1DeploymentOps() typed_apps_v1beta1.DeploymentInterfa
 	return k.cs.AppsV1beta1().Deployments(k.ns)
 }
 
+func (k *K8sClient) appsV1DeploymentOps() typed_apps_v1.DeploymentInterface {
+	return k.cs.AppsV1().Deployments(k.ns)
+}
+
 // GetAppsV1B1Deployment fetches the K8s Deployment with the provided name
 func (k *K8sClient) GetAppsV1B1Deployment(name string, opts mach_apis_meta_v1.GetOptions) (*api_apps_v1beta1.Deployment, error) {
 	dops := k.appsV1B1DeploymentOps()
@@ -1160,6 +1176,12 @@ func (k *K8sClient) GetAppsV1B1Deployment(name string, opts mach_apis_meta_v1.Ge
 // CreateAppsV1B1Deployment creates the K8s Deployment with the provided name
 func (k *K8sClient) CreateAppsV1B1Deployment(d *api_apps_v1beta1.Deployment) (*api_apps_v1beta1.Deployment, error) {
 	dops := k.appsV1B1DeploymentOps()
+	return dops.Create(d)
+}
+
+// CreateAppsV1Deployment creates the K8s Deployment with the provided name
+func (k *K8sClient) CreateAppsV1Deployment(d *api_apps_v1.Deployment) (*api_apps_v1.Deployment, error) {
+	dops := k.appsV1DeploymentOps()
 	return dops.Create(d)
 }
 

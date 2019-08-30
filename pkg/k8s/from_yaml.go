@@ -141,6 +141,22 @@ func (m *DeploymentYml) AsAppsV1B1Deployment() (*api_apps_v1beta1.Deployment, er
 	return deploy, nil
 }
 
+// AsAppsV1Deployment returns a apps/v1 Deployment instance
+func (m *DeploymentYml) AsAppsV1Deployment() (*api_apps_v1.Deployment, error) {
+	if m.YmlInBytes == nil {
+		return nil, fmt.Errorf("Missing yaml")
+	}
+
+	// unmarshall the byte into k8s Deployment object
+	deploy := &api_apps_v1.Deployment{}
+	err := yaml.Unmarshal(m.YmlInBytes, deploy)
+	if err != nil {
+		return nil, err
+	}
+
+	return deploy, nil
+}
+
 // ServiceYml struct provides utility methods to generate K8s Service objects
 type ServiceYml struct {
 	// YmlInBytes represents a K8s Service in

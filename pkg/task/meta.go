@@ -346,6 +346,10 @@ func (m *MetaExecutor) isPutAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isPut()
 }
 
+func (m *MetaExecutor) isPutAppsV1Deploy() bool {
+	return m.identifier.isAppsV1Deploy() && m.isPut()
+}
+
 func (m *MetaExecutor) isPatchOEV1alpha1SPC() bool {
 	return m.identifier.isStoragePoolClaim() && m.isPatch()
 }

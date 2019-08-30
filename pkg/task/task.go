@@ -459,7 +459,9 @@ func (m *executor) ExecuteIt() (err error) {
 	} else if m.MetaExec.isPutExtnV1B1Deploy() {
 		err = m.putExtnV1B1Deploy()
 	} else if m.MetaExec.isPutAppsV1B1Deploy() {
-		err = m.putAppsV1B1Deploy()
+		err = m.putAppsV1Deploy()
+	} else if m.MetaExec.isPutAppsV1Deploy() {
+		err = m.putAppsV1Deploy()
 	} else if m.MetaExec.isPatchExtnV1B1Deploy() {
 		err = m.patchExtnV1B1Deploy()
 	} else if m.MetaExec.isPatchAppsV1B1Deploy() {
@@ -619,6 +621,15 @@ func (m *executor) asAppsV1B1Deploy() (*api_apps_v1beta1.Deployment, error) {
 	return d.AsAppsV1B1Deployment()
 }
 
+func (m *executor) asAppsV1Deploy() (*api_apps_v1.Deployment, error) {
+	d, err := m_k8s.NewDeploymentYml("AppsV1Deploy", m.Runtask.Spec.Task, m.Values)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build deployment")
+	}
+
+	return d.AsAppsV1Deployment()
+}
+
 // asExtnV1B1Deploy generates a K8s Deployment object
 // out of the embedded yaml
 func (m *executor) asExtnV1B1Deploy() (*api_extn_v1beta1.Deployment, error) {
@@ -729,6 +740,23 @@ func (m *executor) putAppsV1B1Deploy() error {
 	}
 
 	deploy, err := m.getK8sClient().CreateAppsV1B1DeploymentAsRaw(d)
+	if err != nil {
+		return errors.Wrap(err, "failed to create deployment")
+	}
+
+	util.SetNestedField(m.Values, deploy, string(v1alpha1.CurrentJSONResultTLP))
+	return nil
+}
+
+// putAppsV1Deploy will create (i.e. apply to a kubernetes cluster) a Deployment
+// object. The Deployment specs is configured in the RunTask.
+func (m *executor) putAppsV1Deploy() error {
+	d, err := m.asAppsV1Deploy()
+	if err != nil {
+		return errors.Wrap(err, "failed to create deployment")
+	}
+
+	deploy, err := m.getK8sClient().CreateAppsV1DeploymentAsRaw(d)
 	if err != nil {
 		return errors.Wrap(err, "failed to create deployment")
 	}
