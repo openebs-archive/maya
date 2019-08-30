@@ -23,6 +23,7 @@ import (
 	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,35 +39,45 @@ const (
 	DevDir = "/dev"
 )
 
-func getPathForBdevList(bdevs []apis.CStorPoolClusterBlockDevice) ([]string, error) {
-	var vdev []string
+func getPathForBdevList(bdevs []apis.CStorPoolClusterBlockDevice) (map[string][]string, error) {
 	var err error
 
+	vdev := make(map[string][]string, len(bdevs))
 	for _, b := range bdevs {
 		path, er := getPathForBDev(b.BlockDeviceName)
-		if er != nil || IsEmpty(path) {
+		if er != nil || len(path) == 0 {
 			err = ErrorWrapf(err, "Failed to fetch path for bdev {%s} {%s}", b.BlockDeviceName, er.Error())
 			continue
 		}
-		vdev = append(vdev, path)
+		vdev[b.BlockDeviceName] = path
 	}
 	return vdev, err
 }
 
-func getPathForBDev(bdev string) (string, error) {
+func getPathForBDev(bdev string) ([]string, error) {
+	var path []string
+
 	// TODO
 	// replace `NAMESPACE` with env variable from CSP deployment
 	bd, err := blockdevice.NewKubeClient().
 		WithNamespace(env.Get("NAMESPACE")).
 		Get(bdev, metav1.GetOptions{})
 	if err != nil {
-		return "", err
+		return path, err
 	}
 
-	if len(bd.Spec.DevLinks) != 0 && len(bd.Spec.DevLinks[0].Links) != 0 {
-		return bd.Spec.DevLinks[0].Links[0], nil
+	if len(bd.Spec.DevLinks) != 0 {
+		for _, v := range bd.Spec.DevLinks {
+			path = append(path, v.Links...)
+		}
 	}
-	return bd.Spec.Path, nil
+
+	if len(bd.Spec.Path) != 0 {
+		path = append(path, bd.Spec.Path)
+
+	}
+
+	return path, nil
 }
 
 func checkIfPoolPresent(name string) bool {
@@ -82,7 +93,7 @@ func checkIfPoolPresent(name string) bool {
 	return true
 }
 
-func isBdevPathChanged(bdev apis.CStorPoolClusterBlockDevice) (string, bool, error) {
+func isBdevPathChanged(bdev apis.CStorPoolClusterBlockDevice) ([]string, bool, error) {
 	var err error
 	var isPathChanged bool
 
@@ -91,19 +102,21 @@ func isBdevPathChanged(bdev apis.CStorPoolClusterBlockDevice) (string, bool, err
 		err = errors.Errorf("Failed to get bdev {%s} path err {%s}", bdev.BlockDeviceName, er.Error())
 	}
 
-	if err == nil && newPath != bdev.DevLink {
+	// TODO should we use first path only?
+	if err == nil && !util.ContainsString(newPath, bdev.DevLink) {
 		isPathChanged = true
 	}
+
 	return newPath, isPathChanged, err
 }
 
-func compareDisk(path string, d []zpool.Vdev) bool {
+func compareDisk(path []string, d []zpool.Vdev) bool {
 	for _, v := range d {
-		if path == v.Path {
+		if util.ContainsString(path, v.Path) {
 			return true
 		}
 		for _, p := range v.Children {
-			if path == p.Path {
+			if util.ContainsString(path, p.Path) {
 				return true
 			}
 			if r := compareDisk(path, p.Children); r {
@@ -114,7 +127,7 @@ func compareDisk(path string, d []zpool.Vdev) bool {
 	return false
 }
 
-func checkIfDeviceUsed(path string, t zpool.Topology) bool {
+func checkIfDeviceUsed(path []string, t zpool.Topology) bool {
 	var isUsed bool
 
 	if isUsed = compareDisk(path, t.VdevTree.Topvdev); isUsed {

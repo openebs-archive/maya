@@ -36,6 +36,8 @@ const (
 
 // addRaidGroup add given raidGroup to pool
 func addRaidGroup(csp *apis.CStorPoolInstance, r apis.RaidGroup) error {
+	var vdevlist []string
+
 	ptype := r.Type
 	if len(ptype) == 0 {
 		// type is not mentioned in raidGroup,
@@ -45,17 +47,21 @@ func addRaidGroup(csp *apis.CStorPoolInstance, r apis.RaidGroup) error {
 
 	deviceType := getDeviceType(r)
 
-	vlist, err := getPathForBdevList(r.BlockDevices)
+	disklist, err := getPathForBdevList(r.BlockDevices)
 	if err != nil {
 		glog.Errorf("Failed to get list of disk-path : %s", err.Error())
 		return err
+	}
+
+	for _, v := range disklist {
+		vdevlist = append(vdevlist, v[0])
 	}
 
 	_, err = zfs.NewPoolExpansion().
 		WithDeviceType(deviceType).
 		WithType(ptype).
 		WithPool(PoolName(csp)).
-		WithVdevList(vlist).
+		WithVdevList(vdevlist).
 		Execute()
 	return err
 }
@@ -64,7 +70,10 @@ func addRaidGroup(csp *apis.CStorPoolInstance, r apis.RaidGroup) error {
 func addNewVdevFromCSP(csp *apis.CStorPoolInstance) error {
 	var err error
 
-	poolTopology, err := zfs.NewPoolDump().WithPool(PoolName(csp)).Execute()
+	poolTopology, err := zfs.NewPoolDump().
+		WithPool(PoolName(csp)).
+		WithStripVdevPath().
+		Execute()
 	if err != nil {
 		return errors.Errorf("Failed to fetch pool topology.. %s", err.Error())
 	}
@@ -74,8 +83,12 @@ func addNewVdevFromCSP(csp *apis.CStorPoolInstance) error {
 		var devlist []string
 
 		for _, bdev := range raidGroup.BlockDevices {
-			if isUsed := checkIfDeviceUsed(bdev.DevLink, poolTopology); !isUsed {
-				devlist = append(devlist, bdev.DevLink)
+			newPath, er := getPathForBDev(bdev.BlockDeviceName)
+			if er != nil {
+				return errors.Errorf("Failed get bdev {%s} path err {%s}", bdev.BlockDeviceName, er.Error())
+			}
+			if isUsed := checkIfDeviceUsed(newPath, poolTopology); !isUsed {
+				devlist = append(devlist, newPath[0])
 			} else {
 				wholeGroup = false
 			}
@@ -120,8 +133,8 @@ func removePoolVdev(csp *apis.CStorPoolInstance, bdev apis.CStorPoolClusterBlock
 }
 */
 
-func replacePoolVdev(csp *apis.CStorPoolInstance, bdev apis.CStorPoolClusterBlockDevice, npath string) error {
-	if IsEmpty(npath) || IsEmpty(bdev.DevLink) {
+func replacePoolVdev(csp *apis.CStorPoolInstance, bdev apis.CStorPoolClusterBlockDevice, npath []string) error {
+	if len(npath) == 0 || IsEmpty(bdev.DevLink) {
 		return errors.Errorf("Empty path for bdev")
 	}
 
@@ -129,6 +142,7 @@ func replacePoolVdev(csp *apis.CStorPoolInstance, bdev apis.CStorPoolClusterBloc
 	// Let's check if a device, having path `npath`, is already present in pool
 	poolTopology, err := zfs.
 		NewPoolDump().
+		WithStripVdevPath().
 		WithPool(PoolName(csp)).
 		Execute()
 	if err != nil {
@@ -142,7 +156,7 @@ func replacePoolVdev(csp *apis.CStorPoolInstance, bdev apis.CStorPoolClusterBloc
 	// Replace the disk
 	_, err = zfs.NewPoolDiskReplace().
 		WithOldVdev(bdev.DevLink).
-		WithNewVdev(npath).
+		WithNewVdev(npath[0]).
 		WithPool(PoolName(csp)).
 		WithForcefully(true).
 		Execute()

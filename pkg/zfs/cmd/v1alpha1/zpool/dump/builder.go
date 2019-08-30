@@ -45,6 +45,9 @@ type PoolDump struct {
 	// checks is list of predicate function used for validating object
 	checks []PredicateFunc
 
+	// StripVdevPath to stip partition path if whole disk is used for pool
+	StripVdevPath bool
+
 	// error
 	err error
 }
@@ -69,6 +72,12 @@ func (p *PoolDump) WithPool(Pool string) *PoolDump {
 // WithCommand method fills the Command field of PoolDump object.
 func (p *PoolDump) WithCommand(Command string) *PoolDump {
 	p.Command = Command
+	return p
+}
+
+// WithStripVdevPath method will set StripVdevPath for PoolDump object
+func (p *PoolDump) WithStripVdevPath() *PoolDump {
+	p.StripVdevPath = true
 	return p
 }
 
@@ -97,7 +106,14 @@ func (p *PoolDump) Execute() (vdump.Topology, error) {
 	if err != nil {
 		return t, err
 	}
+
 	err = json.Unmarshal(out, &t)
+
+	if p.StripVdevPath {
+		stripDiskPath(t.VdevTree.Topvdev)
+		stripDiskPath(t.VdevTree.Spares)
+		stripDiskPath(t.VdevTree.Readcache)
+	}
 	return t, err
 }
 

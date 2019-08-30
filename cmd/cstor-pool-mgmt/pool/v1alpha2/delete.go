@@ -44,14 +44,14 @@ func Delete(csp *apis.CStorPoolInstance) error {
 	// We successfully deleted the pool.
 	// We also need to clear the label for attached disk
 	for _, r := range csp.Spec.RaidGroups {
-		vlist, err := getPathForBdevList(r.BlockDevices)
+		disklist, err := getPathForBdevList(r.BlockDevices)
 		if err != nil {
 			glog.Errorf("Failed to fetch vdev path, skipping labelclear.. %s", err.Error())
 		}
-		for _, v := range vlist {
+		for _, v := range disklist {
 			if _, err := zfs.NewPoolLabelClear().
 				WithForceFully(true).
-				WithVdev(v).Execute(); err != nil {
+				WithVdev(v[0]).Execute(); err != nil {
 				glog.Errorf("Failed to perform label clear for disk {%s}.. %s", v, err.Error())
 			}
 		}

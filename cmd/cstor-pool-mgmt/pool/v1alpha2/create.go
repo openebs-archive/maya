@@ -76,6 +76,8 @@ func Create(csp *apis.CStorPoolInstance) error {
 }
 
 func createPool(csp *apis.CStorPoolInstance, r apis.RaidGroup) error {
+	var vdevlist []string
+
 	ptype := r.Type
 	if len(ptype) == 0 {
 		// type is not mentioned in raidGroup,
@@ -83,16 +85,20 @@ func createPool(csp *apis.CStorPoolInstance, r apis.RaidGroup) error {
 		ptype = csp.Spec.PoolConfig.DefaultRaidGroupType
 	}
 
-	vlist, err := getPathForBdevList(r.BlockDevices)
+	disklist, err := getPathForBdevList(r.BlockDevices)
 	if err != nil {
 		return errors.Errorf("Failed to get list of disk-path : %s", err.Error())
+	}
+
+	for _, v := range disklist {
+		vdevlist = append(vdevlist, v[0])
 	}
 
 	ret, err := zfs.NewPoolCreate().
 		WithType(ptype).
 		WithProperty("cachefile", csp.Spec.PoolConfig.CacheFile).
 		WithPool(PoolName(csp)).
-		WithVdevList(vlist).
+		WithVdevList(vdevlist).
 		Execute()
 	if err != nil {
 		return errors.Errorf("Failed to create pool.. %s .. %s", string(ret), err.Error())

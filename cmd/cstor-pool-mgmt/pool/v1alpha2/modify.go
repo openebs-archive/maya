@@ -65,7 +65,7 @@ func Update(csp *apis.CStorPoolInstance) error {
 					err = ErrorWrapf(err, "Failed to replace bdev for {%s}.. %s", bdev.BlockDeviceName, er.Error())
 				} else {
 					// Let's update devLink with new path for this bdev
-					raidGroup.BlockDevices[bdevIndex].DevLink = newpath
+					raidGroup.BlockDevices[bdevIndex].DevLink = newpath[0]
 					isRaidGroupChanged = true
 				}
 			}
