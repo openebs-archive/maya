@@ -191,15 +191,36 @@ func checkForPoolExistence(cStorPool *apis.CStorPool, blockDeviceList []string) 
 	return strings.Contains(stdoutStderr, string(PoolPrefix)+string(cStorPool.ObjectMeta.UID))
 }
 
+// checkIfPresent is to check if search string is present in array of string.
+func checkIfPresent(arrStr []string, searchStr string) bool {
+	for _, str := range arrStr {
+		if str == searchStr {
+			return true
+		}
+	}
+	return false
+}
+
 // CreatePool creates a new cStor pool.
 func CreatePool(cStorPool *apis.CStorPool, blockDeviceList []string) error {
+	// check if pool already imported
+	existingPool, err := GetPoolName()
+	if err != nil {
+		return errors.Errorf("Unable to get poolname %s", err.Error())
+	}
+	if checkIfPresent(existingPool, string(PoolPrefix)+string(cStorPool.GetUID())) {
+		glog.Infof("Pool %s already imported", string(cStorPool.GetUID()))
+		return nil
+	}
+
+	// check if pool exists but didn't got imported
 	exists := checkForPoolExistence(cStorPool, blockDeviceList)
 	if exists {
 		glog.Errorf("pool %v exists, but failed to import", string(cStorPool.ObjectMeta.UID))
 		return errors.Errorf("pool %v exists, but failed to import", string(cStorPool.ObjectMeta.UID))
 	}
 
-	err := LabelClear(blockDeviceList)
+	err = LabelClear(blockDeviceList)
 	if err != nil {
 		glog.Errorf(err.Error(), "label clear failed %v", cStorPool.GetUID())
 	} else {
