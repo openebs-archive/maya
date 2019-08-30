@@ -317,7 +317,7 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to get namespace for pvc deployments",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,
@@ -338,7 +338,7 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to get replica details",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,
@@ -360,7 +360,7 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to get target details",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,
@@ -410,7 +410,7 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to patch replica depoyment",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,
@@ -460,7 +460,7 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to patch target depoyment",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,
@@ -480,7 +480,7 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to patch target service",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,

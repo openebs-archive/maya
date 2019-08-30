@@ -207,7 +207,7 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to verify cstor pool",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,
@@ -227,7 +227,7 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to verify cstor pool deployment",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,
@@ -276,7 +276,7 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to patch cstor pool deployment",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,
@@ -296,7 +296,7 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to patch cstor pool",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,

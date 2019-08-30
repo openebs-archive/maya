@@ -292,7 +292,7 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to verify csp for cstor volume",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,
@@ -312,7 +312,7 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to get namespace for pvc deployments",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,
@@ -332,7 +332,7 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to get target details",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,
@@ -352,7 +352,7 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to get replica details",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,
@@ -400,7 +400,7 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to patch target deployment",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,
@@ -420,7 +420,7 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to patch target service",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,
@@ -440,7 +440,7 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 				Status: utask.Status{
 					Phase:   utask.StepErrored,
 					Message: "failed to patch cstor volume",
-					Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
 				},
 			},
 			openebsNamespace,
@@ -490,7 +490,7 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 					Status: utask.Status{
 						Phase:   utask.StepErrored,
 						Message: "failed to patch cstor volume replica",
-						Reason:  strings.ReplaceAll(err.Error(), ":", ""),
+						Reason:  strings.Replace(err.Error(), ":", "", -1),
 					},
 				},
 				openebsNamespace,
