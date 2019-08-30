@@ -127,13 +127,14 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGECLASS", func() {
 				namespace,
 			)
 
+			targetPodLabel := targetLabel + "," + pvLabel + pvcObj.Spec.VolumeName
 			By("verifying target pod count as 0")
-			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, targetLabel, 1)
+			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, targetPodLabel, 1)
 			Expect(controllerPodCount).To(Equal(0), "while checking controller pod count")
 
 			By("deleting above pvc")
 			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil(), "while delete=ing pvc {%s}", pvcName)
+			Expect(err).To(BeNil(), "while deleting pvc {%s}", pvcName)
 
 			By("deleting storageclass")
 			err = ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
