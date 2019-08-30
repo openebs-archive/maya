@@ -234,7 +234,6 @@ func TestCheckIfPresent(t *testing.T) {
 func TestCheckForCStorPool(t *testing.T) {
 	done := make(chan bool)
 	pool.RunnerVar = TestRunner{}
-	SyncResources.IsImported = true
 	go func(done chan bool) {
 		CheckForCStorPool()
 		done <- true
