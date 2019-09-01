@@ -275,6 +275,8 @@ func getOrCreateUpgradeTask(kind, name, openebsNamespace string) (*apis.UpgradeT
 				},
 			}
 		}
+		// the below logic first tries to fetch the CR if not found
+		// then creates a new CR
 		utaskObj1, err1 := utaskClient.WithNamespace(openebsNamespace).
 			Get(utaskObj.Name, metav1.GetOptions{})
 		if err1 != nil {

@@ -17,15 +17,18 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"encoding/json"
+	"strconv"
 	"strings"
 	"text/template"
 
 	"github.com/golang/glog"
 	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
-	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
-
+	jivaClient "github.com/openebs/maya/pkg/client/jiva"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 
@@ -277,6 +280,64 @@ func getPVCDeploymentsNamespace(
 	return ns, nil
 }
 
+func validateSync(ctrlLabel, namespace string) error {
+	glog.Infof("Verifying replica sync")
+	quorum := false
+	ctrlList, err := podClient.WithNamespace(namespace).List(
+		metav1.ListOptions{
+			LabelSelector: ctrlLabel,
+		})
+	if err != nil {
+		return err
+	}
+	if len(ctrlList.Items) == 0 {
+		return errors.Errorf("no deployments found for %s in %s", ctrlLabel, namespace)
+	}
+	ctrlPod := ctrlList.Items[0]
+	syncedReplicas := 0
+	replicationFactor, err := strconv.Atoi(ctrlPod.Spec.Containers[0].Env[0].Value)
+	if err != nil {
+		return err
+	}
+	for syncedReplicas != replicationFactor {
+		syncedReplicas = 0
+		out, err := podClient.WithNamespace(ctrlPod.Namespace).
+			Exec(
+				ctrlPod.Name,
+				&corev1.PodExecOptions{
+					Command: []string{
+						"/bin/bash",
+						"-c",
+						"curl http://localhost:9501/v1/replicas",
+					},
+					Container: ctrlPod.Spec.Containers[0].Name,
+					Stdin:     false,
+					Stdout:    true,
+					Stderr:    true,
+				},
+			)
+		if err != nil {
+			return err
+		}
+		replicas := jivaClient.ReplicaCollection{}
+		err = json.Unmarshal([]byte(out.Stdout), &replicas)
+		if err != nil {
+			return err
+		}
+		for _, replica := range replicas.Data {
+			if replica.Mode == "RW" {
+				syncedReplicas = syncedReplicas + 1
+			}
+		}
+		if !quorum && syncedReplicas > (replicationFactor/2) {
+			glog.Infof("Synced replica quorum is reached")
+			quorum = true
+		}
+	}
+	glog.Infof("Replica syncing complete")
+	return nil
+}
+
 func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 
 	var (
@@ -498,6 +559,57 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			Status: utask.Status{
 				Phase:   utask.StepCompleted,
 				Message: "Target upgrade was successful",
+			},
+		},
+		openebsNamespace,
+	)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
+	}
+
+	utaskObj, uerr = updateUpgradeDetailedStatus(
+		utaskObj,
+		utask.UpgradeDetailedStatuses{
+			Step: utask.Verify,
+			Status: utask.Status{
+				Phase: utask.StepWaiting,
+			},
+		},
+		openebsNamespace,
+	)
+	if uerr != nil && isENVPresent {
+		return nil, uerr
+	}
+
+	// Verify synced replicas
+	err = validateSync(controllerLabel, ns)
+
+	if err != nil {
+		utaskObj, uerr = updateUpgradeDetailedStatus(
+			utaskObj,
+			utask.UpgradeDetailedStatuses{
+				Step: utask.Verify,
+				Status: utask.Status{
+					Phase:   utask.StepErrored,
+					Message: "failed to verify synced replicas",
+					Reason:  strings.Replace(err.Error(), ":", "", -1),
+				},
+			},
+			openebsNamespace,
+		)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+		return utaskObj, err
+	}
+
+	utaskObj, uerr = updateUpgradeDetailedStatus(
+		utaskObj,
+		utask.UpgradeDetailedStatuses{
+			Step: utask.Verify,
+			Status: utask.Status{
+				Phase:   utask.StepCompleted,
+				Message: "Replica sync was successful",
 			},
 		},
 		openebsNamespace,

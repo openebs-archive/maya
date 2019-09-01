@@ -18,7 +18,6 @@ package v1alpha1
 
 import (
 	"bytes"
-	"fmt"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
@@ -111,15 +110,10 @@ func Exec(fromVersion, toVersion, kind, name,
 		err = errors.Errorf("Invalid kind for upgrade")
 	}
 
-	fmt.Println(err)
-
 	if err != nil {
-		fmt.Println("enter the if block")
 		if utaskObj != nil {
 			backoffLimit, uerr := getBackoffLimit(openebsNamespace)
 			if uerr != nil {
-				fmt.Println("error is returned")
-				fmt.Println(uerr)
 				return uerr
 			}
 			if utaskObj.Status.Retries == backoffLimit {
@@ -130,13 +124,9 @@ func Exec(fromVersion, toVersion, kind, name,
 			_, uerr = utaskClient.WithNamespace(openebsNamespace).
 				Update(utaskObj)
 			if uerr != nil && isENVPresent {
-				fmt.Println("error is returned")
-				fmt.Println(uerr)
 				return uerr
 			}
 		}
-		fmt.Println("error is returned")
-		fmt.Println(err)
 		return err
 	}
 	if utaskObj != nil {
