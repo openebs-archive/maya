@@ -84,14 +84,14 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 	if IsEmptyStatus(cspi) || IsPendingStatus(cspi) {
 		err = zpool.Create(cspi)
 		if err != nil {
-			_ = zpool.Delete(cspi)
-			common.SyncResources.Mux.Unlock()
-
 			// We will try to create it in next event
 			c.recorder.Event(cspi,
 				corev1.EventTypeWarning,
 				string(common.FailureCreate),
 				fmt.Sprintf("Failed to create pool due to '%s'", err.Error()))
+
+			_ = zpool.Delete(cspi)
+			common.SyncResources.Mux.Unlock()
 			return nil
 		}
 		common.SyncResources.Mux.Unlock()
