@@ -56,17 +56,19 @@ func Update(cspi *apis.CStorPoolInstance) (*apis.CStorPoolInstance, error) {
 					}
 			*/
 
-			// Let's check if bdev path is changed or not
-			newpath, isChanged, er := isBdevPathChanged(bdev)
+			// Let's check if any replacement is needed for this BDev
+			newpath, er := getPathForBDev(bdev.BlockDeviceName)
 			if er != nil {
 				err = ErrorWrapf(err, "Failed to check bdev change {%s}.. %s", bdev.BlockDeviceName, er.Error())
-			} else if isChanged {
-				if er := replacePoolVdev(cspi, bdev, newpath); err != nil {
+			} else {
+				if diskPath, er := replacePoolVdev(cspi, bdev, newpath); er != nil {
 					err = ErrorWrapf(err, "Failed to replace bdev for {%s}.. %s", bdev.BlockDeviceName, er.Error())
 				} else {
-					// Let's update devLink with new path for this bdev
-					raidGroup.BlockDevices[bdevIndex].DevLink = newpath[0]
-					isRaidGroupChanged = true
+					if !IsEmpty(diskPath) && diskPath != bdev.DevLink {
+						// Let's update devLink with new path for this bdev
+						raidGroup.BlockDevices[bdevIndex].DevLink = diskPath
+						isRaidGroupChanged = true
+					}
 				}
 			}
 		}

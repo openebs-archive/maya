@@ -93,7 +93,6 @@ func isBdevPathChanged(bdev apis.CStorPoolClusterBlockDevice) ([]string, bool, e
 		err = errors.Errorf("Failed to get bdev {%s} path err {%s}", bdev.BlockDeviceName, er.Error())
 	}
 
-	// TODO should we use first path only?
 	if err == nil && !util.ContainsString(newPath, bdev.DevLink) {
 		isPathChanged = true
 	}
@@ -101,38 +100,39 @@ func isBdevPathChanged(bdev apis.CStorPoolClusterBlockDevice) ([]string, bool, e
 	return newPath, isPathChanged, err
 }
 
-func compareDisk(path []string, d []zpool.Vdev) bool {
+func compareDisk(path []string, d []zpool.Vdev) (string, bool) {
 	for _, v := range d {
 		if util.ContainsString(path, v.Path) {
-			return true
+			return v.Path, true
 		}
 		for _, p := range v.Children {
 			if util.ContainsString(path, p.Path) {
-				return true
+				return p.Path, true
 			}
-			if r := compareDisk(path, p.Children); r {
-				return true
+			if path, r := compareDisk(path, p.Children); r {
+				return path, true
 			}
 		}
 	}
-	return false
+	return "", false
 }
 
-func checkIfDeviceUsed(path []string, t zpool.Topology) bool {
+func checkIfDeviceUsed(path []string, t zpool.Topology) (string, bool) {
 	var isUsed bool
+	var usedPath string
 
-	if isUsed = compareDisk(path, t.VdevTree.Topvdev); isUsed {
-		return isUsed
+	if usedPath, isUsed = compareDisk(path, t.VdevTree.Topvdev); isUsed {
+		return usedPath, isUsed
 	}
 
-	if isUsed = compareDisk(path, t.VdevTree.Spares); isUsed {
-		return isUsed
+	if usedPath, isUsed = compareDisk(path, t.VdevTree.Spares); isUsed {
+		return usedPath, isUsed
 	}
 
-	if isUsed = compareDisk(path, t.VdevTree.Readcache); isUsed {
-		return isUsed
+	if usedPath, isUsed = compareDisk(path, t.VdevTree.Readcache); isUsed {
+		return usedPath, isUsed
 	}
-	return isUsed
+	return usedPath, isUsed
 }
 
 func checkIfPoolNotImported(cspi *apis.CStorPoolInstance) (string, bool, error) {

@@ -87,7 +87,7 @@ func addNewVdevFromCSP(csp *apis.CStorPoolInstance) error {
 			if er != nil {
 				return errors.Errorf("Failed get bdev {%s} path err {%s}", bdev.BlockDeviceName, er.Error())
 			}
-			if isUsed := checkIfDeviceUsed(newPath, poolTopology); !isUsed {
+			if _, isUsed := checkIfDeviceUsed(newPath, poolTopology); !isUsed {
 				devlist = append(devlist, newPath[0])
 			} else {
 				wholeGroup = false
@@ -133,9 +133,15 @@ func removePoolVdev(csp *apis.CStorPoolInstance, bdev apis.CStorPoolClusterBlock
 }
 */
 
-func replacePoolVdev(csp *apis.CStorPoolInstance, bdev apis.CStorPoolClusterBlockDevice, npath []string) error {
-	if len(npath) == 0 || IsEmpty(bdev.DevLink) {
-		return errors.Errorf("Empty path for bdev")
+// replacePoolVdev will replace the given bdev disk with
+// disk(i.e npath[0]) and return updated disk path(i.e npath[0])
+//
+// Note, if a new disk is already being used then we will
+// not perform disk replacement and function will return
+// the used disk path from given path(npath[])
+func replacePoolVdev(csp *apis.CStorPoolInstance, bdev apis.CStorPoolClusterBlockDevice, npath []string) (string, error) {
+	if len(npath) == 0 {
+		return "", errors.Errorf("Empty path for bdev")
 	}
 
 	// Wait! Device patch may got changed due after import
@@ -146,28 +152,31 @@ func replacePoolVdev(csp *apis.CStorPoolInstance, bdev apis.CStorPoolClusterBloc
 		WithPool(PoolName(csp)).
 		Execute()
 	if err != nil {
-		return errors.Errorf("Failed to fetch pool topology.. %s", err.Error())
+		return "", errors.Errorf("Failed to fetch pool topology.. %s", err.Error())
 	}
 
-	if isUsed := checkIfDeviceUsed(npath, poolTopology); isUsed {
-		return nil
+	if usedPath, isUsed := checkIfDeviceUsed(npath, poolTopology); isUsed {
+		return usedPath, nil
 	}
 
 	// Replace the disk
-	_, err = zfs.NewPoolDiskReplace().
-		WithOldVdev(bdev.DevLink).
-		WithNewVdev(npath[0]).
-		WithPool(PoolName(csp)).
-		WithForcefully(true).
-		Execute()
-	if err != nil {
-		if _, er := zfs.NewPoolLabelClear().
-			WithForceFully(true).
-			WithVdev(bdev.DevLink).
-			Execute(); er != nil {
-			// Let's log the error
-			glog.Errorf("Failed to perform label clear for disk {%s}", bdev.DevLink)
-		}
-	}
-	return err
+	/*
+		_, err = zfs.NewPoolDiskReplace().
+			WithOldVdev(bdev.DevLink).
+			WithNewVdev(npath[0]).
+			WithPool(PoolName(csp)).
+			WithForcefully(true).
+			Execute()
+				if err == nil {
+					if _, err := zfs.NewPoolLabelClear().
+						WithForceFully(true).
+						WithVdev(bdev.DevLink).
+						Execute(); err != nil {
+						// Let's log the error
+						glog.Errorf("Failed to perform label clear for disk {%s}", bdev.DevLink)
+					}
+					return npath[0], nil
+				}
+	*/
+	return "", err
 }
