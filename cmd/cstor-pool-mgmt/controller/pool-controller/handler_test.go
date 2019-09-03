@@ -393,18 +393,18 @@ func TestIsOnlyStatusChange(t *testing.T) {
 	}
 }
 
-func TestGetDevPath(t *testing.T) {
+func TestGetDevPathIfNotSlashDev(t *testing.T) {
 	testGetDevPath := map[string]string{
-		"abcd":             "abcd",
+		"abcd":             "",
 		"/dev":             "",
-		"/dev/":            "/dev",
-		"/dev/disk":        "/dev",
-		"/dev/disk/":       "/dev/disk",
-		"/dev/by-id/disk":  "/dev/by-id",
-		"/dev/by-id/disk/": "/dev/by-id/disk",
+		"/dev/":            "",
+		"/dev/disk":        "",
+		"/dev/disk/":       "",
+		"/dev/by-id/disk":  "",
+		"/dev/by-id/disk/": "",
 	}
 	for ip, op := range testGetDevPath {
-		obtainedOutput := pool.GetDevPath(ip)
+		obtainedOutput := pool.GetDevPathIfNotSlashDev(ip)
 		if obtainedOutput != op {
 			t.Fatalf("IP:%v, OP:%v, Got:%v", ip, op, obtainedOutput)
 		}

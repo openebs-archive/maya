@@ -126,7 +126,7 @@ func (c *CStorVolumeReplicaController) syncHandler(
 		)
 	}
 
-	glog.Infof(
+	glog.V(4).Infof(
 		"cvr {%s} reconciled successfully with current phase being {%s}",
 		key,
 		cvrGot.Status.Phase,

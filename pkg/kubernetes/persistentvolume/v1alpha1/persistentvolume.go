@@ -87,9 +87,20 @@ func (p *PV) GetPath() string {
 	return ""
 }
 
-// GetAffinitedNode returns nodeName configured using the NodeAffinity
-// This method expects only a single node to be set.
-func (p *PV) GetAffinitedNode() string {
+// GetAffinitedNodeHostname returns hostname configured using the NodeAffinity
+// This method expects only a single hostname to be set.
+//
+// The PV object will have the node's hostname specified as follows:
+//   nodeAffinity:
+//     required:
+//       nodeSelectorTerms:
+//       - matchExpressions:
+//         - key: kubernetes.io/hostname
+//           operator: In
+//           values:
+//           - hostname
+//
+func (p *PV) GetAffinitedNodeHostname() string {
 	nodeAffinity := p.object.Spec.NodeAffinity
 	if nodeAffinity == nil {
 		return ""
@@ -99,7 +110,7 @@ func (p *PV) GetAffinitedNode() string {
 		return ""
 	}
 
-	node := ""
+	hostname := ""
 	for _, selectorTerm := range required.NodeSelectorTerms {
 		for _, expression := range selectorTerm.MatchExpressions {
 			if expression.Key == KeyNode &&
@@ -107,15 +118,15 @@ func (p *PV) GetAffinitedNode() string {
 				if len(expression.Values) != 1 {
 					return ""
 				}
-				node = expression.Values[0]
+				hostname = expression.Values[0]
 				break
 			}
 		}
-		if node != "" {
+		if hostname != "" {
 			break
 		}
 	}
-	return node
+	return hostname
 }
 
 // IsNil is predicate to filter out nil PV

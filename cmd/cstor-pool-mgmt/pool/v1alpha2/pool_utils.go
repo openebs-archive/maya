@@ -19,6 +19,7 @@ package v1alpha2
 import (
 	"strings"
 
+	pool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
@@ -29,15 +30,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	// TODO
-	// CSPC should set ENV variable for following constant
-
-	// SparseDir sparse file location
-	SparseDir = "/var/openebs/sparse"
-	// DevDir /dev/ path
-	DevDir = "/dev"
-)
 
 func getPathForBdevList(bdevs []apis.CStorPoolClusterBlockDevice) (map[string][]string, error) {
 	var err error
@@ -144,18 +136,29 @@ func checkIfDeviceUsed(path []string, t zpool.Topology) bool {
 	return isUsed
 }
 
-func checkIfPoolNotImported(csp *apis.CStorPoolInstance) (string, bool, error) {
-	ret, err := zfs.NewPoolImport().
-		WithDirectory(SparseDir).
-		WithDirectory(DevDir).
-		Execute()
+func checkIfPoolNotImported(cspi *apis.CStorPoolInstance) (string, bool, error) {
+	var cmdOut []byte
+	var err error
+
+	bdPath, err := getPathForBDev(cspi.Spec.RaidGroups[0].BlockDevices[0].BlockDeviceName)
 	if err != nil {
-		return string(ret), false, err
+		return "", false, err
 	}
-	if strings.Contains(string(ret), PoolName(csp)) {
-		return string(ret), true, nil
+
+	devID := pool.GetDevPathIfNotSlashDev(bdPath)
+	if len(devID) != 0 {
+		cmdOut, err = zfs.NewPoolImport().WithDirectory(devID).Execute()
+		if strings.Contains(string(cmdOut), PoolName(cspi)) {
+			return string(cmdOut), true, nil
+		}
 	}
-	return string(ret), false, nil
+	// there are some cases when import is succesful but zpool command return
+	// noisy errors, hence better to check contains before return error
+	cmdOut, err = zfs.NewPoolImport().Execute()
+	if strings.Contains(string(cmdOut), PoolName(cspi)) {
+		return string(cmdOut), true, nil
+	}
+	return string(cmdOut), false, err
 }
 
 // getDeviceType will return type of device from raidGroup
