@@ -26,7 +26,6 @@ import (
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
-	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -84,6 +83,7 @@ func checkIfPoolPresent(name string) bool {
 	return true
 }
 
+/*
 func isBdevPathChanged(bdev apis.CStorPoolClusterBlockDevice) ([]string, bool, error) {
 	var err error
 	var isPathChanged bool
@@ -99,6 +99,7 @@ func isBdevPathChanged(bdev apis.CStorPoolClusterBlockDevice) ([]string, bool, e
 
 	return newPath, isPathChanged, err
 }
+*/
 
 func compareDisk(path []string, d []zpool.Vdev) (string, bool) {
 	for _, v := range d {

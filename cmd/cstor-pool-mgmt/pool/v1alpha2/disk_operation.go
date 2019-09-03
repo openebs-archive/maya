@@ -159,6 +159,7 @@ func replacePoolVdev(csp *apis.CStorPoolInstance, bdev apis.CStorPoolClusterBloc
 		return usedPath, nil
 	}
 
+	_ = bdev
 	// Replace the disk
 	/*
 		_, err = zfs.NewPoolDiskReplace().
