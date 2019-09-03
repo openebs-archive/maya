@@ -39,6 +39,8 @@ func TestGetDiskStripPath(t *testing.T) {
 	}
 
 	for k, v := range tests {
+		v := v
+		k := k
 		t.Run(k, func(t *testing.T) {
 			stripPath := getDiskStripPath(v.devPath)
 			if stripPath != v.stripPath {

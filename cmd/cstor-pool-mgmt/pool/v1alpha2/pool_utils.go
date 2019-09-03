@@ -30,7 +30,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-
 func getPathForBdevList(bdevs []apis.CStorPoolClusterBlockDevice) (map[string][]string, error) {
 	var err error
 
@@ -145,7 +144,7 @@ func checkIfPoolNotImported(cspi *apis.CStorPoolInstance) (string, bool, error) 
 		return "", false, err
 	}
 
-	devID := pool.GetDevPathIfNotSlashDev(bdPath)
+	devID := pool.GetDevPathIfNotSlashDev(bdPath[0])
 	if len(devID) != 0 {
 		cmdOut, err = zfs.NewPoolImport().WithDirectory(devID).Execute()
 		if strings.Contains(string(cmdOut), PoolName(cspi)) {

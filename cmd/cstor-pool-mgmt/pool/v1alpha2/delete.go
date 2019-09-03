@@ -44,7 +44,7 @@ func Delete(cspi *apis.CStorPoolInstance) error {
 
 	// We successfully deleted the pool.
 	// We also need to clear the label for attached disk
-	for _, r := range csp.Spec.RaidGroups {
+	for _, r := range cspi.Spec.RaidGroups {
 		disklist, err := getPathForBdevList(r.BlockDevices)
 		if err != nil {
 			glog.Errorf("Failed to fetch vdev path, skipping labelclear.. %s", err.Error())
