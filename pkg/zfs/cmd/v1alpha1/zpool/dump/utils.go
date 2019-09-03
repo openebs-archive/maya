@@ -76,6 +76,9 @@ func getLastIndex(p []byte, fn func(r rune) bool) int {
  * 3. when preceded by a string matching the regular expression
  *    "^([hsv]|xv)d[a-z]+", i.e. a scsi, ide, virtio or xen disk,
  *    like, /dev/xvdlps3, /dev/hdvdas2, /dev/sda1
+ *
+ * For the relevant C version,
+ * https://github.com/openebs/cstor/blob/develop/lib/libzfs/libzfs_pool.c#L3575
  */
 func getDiskStripPath(path string) string {
 	var part, d []byte
@@ -93,7 +96,7 @@ func getDiskStripPath(path string) string {
 	if idx := strings.Index(string(pathBytes), "-part"); idx != -1 && idx != 0 {
 		part = pathBytes[idx:]
 		d = part[5:]
-	} else if idx = bytes.LastIndexByte(pathBytes, byte('p')); idx != -1 && pathBytes[idx] > pathBytes[1] && unicode.IsNumber(rune(pathBytes[idx-1])) {
+	} else if idx = bytes.LastIndexByte(pathBytes, byte('p')); idx != -1 && idx > 1 && unicode.IsNumber(rune(pathBytes[idx-1])) {
 		part = pathBytes[idx:]
 		d = part[1:]
 	} else if bytes.ContainsAny([]byte(string(pathBytes[0])), "hsv") && pathBytes[1] == 'd' {
@@ -106,7 +109,7 @@ func getDiskStripPath(path string) string {
 		part = d
 	}
 
-	if len(part) != 0 && len(d) != 0 {
+	if len(d) != 0 {
 		d = d[getLastIndex(d, unicode.IsNumber):]
 		if len(d) == 0 {
 			for i := range part {

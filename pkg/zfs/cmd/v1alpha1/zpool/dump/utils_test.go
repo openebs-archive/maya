@@ -50,6 +50,18 @@ func TestGetDiskStripPath(t *testing.T) {
 			devPath:   "/dev/sda1",
 			stripPath: "/dev/sda",
 		},
+		"Test 8": {
+			devPath:   "/dev/disk/by-id/scsi-0Google_PersistentDisk_persistent-disk-0p21k",
+			stripPath: "/dev/disk/by-id/scsi-0Google_PersistentDisk_persistent-disk-0p21k",
+		},
+		"Test 9": {
+			devPath:   "/dev/disk/by-id/scsi-0Google_PersistentDisk_persistent-disk-0p21",
+			stripPath: "/dev/disk/by-id/scsi-0Google_PersistentDisk_persistent-disk-0",
+		},
+		"Test 10": {
+			devPath:   "/dev/xvdlps32",
+			stripPath: "/dev/xvdlps",
+		},
 	}
 
 	for k, v := range tests {
