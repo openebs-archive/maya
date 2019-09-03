@@ -53,6 +53,9 @@ func stripDiskPath(vdevlist []vdump.Vdev) {
 	}
 }
 
+// getLastIndex return the index which doesn't satisfy
+// characteristics of given function fn otherwise
+// it will return the length of the string
 func getLastIndex(p []byte, fn func(r rune) bool) int {
 	for idx := range p {
 		if !fn(rune(p[idx])) {
@@ -62,6 +65,18 @@ func getLastIndex(p []byte, fn func(r rune) bool) int {
 	return len(p)
 }
 
+/* getDiskStripPath Remove partition suffix from a vdev path.
+ * Partition suffixes may take three forms:
+ * 1. "-partX", "pX", or "X", where X is a string of digits,
+ *    like /dev/disk/by-id/scsi-0Google_PersistentDisk_persistent-disk-0-part1
+ *
+ * 2. when the suffix is preceded by a digit, i.e. "md0p0",
+ *    like /dev/md0p0
+ *
+ * 3. when preceded by a string matching the regular expression
+ *    "^([hsv]|xv)d[a-z]+", i.e. a scsi, ide, virtio or xen disk,
+ *    like, /dev/xvdlps3, /dev/hdvdas2, /dev/sda1
+ */
 func getDiskStripPath(path string) string {
 	var part, d []byte
 
