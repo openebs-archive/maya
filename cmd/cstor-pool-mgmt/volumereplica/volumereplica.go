@@ -260,6 +260,7 @@ func CreateVolumeBackup(bkp *apis.CStorBackup) error {
 	var cmd []string
 	var retryCount int
 	var err error
+	var stdoutStderr []byte
 
 	// Parse capacity unit on CVR to support backward compatibility
 	cmd = buildVolumeBackupCommand(PoolNameFromBackup(bkp), bkp.Spec.VolumeName, bkp.Spec.PrevSnapName, bkp.Spec.SnapName, bkp.Spec.BackupDest)
@@ -267,7 +268,7 @@ func CreateVolumeBackup(bkp *apis.CStorBackup) error {
 	glog.Infof("Backup Command for volume: %v created, Cmd: %v\n", bkp.Spec.VolumeName, cmd)
 
 	for retryCount < MaxBackupRetryCount {
-		stdoutStderr, err := RunnerVar.RunCombinedOutput("/usr/local/bin/execute.sh", cmd...)
+		stdoutStderr, err = RunnerVar.RunCombinedOutput("/usr/local/bin/execute.sh", cmd...)
 		if err != nil {
 			glog.Errorf("Unable to start backup %s. error : %v retry:%v :%s", bkp.Spec.VolumeName, string(stdoutStderr), retryCount, err.Error())
 			retryCount++
@@ -298,13 +299,14 @@ func CreateVolumeRestore(rst *apis.CStorRestore) error {
 	var cmd []string
 	var retryCount int
 	var err error
+	var stdoutStderr []byte
 
 	cmd = buildVolumeRestoreCommand(PoolNameFromRestore(rst), rst.Spec.VolumeName, rst.Spec.RestoreSrc)
 
 	glog.Infof("Restore Command for volume: %v created, Cmd: %v\n", rst.Spec.VolumeName, cmd)
 
 	for retryCount < MaxRestoreRetryCount {
-		stdoutStderr, err := RunnerVar.RunCombinedOutput("/usr/local/bin/execute.sh", cmd...)
+		stdoutStderr, err = RunnerVar.RunCombinedOutput("/usr/local/bin/execute.sh", cmd...)
 		if err != nil {
 			glog.Errorf("Unable to start restore %s. error : %v.. trying again", rst.Spec.VolumeName, string(stdoutStderr))
 			time.Sleep(RestoreRetryDelay * time.Second)
@@ -322,7 +324,7 @@ func buildVolumeRestoreCommand(poolName, fullVolName, restoreSrc string) []strin
 
 	restorAddr := strings.Split(restoreSrc, ":")
 	restorecmd = append(restorecmd, "nc -w 3 "+restorAddr[0]+" "+restorAddr[1]+" | ", VolumeReplicaOperator, RestoreCmd,
-		" -F cstor-"+poolName+"/"+fullVolName)
+		" -F "+poolName+"/"+fullVolName)
 
 	return restorecmd
 }
