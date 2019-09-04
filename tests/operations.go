@@ -597,7 +597,7 @@ func (ops *Operations) GetHealthyCSPICount(cspcName string, expectedCSPICount in
 		cspiCount = cspi.
 			ListBuilderFromAPIList(cspiAPIList).
 			List().
-			Filter(cspi.HasLabel(string(apis.CStorPoolClusterCPK), cspcName), cspi.IsStatus("ONLINE\n")).
+			Filter(cspi.HasLabel(string(apis.CStorPoolClusterCPK), cspcName), cspi.IsStatus("ONLINE")).
 			Len()
 
 		if cspiCount == expectedCSPICount {
