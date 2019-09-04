@@ -24,31 +24,27 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING WITH APP POD RESTART
 	BeforeEach(prepareForVolumeCreationTest)
 	AfterEach(cleanupAfterVolumeCreationTest)
 
-	When("app is deployed and restarted on pvc with replica count 1", volumeCreationTest)
+	Context("App is deployed and restarted on pvc with replica count 1", func() {
+		It("Should run Volume Creation Test", volumeCreationTest)
+	})
 })
 
 func volumeCreationTest() {
-	When("volumeCreationTest", func() {
-		It("should crete and verify PVC bound status", CreateAndVerifyPVC)
-		It("should crete and deploy app pod", CreateAndDeployApp)
-		It("should verify presence of components related to volume", VerifyVolumeComponents)
-		It("should restart app pod and verify running status", restartAppPodAndVerifyRunningStatus)
-		It("should delete application deployment", deleteAppDeployment)
-		It("should delete pvc", deletePVC)
-		It("should verify volume components deletion", verifyVolumeComponentsDeletion)
-	})
+	By("creating and verifying PVC bound status", CreateAndVerifyPVC)
+	By("Creating and deploying app pod", CreateAndDeployApp)
+	By("Verifying the presence of components related to volume", VerifyVolumeComponents)
+	By("Restarting app pod and verifying app pod running status", restartAppPodAndVerifyRunningStatus)
+	By("Deleting application deployment", deleteAppDeployment)
+	By("Deleting pvc", deletePVC)
+	By("Verifying deletion of components related to volume", verifyVolumeComponentsDeletion)
 }
 
-func prepareForVolumeCreationTest() {
-	When("prepareForVolumeCreationTest", func() {
-		By("should create and verify cstorpoolcluster", createAndVerifyCstorPoolCluster)
-		By("should create storage class", createStorageClass)
-	})
+func prepareForVolumeResizeTest() {
+	By("Creating and verifying cstorpoolcluster", createAndVerifyCstorPoolCluster)
+	By("Creating storage class", createStorageClass)
 }
 
-func cleanupAfterVolumeCreationTest() {
-	When("cleanupAfterVolumeCreationTest", func() {
-		By("should delete cstorpoolcluster", deleteCstorPoolCluster)
-		By("should delete storage class", deleteStorageClass)
-	})
+func cleanupAfterVolumeResizeTest() {
+	By("Deleting cstorpoolcluster", deleteCstorPoolCluster)
+	By("Deleting storage class", deleteStorageClass)
 }

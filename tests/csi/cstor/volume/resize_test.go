@@ -16,37 +16,35 @@ limitations under the License.
 
 package volume
 
-import . "github.com/onsi/ginkgo"
+import (
+	. "github.com/onsi/ginkgo"
+)
 
-var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING WITH APP POD RESTART", func() {
+var _ = Describe("[cstor] [sparse] TEST VOLUME RESIZE", func() {
 	BeforeEach(prepareForVolumeResizeTest)
 	AfterEach(cleanupAfterVolumeResizeTest)
 
-	When("app is deployed and restarted on pvc with replica count 1", volumeResizeTest)
+	Context("App is deployed with volume replica count 1 and pvc is resized", func() {
+		It("Should run Volume Resize Test", volumeResizeTest)
+	})
 })
 
 func volumeResizeTest() {
-	When("volumeResizeTest", func() {
-		It("should crete and verify PVC bound status", CreateAndVerifyPVC)
-		It("should crete and deploy app pod", CreateAndDeployApp)
-		It("should verify presence of components related to volume", VerifyVolumeComponents)
-		It("should expand PVC", expandPVC)
-		It("should delete application deployment", deleteAppDeployment)
-		It("should delete pvc", deletePVC)
-		It("should verify volume components deletion", verifyVolumeComponentsDeletion)
-	})
+	By("creating and verifying PVC bound status", CreateAndVerifyPVC)
+	By("Creating and deploying app pod", CreateAndDeployApp)
+	By("Verifying the presence of components related to volume", VerifyVolumeComponents)
+	By("Expanding PVC", expandPVC)
+	By("Deleting application deployment", deleteAppDeployment)
+	By("Deleting pvc", deletePVC)
+	By("Verifying deletion of components related to volume", verifyVolumeComponentsDeletion)
 }
 
 func prepareForVolumeResizeTest() {
-	When("prepareForVolumeResizeTest", func() {
-		By("should create and verify cstorpoolcluster", createAndVerifyCstorPoolCluster)
-		By("should create storage class", createStorageClass)
-	})
+	By("Creating and verifying cstorpoolcluster", createAndVerifyCstorPoolCluster)
+	By("Creating storage class", createStorageClass)
 }
 
 func cleanupAfterVolumeResizeTest() {
-	When("cleanupAfterVolumeResizeTest", func() {
-		By("should delete cstorpoolcluster", deleteCstorPoolCluster)
-		By("should delete storage class", deleteStorageClass)
-	})
+	By("Deleting cstorpoolcluster", deleteCstorPoolCluster)
+	By("Deleting storage class", deleteStorageClass)
 }

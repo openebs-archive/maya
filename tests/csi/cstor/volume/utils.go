@@ -3,6 +3,8 @@ package volume
 import (
 	"strconv"
 
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -34,7 +36,8 @@ func createStorageClass() {
 	scObj, err = sc.NewBuilder().
 		WithGenerateName(scName).
 		WithParametersNew(parameters).
-		WithProvisioner(openebsProvisioner).Build()
+		WithProvisioner(openebsProvisioner).
+		WithVolumeExpansion(true).Build()
 	Expect(err).ShouldNot(HaveOccurred(),
 		"while building storageclass obj with prefix {%s}", scName)
 
@@ -48,6 +51,9 @@ func deleteCstorPoolCluster() {
 	err := ops.CSPCClient.Delete(
 		cspcObj.Name, &metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "while deleting cspc {%s}", cspcObj.Name)
+	By("verifying deleted cspc")
+	status := ops.IsCSPCDeletedEventually(cspcObj.Name)
+	Expect(status).To(Equal(true), "while trying to get deleted cspc")
 }
 
 func deleteStorageClass() {
@@ -197,6 +203,7 @@ func CreateAndDeployApp() {
 		appName,
 		nsObj.Name,
 	)
+	time.Sleep(30 * time.Second)
 	By("verifying app pod is running")
 	appPod, err = ops.PodClient.WithNamespace(nsObj.Name).
 		List(metav1.ListOptions{
@@ -210,15 +217,14 @@ func CreateAndDeployApp() {
 }
 
 func VerifyVolumeComponents() {
-	When("VerifyVolumeComponents", func() {
-		It("should verify target pod count as 1", func() { verifyTargetPodCount(1) })
-		It("should verify cstorvolume replica count", func() { verifyCstorVolumeReplicaCount(cstor.ReplicaCount) })
-	})
+	By("should verify target pod count as 1", func() { verifyTargetPodCount(1) })
+	By("should verify cstorvolume replica count", func() { verifyCstorVolumeReplicaCount(cstor.ReplicaCount) })
 }
 
 func verifyTargetPodCount(count int) {
+	var err error
 	By("verifying target pod count as 1 once the app has been deployed")
-	pvcObj, err := ops.PVCClient.WithNamespace(nsObj.Name).
+	pvcObj, err = ops.PVCClient.WithNamespace(nsObj.Name).
 		Get(pvcObj.Name, metav1.GetOptions{})
 	Expect(err).To(
 		BeNil(),
@@ -235,7 +241,6 @@ func verifyTargetPodCount(count int) {
 
 func verifyCstorVolumeReplicaCount(count int) {
 	targetVolumeLabel := pvLabel + pvcObj.Spec.VolumeName
-	By("verifying cstorvolume replica count")
 	cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, targetVolumeLabel, count)
 	Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
 }
@@ -273,7 +278,7 @@ func deleteAppDeployment() {
 func deletePVC() {
 	var err error
 	By("deleting above pvc")
-	err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
+	err = ops.PVCClient.WithNamespace(nsObj.Name).Delete(pvcName, &metav1.DeleteOptions{})
 	Expect(err).To(
 		BeNil(),
 		"while deleting pvc {%s} in namespace {%s}",
@@ -281,8 +286,8 @@ func deletePVC() {
 		nsObj.Name,
 	)
 	By("verifying deleted pvc")
-	pvc := ops.IsPVCDeleted(pvcName)
-	Expect(pvc).To(Equal(true), "while trying to get deleted pvc")
+	status := ops.IsPVCDeletedEventually(pvcName)
+	Expect(status).To(Equal(true), "while trying to get deleted pvc")
 
 }
 

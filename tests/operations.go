@@ -526,6 +526,32 @@ func (ops *Operations) IsPVCDeleted(pvcName string) bool {
 	return false
 }
 
+// IsPVCDeletedEventually tries to get the deleted pvc
+// and returns true if pvc is not found
+// else returns false
+func (ops *Operations) IsPVCDeletedEventually(pvcName string) bool {
+	return Eventually(func() bool {
+		_, err := ops.PVCClient.
+			Get(pvcName, metav1.GetOptions{})
+		return isNotFound(err)
+	},
+		120, 10).
+		Should(BeTrue())
+}
+
+// IsCSPCDeletedEventually tries to get the deleted cspc
+// and returns true if cspc is not found
+// else returns false
+func (ops *Operations) IsCSPCDeletedEventually(cspcName string) bool {
+	return Eventually(func() bool {
+		_, err := ops.CSPCClient.
+			Get(cspcName, metav1.GetOptions{})
+		return isNotFound(err)
+	},
+		120, 10).
+		Should(BeTrue())
+}
+
 // IsPodDeletedEventually checks if the pod is deleted or not eventually
 func (ops *Operations) IsPodDeletedEventually(namespace, podName string) bool {
 	return Eventually(func() bool {
