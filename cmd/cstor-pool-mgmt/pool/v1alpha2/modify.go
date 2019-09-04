@@ -20,16 +20,16 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
-// Update will update the deployed pool according to given csp object
-func Update(csp *apis.CStorPoolInstance) error {
+// Update will update the deployed pool according to given cspi object
+func Update(cspi *apis.CStorPoolInstance) (*apis.CStorPoolInstance, error) {
 	var err error
 	var isObjChanged bool
 	var isRaidGroupChanged bool
 
 	// first we will check if there any bdev is replaced or removed
-	for raidIndex := 0; raidIndex < len(csp.Spec.RaidGroups); raidIndex++ {
+	for raidIndex := 0; raidIndex < len(cspi.Spec.RaidGroups); raidIndex++ {
 		isRaidGroupChanged = false
-		raidGroup := csp.Spec.RaidGroups[raidIndex]
+		raidGroup := cspi.Spec.RaidGroups[raidIndex]
 
 		for bdevIndex := 0; bdevIndex < len(raidGroup.BlockDevices); bdevIndex++ {
 			bdev := raidGroup.BlockDevices[bdevIndex]
@@ -42,7 +42,7 @@ func Update(csp *apis.CStorPoolInstance) error {
 						// block device name is empty
 						// Let's remove it
 						// TODO should we offline it only?
-						if er := removePoolVdev(csp, bdev); er != nil {
+						if er := removePoolVdev(cspi, bdev); er != nil {
 							err = ErrorWrapf(err, "Failed to remove bdev {%s}.. %s", bdev.DevLink, er.Error())
 							continue
 						}
@@ -56,27 +56,29 @@ func Update(csp *apis.CStorPoolInstance) error {
 					}
 			*/
 
-			// Let's check if bdev path is changed or not
-			newpath, isChanged, er := isBdevPathChanged(bdev)
+			// Let's check if any replacement is needed for this BDev
+			newpath, er := getPathForBDev(bdev.BlockDeviceName)
 			if er != nil {
 				err = ErrorWrapf(err, "Failed to check bdev change {%s}.. %s", bdev.BlockDeviceName, er.Error())
-			} else if isChanged {
-				if er := replacePoolVdev(csp, bdev, newpath); err != nil {
+			} else {
+				if diskPath, er := replacePoolVdev(cspi, bdev, newpath); er != nil {
 					err = ErrorWrapf(err, "Failed to replace bdev for {%s}.. %s", bdev.BlockDeviceName, er.Error())
 				} else {
-					// Let's update devLink with new path for this bdev
-					raidGroup.BlockDevices[bdevIndex].DevLink = newpath
-					isRaidGroupChanged = true
+					if !IsEmpty(diskPath) && diskPath != bdev.DevLink {
+						// Let's update devLink with new path for this bdev
+						raidGroup.BlockDevices[bdevIndex].DevLink = diskPath
+						isRaidGroupChanged = true
+					}
 				}
 			}
 		}
-		// If raidGroup is changed then update the csp.spec.raidgroup entry
+		// If raidGroup is changed then update the cspi.spec.raidgroup entry
 		// If raidGroup doesn't have any blockdevice then remove that raidGroup
 		// and set isObjChanged
 		if isRaidGroupChanged {
 			if len(raidGroup.BlockDevices) == 0 {
-				csp.Spec.RaidGroups = append(csp.Spec.RaidGroups[:raidIndex], csp.Spec.RaidGroups[raidIndex+1:]...)
-				// We removed the raidIndex entry csp.Spec.raidGroup
+				cspi.Spec.RaidGroups = append(cspi.Spec.RaidGroups[:raidIndex], cspi.Spec.RaidGroups[raidIndex+1:]...)
+				// We removed the raidIndex entry cspi.Spec.raidGroup
 				raidIndex--
 			}
 			isObjChanged = true
@@ -84,17 +86,19 @@ func Update(csp *apis.CStorPoolInstance) error {
 	}
 
 	//TODO revisit for day 2 ops
-	if er := addNewVdevFromCSP(csp); er != nil {
+	if er := addNewVdevFromCSP(cspi); er != nil {
 		err = ErrorWrapf(err, "Failed to execute add operation.. %s", er.Error())
 	}
 
 	if isObjChanged {
-		if _, er := OpenEBSClient.
+		if ncspi, er := OpenEBSClient.
 			OpenebsV1alpha1().
-			CStorPoolInstances(csp.Namespace).
-			Update(csp); er != nil {
+			CStorPoolInstances(cspi.Namespace).
+			Update(cspi); er != nil {
 			err = ErrorWrapf(err, "Failed to update object.. err {%s}", er.Error())
+		} else {
+			cspi = ncspi
 		}
 	}
-	return err
+	return cspi, err
 }

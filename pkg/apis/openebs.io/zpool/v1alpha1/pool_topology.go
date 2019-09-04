@@ -18,6 +18,7 @@ package zpool
 
 import (
 	"encoding/json"
+
 	"github.com/openebs/maya/pkg/util"
 )
 
@@ -65,6 +66,9 @@ type Vdev struct {
 
 	// 0 means not spare device, 1 means spare device
 	IsSpare int `json:"is_spare,omitempty"`
+
+	// 0 means partitioned disk, 1 means whole disk
+	IsWholeDisk int `json:"whole_disk,omitempty"`
 
 	// child vdevs of the logical disk or null for physical disk/sparse
 	Children []Vdev `json:"children,omitempty"`
