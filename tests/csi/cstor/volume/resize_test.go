@@ -30,9 +30,9 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME RESIZE", func() {
 })
 
 func volumeResizeTest() {
-	By("creating and verifying PVC bound status", CreateAndVerifyPVC)
-	By("Creating and deploying app pod", CreateAndDeployApp)
-	By("Verifying the presence of components related to volume", VerifyVolumeComponents)
+	By("creating and verifying PVC bound status", createAndVerifyPVC)
+	By("Creating and deploying app pod", createAndDeployApp)
+	By("Verifying the presence of components related to volume", verifyVolumeComponents)
 	By("Expanding PVC", expandPVC)
 	By("Deleting application deployment", deleteAppDeployment)
 	By("Deleting pvc", deletePVC)

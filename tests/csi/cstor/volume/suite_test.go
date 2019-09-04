@@ -48,15 +48,12 @@ var (
 	deployObj       *appsv1.Deployment
 	bdList          *ndmapis.BlockDeviceList
 	pvcObj          *corev1.PersistentVolumeClaim
-	podObj          *corev1.Pod
 	appPod          *corev1.PodList
 	targetLabel     = "openebs.io/target=cstor-target"
-	pvcLabel        = "openebs.io/persistent-volume-claim="
 	pvLabel         = "openebs.io/persistent-volume="
 	accessModes     = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	capacity        = "5G"
 	updatedCapacity = "10G"
-	annotations     = map[string]string{}
 )
 
 func TestSource(t *testing.T) {

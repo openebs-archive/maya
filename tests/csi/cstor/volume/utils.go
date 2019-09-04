@@ -108,7 +108,7 @@ func createAndVerifyCstorPoolCluster() {
 		"while checking healthy cstor pool count")
 }
 
-func CreateAndVerifyPVC() {
+func createAndVerifyPVC() {
 	var (
 		err     error
 		pvcName = "cstor-volume-claim"
@@ -142,7 +142,7 @@ func CreateAndVerifyPVC() {
 		"while checking status equal to bound")
 }
 
-func CreateAndDeployApp() {
+func createAndDeployApp() {
 	var err error
 	By("building a busybox app pod deployment using above csi cstor volume")
 	deployObj, err = deploy.NewBuilder().
@@ -216,7 +216,7 @@ func CreateAndDeployApp() {
 	Expect(status).To(Equal(true), "while checking status of pod {%s}", appPod.Items[0].Name)
 }
 
-func VerifyVolumeComponents() {
+func verifyVolumeComponents() {
 	By("should verify target pod count as 1", func() { verifyTargetPodCount(1) })
 	By("should verify cstorvolume replica count", func() { verifyCstorVolumeReplicaCount(cstor.ReplicaCount) })
 }
@@ -310,6 +310,7 @@ func expandPVC() {
 	By("updating size in above pvc")
 	pvcObj, err = pvc.BuildFrom(pvcObj).
 		WithCapacity(updatedCapacity).Build()
+	Expect(err).ShouldNot(HaveOccurred(), "while building pvc for update {%s}", pvcObj.Name)
 	_, err = ops.PVCClient.WithNamespace(nsObj.Name).Update(pvcObj)
 	Expect(err).To(
 		BeNil(),
