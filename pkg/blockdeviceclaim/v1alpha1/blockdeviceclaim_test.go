@@ -51,7 +51,9 @@ func TestGetBDList(t *testing.T) {
 							TypeMeta:   metav1.TypeMeta{},
 							ObjectMeta: metav1.ObjectMeta{},
 							Spec: ndm.DeviceClaimSpec{
-								HostName:        "openebs-1234",
+								BlockDeviceNodeAttributes: ndm.BlockDeviceNodeAttributes{
+									HostName: "openebs-1234",
+								},
 								BlockDeviceName: "blockdevice1",
 							},
 						},
@@ -59,7 +61,9 @@ func TestGetBDList(t *testing.T) {
 							TypeMeta:   metav1.TypeMeta{},
 							ObjectMeta: metav1.ObjectMeta{},
 							Spec: ndm.DeviceClaimSpec{
-								HostName:        "openebs-1234",
+								BlockDeviceNodeAttributes: ndm.BlockDeviceNodeAttributes{
+									HostName: "openebs-1234",
+								},
 								BlockDeviceName: "blockdevice2",
 							},
 						},
@@ -67,7 +71,9 @@ func TestGetBDList(t *testing.T) {
 							TypeMeta:   metav1.TypeMeta{},
 							ObjectMeta: metav1.ObjectMeta{},
 							Spec: ndm.DeviceClaimSpec{
-								HostName:        "openebs-1234",
+								BlockDeviceNodeAttributes: ndm.BlockDeviceNodeAttributes{
+									HostName: "openebs-1234",
+								},
 								BlockDeviceName: "blockdevice3",
 							},
 						},
@@ -84,6 +90,51 @@ func TestGetBDList(t *testing.T) {
 			nodeBDList := test.bdcList.GetBlockDeviceNamesByNode()
 			if len(nodeBDList) != test.nodeCount {
 				t.Errorf("Test %q failed: expected block device object count %d but got %d", name, test.nodeCount, len(nodeBDList))
+			}
+		})
+	}
+}
+
+func TestGetHostName(t *testing.T) {
+	tests := map[string]struct {
+		bdc            *BlockDeviceClaim
+		expectedOutput string
+	}{
+		"Test with blockdevice attribute hostname": {
+			bdc: &BlockDeviceClaim{
+				Object: &ndm.BlockDeviceClaim{
+					Spec: ndm.DeviceClaimSpec{
+						BlockDeviceNodeAttributes: ndm.BlockDeviceNodeAttributes{
+							HostName: "fakeNode1",
+						},
+					},
+				},
+			},
+			expectedOutput: "fakeNode1",
+		},
+		"Test with spec hostName": {
+			bdc: &BlockDeviceClaim{
+				Object: &ndm.BlockDeviceClaim{
+					Spec: ndm.DeviceClaimSpec{
+						HostName: "fakeNode2",
+					},
+				},
+			},
+			expectedOutput: "fakeNode2",
+		},
+		"Test with empty": {
+			bdc: &BlockDeviceClaim{
+				Object: &ndm.BlockDeviceClaim{},
+			},
+			expectedOutput: "",
+		},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			hostName := test.bdc.GetHostName()
+			if hostName != test.expectedOutput {
+				t.Errorf("Test %q failed: expected hostName %s but got hostName %s", name, test.expectedOutput, hostName)
 			}
 		})
 	}

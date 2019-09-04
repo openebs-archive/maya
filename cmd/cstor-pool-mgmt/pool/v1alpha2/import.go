@@ -19,6 +19,7 @@ package v1alpha2
 import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
+	pool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
@@ -30,27 +31,55 @@ import (
 // It will return -
 // - If pool is imported or not
 // - If any error occurred during import operation
-func Import(csp *apis.CStorPoolInstance) (bool, error) {
-	if poolExist := checkIfPoolPresent(PoolName(csp)); poolExist {
+func Import(cspi *apis.CStorPoolInstance) (bool, error) {
+	if poolExist := checkIfPoolPresent(PoolName(cspi)); poolExist {
 		return true, nil
 	}
 
 	// Pool is not imported.. Let's update the syncResource
+	var cmdOut []byte
+	var err error
 	common.SyncResources.IsImported = false
+	var poolImported bool
 
-	if ret, er := zfs.NewPoolImport().
-		WithCachefile(csp.Spec.PoolConfig.CacheFile).
-		WithProperty("cachefile", csp.Spec.PoolConfig.CacheFile).
-		WithDirectory(SparseDir).
-		WithDirectory(DevDir).
-		WithPool(PoolName(csp)).
-		Execute(); er != nil {
-		glog.Errorf("Failed to import pool : %s : %s", ret, er.Error())
-		// We return error as nil because pool doesn't exist
-		return false, nil
+	bdPath, err := getPathForBDev(cspi.Spec.RaidGroups[0].BlockDevices[0].BlockDeviceName)
+	if err != nil {
+		return false, err
 	}
 
-	glog.Infof("Pool Import successful: %v", string(csp.GetUID()))
+	glog.Infof("Importing pool %s %s", string(cspi.GetUID()), PoolName(cspi))
+	devID := pool.GetDevPathIfNotSlashDev(bdPath[0])
+	if len(devID) != 0 {
+		cmdOut, err = zfs.NewPoolImport().
+			WithCachefile(cspi.Spec.PoolConfig.CacheFile).
+			WithProperty("cachefile", cspi.Spec.PoolConfig.CacheFile).
+			WithDirectory(devID).
+			WithPool(PoolName(cspi)).
+			Execute()
+		if err == nil {
+			poolImported = true
+		} else {
+			// If pool import failed, fallback to try for import without Directory
+			glog.Errorf("Failed to import pool with directory %s : %s : %s",
+				devID, cmdOut, err.Error())
+		}
+	}
+
+	if !poolImported {
+		cmdOut, err = zfs.NewPoolImport().
+			WithCachefile(cspi.Spec.PoolConfig.CacheFile).
+			WithProperty("cachefile", cspi.Spec.PoolConfig.CacheFile).
+			WithPool(PoolName(cspi)).
+			Execute()
+	}
+
+	if err != nil {
+		// TODO may be possible that there is no pool exists..
+		glog.Errorf("Failed to import pool : %s : %s", cmdOut, err.Error())
+		return false, err
+	}
+
+	glog.Infof("Pool Import successful: %v", string(PoolName(cspi)))
 	return true, nil
 }
 

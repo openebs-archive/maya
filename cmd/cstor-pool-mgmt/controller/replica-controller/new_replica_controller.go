@@ -231,13 +231,6 @@ func NewCStorVolumeReplicaController(
 				}
 
 				// finally !!!
-				controller.recorder.Event(
-					newCVR,
-					corev1.EventTypeNormal,
-					string(common.SuccessSynced),
-					string(common.StatusSynced),
-				)
-
 				// push this operation to workqueue
 				ql.Operation = common.QOpSync
 				controller.enqueueCStorReplica(newCVR, ql)

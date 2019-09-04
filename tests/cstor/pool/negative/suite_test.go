@@ -42,6 +42,7 @@ var (
 	spcObj             *apis.StoragePoolClaim
 	pvcObj             *corev1.PersistentVolumeClaim
 	targetLabel        = "openebs.io/target=cstor-target"
+	pvLabel            = "openebs.io/persistent-volume="
 	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	capacity           = "5G"
 	annotations        = map[string]string{}

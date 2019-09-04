@@ -136,5 +136,5 @@ func (c *CStorPoolInstanceController) enqueueCStorPoolInstance(obj *apis.CStorPo
 		runtime.HandleError(err)
 		return
 	}
-	c.workqueue.AddRateLimited(common.QueueLoad{Key: key})
+	c.workqueue.Add(common.QueueLoad{Key: key})
 }

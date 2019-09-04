@@ -102,7 +102,9 @@ func (p *PoolImport) WithForceImport(ForceImport bool) *PoolImport {
 
 // WithProperty method fills the Property field of PoolImport object.
 func (p *PoolImport) WithProperty(key, value string) *PoolImport {
-	p.Property = append(p.Property, fmt.Sprintf("%s=%s", key, value))
+	if len(value) != 0 {
+		p.Property = append(p.Property, fmt.Sprintf("%s=%s", key, value))
+	}
 	return p
 }
 
@@ -160,7 +162,9 @@ func (p *PoolImport) Build() (*PoolImport, error) {
 
 	if !IsCachefileSet()(p) && IsDirectorylistSet()(p) {
 		for _, i := range p.Directorylist {
-			p.appendCommand(&c, fmt.Sprintf(" -d %s ", i))
+			if len(i) != 0 {
+				p.appendCommand(&c, fmt.Sprintf(" -d %s ", i))
+			}
 		}
 	}
 

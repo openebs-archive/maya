@@ -17,9 +17,11 @@ limitations under the License.
 package executor
 
 import (
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
-	"github.com/spf13/cobra"
 	"strings"
+
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+
+	"github.com/spf13/cobra"
 )
 
 // UpgradeOptions stores information required for upgrade
@@ -33,6 +35,7 @@ type UpgradeOptions struct {
 	jivaVolume        JivaVolumeOptions
 	cstorSPC          CStorSPCOptions
 	cstorVolume       CStorVolumeOptions
+	resource          ResourceOptions
 }
 
 var (

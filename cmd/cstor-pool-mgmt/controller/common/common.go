@@ -259,13 +259,16 @@ func CheckIfPresent(arrStr []string, searchStr string) bool {
 // volumereplica can be created only if pool is present.
 func CheckForCStorPool() {
 	for {
-		poolname, _ := pool.GetPoolName()
+		poolname, err := pool.GetPoolName()
 		if reflect.DeepEqual(poolname, []string{}) {
-			glog.Warningf("CStorPool not found. Retrying after %v", PoolNameHandlerInterval)
+			glog.Warningf("CStorPool not found. Retrying after %v, err: %v", PoolNameHandlerInterval, err)
 			time.Sleep(PoolNameHandlerInterval)
 			continue
 		}
-		glog.Infof("CStorPool found %v", poolname)
+		//	if SyncResources.IsImported {
+		//		break
+		//	}
+		glog.Infof("CStorPool found: %v", poolname)
 		break
 	}
 }

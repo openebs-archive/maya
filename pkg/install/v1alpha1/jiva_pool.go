@@ -26,7 +26,7 @@ metadata:
   name: default
   type: hostdir
 spec:
-  path: "/var/openebs"
+  path: {{env "OPENEBS_IO_JIVA_POOL_DIR" | default "/var/openebs"}}
 ---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass

@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"strings"
+
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
 )
 
@@ -28,5 +30,9 @@ func GetPropertyValue(poolName, property string) (string, error) {
 		WithProperty(property).
 		WithPool(poolName).
 		Execute()
-	return string(ret), err
+	if err != nil {
+		return "", err
+	}
+	outStr := strings.Split(string(ret), "\n")
+	return outStr[0], nil
 }
