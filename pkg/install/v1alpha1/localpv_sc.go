@@ -33,7 +33,7 @@ metadata:
       - name: StorageType
         value: "hostpath"
       - name: BasePath
-        value: "/var/openebs/local"
+        value: {{env "OPENEBS_IO_LOCALPV_HOSTPATH_DIR" | default "/var/openebs/local"}} 
 provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: Delete
