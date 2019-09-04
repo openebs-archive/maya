@@ -48,7 +48,7 @@ func Import(cspi *apis.CStorPoolInstance) (bool, error) {
 	}
 
 	glog.Infof("Importing pool %s %s", string(cspi.GetUID()), PoolName(cspi))
-	devID := pool.GetDevPathIfNotSlashDev(bdPath)
+	devID := pool.GetDevPathIfNotSlashDev(bdPath[0])
 	if len(devID) != 0 {
 		cmdOut, err = zfs.NewPoolImport().
 			WithCachefile(cspi.Spec.PoolConfig.CacheFile).
