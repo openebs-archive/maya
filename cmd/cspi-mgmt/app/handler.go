@@ -62,11 +62,11 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 	isImported, err = zpool.Import(cspi)
 	if isImported {
 		if err != nil {
+			common.SyncResources.Mux.Unlock()
 			c.recorder.Event(cspi,
 				corev1.EventTypeWarning,
 				string(common.FailureImported),
 				fmt.Sprintf("Failed to import pool due to '%s'", err.Error()))
-			common.SyncResources.Mux.Unlock()
 			return nil
 		}
 		zpool.CheckImportedPoolVolume()
@@ -89,24 +89,29 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 				corev1.EventTypeWarning,
 				string(common.FailureCreate),
 				fmt.Sprintf("Failed to create pool due to '%s'", err.Error()))
+
 			_ = zpool.Delete(cspi)
 			common.SyncResources.Mux.Unlock()
 			return nil
 		}
+		common.SyncResources.Mux.Unlock()
+
 		c.recorder.Event(cspi,
 			corev1.EventTypeNormal,
 			string(common.SuccessCreated),
 			fmt.Sprintf("Pool created successfully"))
+
+		err = c.update(cspi)
+		if err != nil {
+			c.recorder.Event(cspi,
+				corev1.EventTypeWarning,
+				string(common.FailedSynced),
+				err.Error())
+		}
+		return nil
+
 	}
 	common.SyncResources.Mux.Unlock()
-
-	err = c.updateStatus(cspi)
-	if err != nil {
-		c.recorder.Event(cspi,
-			corev1.EventTypeWarning,
-			string(common.FailureStatusSync),
-			err.Error())
-	}
 	return nil
 }
 
@@ -148,7 +153,7 @@ updatestatus:
 }
 
 func (c *CStorPoolInstanceController) update(cspi *apis.CStorPoolInstance) error {
-	err := zpool.Update(cspi)
+	cspi, err := zpool.Update(cspi)
 	if err != nil {
 		return errors.Errorf("Failed to update pool due to %s", err.Error())
 	}
