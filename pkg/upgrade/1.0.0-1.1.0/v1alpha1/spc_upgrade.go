@@ -62,6 +62,15 @@ func spcUpgrade(spcName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		if err != nil {
 			return utaskObj, err
 		}
+		if utaskObj != nil {
+			utaskObj.Status.Phase = utask.UpgradeSuccess
+			utaskObj.Status.CompletedTime = metav1.Now()
+			_, uerr := utaskClient.WithNamespace(openebsNamespace).
+				Update(utaskObj)
+			if uerr != nil && isENVPresent {
+				return nil, uerr
+			}
+		}
 	}
 	glog.Infof("Upgrade Successful for spc %s", spcName)
 	return nil, nil

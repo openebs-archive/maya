@@ -176,16 +176,22 @@ func patchCSPDeploy(cspDeployObj *appsv1.Deployment, openebsNamespace string) er
 	return nil
 }
 
-func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
+type cstorCSPOptions struct {
+	utaskObj     *utask.UpgradeTask
+	cspObj       *apis.CStorPool
+	cspDeployObj *appsv1.Deployment
+}
+
+func (c *cstorCSPOptions) preUpgrade(cspName, openebsNamespace string) error {
 	var err, uerr error
-	var utaskObj *utask.UpgradeTask
-	utaskObj, uerr = getOrCreateUpgradeTask("cstorPool", cspName, openebsNamespace)
+
+	c.utaskObj, uerr = getOrCreateUpgradeTask("cstorPool", cspName, openebsNamespace)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(
+		c.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.PreUpgrade,
 			Status: utask.Status{
@@ -195,13 +201,13 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
 
-	cspObj, err := getCSPObject(cspName)
+	c.cspObj, err = getCSPObject(cspName)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(
+			c.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.PreUpgrade,
 				Status: utask.Status{
@@ -213,15 +219,15 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
 
-	cspDeployObj, err := getCSPDeployment(cspName, openebsNamespace)
+	c.cspDeployObj, err = getCSPDeployment(cspName, openebsNamespace)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(
+			c.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.PreUpgrade,
 				Status: utask.Status{
@@ -233,13 +239,13 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(
+		c.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.PreUpgrade,
 			Status: utask.Status{
@@ -250,11 +256,15 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
+	return nil
+}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+func (c *cstorCSPOptions) targetUpgarde(openebsNamespace string) error {
+	var err, uerr error
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(
+		c.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.TargetUpgrade,
 			Status: utask.Status{
@@ -264,13 +274,13 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
 
-	err = patchCSPDeploy(cspDeployObj, openebsNamespace)
+	err = patchCSPDeploy(c.cspDeployObj, openebsNamespace)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(
+			c.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.TargetUpgrade,
 				Status: utask.Status{
@@ -282,15 +292,15 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
 
-	err = patchCSP(cspObj)
+	err = patchCSP(c.cspObj)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(
+			c.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.TargetUpgrade,
 				Status: utask.Status{
@@ -302,13 +312,13 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(
+		c.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.TargetUpgrade,
 			Status: utask.Status{
@@ -319,16 +329,27 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
+	}
+	return nil
+}
+
+func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
+	var err error
+
+	options := &cstorCSPOptions{}
+
+	err = options.preUpgrade(cspName, openebsNamespace)
+	if err != nil {
+		return options.utaskObj, err
 	}
 
-	utaskObj.Status.Phase = utask.UpgradeSuccess
-	utaskObj.Status.CompletedTime = metav1.Now()
-	utaskObj, uerr = utaskClient.WithNamespace(openebsNamespace).
-		Update(utaskObj)
-	if uerr != nil && isENVPresent {
-		return nil, uerr
+	err = options.targetUpgarde(openebsNamespace)
+	if err != nil {
+		return options.utaskObj, err
 	}
+
 	glog.Infof("Upgrade Successful for csp %s", cspName)
-	return utaskObj, nil
+
+	return options.utaskObj, nil
 }

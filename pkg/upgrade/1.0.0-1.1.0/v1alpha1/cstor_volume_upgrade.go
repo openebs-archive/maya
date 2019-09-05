@@ -255,22 +255,27 @@ func getCVRList(pvLabel, openebsNamespace string) (*apis.CStorVolumeReplicaList,
 	return cvrList, nil
 }
 
-func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
+type cstorVolumeOptions struct {
+	utaskObj        *utask.UpgradeTask
+	ns              string
+	targetDeployObj *appsv1.Deployment
+	cvrList         *apis.CStorVolumeReplicaList
+}
+
+func (c *cstorVolumeOptions) preUpgrade(pvName, openebsNamespace string) error {
 	var (
-		pvLabel            = "openebs.io/persistent-volume=" + pvName
-		targetLabel        = pvLabel + ",openebs.io/target=cstor-target"
-		targetServiceLabel = pvLabel + ",openebs.io/target-service=cstor-target-svc"
-		err, uerr          error
-		utaskObj           *utask.UpgradeTask
+		err, uerr   error
+		pvLabel     = "openebs.io/persistent-volume=" + pvName
+		targetLabel = pvLabel + ",openebs.io/target=cstor-target"
 	)
 
-	utaskObj, uerr = getOrCreateUpgradeTask("cstorVolume", pvName, openebsNamespace)
+	c.utaskObj, uerr = getOrCreateUpgradeTask("cstorVolume", pvName, openebsNamespace)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(
+		c.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.PreUpgrade,
 			Status: utask.Status{
@@ -280,13 +285,13 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
 
 	err = verifyCSPVersion(pvLabel, openebsNamespace)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(
+			c.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.PreUpgrade,
 				Status: utask.Status{
@@ -298,15 +303,15 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
 
-	ns, err := getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
+	c.ns, err = getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(
+			c.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.PreUpgrade,
 				Status: utask.Status{
@@ -318,15 +323,15 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
 
-	targetDeployObj, err := getDeployment(targetLabel, ns)
+	c.targetDeployObj, err = getDeployment(targetLabel, c.ns)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(
+			c.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.PreUpgrade,
 				Status: utask.Status{
@@ -338,15 +343,15 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
 
-	cvrList, err := getCVRList(pvLabel, openebsNamespace)
+	c.cvrList, err = getCVRList(pvLabel, openebsNamespace)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(
+			c.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.PreUpgrade,
 				Status: utask.Status{
@@ -358,12 +363,12 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(
+		c.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.PreUpgrade,
 			Status: utask.Status{
@@ -374,11 +379,19 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
+	return nil
+}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) error {
+	var (
+		err, uerr          error
+		pvLabel            = "openebs.io/persistent-volume=" + pvName
+		targetServiceLabel = pvLabel + ",openebs.io/target-service=cstor-target-svc"
+	)
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(
+		c.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.TargetUpgrade,
 			Status: utask.Status{
@@ -388,13 +401,13 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
 
-	err = patchTargetDeploy(targetDeployObj, ns)
+	err = patchTargetDeploy(c.targetDeployObj, c.ns)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(
+			c.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.TargetUpgrade,
 				Status: utask.Status{
@@ -406,15 +419,15 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
 
-	err = patchService(targetServiceLabel, ns)
+	err = patchService(targetServiceLabel, c.ns)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(
+			c.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.TargetUpgrade,
 				Status: utask.Status{
@@ -426,15 +439,15 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
 
-	err = patchCV(pvLabel, ns)
+	err = patchCV(pvLabel, c.ns)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(
+			c.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.TargetUpgrade,
 				Status: utask.Status{
@@ -446,13 +459,13 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(
+		c.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.TargetUpgrade,
 			Status: utask.Status{
@@ -463,11 +476,15 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
+	return nil
+}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+func (c *cstorVolumeOptions) replicaUpgrade(openebsNamespace string) error {
+	var uerr, err error
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(
+		c.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.ReplicaUpgrade,
 			Status: utask.Status{
@@ -477,14 +494,14 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
 
-	for _, cvrObj := range cvrList.Items {
+	for _, cvrObj := range c.cvrList.Items {
 		err = patchCVR(cvrObj.Name, openebsNamespace)
 		if err != nil {
-			utaskObj, uerr = updateUpgradeDetailedStatus(
-				utaskObj,
+			c.utaskObj, uerr = updateUpgradeDetailedStatus(
+				c.utaskObj,
 				utask.UpgradeDetailedStatuses{
 					Step: utask.ReplicaUpgrade,
 					Status: utask.Status{
@@ -496,14 +513,14 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 				openebsNamespace,
 			)
 			if uerr != nil && isENVPresent {
-				return nil, uerr
+				return uerr
 			}
-			return utaskObj, err
+			return err
 		}
 	}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(
+		c.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.ReplicaUpgrade,
 			Status: utask.Status{
@@ -514,16 +531,34 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
+	}
+	return nil
+}
+
+func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
+	var err error
+
+	options := &cstorVolumeOptions{}
+
+	// PreUpgrade
+	err = options.preUpgrade(pvName, openebsNamespace)
+	if err != nil {
+		return options.utaskObj, err
 	}
 
-	utaskObj.Status.Phase = utask.UpgradeSuccess
-	utaskObj.Status.CompletedTime = metav1.Now()
-	utaskObj, uerr = utaskClient.WithNamespace(openebsNamespace).
-		Update(utaskObj)
-	if uerr != nil && isENVPresent {
-		return nil, uerr
+	// TargetUpgrade
+	err = options.targetUpgrade(pvName, openebsNamespace)
+	if err != nil {
+		return options.utaskObj, err
 	}
+
+	// ReplicaUpgrade
+	err = options.replicaUpgrade(openebsNamespace)
+	if err != nil {
+		return options.utaskObj, err
+	}
+
 	glog.Infof("Upgrade Successful for cstor volume %s", pvName)
-	return utaskObj, nil
+	return options.utaskObj, nil
 }

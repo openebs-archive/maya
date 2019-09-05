@@ -338,25 +338,27 @@ func validateSync(ctrlLabel, namespace string) error {
 	return nil
 }
 
-func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
+type jivaVolumeOptions struct {
+	utaskObj      *utask.UpgradeTask
+	replicaObj    *replicaDetails
+	controllerObj *controllerDetails
+	ns            string
+}
 
+func (j *jivaVolumeOptions) preupgrade(pvName, openebsNamespace string) error {
 	var (
 		pvLabel         = "openebs.io/persistent-volume=" + pvName
 		replicaLabel    = "openebs.io/replica=jiva-replica," + pvLabel
 		controllerLabel = "openebs.io/controller=jiva-controller," + pvLabel
-		serviceLabel    = "openebs.io/controller-service=jiva-controller-svc," + pvLabel
-		ns              string
-		err, uerr       error
+		uerr, err       error
 	)
-
-	var utaskObj *utask.UpgradeTask
-	utaskObj, uerr = getOrCreateUpgradeTask("jivaVolume", pvName, openebsNamespace)
+	j.utaskObj, uerr = getOrCreateUpgradeTask("jivaVolume", pvName, openebsNamespace)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(
+		j.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.PreUpgrade,
 			Status: utask.Status{
@@ -366,13 +368,13 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
 
-	ns, err = getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
+	j.ns, err = getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(
+			j.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.PreUpgrade,
 				Status: utask.Status{
@@ -384,16 +386,16 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, errors.Wrapf(err, "failed to get namespace for pvc deployments")
+		return errors.Wrapf(err, "failed to get namespace for pvc deployments")
 	}
 
 	// fetching replica deployment details
-	replicaObj, err := getReplica(replicaLabel, ns)
+	j.replicaObj, err = getReplica(replicaLabel, j.ns)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(
+			j.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.PreUpgrade,
 				Status: utask.Status{
@@ -405,17 +407,17 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
-	replicaObj.patchDetails.PVName = pvName
+	j.replicaObj.patchDetails.PVName = pvName
 
 	// fetching controller deployment details
-	controllerObj, err := getController(controllerLabel, ns)
+	j.controllerObj, err = getController(controllerLabel, j.ns)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(
+			j.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.PreUpgrade,
 				Status: utask.Status{
@@ -427,13 +429,13 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(
+		j.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.PreUpgrade,
 			Status: utask.Status{
@@ -444,11 +446,15 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
+	return nil
+}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+func (j *jivaVolumeOptions) replicaUpgrade(openebsNamespace string) error {
+	var err, uerr error
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(
+		j.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.ReplicaUpgrade,
 			Status: utask.Status{
@@ -458,14 +464,14 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
 
 	// replica patch
-	err = patchReplica(replicaObj, ns)
+	err = patchReplica(j.replicaObj, j.ns)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(
+			j.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.ReplicaUpgrade,
 				Status: utask.Status{
@@ -477,13 +483,13 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(
+		j.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.ReplicaUpgrade,
 			Status: utask.Status{
@@ -494,11 +500,15 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
+	return nil
+}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+func (j *jivaVolumeOptions) targetUpgrade(pvName, openebsNamespace string) error {
+	var err, uerr error
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(
+		j.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.TargetUpgrade,
 			Status: utask.Status{
@@ -508,14 +518,14 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
 
 	// controller patch
-	err = patchController(controllerObj, ns)
+	err = patchController(j.controllerObj, j.ns)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(
+			j.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.TargetUpgrade,
 				Status: utask.Status{
@@ -527,15 +537,17 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
+	pvLabel := "openebs.io/persistent-volume=" + pvName
+	serviceLabel := "openebs.io/controller-service=jiva-controller-svc," + pvLabel
 
-	err = patchService(serviceLabel, ns)
+	err = patchService(serviceLabel, j.ns)
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(
+			j.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.TargetUpgrade,
 				Status: utask.Status{
@@ -547,13 +559,13 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(
+		j.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.TargetUpgrade,
 			Status: utask.Status{
@@ -564,11 +576,15 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
+	return nil
+}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+func (j *jivaVolumeOptions) verify(controllerLabel, openebsNamespace string) error {
+	var err, uerr error
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(
+		j.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.Verify,
 			Status: utask.Status{
@@ -578,15 +594,15 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
 	}
 
 	// Verify synced replicas
-	err = validateSync(controllerLabel, ns)
+	err = validateSync(controllerLabel, j.ns)
 
 	if err != nil {
-		utaskObj, uerr = updateUpgradeDetailedStatus(
-			utaskObj,
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(
+			j.utaskObj,
 			utask.UpgradeDetailedStatuses{
 				Step: utask.Verify,
 				Status: utask.Status{
@@ -598,13 +614,13 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			openebsNamespace,
 		)
 		if uerr != nil && isENVPresent {
-			return nil, uerr
+			return uerr
 		}
-		return utaskObj, err
+		return err
 	}
 
-	utaskObj, uerr = updateUpgradeDetailedStatus(
-		utaskObj,
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(
+		j.utaskObj,
 		utask.UpgradeDetailedStatuses{
 			Step: utask.Verify,
 			Status: utask.Status{
@@ -615,17 +631,45 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		openebsNamespace,
 	)
 	if uerr != nil && isENVPresent {
-		return nil, uerr
+		return uerr
+	}
+	return nil
+}
+
+func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
+
+	var (
+		pvLabel         = "openebs.io/persistent-volume=" + pvName
+		controllerLabel = "openebs.io/controller=jiva-controller," + pvLabel
+		err             error
+	)
+
+	options := &jivaVolumeOptions{}
+
+	// PreUpgrade
+	err = options.preupgrade(pvName, openebsNamespace)
+	if err != nil {
+		return options.utaskObj, err
 	}
 
-	utaskObj.Status.Phase = utask.UpgradeSuccess
-	utaskObj.Status.CompletedTime = metav1.Now()
-	utaskObj, uerr = utaskClient.WithNamespace(openebsNamespace).
-		Update(utaskObj)
-	if uerr != nil && isENVPresent {
-		return nil, uerr
+	// ReplicaUpgrade
+	err = options.replicaUpgrade(openebsNamespace)
+	if err != nil {
+		return options.utaskObj, err
+	}
+
+	// TargetUpgrade
+	err = options.targetUpgrade(pvName, openebsNamespace)
+	if err != nil {
+		return options.utaskObj, err
+	}
+
+	// Verify
+	err = options.verify(controllerLabel, openebsNamespace)
+	if err != nil {
+		return options.utaskObj, err
 	}
 
 	glog.Info("Upgrade Successful for", pvName)
-	return utaskObj, nil
+	return options.utaskObj, nil
 }

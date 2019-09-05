@@ -60,6 +60,10 @@ var (
 func Exec(fromVersion, toVersion, kind, name,
 	openebsNamespace, urlprefix, imagetag string) error {
 
+	if menv.Get("UPGRADE_TASK_LABEL") != "" {
+		isENVPresent = true
+	}
+
 	// verify openebs namespace and check maya-apiserver version
 	upgradeVersion = toVersion
 	currentVersion = fromVersion

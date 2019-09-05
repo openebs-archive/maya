@@ -23,7 +23,6 @@ import (
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 	utask "github.com/openebs/maya/pkg/upgrade/v1alpha2"
@@ -234,80 +233,72 @@ func getOrCreateUpgradeTask(kind, name, openebsNamespace string) (*apis.UpgradeT
 	if name == "" {
 		return nil, errors.Errorf("missing name for upgradeTask")
 	}
-	utaskName := menv.Get("UPGRADE_TASK")
-	if utaskName == "" {
-		// TODO builder
-		utaskObj = &apis.UpgradeTask{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: openebsNamespace,
+	// TODO builder
+	utaskObj = &apis.UpgradeTask{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: openebsNamespace,
+		},
+		Spec: apis.UpgradeTaskSpec{
+			FromVersion: currentVersion,
+			ToVersion:   upgradeVersion,
+			ImageTag:    imageTag,
+			ImagePrefix: urlPrefix,
+		},
+		Status: apis.UpgradeTaskStatus{
+			Phase:     apis.UpgradeStarted,
+			StartTime: metav1.Now(),
+		},
+	}
+	switch kind {
+	case "jivaVolume":
+		utaskObj.Name = "upgrade-jiva-volume-" + name
+		utaskObj.Spec.ResourceSpec = apis.ResourceSpec{
+			JivaVolume: &apis.JivaVolume{
+				PVName: name,
 			},
-			Spec: apis.UpgradeTaskSpec{
-				FromVersion: currentVersion,
-				ToVersion:   upgradeVersion,
-				ImageTag:    imageTag,
-				ImagePrefix: urlPrefix,
-			},
-			Status: apis.UpgradeTaskStatus{
-				Phase:     apis.UpgradeStarted,
-				StartTime: metav1.Now(),
+		}
+	case "cstorPool":
+		utaskObj.Name = "upgrade-cstor-pool-" + name
+		utaskObj.Spec.ResourceSpec = apis.ResourceSpec{
+			CStorPool: &apis.CStorPool{
+				PoolName: name,
 			},
 		}
-		switch kind {
-		case "jivaVolume":
-			utaskObj.Name = "upgrade-jiva-volume-" + name
-			utaskObj.Spec.ResourceSpec = apis.ResourceSpec{
-				JivaVolume: &apis.JivaVolume{
-					PVName: name,
-				},
-			}
-		case "cstorPool":
-			utaskObj.Name = "upgrade-cstor-pool-" + name
-			utaskObj.Spec.ResourceSpec = apis.ResourceSpec{
-				CStorPool: &apis.CStorPool{
-					PoolName: name,
-				},
-			}
-		case "cstorVolume":
-			utaskObj.Name = "upgrade-cstor-volume-" + name
-			utaskObj.Spec.ResourceSpec = apis.ResourceSpec{
-				CStorVolume: &apis.CStorVolume{
-					PVName: name,
-				},
-			}
-		}
-		// the below logic first tries to fetch the CR if not found
-		// then creates a new CR
-		utaskObj1, err1 := utaskClient.WithNamespace(openebsNamespace).
-			Get(utaskObj.Name, metav1.GetOptions{})
-		if err1 != nil {
-			if k8serror.IsNotFound(err1) {
-				utaskObj, err = createUtask(utaskObj, openebsNamespace)
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				return nil, err1
-			}
-		} else {
-			utaskObj = utaskObj1
-		}
-	} else {
-		isENVPresent = true
-		utaskObj, err = utaskClient.WithNamespace(openebsNamespace).
-			Get(utaskName, metav1.GetOptions{})
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get upgradetask %s", utaskName)
-		}
-		if utaskObj.Status.StartTime.IsZero() {
-			utaskObj.Status.Phase = apis.UpgradeStarted
-			utaskObj.Status.StartTime = metav1.Now()
+	case "cstorVolume":
+		utaskObj.Name = "upgrade-cstor-volume-" + name
+		utaskObj.Spec.ResourceSpec = apis.ResourceSpec{
+			CStorVolume: &apis.CStorVolume{
+				PVName: name,
+			},
 		}
 	}
+	// the below logic first tries to fetch the CR if not found
+	// then creates a new CR
+	utaskObj1, err1 := utaskClient.WithNamespace(openebsNamespace).
+		Get(utaskObj.Name, metav1.GetOptions{})
+	if err1 != nil {
+		if k8serror.IsNotFound(err1) {
+			utaskObj, err = createUtask(utaskObj, openebsNamespace)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err1
+		}
+	} else {
+		utaskObj = utaskObj1
+	}
+
+	if utaskObj.Status.StartTime.IsZero() {
+		utaskObj.Status.Phase = apis.UpgradeStarted
+		utaskObj.Status.StartTime = metav1.Now()
+	}
+
 	utaskObj.Status.UpgradeDetailedStatuses = []apis.UpgradeDetailedStatuses{}
 	utaskObj, err = utaskClient.WithNamespace(openebsNamespace).
 		Update(utaskObj)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to update upgradetask %s", utaskName)
+		return nil, errors.Wrapf(err, "failed to update upgradetask")
 	}
 	return utaskObj, nil
 }
