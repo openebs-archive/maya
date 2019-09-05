@@ -612,7 +612,7 @@ func (ops *Operations) GetHealthyCSPICount(cspcName string, expectedCSPICount in
 		cspiCount = cspi.
 			ListBuilderFromAPIList(cspiAPIList).
 			List().
-			Filter(cspi.HasLabel(string(apis.CStorPoolClusterCPK), cspcName), cspi.IsStatus("ONLINE\n")).
+			Filter(cspi.HasLabel(string(apis.CStorPoolClusterCPK), cspcName), cspi.IsStatus("ONLINE")).
 			Len()
 
 		if cspiCount == expectedCSPICount {
@@ -814,4 +814,18 @@ func (ops *Operations) GetBDCCount(lSelector, namespace string) int {
 		List(metav1.ListOptions{LabelSelector: lSelector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return len(bdcList.Items)
+}
+
+// IsDeploymentSuccessEventually returns true if required number of replica
+// pods are available
+func (ops *Operations) IsDeploymentSuccessEventually(
+	namespace, name string, expectedRepCount int32) bool {
+	return Eventually(func() int32 {
+		deployObj, err := ops.DeployClient.WithNamespace(namespace).Get(name)
+		Expect(err).To(BeNil(), "while getting deployment {%s}", name)
+		count := deployObj.Status.AvailableReplicas
+		return count
+	},
+		120, 10).
+		Should(Equal(expectedRepCount))
 }

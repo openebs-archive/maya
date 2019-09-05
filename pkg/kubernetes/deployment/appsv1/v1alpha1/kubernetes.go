@@ -69,6 +69,15 @@ type deleteFn func(
 	opts *metav1.DeleteOptions,
 ) error
 
+// deleteCollectionFn is a typed function that abstracts
+// deletion of apps's collection
+type deleteCollectionFn func(
+	cli *kubernetes.Clientset,
+	namespace string,
+	listOpts metav1.ListOptions,
+	deleteOpts *metav1.DeleteOptions,
+) error
+
 // patchFn is a typed function that abstracts
 // patching a deployment from kubernetes cluster
 type patchFn func(
@@ -148,6 +157,17 @@ func defaultDel(
 	return cli.AppsV1().Deployments(namespace).Delete(name, opts)
 }
 
+// defaultDeleteCollection is the default implementation to delete a
+// deployment instance in kubernetes cluster
+func defaultDeleteCollection(
+	cli *kubernetes.Clientset,
+	namespace string,
+	listOpts metav1.ListOptions,
+	deleteOpts *metav1.DeleteOptions,
+) error {
+	return cli.AppsV1().Deployments(namespace).DeleteCollection(deleteOpts, listOpts)
+}
+
 func defaultPatch(
 	cli *kubernetes.Clientset,
 	name, namespace string,
@@ -196,6 +216,7 @@ type Kubeclient struct {
 	patch               patchFn
 	rolloutStatus       rolloutStatusFn
 	rolloutStatusf      rolloutStatusfFn
+	delCollection       deleteCollectionFn
 }
 
 // KubeclientBuildOption defines the abstraction to build a
@@ -223,6 +244,9 @@ func (k *Kubeclient) withDefaults() {
 	}
 	if k.del == nil {
 		k.del = defaultDel
+	}
+	if k.delCollection == nil {
+		k.delCollection = defaultDeleteCollection
 	}
 	if k.patch == nil {
 		k.patch = defaultPatch
@@ -362,6 +386,14 @@ func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
 	}
 
 	return k.del(cli, k.namespace, name, opts)
+}
+
+func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete the collection of deployments")
+	}
+	return k.delCollection(cli, k.namespace, listOpts, deleteOpts)
 }
 
 // Create creates a deployment in specified namespace in kubernetes cluster

@@ -1,3 +1,19 @@
+/*
+Copyright 2019 The OpenEBS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package volume
 
 import (
@@ -5,7 +21,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	poolspec "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
 	rgrp "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/raidgroups"
@@ -20,12 +38,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func createStorageClass() {
+//TODO: Below changes need to make for csi changes
+//1) Change package name and move to operations.go
+//2) Remove dependency with current package
+//3) Make structures to create cspc, pvc and deployment resources
+
+func createStorageClass(replicaCount int) {
 	var (
 		err error
 	)
 	parameters := map[string]string{
-		"replicaCount":     strconv.Itoa(cstor.ReplicaCount),
+		"replicaCount":     strconv.Itoa(replicaCount),
 		"cstorPoolCluster": cspcObj.Name,
 		"cas-type":         "cstor",
 	}
@@ -57,59 +80,87 @@ func deleteStorageClass() {
 		"while deleting storageclass {%s}", scObj.Name)
 }
 
-func createAndVerifyCstorPoolCluster() {
-	var (
-		err      error
-		nodeName string
+// CreateAndVerifyCStorPoolCluster creates cspc and
+// verify whether pools are ONLINE or not
+func CreateAndVerifyCStorPoolCluster(cacheFile, poolType string, poolCount int) {
+	minRequiredBD := cspc.DefaultBDCount[poolType]
+	blockDeviceList, err := blockdevice.GetBlockDeviceList(
+		openebsNamespace,
+		metav1.ListOptions{},
+		blockdevice.WithKubeConfigPath(cstor.KubeConfigPath),
 	)
-	var cspcBDList []*apis.CStorPoolClusterBlockDevice
-	for _, bd := range bdList.Items {
-		if string(bd.Status.ClaimState) == "Claimed" {
+	Expect(err).To(BeNil(), "while getting blockdeviceList")
+	// Create pools on sparse blockdevices
+	filteredBlockDevices := blockDeviceList.Filter(
+		blockdevice.IsActive(),
+		blockdevice.IsSparse(),
+		blockdevice.IsNonFSType(),
+		blockdevice.IsClaimStateMatched(ndmapis.BlockDeviceUnclaimed),
+	)
+	nodeBlockDevices := filteredBlockDevices.NodeBlockDeviceTopology()
+	Expect(len(nodeBlockDevices)).Should(BeNumerically(">=", poolCount), "while segrigating blockdevices per node")
+	cspcBuild := cspc.NewBuilder().
+		WithGenerateName(cspcName).
+		WithNamespace(openebsNamespace)
+
+	//TODO: Move to some package other than test
+	// Build pool spec configurations
+	poolSpecCount := 0
+	for hostName, blockdevices := range nodeBlockDevices {
+		if len(blockdevices) < minRequiredBD {
 			continue
 		}
-		if nodeName != "" && nodeName != bd.Labels[string(apis.HostNameCPK)] {
-			continue
+		if poolSpecCount == poolCount {
+			break
 		}
-		nodeName = bd.Labels[string(apis.HostNameCPK)]
-		cspcBDList = append(cspcBDList, &apis.CStorPoolClusterBlockDevice{
-			BlockDeviceName: bd.Name,
-		})
+		cspcBDList := []*apis.CStorPoolClusterBlockDevice{}
+		for i, bd := range blockdevices {
+			cspcBDList = append(cspcBDList, &apis.CStorPoolClusterBlockDevice{
+				BlockDeviceName: bd,
+			})
+			if i == minRequiredBD-1 {
+				break
+			}
+		}
+		nodeSelector := map[string]string{string(apis.HostNameCPK): hostName}
+		poolSpecBuilder := poolspec.NewBuilder().
+			WithNodeSelector(nodeSelector).
+			WithCompression("off").
+			WithDefaultRaidGroupType(poolType).
+			WithRaidGroupBuilder(
+				rgrp.NewBuilder().
+					WithCSPCBlockDeviceList(cspcBDList),
+			)
+		if cacheFile != "" {
+			poolSpecBuilder = poolSpecBuilder.WithCacheFilePath(cacheFile)
+		}
+		cspcBuild = cspcBuild.WithPoolSpecBuilder(poolSpecBuilder)
+		poolSpecCount++
 	}
-	nodeSelector := map[string]string{string(apis.HostNameCPK): nodeName}
-	poolspec := poolspec.NewBuilder().
-		WithNodeSelector(nodeSelector).
-		WithCompression("off").
-		WithRaidGroupBuilder(
-			rgrp.NewBuilder().
-				WithType("stripe").
-				WithCSPCBlockDeviceList(cspcBDList),
-		)
-	cspcObj, err = cspc.NewBuilder().
-		WithName(cspcName).
-		WithNamespace("openebs").
-		WithPoolSpecBuilder(poolspec).
-		GetObj()
-	Expect(err).To(BeNil(), "while creating cstorpoolcluster {%s}", cspcName)
+	cspcBuildObj, err := cspcBuild.GetObj()
+	Expect(err).To(BeNil(), "while building cstorpoolcluster")
 
 	By("creating above cstorpoolcluster")
-	cspcObj, err = ops.CSPCClient.WithNamespace("openebs").Create(cspcObj)
+	cspcObj, err = ops.CSPCClient.WithNamespace(openebsNamespace).Create(cspcBuildObj)
 	Expect(err).To(BeNil(),
 		"while creating cspc with prefix {%s}", cspcName)
 
-	By("verifying healthy cstorpool count")
-	cspCount := ops.GetHealthyCSPICount(cspcObj.Name, cstor.PoolCount)
-	Expect(cspCount).To(Equal(cstor.PoolCount),
-		"while checking healthy cstor pool count")
+	By("verifying healthy cstorpoolinstance count")
+	cspCount := ops.GetHealthyCSPICount(cspcObj.Name, poolCount)
+	Expect(cspCount).To(Equal(poolCount),
+		"while checking healthy cstorpoolinstance count")
 }
 
-func CreateAndVerifyPVC() {
+// CreateAndVerifyPVC creates the pvc in provided namespace and
+// verifies pvc bound status
+func CreateAndVerifyPVC(pvcName string, labels map[string]string) {
 	var (
-		err     error
-		pvcName = "cstor-volume-claim"
+		err error
 	)
 	By("building a pvc")
 	pvcObj, err = pvc.NewBuilder().
 		WithName(pvcName).
+		WithLabelsNew(labels).
 		WithNamespace(nsObj.Name).
 		WithStorageClass(scObj.Name).
 		WithAccessModes(accessModes).
@@ -136,29 +187,26 @@ func CreateAndVerifyPVC() {
 		"while checking status equal to bound")
 }
 
-func CreateAndDeployApp() {
+// CreateAndVerifyBulkPVC creates multiple pvcs based on count
+func CreateAndVerifyBulkPVC(pvcPrefixName string, pvcCount int, labels map[string]string) {
+	for i := 0; i < pvcCount; i++ {
+		pvcName := pvcPrefixName + "-" + strconv.Itoa(i)
+		CreateAndVerifyPVC(pvcName, labels)
+	}
+}
+
+// CreateAndDeployApp creates deployment based on arguments and verifies application status
+func CreateAndDeployApp(appName, pvcName string, appLabels map[string]string) {
 	var err error
-	By("building a busybox app pod deployment using above csi cstor volume")
+	By("Building busybox app deployment using above csi cstor volume")
 	deployObj, err = deploy.NewBuilder().
 		WithName(appName).
 		WithNamespace(nsObj.Name).
-		WithLabelsNew(
-			map[string]string{
-				"app": "busybox",
-			},
-		).
-		WithSelectorMatchLabelsNew(
-			map[string]string{
-				"app": "busybox",
-			},
-		).
+		WithLabelsNew(appLabels).
+		WithSelectorMatchLabelsNew(appLabels).
 		WithPodTemplateSpecBuilder(
 			pts.NewBuilder().
-				WithLabelsNew(
-					map[string]string{
-						"app": "busybox",
-					},
-				).
+				WithLabelsNew(appLabels).
 				WithContainerBuilders(
 					container.NewBuilder().
 						WithImage("busybox").
@@ -183,7 +231,7 @@ func CreateAndDeployApp() {
 				WithVolumeBuilders(
 					k8svolume.NewBuilder().
 						WithName("datavol1").
-						WithPVCSource(pvcObj.Name),
+						WithPVCSource(pvcName),
 				),
 		).
 		Build()
@@ -197,10 +245,13 @@ func CreateAndDeployApp() {
 		appName,
 		nsObj.Name,
 	)
+	// Waiting for pod to be spawn by deployment controller
+	_ = ops.IsDeploymentSuccessEventually(deployObj.Namespace, deployObj.Name, *deployObj.Spec.Replicas)
 	By("verifying app pod is running")
+	labelSelector := getLabelSelector(appLabels)
 	appPod, err = ops.PodClient.WithNamespace(nsObj.Name).
 		List(metav1.ListOptions{
-			LabelSelector: "app=busybox",
+			LabelSelector: labelSelector,
 		},
 		)
 	Expect(err).ShouldNot(HaveOccurred(), "while verifying application pod")
@@ -209,11 +260,24 @@ func CreateAndDeployApp() {
 	Expect(status).To(Equal(true), "while checking status of pod {%s}", appPod.Items[0].Name)
 }
 
+// CreateAndDeployBulkApps build and deploy required number of applications
+// deployment
+func CreateAndDeployBulkApps(appPrefixName, pvcPrefixName string, appCount int) {
+	for i := 0; i < appCount; i++ {
+		appName := appPrefixName + "-" + strconv.Itoa(i)
+		pvcName := pvcPrefixName + "-" + strconv.Itoa(i)
+		appLabel := map[string]string{
+			"bulk.app": strconv.Itoa(appCount),
+			"app":      appName,
+		}
+		CreateAndDeployApp(appName, pvcName, appLabel)
+	}
+}
+
+// VerifyVolumeComponents verifies volume related resources
 func VerifyVolumeComponents() {
-	When("VerifyVolumeComponents", func() {
-		It("should verify target pod count as 1", func() { verifyTargetPodCount(1) })
-		It("should verify cstorvolume replica count", func() { verifyCstorVolumeReplicaCount(cstor.ReplicaCount) })
-	})
+	By("should verify target pod count as 1", func() { verifyTargetPodCount(1) })
+	By("should verify cstorvolume replica count", func() { verifyCstorVolumeReplicaCount(cstor.ReplicaCount) })
 }
 
 func verifyTargetPodCount(count int) {
@@ -270,6 +334,29 @@ func deleteAppDeployment() {
 	Expect(err).ShouldNot(HaveOccurred(), "while deleting application pod")
 }
 
+// DeleteBulkApplications delete bulk application
+// based on application label
+func DeleteBulkApplications(appLabel string) {
+	lopts := metav1.ListOptions{
+		LabelSelector: appLabel,
+	}
+	err := ops.DeployClient.
+		WithNamespace(nsObj.Name).
+		DeleteCollection(lopts, &metav1.DeleteOptions{})
+	Expect(err).ShouldNot(HaveOccurred(), "while deleting bulk applications")
+}
+
+// DeleteBulkPVCs delete bulk pvcs based on pvc's label
+func DeleteBulkPVCs(bulkPVCLabel map[string]string) {
+	lopts := metav1.ListOptions{
+		LabelSelector: getLabelSelector(bulkPVCLabel),
+	}
+	err := ops.PVCClient.
+		WithNamespace(nsObj.Name).
+		DeleteCollection(lopts, &metav1.DeleteOptions{})
+	Expect(err).ShouldNot(HaveOccurred(), "while deleting bulk pvc")
+}
+
 func deletePVC() {
 	var err error
 	By("deleting above pvc")
@@ -317,4 +404,18 @@ func expandPVC() {
 	status := ops.VerifyCapacity(pvcName, updatedCapacity)
 	Expect(status).To(Equal(true),
 		"while verifying updated pvc size")
+}
+
+func getLabelSelector(labels map[string]string) string {
+	var labelSelector string
+	count := 0
+	labelsLength := len(labels)
+	for key, value := range labels {
+		labelSelector = labelSelector + key + "=" + value
+		if count < labelsLength-1 {
+			labelSelector = labelSelector + ","
+		}
+		count++
+	}
+	return labelSelector
 }

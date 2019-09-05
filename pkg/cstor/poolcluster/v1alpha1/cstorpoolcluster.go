@@ -42,6 +42,15 @@ type CSPCList struct {
 	items []*CSPC
 }
 
+// DefaultBDCount is a map containing the default blockdevice count of various
+// raid types
+var DefaultBDCount = map[string]int{
+	"mirror": int(apisv1alpha1.MirroredBlockDeviceCountCPV),
+	"stripe": int(apisv1alpha1.StripedBlockDeviceCountCPV),
+	"raidz":  int(apisv1alpha1.RaidzBlockDeviceCountCPV),
+	"raidz2": int(apisv1alpha1.Raidz2BlockDeviceCountCPV),
+}
+
 // Len returns the number of items present
 // in the CSPCList
 func (c *CSPCList) Len() int {

@@ -19,6 +19,8 @@ package v1alpha2
 import (
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	errors "github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 //TODO: While using these packages UnitTest
@@ -99,7 +101,7 @@ func IsSparse() Predicate {
 
 // IsSparse returns true if the block device is of sparse type
 func (bd *BlockDevice) IsSparse() bool {
-	return bd.Object.Spec.Details.DeviceType == string(apis.TypeBlockDeviceCPV)
+	return bd.Object.Spec.Details.DeviceType == string(apis.TypeSparseCPV)
 }
 
 // IsActive filters the block device based on the active status
@@ -124,6 +126,44 @@ func IsClaimed() Predicate {
 // IsClaimed returns true if the block device is claimed
 func (bd *BlockDevice) IsClaimed() bool {
 	return bd.Object.Status.ClaimState == ndm.BlockDeviceClaimed
+}
+
+// IsNonFSType filters the blockdeive based on empty file system
+func IsNonFSType() Predicate {
+	return func(bd *BlockDevice) bool {
+		return bd.IsNonFSType()
+	}
+}
+
+// IsNonFSType returns true if blockdevice filesystem type is empty
+func (bd *BlockDevice) IsNonFSType() bool {
+	return bd.Object.Spec.FileSystem.Type == ""
+}
+
+// IsClaimStateMatched filters the blockdeive based on provided
+// claim state
+func IsClaimStateMatched(claimType ndm.DeviceClaimState) Predicate {
+	return func(bd *BlockDevice) bool {
+		return bd.IsClaimStateMatched(claimType)
+	}
+}
+
+// IsClaimStateMatched return true if blockdeive claim state
+// matches to provided claim state
+func (bd *BlockDevice) IsClaimStateMatched(claimType ndm.DeviceClaimState) bool {
+	return bd.Object.Status.ClaimState == claimType
+}
+
+// GetBlockDeviceList returns BlockDeviceList based on list options
+func GetBlockDeviceList(namespace string,
+	opts metav1.ListOptions,
+	buildOptions ...KubeclientBuildOption) (*BlockDeviceList, error) {
+	bdClient := NewKubeClient(buildOptions...).WithNamespace(namespace)
+	bdcAPIList, err := bdClient.List(opts)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list blockdevices")
+	}
+	return &BlockDeviceList{ObjectList: bdcAPIList}, nil
 }
 
 // IsUsable filters the block device based on usage of disk
@@ -235,4 +275,16 @@ func (bd *BlockDevice) GetPath() string {
 // Len returns the length og BlockDeviceList.
 func (l *BlockDeviceList) Len() int {
 	return len(l.ObjectList.Items)
+}
+
+// NodeBlockDeviceTopology froms map of node name and blockdevices present in
+// that node
+func (l *BlockDeviceList) NodeBlockDeviceTopology() map[string][]string {
+	nodeBlockDevices := map[string][]string{}
+	for _, bdObj := range l.ObjectList.Items {
+		bdObj := bdObj
+		hostName := bdObj.GetLabels()[string(apis.HostNameCPK)]
+		nodeBlockDevices[hostName] = append(nodeBlockDevices[hostName], bdObj.Name)
+	}
+	return nodeBlockDevices
 }
