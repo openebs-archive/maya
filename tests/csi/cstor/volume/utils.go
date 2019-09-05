@@ -44,7 +44,7 @@ func createStorageClass() {
 	)
 	parameters := map[string]string{
 		"replicaCount":     strconv.Itoa(cstor.ReplicaCount),
-		"cstorPoolCluster": cspcObj.Name,
+		"cstorPoolCluster": cspcName,
 		"cas-type":         "cstor",
 	}
 
@@ -79,6 +79,20 @@ func deleteStorageClass() {
 		"while deleting storageclass {%s}", scObj.Name)
 }
 
+var (
+	GetSizeCmd = "df -h | grep \"/mnt/cstore1\" | awk '{print $2}'"
+)
+
+func verifyUpdatedSizeInAppPod() {
+	size := ops.ExecuteCMDEventually(
+		&appPod.Items[0],
+		"busybox",
+		GetSizeCmd,
+	)
+	Expect(size).To(Equal(updatedCapacity),
+		"while verifying updated size in app pod ")
+}
+
 func createAndVerifyCstorPoolCluster() {
 	var (
 		err      error
@@ -86,7 +100,7 @@ func createAndVerifyCstorPoolCluster() {
 	)
 	var cspcBDList []*apis.CStorPoolClusterBlockDevice
 	for _, bd := range bdList.Items {
-		if string(bd.Status.ClaimState) != "UnClaimed" {
+		if string(bd.Status.ClaimState) != "Unclaimed" {
 			continue
 		}
 		if nodeName != "" && nodeName != bd.Labels[string(apis.HostNameCPK)] {
@@ -158,7 +172,14 @@ func createAndVerifyPVC() {
 		"while checking status equal to bound")
 }
 
-func createAndDeployApp() {
+func createDeployVerifyApp() {
+	By("creating and deploying app pod", createAndDeployAppPod)
+	createAndDeployAppPod()
+	time.Sleep(30 * time.Second)
+	By("verifying app pod is running", verifyAppPodRunning)
+}
+
+func createAndDeployAppPod() {
 	var err error
 	By("building a busybox app pod deployment using above csi cstor volume")
 	deployObj, err = deploy.NewBuilder().
@@ -219,8 +240,10 @@ func createAndDeployApp() {
 		appName,
 		nsObj.Name,
 	)
-	time.Sleep(30 * time.Second)
-	By("verifying app pod is running")
+
+}
+func verifyAppPodRunning() {
+	var err error
 	appPod, err = ops.PodClient.WithNamespace(nsObj.Name).
 		List(metav1.ListOptions{
 			LabelSelector: "app=busybox",
@@ -319,6 +342,7 @@ func verifyVolumeComponentsDeletion() {
 	cvCount := ops.GetCstorVolumeCountEventually(
 		openebsNamespace, CstorVolumeLabel, 0)
 	Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
+	By("Verifying cstorvolume replica count", func() { verifyCstorVolumeReplicaCount(0) })
 }
 
 func expandPVC() {

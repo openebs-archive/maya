@@ -243,7 +243,7 @@ func (k *Kubeclient) Create(pvc *corev1.PersistentVolumeClaim) (*corev1.Persiste
 	return k.create(cli, k.namespace, pvc)
 }
 
-// Create creates a pvc in specified namespace in kubernetes cluster
+// Update updates a pvc in specified namespace in kubernetes cluster
 func (k *Kubeclient) Update(pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
 	if pvc == nil {
 		return nil, errors.New("failed to update pvc: nil pvc object")

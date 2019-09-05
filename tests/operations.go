@@ -391,7 +391,11 @@ func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
 
 // ExecuteCMDEventually executes the command on pod container
 // and returns stdout
-func (ops *Operations) ExecuteCMDEventually(podObj *corev1.Pod, cmd string) string {
+func (ops *Operations) ExecuteCMDEventually(
+	podObj *corev1.Pod,
+	containerName,
+	cmd string,
+) string {
 	var err error
 	output := &pod.ExecOutput{}
 	podName := podObj.Name

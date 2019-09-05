@@ -18,33 +18,36 @@ package volume
 
 import (
 	. "github.com/onsi/ginkgo"
+	"github.com/openebs/maya/tests/cstor"
 )
 
 var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING WITH APP POD RESTART", func() {
-	BeforeEach(prepareForVolumeCreationTest)
-	AfterEach(cleanupAfterVolumeCreationTest)
+	BeforeEach(prepareForCVRReconcilationTest)
+	AfterEach(cleanupAfterCVRReconcilationTest)
 
 	Context("App is deployed and restarted on pvc with replica count 1", func() {
-		It("Should run Volume Creation Test", volumeCreationTest)
+		It("Should run Volume Creation Test", CVRReconcilationTest)
 	})
 })
 
-func volumeCreationTest() {
+func CVRReconcilationTest() {
 	By("creating and verifying PVC bound status", createAndVerifyPVC)
-	By("Creating and deploying app pod", createDeployVerifyApp)
-	By("Verifying the presence of components related to volume", verifyVolumeComponents)
-	By("Restarting app pod and verifying app pod running status", restartAppPodAndVerifyRunningStatus)
+	By("Creating and deploying app pod", createAndDeployAppPod)
+	By("should verify target pod count as 1", func() { verifyTargetPodCount(1) })
+	By("Verifying cstorvolume replica count", func() { verifyCstorVolumeReplicaCount(0) })
+	By("Creating and verifying cstorpoolcluster", createAndVerifyCstorPoolCluster)
+	By("Verifying cstorvolume replica count", func() { verifyCstorVolumeReplicaCount(cstor.ReplicaCount) })
+	By("Creating and deploying app pod", verifyAppPodRunning)
 	By("Deleting application deployment", deleteAppDeployment)
 	By("Deleting pvc", deletePVC)
 	By("Verifying deletion of components related to volume", verifyVolumeComponentsDeletion)
+	By("Deleting cstorpoolcluster", deleteCstorPoolCluster)
 }
 
-func prepareForVolumeCreationTest() {
-	By("Creating and verifying cstorpoolcluster", createAndVerifyCstorPoolCluster)
+func prepareForCVRReconcilationTest() {
 	By("Creating storage class", createStorageClass)
 }
 
-func cleanupAfterVolumeCreationTest() {
-	By("Deleting cstorpoolcluster", deleteCstorPoolCluster)
+func cleanupAfterCVRReconcilationTest() {
 	By("Deleting storage class", deleteStorageClass)
 }
