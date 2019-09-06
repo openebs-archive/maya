@@ -365,9 +365,9 @@ func (j *jivaVolumeOptions) preupgrade(pvName, openebsNamespace string) error {
 		return uerr
 	}
 
+	statusObj.Phase = utask.StepErrored
 	j.ns, err = getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
 	if err != nil {
-		statusObj.Phase = utask.StepErrored
 		statusObj.Message = "failed to get namespace for pvc deployments"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
 		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
@@ -421,10 +421,10 @@ func (j *jivaVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 		return uerr
 	}
 
+	statusObj.Phase = utask.StepErrored
 	// replica patch
 	err = patchReplica(j.replicaObj, j.ns)
 	if err != nil {
-		statusObj.Phase = utask.StepErrored
 		statusObj.Message = "failed to patch replica depoyment"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
 		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
@@ -453,10 +453,10 @@ func (j *jivaVolumeOptions) targetUpgrade(pvName, openebsNamespace string) error
 		return uerr
 	}
 
+	statusObj.Phase = utask.StepErrored
 	// controller patch
 	err = patchController(j.controllerObj, j.ns)
 	if err != nil {
-		statusObj.Phase = utask.StepErrored
 		statusObj.Message = "failed to patch target depoyment"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
 		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
@@ -498,10 +498,10 @@ func (j *jivaVolumeOptions) verify(controllerLabel, openebsNamespace string) err
 		return uerr
 	}
 
+	statusObj.Phase = utask.StepErrored
 	// Verify synced replicas
 	err = validateSync(controllerLabel, j.ns)
 	if err != nil {
-		statusObj.Phase = utask.StepErrored
 		statusObj.Message = "failed to verify synced replicas"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
 		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)

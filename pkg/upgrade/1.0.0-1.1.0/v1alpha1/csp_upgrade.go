@@ -198,9 +198,9 @@ func (c *cstorCSPOptions) preUpgrade(cspName, openebsNamespace string) error {
 		return uerr
 	}
 
+	statusObj.Phase = utask.StepErrored
 	c.cspObj, err = getCSPObject(cspName)
 	if err != nil {
-		statusObj.Phase = utask.StepErrored
 		statusObj.Message = "failed to verify cstor pool"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
 		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
@@ -240,9 +240,9 @@ func (c *cstorCSPOptions) poolInstanceUpgarde(openebsNamespace string) error {
 		return uerr
 	}
 
+	statusObj.Phase = utask.StepErrored
 	err = patchCSPDeploy(c.cspDeployObj, openebsNamespace)
 	if err != nil {
-		statusObj.Phase = utask.StepErrored
 		statusObj.Message = "failed to patch cstor pool deployment"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
 		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)

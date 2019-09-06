@@ -25,9 +25,9 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	upgrade100to120 "github.com/openebs/maya/pkg/upgrade/1.0.0-1.1.0/v1alpha1"
 	utask "github.com/openebs/maya/pkg/upgrade/v1alpha2"
+	errors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -142,7 +142,7 @@ func (u *UpgradeOptions) RunResourceUpgrade(cmd *cobra.Command) error {
 			u.imageURLPrefix,
 			u.toVersionImageTag)
 		if err != nil {
-			return errors.Wrapf(err, "Failed to upgrade %v %v:", u.resourceKind, u.resource.name)
+			return errors.Wrapf(err, "Failed to upgrade %v %v", u.resourceKind, u.resource.name)
 		}
 	default:
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)

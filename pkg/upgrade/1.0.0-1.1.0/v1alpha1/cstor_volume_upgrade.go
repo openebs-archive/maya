@@ -275,6 +275,7 @@ func (c *cstorVolumeOptions) preUpgrade(pvName, openebsNamespace string) error {
 		return uerr
 	}
 
+	statusObj.Phase = utask.StepErrored
 	c.ns, err = getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
 	if err != nil {
 		statusObj.Message = "failed to get namespace for pvc deployments"
@@ -330,9 +331,9 @@ func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) erro
 		return uerr
 	}
 
+	statusObj.Phase = utask.StepErrored
 	err = patchTargetDeploy(c.targetDeployObj, c.ns)
 	if err != nil {
-		statusObj.Phase = utask.StepErrored
 		statusObj.Message = "failed to patch target deployment"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
 		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
@@ -383,10 +384,10 @@ func (c *cstorVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 		return uerr
 	}
 
+	statusObj.Phase = utask.StepErrored
 	for _, cvrObj := range c.cvrList.Items {
 		err = patchCVR(cvrObj.Name, openebsNamespace)
 		if err != nil {
-			statusObj.Phase = utask.StepErrored
 			statusObj.Message = "failed to patch cstor volume replica"
 			statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
 			c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
