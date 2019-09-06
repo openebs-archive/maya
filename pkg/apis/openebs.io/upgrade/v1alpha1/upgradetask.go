@@ -163,6 +163,8 @@ const (
 	Verify UpgradeStep = "VERIFY"
 	// Rollback is the step to rollback to previous version if upgrade fails
 	Rollback UpgradeStep = "ROLLBACK"
+	// PoolInstanceUpgrade is the step to verify resource before upgrade
+	PoolInstanceUpgrade UpgradeStep = "POOL_INSTANCE_UPGRADE"
 )
 
 // StepPhase defines the phase of a UpgradeStep

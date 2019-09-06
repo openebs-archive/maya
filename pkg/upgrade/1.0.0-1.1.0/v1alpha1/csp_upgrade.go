@@ -231,9 +231,9 @@ func (c *cstorCSPOptions) preUpgrade(cspName, openebsNamespace string) error {
 	return nil
 }
 
-func (c *cstorCSPOptions) targetUpgarde(openebsNamespace string) error {
+func (c *cstorCSPOptions) poolInstanceUpgarde(openebsNamespace string) error {
 	var err, uerr error
-	statusObj := utask.UpgradeDetailedStatuses{Step: utask.TargetUpgrade}
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.PoolInstanceUpgrade}
 	statusObj.Phase = utask.StepWaiting
 	c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
@@ -264,7 +264,7 @@ func (c *cstorCSPOptions) targetUpgarde(openebsNamespace string) error {
 	}
 
 	statusObj.Phase = utask.StepCompleted
-	statusObj.Message = "Target upgrade was successful"
+	statusObj.Message = "Pool instance upgrade was successful"
 	statusObj.Reason = ""
 	c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
@@ -283,7 +283,7 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		return options.utaskObj, err
 	}
 
-	err = options.targetUpgarde(openebsNamespace)
+	err = options.poolInstanceUpgarde(openebsNamespace)
 	if err != nil {
 		return options.utaskObj, err
 	}
