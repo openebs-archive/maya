@@ -233,8 +233,41 @@ func getOrCreateUpgradeTask(kind, name, openebsNamespace string) (*apis.UpgradeT
 	if name == "" {
 		return nil, errors.Errorf("missing name for upgradeTask")
 	}
+	utaskObj = buildUpgradeTask(kind, name, openebsNamespace)
+	// the below logic first tries to fetch the CR if not found
+	// then creates a new CR
+	utaskObj1, err1 := utaskClient.WithNamespace(openebsNamespace).
+		Get(utaskObj.Name, metav1.GetOptions{})
+	if err1 != nil {
+		if k8serror.IsNotFound(err1) {
+			utaskObj, err = createUtask(utaskObj, openebsNamespace)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err1
+		}
+	} else {
+		utaskObj = utaskObj1
+	}
+
+	if utaskObj.Status.StartTime.IsZero() {
+		utaskObj.Status.Phase = apis.UpgradeStarted
+		utaskObj.Status.StartTime = metav1.Now()
+	}
+
+	utaskObj.Status.UpgradeDetailedStatuses = []apis.UpgradeDetailedStatuses{}
+	utaskObj, err = utaskClient.WithNamespace(openebsNamespace).
+		Update(utaskObj)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update upgradetask")
+	}
+	return utaskObj, nil
+}
+
+func buildUpgradeTask(kind, name, openebsNamespace string) *apis.UpgradeTask {
 	// TODO builder
-	utaskObj = &apis.UpgradeTask{
+	utaskObj := &apis.UpgradeTask{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: openebsNamespace,
 		},
@@ -272,33 +305,5 @@ func getOrCreateUpgradeTask(kind, name, openebsNamespace string) (*apis.UpgradeT
 			},
 		}
 	}
-	// the below logic first tries to fetch the CR if not found
-	// then creates a new CR
-	utaskObj1, err1 := utaskClient.WithNamespace(openebsNamespace).
-		Get(utaskObj.Name, metav1.GetOptions{})
-	if err1 != nil {
-		if k8serror.IsNotFound(err1) {
-			utaskObj, err = createUtask(utaskObj, openebsNamespace)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, err1
-		}
-	} else {
-		utaskObj = utaskObj1
-	}
-
-	if utaskObj.Status.StartTime.IsZero() {
-		utaskObj.Status.Phase = apis.UpgradeStarted
-		utaskObj.Status.StartTime = metav1.Now()
-	}
-
-	utaskObj.Status.UpgradeDetailedStatuses = []apis.UpgradeDetailedStatuses{}
-	utaskObj, err = utaskClient.WithNamespace(openebsNamespace).
-		Update(utaskObj)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to update upgradetask")
-	}
-	return utaskObj, nil
+	return utaskObj
 }

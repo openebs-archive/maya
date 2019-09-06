@@ -70,31 +70,9 @@ func Exec(fromVersion, toVersion, kind, name,
 	urlPrefix = urlprefix
 	imageTag = imagetag
 
-	mayaLabels := "name=maya-apiserver"
-	mayaPods, err := podClient.WithNamespace(openebsNamespace).
-		List(
-			metav1.ListOptions{
-				LabelSelector: mayaLabels,
-			},
-		)
+	err := verifyMayaApiserver(openebsNamespace)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get maya-apiserver deployment")
-	}
-	if len(mayaPods.Items) == 0 {
-		return errors.Errorf(
-			"failed to get maya-apiserver deployment in %s",
-			openebsNamespace,
-		)
-	}
-	if len(mayaPods.Items) > 1 {
-		return errors.Errorf("control plane upgrade is not complete try after some time")
-	}
-	if mayaPods.Items[0].Labels["openebs.io/version"] != upgradeVersion {
-		return errors.Errorf(
-			"maya-apiserver deployment is in %s but required version is %s",
-			mayaPods.Items[0].Labels["openebs.io/version"],
-			upgradeVersion,
-		)
+		return err
 	}
 
 	switch kind {
@@ -163,4 +141,34 @@ func getBackoffLimit(openebsNamespace string) (int, error) {
 	}
 	backoffLimit := int(*jobObj.Spec.BackoffLimit)
 	return backoffLimit, nil
+}
+
+func verifyMayaApiserver(openebsNamespace string) error {
+	mayaLabels := "name=maya-apiserver"
+	mayaPods, err := podClient.WithNamespace(openebsNamespace).
+		List(
+			metav1.ListOptions{
+				LabelSelector: mayaLabels,
+			},
+		)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get maya-apiserver deployment")
+	}
+	if len(mayaPods.Items) == 0 {
+		return errors.Errorf(
+			"failed to get maya-apiserver deployment in %s",
+			openebsNamespace,
+		)
+	}
+	if len(mayaPods.Items) > 1 {
+		return errors.Errorf("control plane upgrade is not complete try after some time")
+	}
+	if mayaPods.Items[0].Labels["openebs.io/version"] != upgradeVersion {
+		return errors.Errorf(
+			"maya-apiserver deployment is in %s but required version is %s",
+			mayaPods.Items[0].Labels["openebs.io/version"],
+			upgradeVersion,
+		)
+	}
+	return nil
 }
