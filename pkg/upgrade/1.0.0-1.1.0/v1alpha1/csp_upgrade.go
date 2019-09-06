@@ -190,34 +190,20 @@ func (c *cstorCSPOptions) preUpgrade(cspName, openebsNamespace string) error {
 		return uerr
 	}
 
-	c.utaskObj, uerr = updateUpgradeDetailedStatus(
-		c.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.PreUpgrade,
-			Status: utask.Status{
-				Phase: utask.StepWaiting,
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.PreUpgrade}
+
+	statusObj.Phase = utask.StepWaiting
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
 
 	c.cspObj, err = getCSPObject(cspName)
 	if err != nil {
-		c.utaskObj, uerr = updateUpgradeDetailedStatus(
-			c.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.PreUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to verify cstor pool",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Phase = utask.StepErrored
+		statusObj.Message = "failed to verify cstor pool"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
@@ -226,35 +212,19 @@ func (c *cstorCSPOptions) preUpgrade(cspName, openebsNamespace string) error {
 
 	c.cspDeployObj, err = getCSPDeployment(cspName, openebsNamespace)
 	if err != nil {
-		c.utaskObj, uerr = updateUpgradeDetailedStatus(
-			c.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.PreUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to verify cstor pool deployment",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Message = "failed to verify cstor pool deployment"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
 		return err
 	}
 
-	c.utaskObj, uerr = updateUpgradeDetailedStatus(
-		c.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.PreUpgrade,
-			Status: utask.Status{
-				Phase:   utask.StepCompleted,
-				Message: "Pre-upgrade steps were successful",
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj.Phase = utask.StepCompleted
+	statusObj.Message = "Pre-upgrade steps were successful"
+	statusObj.Reason = ""
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
@@ -263,34 +233,19 @@ func (c *cstorCSPOptions) preUpgrade(cspName, openebsNamespace string) error {
 
 func (c *cstorCSPOptions) targetUpgarde(openebsNamespace string) error {
 	var err, uerr error
-	c.utaskObj, uerr = updateUpgradeDetailedStatus(
-		c.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.TargetUpgrade,
-			Status: utask.Status{
-				Phase: utask.StepWaiting,
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.TargetUpgrade}
+	statusObj.Phase = utask.StepWaiting
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
 
 	err = patchCSPDeploy(c.cspDeployObj, openebsNamespace)
 	if err != nil {
-		c.utaskObj, uerr = updateUpgradeDetailedStatus(
-			c.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.TargetUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to patch cstor pool deployment",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Phase = utask.StepErrored
+		statusObj.Message = "failed to patch cstor pool deployment"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
@@ -299,35 +254,19 @@ func (c *cstorCSPOptions) targetUpgarde(openebsNamespace string) error {
 
 	err = patchCSP(c.cspObj)
 	if err != nil {
-		c.utaskObj, uerr = updateUpgradeDetailedStatus(
-			c.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.TargetUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to patch cstor pool",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Message = "failed to patch cstor pool"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
 		return err
 	}
 
-	c.utaskObj, uerr = updateUpgradeDetailedStatus(
-		c.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.TargetUpgrade,
-			Status: utask.Status{
-				Phase:   utask.StepCompleted,
-				Message: "Target upgrade was successful",
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj.Phase = utask.StepCompleted
+	statusObj.Message = "Target upgrade was successful"
+	statusObj.Reason = ""
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}

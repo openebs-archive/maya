@@ -357,34 +357,20 @@ func (j *jivaVolumeOptions) preupgrade(pvName, openebsNamespace string) error {
 		return uerr
 	}
 
-	j.utaskObj, uerr = updateUpgradeDetailedStatus(
-		j.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.PreUpgrade,
-			Status: utask.Status{
-				Phase: utask.StepWaiting,
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.PreUpgrade}
+
+	statusObj.Phase = utask.StepWaiting
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
 
 	j.ns, err = getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
 	if err != nil {
-		j.utaskObj, uerr = updateUpgradeDetailedStatus(
-			j.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.PreUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to get namespace for pvc deployments",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Phase = utask.StepErrored
+		statusObj.Message = "failed to get namespace for pvc deployments"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
@@ -394,18 +380,9 @@ func (j *jivaVolumeOptions) preupgrade(pvName, openebsNamespace string) error {
 	// fetching replica deployment details
 	j.replicaObj, err = getReplica(replicaLabel, j.ns)
 	if err != nil {
-		j.utaskObj, uerr = updateUpgradeDetailedStatus(
-			j.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.PreUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to get replica details",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Message = "failed to get replica details"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
@@ -416,35 +393,19 @@ func (j *jivaVolumeOptions) preupgrade(pvName, openebsNamespace string) error {
 	// fetching controller deployment details
 	j.controllerObj, err = getController(controllerLabel, j.ns)
 	if err != nil {
-		j.utaskObj, uerr = updateUpgradeDetailedStatus(
-			j.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.PreUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to get target details",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Message = "failed to get target details"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
 		return err
 	}
 
-	j.utaskObj, uerr = updateUpgradeDetailedStatus(
-		j.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.PreUpgrade,
-			Status: utask.Status{
-				Phase:   utask.StepCompleted,
-				Message: "Pre-upgrade steps were successful",
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj.Phase = utask.StepCompleted
+	statusObj.Message = "Pre-upgrade steps were successful"
+	statusObj.Reason = ""
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
@@ -453,16 +414,9 @@ func (j *jivaVolumeOptions) preupgrade(pvName, openebsNamespace string) error {
 
 func (j *jivaVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 	var err, uerr error
-	j.utaskObj, uerr = updateUpgradeDetailedStatus(
-		j.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.ReplicaUpgrade,
-			Status: utask.Status{
-				Phase: utask.StepWaiting,
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.ReplicaUpgrade}
+	statusObj.Phase = utask.StepWaiting
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
@@ -470,35 +424,20 @@ func (j *jivaVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 	// replica patch
 	err = patchReplica(j.replicaObj, j.ns)
 	if err != nil {
-		j.utaskObj, uerr = updateUpgradeDetailedStatus(
-			j.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.ReplicaUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to patch replica depoyment",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Phase = utask.StepErrored
+		statusObj.Message = "failed to patch replica depoyment"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
 		return err
 	}
 
-	j.utaskObj, uerr = updateUpgradeDetailedStatus(
-		j.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.ReplicaUpgrade,
-			Status: utask.Status{
-				Phase:   utask.StepCompleted,
-				Message: "Replica upgrade was successful",
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj.Phase = utask.StepCompleted
+	statusObj.Message = "Replica upgrade was successful"
+	statusObj.Reason = ""
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
@@ -507,16 +446,9 @@ func (j *jivaVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 
 func (j *jivaVolumeOptions) targetUpgrade(pvName, openebsNamespace string) error {
 	var err, uerr error
-	j.utaskObj, uerr = updateUpgradeDetailedStatus(
-		j.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.TargetUpgrade,
-			Status: utask.Status{
-				Phase: utask.StepWaiting,
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.TargetUpgrade}
+	statusObj.Phase = utask.StepWaiting
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
@@ -524,18 +456,10 @@ func (j *jivaVolumeOptions) targetUpgrade(pvName, openebsNamespace string) error
 	// controller patch
 	err = patchController(j.controllerObj, j.ns)
 	if err != nil {
-		j.utaskObj, uerr = updateUpgradeDetailedStatus(
-			j.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.TargetUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to patch target depoyment",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Phase = utask.StepErrored
+		statusObj.Message = "failed to patch target depoyment"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
@@ -546,35 +470,19 @@ func (j *jivaVolumeOptions) targetUpgrade(pvName, openebsNamespace string) error
 
 	err = patchService(serviceLabel, j.ns)
 	if err != nil {
-		j.utaskObj, uerr = updateUpgradeDetailedStatus(
-			j.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.TargetUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to patch target service",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Message = "failed to patch target service"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
 		return err
 	}
 
-	j.utaskObj, uerr = updateUpgradeDetailedStatus(
-		j.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.TargetUpgrade,
-			Status: utask.Status{
-				Phase:   utask.StepCompleted,
-				Message: "Target upgrade was successful",
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj.Phase = utask.StepCompleted
+	statusObj.Message = "Target upgrade was successful"
+	statusObj.Reason = ""
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
@@ -583,53 +491,30 @@ func (j *jivaVolumeOptions) targetUpgrade(pvName, openebsNamespace string) error
 
 func (j *jivaVolumeOptions) verify(controllerLabel, openebsNamespace string) error {
 	var err, uerr error
-	j.utaskObj, uerr = updateUpgradeDetailedStatus(
-		j.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.Verify,
-			Status: utask.Status{
-				Phase: utask.StepWaiting,
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.Verify}
+	statusObj.Phase = utask.StepWaiting
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
 
 	// Verify synced replicas
 	err = validateSync(controllerLabel, j.ns)
-
 	if err != nil {
-		j.utaskObj, uerr = updateUpgradeDetailedStatus(
-			j.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.Verify,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to verify synced replicas",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Phase = utask.StepErrored
+		statusObj.Message = "failed to verify synced replicas"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
 		return err
 	}
 
-	j.utaskObj, uerr = updateUpgradeDetailedStatus(
-		j.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.Verify,
-			Status: utask.Status{
-				Phase:   utask.StepCompleted,
-				Message: "Replica sync was successful",
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj.Phase = utask.StepCompleted
+	statusObj.Message = "Replica sync was successful"
+	statusObj.Reason = ""
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}

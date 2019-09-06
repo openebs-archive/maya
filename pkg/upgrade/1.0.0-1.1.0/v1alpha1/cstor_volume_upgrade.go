@@ -35,18 +35,7 @@ type cstorTargetPatchDetails struct {
 	UpgradeVersion, ImageTag, IstgtImage, MExporterImage, VolumeMgmtImage string
 }
 
-func verifyCSPVersion(pvLabel, namespace string) error {
-	cvrList, err := cvrClient.WithNamespace(namespace).List(
-		metav1.ListOptions{
-			LabelSelector: pvLabel,
-		},
-	)
-	if err != nil {
-		return errors.Wrapf(err, "failed to list cvr for %s", pvLabel)
-	}
-	if len(cvrList.Items) == 0 {
-		return errors.Errorf("no cvr found for %s in %s", pvLabel, namespace)
-	}
+func verifyCSPVersion(cvrList *apis.CStorVolumeReplicaList, namespace string) error {
 	for _, cvrObj := range cvrList.Items {
 		cspName := cvrObj.Labels["cstorpool.openebs.io/name"]
 		if cspName == "" {
@@ -252,6 +241,10 @@ func getCVRList(pvLabel, openebsNamespace string) (*apis.CStorVolumeReplicaList,
 			return nil, errors.Errorf("missing cvr name for %v", cvrObj)
 		}
 	}
+	err = verifyCSPVersion(cvrList, openebsNamespace)
+	if err != nil {
+		return nil, err
+	}
 	return cvrList, nil
 }
 
@@ -274,54 +267,19 @@ func (c *cstorVolumeOptions) preUpgrade(pvName, openebsNamespace string) error {
 		return uerr
 	}
 
-	c.utaskObj, uerr = updateUpgradeDetailedStatus(
-		c.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.PreUpgrade,
-			Status: utask.Status{
-				Phase: utask.StepWaiting,
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.PreUpgrade}
+
+	statusObj.Phase = utask.StepWaiting
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
 
-	err = verifyCSPVersion(pvLabel, openebsNamespace)
-	if err != nil {
-		c.utaskObj, uerr = updateUpgradeDetailedStatus(
-			c.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.PreUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to verify csp for cstor volume",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
-		if uerr != nil && isENVPresent {
-			return uerr
-		}
-		return err
-	}
-
 	c.ns, err = getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
 	if err != nil {
-		c.utaskObj, uerr = updateUpgradeDetailedStatus(
-			c.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.PreUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to get namespace for pvc deployments",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Message = "failed to get namespace for pvc deployments"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
@@ -330,18 +288,9 @@ func (c *cstorVolumeOptions) preUpgrade(pvName, openebsNamespace string) error {
 
 	c.targetDeployObj, err = getDeployment(targetLabel, c.ns)
 	if err != nil {
-		c.utaskObj, uerr = updateUpgradeDetailedStatus(
-			c.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.PreUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to get target details",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Message = "failed to get target details"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
@@ -350,34 +299,18 @@ func (c *cstorVolumeOptions) preUpgrade(pvName, openebsNamespace string) error {
 
 	c.cvrList, err = getCVRList(pvLabel, openebsNamespace)
 	if err != nil {
-		c.utaskObj, uerr = updateUpgradeDetailedStatus(
-			c.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.PreUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to get replica details",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Message = "failed to get replica details"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
 		return err
 	}
-	c.utaskObj, uerr = updateUpgradeDetailedStatus(
-		c.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.PreUpgrade,
-			Status: utask.Status{
-				Phase:   utask.StepCompleted,
-				Message: "Pre-upgrade steps were successful",
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj.Phase = utask.StepCompleted
+	statusObj.Message = "Pre-upgrade steps were successful"
+	statusObj.Reason = ""
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
@@ -390,34 +323,19 @@ func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) erro
 		pvLabel            = "openebs.io/persistent-volume=" + pvName
 		targetServiceLabel = pvLabel + ",openebs.io/target-service=cstor-target-svc"
 	)
-	c.utaskObj, uerr = updateUpgradeDetailedStatus(
-		c.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.TargetUpgrade,
-			Status: utask.Status{
-				Phase: utask.StepWaiting,
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.TargetUpgrade}
+	statusObj.Phase = utask.StepWaiting
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
 
 	err = patchTargetDeploy(c.targetDeployObj, c.ns)
 	if err != nil {
-		c.utaskObj, uerr = updateUpgradeDetailedStatus(
-			c.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.TargetUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to patch target deployment",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Phase = utask.StepErrored
+		statusObj.Message = "failed to patch target deployment"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
@@ -426,18 +344,9 @@ func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) erro
 
 	err = patchService(targetServiceLabel, c.ns)
 	if err != nil {
-		c.utaskObj, uerr = updateUpgradeDetailedStatus(
-			c.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.TargetUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to patch target service",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Message = "failed to patch target service"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
@@ -446,35 +355,19 @@ func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) erro
 
 	err = patchCV(pvLabel, c.ns)
 	if err != nil {
-		c.utaskObj, uerr = updateUpgradeDetailedStatus(
-			c.utaskObj,
-			utask.UpgradeDetailedStatuses{
-				Step: utask.TargetUpgrade,
-				Status: utask.Status{
-					Phase:   utask.StepErrored,
-					Message: "failed to patch cstor volume",
-					Reason:  strings.Replace(err.Error(), ":", "", -1),
-				},
-			},
-			openebsNamespace,
-		)
+		statusObj.Message = "failed to patch cstor volume"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
 		return err
 	}
 
-	c.utaskObj, uerr = updateUpgradeDetailedStatus(
-		c.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.TargetUpgrade,
-			Status: utask.Status{
-				Phase:   utask.StepCompleted,
-				Message: "Target upgrade was successful",
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj.Phase = utask.StepCompleted
+	statusObj.Message = "Target upgrade was successful"
+	statusObj.Reason = ""
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
@@ -483,16 +376,9 @@ func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) erro
 
 func (c *cstorVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 	var uerr, err error
-	c.utaskObj, uerr = updateUpgradeDetailedStatus(
-		c.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.ReplicaUpgrade,
-			Status: utask.Status{
-				Phase: utask.StepWaiting,
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.ReplicaUpgrade}
+	statusObj.Phase = utask.StepWaiting
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
@@ -500,18 +386,10 @@ func (c *cstorVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 	for _, cvrObj := range c.cvrList.Items {
 		err = patchCVR(cvrObj.Name, openebsNamespace)
 		if err != nil {
-			c.utaskObj, uerr = updateUpgradeDetailedStatus(
-				c.utaskObj,
-				utask.UpgradeDetailedStatuses{
-					Step: utask.ReplicaUpgrade,
-					Status: utask.Status{
-						Phase:   utask.StepErrored,
-						Message: "failed to patch cstor volume replica",
-						Reason:  strings.Replace(err.Error(), ":", "", -1),
-					},
-				},
-				openebsNamespace,
-			)
+			statusObj.Phase = utask.StepErrored
+			statusObj.Message = "failed to patch cstor volume replica"
+			statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+			c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 			if uerr != nil && isENVPresent {
 				return uerr
 			}
@@ -519,17 +397,10 @@ func (c *cstorVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 		}
 	}
 
-	c.utaskObj, uerr = updateUpgradeDetailedStatus(
-		c.utaskObj,
-		utask.UpgradeDetailedStatuses{
-			Step: utask.ReplicaUpgrade,
-			Status: utask.Status{
-				Phase:   utask.StepCompleted,
-				Message: "Replica upgrade was successful",
-			},
-		},
-		openebsNamespace,
-	)
+	statusObj.Phase = utask.StepCompleted
+	statusObj.Message = "Replica upgrade was successful"
+	statusObj.Reason = ""
+	c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
