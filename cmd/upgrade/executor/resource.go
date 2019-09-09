@@ -53,15 +53,17 @@ func NewUpgradeResourceJob() *cobra.Command {
 		Long:    resourceUpgradeCmdHelpText,
 		Example: `upgrade resource`,
 		Run: func(cmd *cobra.Command, args []string) {
-			upgradeTaskCRName := getUpgradeTaskLabel()
+			upgradeTaskLabel := getUpgradeTaskLabel()
 			openebsNamespace := getOpenEBSNamespace()
 			upgradeTaskList, err := utask.NewKubeClient().
 				WithNamespace(openebsNamespace).
 				List(metav1.ListOptions{
-					LabelSelector: upgradeTaskCRName,
+					LabelSelector: upgradeTaskLabel,
 				})
 			util.CheckErr(err, util.Fatal)
-
+			if len(upgradeTaskList.Items) == 0 {
+				util.Fatal("No resource found for given label")
+			}
 			for _, cr := range upgradeTaskList.Items {
 				util.CheckErr(options.InitializeFromUpgradeTaskResource(
 					cr, cmd), util.Fatal)
