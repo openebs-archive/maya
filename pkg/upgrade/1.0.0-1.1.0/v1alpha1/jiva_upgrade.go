@@ -29,6 +29,7 @@ import (
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 
@@ -507,6 +508,10 @@ func (j *jivaVolumeOptions) verify(controllerLabel, openebsNamespace string) err
 		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
+		}
+		if k8serror.IsForbidden(err) {
+			glog.Warningf("failed to verify replica sync : %v", err)
+			return nil
 		}
 		return err
 	}
