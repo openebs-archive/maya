@@ -503,14 +503,14 @@ func (j *jivaVolumeOptions) verify(controllerLabel, openebsNamespace string) err
 	// Verify synced replicas
 	err = validateSync(controllerLabel, j.ns)
 	if err != nil {
-		statusObj.Message = "failed to verify synced replicas"
+		statusObj.Message = "failed to verify synced replicas. Please check it manually using the steps mentioned in https://docs.openebs.io/docs/next/mayactl.html"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
 		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
 		if k8serror.IsForbidden(err) {
-			glog.Warningf("failed to verify replica sync : %v", err)
+			glog.Warningf("failed to verify replica sync : %v\n Please check it manually using the steps mentioned in https://docs.openebs.io/docs/next/mayactl.html", err)
 			return nil
 		}
 		return err
