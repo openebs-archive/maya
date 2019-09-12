@@ -29,6 +29,6 @@ func getOpenEBSNamespace() string {
 	return menv.Get(menv.OpenEBSNamespace)
 }
 
-func getUpgradeTaskCRName() string {
-	return menv.Get("UPGRADE_TASK")
+func getUpgradeTaskLabel() string {
+	return menv.Get("UPGRADE_TASK_LABEL")
 }

@@ -17,13 +17,19 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
+	"encoding/json"
+	"strconv"
+	"strings"
 	"text/template"
 
-	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
-
+	"github.com/golang/glog"
+	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
+	jivaClient "github.com/openebs/maya/pkg/client/jiva"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 
@@ -194,9 +200,9 @@ func patchReplica(replicaObj *replicaDetails, namespace string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch replica deployment")
 		}
-		fmt.Println(replicaObj.name, " patched")
+		glog.Infof("%s patched", replicaObj.name)
 	} else {
-		fmt.Printf("replica deployment already in %s version\n", upgradeVersion)
+		glog.Infof("replica deployment already in %s version", upgradeVersion)
 	}
 	return nil
 }
@@ -223,9 +229,9 @@ func patchController(controllerObj *controllerDetails, namespace string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch replica deployment")
 		}
-		fmt.Println(controllerObj.name, " patched")
+		glog.Infof("%s patched", controllerObj.name)
 	} else {
-		fmt.Printf("controller deployment already in %s version\n", upgradeVersion)
+		glog.Infof("controller deployment already in %s version\n", upgradeVersion)
 	}
 	return nil
 }
@@ -275,52 +281,285 @@ func getPVCDeploymentsNamespace(
 	return ns, nil
 }
 
-func jivaUpgrade(pvName, openebsNamespace string) error {
+func validateSync(ctrlLabel, namespace string) error {
+	glog.Infof("Verifying replica sync")
+	quorum := false
+	ctrlList, err := podClient.WithNamespace(namespace).List(
+		metav1.ListOptions{
+			LabelSelector: ctrlLabel,
+		})
+	if err != nil {
+		return err
+	}
+	if len(ctrlList.Items) == 0 {
+		return errors.Errorf("no deployments found for %s in %s", ctrlLabel, namespace)
+	}
+	ctrlPod := ctrlList.Items[0]
+	syncedReplicas := 0
+	replicationFactor, err := strconv.Atoi(ctrlPod.Spec.Containers[0].Env[0].Value)
+	if err != nil {
+		return err
+	}
+	for syncedReplicas != replicationFactor {
+		syncedReplicas = 0
+		out, err := podClient.WithNamespace(ctrlPod.Namespace).
+			Exec(
+				ctrlPod.Name,
+				&corev1.PodExecOptions{
+					Command: []string{
+						"/bin/bash",
+						"-c",
+						"curl http://localhost:9501/v1/replicas",
+					},
+					Container: ctrlPod.Spec.Containers[0].Name,
+					Stdin:     false,
+					Stdout:    true,
+					Stderr:    true,
+				},
+			)
+		if err != nil {
+			return err
+		}
+		replicas := jivaClient.ReplicaCollection{}
+		err = json.Unmarshal([]byte(out.Stdout), &replicas)
+		if err != nil {
+			return err
+		}
+		for _, replica := range replicas.Data {
+			if replica.Mode == "RW" {
+				syncedReplicas = syncedReplicas + 1
+			}
+		}
+		if !quorum && syncedReplicas > (replicationFactor/2) {
+			glog.Infof("Synced replica quorum is reached")
+			quorum = true
+		}
+	}
+	glog.Infof("Replica syncing complete")
+	return nil
+}
 
+type jivaVolumeOptions struct {
+	utaskObj      *utask.UpgradeTask
+	replicaObj    *replicaDetails
+	controllerObj *controllerDetails
+	ns            string
+}
+
+func (j *jivaVolumeOptions) preupgrade(pvName, openebsNamespace string) error {
 	var (
 		pvLabel         = "openebs.io/persistent-volume=" + pvName
 		replicaLabel    = "openebs.io/replica=jiva-replica," + pvLabel
 		controllerLabel = "openebs.io/controller=jiva-controller," + pvLabel
-		serviceLabel    = "openebs.io/controller-service=jiva-controller-svc," + pvLabel
-		ns              string
-		err             error
+		uerr, err       error
 	)
+	j.utaskObj, uerr = getOrCreateUpgradeTask("jivaVolume", pvName, openebsNamespace)
+	if uerr != nil && isENVPresent {
+		return uerr
+	}
 
-	ns, err = getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.PreUpgrade}
+
+	statusObj.Phase = utask.StepWaiting
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+	if uerr != nil && isENVPresent {
+		return uerr
+	}
+
+	statusObj.Phase = utask.StepErrored
+	j.ns, err = getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
 	if err != nil {
+		statusObj.Message = "failed to get namespace for pvc deployments"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
 		return errors.Wrapf(err, "failed to get namespace for pvc deployments")
 	}
 
 	// fetching replica deployment details
-	replicaObj, err := getReplica(replicaLabel, ns)
+	j.replicaObj, err = getReplica(replicaLabel, j.ns)
 	if err != nil {
+		statusObj.Message = "failed to get replica details"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
 		return err
 	}
-	replicaObj.patchDetails.PVName = pvName
+	j.replicaObj.patchDetails.PVName = pvName
 
 	// fetching controller deployment details
-	controllerObj, err := getController(controllerLabel, ns)
+	j.controllerObj, err = getController(controllerLabel, j.ns)
 	if err != nil {
+		statusObj.Message = "failed to get target details"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
 		return err
 	}
 
-	// replica patch
-	err = patchReplica(replicaObj, ns)
-	if err != nil {
-		return err
+	statusObj.Phase = utask.StepCompleted
+	statusObj.Message = "Pre-upgrade steps were successful"
+	statusObj.Reason = ""
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+	if uerr != nil && isENVPresent {
+		return uerr
 	}
-
-	// controller patch
-	err = patchController(controllerObj, ns)
-	if err != nil {
-		return err
-	}
-
-	err = patchService(serviceLabel, ns)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Upgrade Successful for", pvName)
 	return nil
+}
+
+func (j *jivaVolumeOptions) replicaUpgrade(openebsNamespace string) error {
+	var err, uerr error
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.ReplicaUpgrade}
+	statusObj.Phase = utask.StepWaiting
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+	if uerr != nil && isENVPresent {
+		return uerr
+	}
+
+	statusObj.Phase = utask.StepErrored
+	// replica patch
+	err = patchReplica(j.replicaObj, j.ns)
+	if err != nil {
+		statusObj.Message = "failed to patch replica depoyment"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
+		return err
+	}
+
+	statusObj.Phase = utask.StepCompleted
+	statusObj.Message = "Replica upgrade was successful"
+	statusObj.Reason = ""
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+	if uerr != nil && isENVPresent {
+		return uerr
+	}
+	return nil
+}
+
+func (j *jivaVolumeOptions) targetUpgrade(pvName, openebsNamespace string) error {
+	var err, uerr error
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.TargetUpgrade}
+	statusObj.Phase = utask.StepWaiting
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+	if uerr != nil && isENVPresent {
+		return uerr
+	}
+
+	statusObj.Phase = utask.StepErrored
+	// controller patch
+	err = patchController(j.controllerObj, j.ns)
+	if err != nil {
+		statusObj.Message = "failed to patch target depoyment"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
+		return err
+	}
+	pvLabel := "openebs.io/persistent-volume=" + pvName
+	serviceLabel := "openebs.io/controller-service=jiva-controller-svc," + pvLabel
+
+	err = patchService(serviceLabel, j.ns)
+	if err != nil {
+		statusObj.Message = "failed to patch target service"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
+		return err
+	}
+
+	statusObj.Phase = utask.StepCompleted
+	statusObj.Message = "Target upgrade was successful"
+	statusObj.Reason = ""
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+	if uerr != nil && isENVPresent {
+		return uerr
+	}
+	return nil
+}
+
+func (j *jivaVolumeOptions) verify(controllerLabel, openebsNamespace string) error {
+	var err, uerr error
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.Verify}
+	statusObj.Phase = utask.StepWaiting
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+	if uerr != nil && isENVPresent {
+		return uerr
+	}
+
+	statusObj.Phase = utask.StepErrored
+	// Verify synced replicas
+	err = validateSync(controllerLabel, j.ns)
+	if err != nil {
+		statusObj.Message = "failed to verify synced replicas. Please check it manually using the steps mentioned in https://docs.openebs.io/docs/next/mayactl.html"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
+		if k8serror.IsForbidden(err) {
+			glog.Warningf("failed to verify replica sync : %v\n Please check it manually using the steps mentioned in https://docs.openebs.io/docs/next/mayactl.html", err)
+			return nil
+		}
+		return err
+	}
+
+	statusObj.Phase = utask.StepCompleted
+	statusObj.Message = "Replica sync was successful"
+	statusObj.Reason = ""
+	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+	if uerr != nil && isENVPresent {
+		return uerr
+	}
+	return nil
+}
+
+func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
+
+	var (
+		pvLabel         = "openebs.io/persistent-volume=" + pvName
+		controllerLabel = "openebs.io/controller=jiva-controller," + pvLabel
+		err             error
+	)
+
+	options := &jivaVolumeOptions{}
+
+	// PreUpgrade
+	err = options.preupgrade(pvName, openebsNamespace)
+	if err != nil {
+		return options.utaskObj, err
+	}
+
+	// ReplicaUpgrade
+	err = options.replicaUpgrade(openebsNamespace)
+	if err != nil {
+		return options.utaskObj, err
+	}
+
+	// TargetUpgrade
+	err = options.targetUpgrade(pvName, openebsNamespace)
+	if err != nil {
+		return options.utaskObj, err
+	}
+
+	// Verify
+	err = options.verify(controllerLabel, openebsNamespace)
+	if err != nil {
+		return options.utaskObj, err
+	}
+
+	glog.Info("Upgrade Successful for", pvName)
+	return options.utaskObj, nil
 }

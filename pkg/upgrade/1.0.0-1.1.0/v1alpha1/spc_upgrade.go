@@ -17,8 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
-
+	"github.com/golang/glog"
+	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,31 +38,40 @@ func verifyCSPNodeName(cspList *apis.CStorPoolList) error {
 	return nil
 }
 
-func spcUpgrade(spcName, openebsNamespace string) error {
+func spcUpgrade(spcName, openebsNamespace string) (*utask.UpgradeTask, error) {
 
 	spcLabel := "openebs.io/storage-pool-claim=" + spcName
 	cspList, err := cspClient.List(metav1.ListOptions{
 		LabelSelector: spcLabel,
 	})
 	if err != nil {
-		return errors.Wrapf(err, "failed to list csp for spc %s", spcName)
+		return nil, errors.Wrapf(err, "failed to list csp for spc %s", spcName)
 	}
 	if len(cspList.Items) == 0 {
-		return errors.Errorf("no csp found for spc %s: no csp found", spcName)
+		return nil, errors.Errorf("no csp found for spc %s: no csp found", spcName)
 	}
 	err = verifyCSPNodeName(cspList)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for _, cspObj := range cspList.Items {
 		if cspObj.Name == "" {
-			return errors.Errorf("missing csp name")
+			return nil, errors.Errorf("missing csp name")
 		}
-		err = cspUpgrade(cspObj.Name, openebsNamespace)
+		utaskObj, err := cspUpgrade(cspObj.Name, openebsNamespace)
 		if err != nil {
-			return err
+			return utaskObj, err
+		}
+		if utaskObj != nil {
+			utaskObj.Status.Phase = utask.UpgradeSuccess
+			utaskObj.Status.CompletedTime = metav1.Now()
+			_, uerr := utaskClient.WithNamespace(openebsNamespace).
+				Update(utaskObj)
+			if uerr != nil && isENVPresent {
+				return nil, uerr
+			}
 		}
 	}
-	fmt.Println("Upgrade Successful for spc", spcName)
-	return nil
+	glog.Infof("Upgrade Successful for spc %s", spcName)
+	return nil, nil
 }
