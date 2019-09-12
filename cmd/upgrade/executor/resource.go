@@ -21,12 +21,13 @@ import (
 
 	"github.com/golang/glog"
 
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	upgrade100to120 "github.com/openebs/maya/pkg/upgrade/1.0.0-1.1.0/v1alpha1"
 	utask "github.com/openebs/maya/pkg/upgrade/v1alpha2"
+	errors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -52,27 +53,42 @@ func NewUpgradeResourceJob() *cobra.Command {
 		Long:    resourceUpgradeCmdHelpText,
 		Example: `upgrade resource`,
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(options.InitializeFromUpgradeTaskResource(cmd), util.Fatal)
-			util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
-			util.CheckErr(options.RunResourceUpgradeChecks(cmd), util.Fatal)
-			util.CheckErr(options.InitializeDefaults(cmd), util.Fatal)
-			util.CheckErr(options.RunResourceUpgrade(cmd), util.Fatal)
+			upgradeTaskLabel := getUpgradeTaskLabel()
+			openebsNamespace := getOpenEBSNamespace()
+			upgradeTaskList, err := utask.NewKubeClient().
+				WithNamespace(openebsNamespace).
+				List(metav1.ListOptions{
+					LabelSelector: upgradeTaskLabel,
+				})
+			util.CheckErr(err, util.Fatal)
+			if len(upgradeTaskList.Items) == 0 {
+				util.Fatal("No resource found for given label")
+			}
+			for _, cr := range upgradeTaskList.Items {
+				util.CheckErr(options.InitializeFromUpgradeTaskResource(
+					cr, cmd), util.Fatal)
+				util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
+				util.CheckErr(options.RunResourceUpgradeChecks(cmd), util.Fatal)
+				util.CheckErr(options.InitializeDefaults(cmd), util.Fatal)
+				util.CheckErr(options.RunResourceUpgrade(cmd), util.Fatal)
+			}
 		},
 	}
+	// TODO
+	// cmd.Flags().StringVarP(&options.resource.label,
+	// 	"label", "",
+	// 	options.resource.label,
+	// 	"label of the upgradetasks to be upgraded. Run \"kubectl get utask \", to get label")
 
 	return cmd
 }
 
 // InitializeFromUpgradeTaskResource will populate the UpgradeOptions from given UpgradeTask
-func (u *UpgradeOptions) InitializeFromUpgradeTaskResource(cmd *cobra.Command) error {
-	upgradeTaskCRName := getUpgradeTaskCRName()
+func (u *UpgradeOptions) InitializeFromUpgradeTaskResource(
+	upgradeTaskCRObj apis.UpgradeTask, cmd *cobra.Command) error {
+
 	if len(strings.TrimSpace(u.openebsNamespace)) == 0 {
 		return errors.Errorf("Cannot execute upgrade job: namespace is missing")
-	}
-	upgradeTaskCRObj, err := utask.NewKubeClient().WithNamespace(u.openebsNamespace).
-		Get(upgradeTaskCRName, metav1.GetOptions{})
-	if err != nil {
-		return err
 	}
 	if len(strings.TrimSpace(upgradeTaskCRObj.Spec.FromVersion)) != 0 {
 		u.fromVersion = upgradeTaskCRObj.Spec.FromVersion
@@ -90,6 +106,10 @@ func (u *UpgradeOptions) InitializeFromUpgradeTaskResource(cmd *cobra.Command) e
 	case upgradeTaskCRObj.Spec.ResourceSpec.CStorPool != nil:
 		u.resourceKind = "cstorPool"
 		u.resource.name = upgradeTaskCRObj.Spec.ResourceSpec.CStorPool.PoolName
+
+	case upgradeTaskCRObj.Spec.ResourceSpec.StoragePoolClaim != nil:
+		u.resourceKind = "storagePoolClaim"
+		u.resource.name = upgradeTaskCRObj.Spec.ResourceSpec.StoragePoolClaim.SPCName
 
 	case upgradeTaskCRObj.Spec.ResourceSpec.CStorVolume != nil:
 		u.resourceKind = "cstorVolume"
@@ -124,7 +144,7 @@ func (u *UpgradeOptions) RunResourceUpgrade(cmd *cobra.Command) error {
 			u.imageURLPrefix,
 			u.toVersionImageTag)
 		if err != nil {
-			return errors.Errorf("Failed to upgrade %v %v:", u.resourceKind, u.resource.name)
+			return errors.Wrapf(err, "Failed to upgrade %v %v", u.resourceKind, u.resource.name)
 		}
 	default:
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)

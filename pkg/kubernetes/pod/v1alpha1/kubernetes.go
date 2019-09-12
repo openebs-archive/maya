@@ -89,11 +89,7 @@ func defaultExec(
 	// for transporting shell-style streams
 	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
 	if err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"failed to exec into pod {%s}: failed to connect to the provided server",
-			name,
-		)
+		return nil, err
 	}
 
 	// Stream initiates transport of standard shell streams
@@ -106,11 +102,7 @@ func defaultExec(
 		Tty:    opts.TTY,
 	})
 	if err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"failed to exec into pod {%s}: failed to stream",
-			name,
-		)
+		return nil, err
 	}
 
 	execOutput := &ExecOutput{
