@@ -202,7 +202,7 @@ const (
 type SnapshotTLPProperty string
 
 const (
-	// VolumeNameSTP is the snapshot name
+	// VolumeSTP is the snapshot name
 	VolumeSTP SnapshotTLPProperty = "volumeName"
 )
 

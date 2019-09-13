@@ -32,6 +32,7 @@ type StoragePoolClaim struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec              StoragePoolClaimSpec   `json:"spec"`
 	Status            StoragePoolClaimStatus `json:"status"`
+	VersionDetails    VersionDetails         `json:"versionDetails"`
 }
 
 // StoragePoolClaimSpec is the spec for a StoragePoolClaimSpec resource
