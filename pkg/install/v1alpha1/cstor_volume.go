@@ -392,6 +392,11 @@ spec:
       status: "Init"
       replicationFactor: {{ $replicaCount }}
       consistencyFactor: {{ div $replicaCount 2 | floor | add1 }}
+    versionDetails:
+      current: {{ .CAST.version }}
+      desired: {{ .CAST.version }}
+      autoUpgrade: false
+      dependentsUpgraded: true
 ---
 # runTask to create cStor target deployment
 apiVersion: openebs.io/v1alpha1
@@ -742,6 +747,11 @@ spec:
     status:
       # phase would be update by appropriate target
       phase: ""
+    versionDetails:
+      current: {{ .CAST.version }}
+      desired: {{ .CAST.version }}
+      autoUpgrade: false
+      dependentsUpgraded: true
   post: |
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | addTo "cstorvolumecreatereplica.objectName" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.metadata.spec.capacity}" | trim | saveAs "cstorvolumecreatereplica.capacity" .TaskResult | noop -}}
