@@ -308,6 +308,12 @@ func (b *Builder) WithResources(
 	return b
 }
 
+// WithResourcesByValue sets resources of the container
+func (b *Builder) WithResourcesByValue(resources corev1.ResourceRequirements) *Builder {
+	b.con.Resources = resources
+	return b
+}
+
 // WithPortsNew sets ports of the container
 func (b *Builder) WithPortsNew(ports []corev1.ContainerPort) *Builder {
 	if ports == nil {
