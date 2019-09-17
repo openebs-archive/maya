@@ -82,6 +82,10 @@ func (sl *Lease) Hold() error {
 			return err
 		}
 	}
+	// If the pod which has already acquired lease and want again to acquire,grant it.
+	if leaseValueObj.Holder == sl.getPodName() {
+		return nil
+	}
 	// If leaseValue is empty acquire lease.
 	// If leaseValue is empty check whether it is expired.
 	// If leaseValue is not empty and not expired check whether the holder is live.
