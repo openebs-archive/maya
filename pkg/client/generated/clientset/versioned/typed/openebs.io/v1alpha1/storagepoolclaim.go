@@ -19,6 +19,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"time"
+
 	v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	scheme "github.com/openebs/maya/pkg/client/generated/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,10 +74,15 @@ func (c *storagePoolClaims) Get(name string, options v1.GetOptions) (result *v1a
 
 // List takes label and field selectors, and returns the list of StoragePoolClaims that match those selectors.
 func (c *storagePoolClaims) List(opts v1.ListOptions) (result *v1alpha1.StoragePoolClaimList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1alpha1.StoragePoolClaimList{}
 	err = c.client.Get().
 		Resource("storagepoolclaims").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
@@ -83,10 +90,15 @@ func (c *storagePoolClaims) List(opts v1.ListOptions) (result *v1alpha1.StorageP
 
 // Watch returns a watch.Interface that watches the requested storagePoolClaims.
 func (c *storagePoolClaims) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("storagepoolclaims").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -125,9 +137,14 @@ func (c *storagePoolClaims) Delete(name string, options *v1.DeleteOptions) error
 
 // DeleteCollection deletes a collection of objects.
 func (c *storagePoolClaims) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("storagepoolclaims").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

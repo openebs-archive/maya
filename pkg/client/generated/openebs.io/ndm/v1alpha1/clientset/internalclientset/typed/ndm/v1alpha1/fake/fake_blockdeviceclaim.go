@@ -131,7 +131,7 @@ func (c *FakeBlockDeviceClaims) DeleteCollection(options *v1.DeleteOptions, list
 // Patch applies the patch and returns the patched blockDeviceClaim.
 func (c *FakeBlockDeviceClaims) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.BlockDeviceClaim, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(blockdeviceclaimsResource, c.ns, name, data, subresources...), &v1alpha1.BlockDeviceClaim{})
+		Invokes(testing.NewPatchSubresourceAction(blockdeviceclaimsResource, c.ns, name, pt, data, subresources...), &v1alpha1.BlockDeviceClaim{})
 
 	if obj == nil {
 		return nil, err

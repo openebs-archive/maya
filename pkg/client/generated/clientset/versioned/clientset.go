@@ -28,8 +28,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	OpenebsV1alpha1() openebsv1alpha1.OpenebsV1alpha1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Openebs() openebsv1alpha1.OpenebsV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -41,12 +39,6 @@ type Clientset struct {
 
 // OpenebsV1alpha1 retrieves the OpenebsV1alpha1Client
 func (c *Clientset) OpenebsV1alpha1() openebsv1alpha1.OpenebsV1alpha1Interface {
-	return c.openebsV1alpha1
-}
-
-// Deprecated: Openebs retrieves the default version of OpenebsClient.
-// Please explicitly pick a version.
-func (c *Clientset) Openebs() openebsv1alpha1.OpenebsV1alpha1Interface {
 	return c.openebsV1alpha1
 }
 

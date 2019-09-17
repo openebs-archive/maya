@@ -119,7 +119,7 @@ func (c *FakeCStorPoolClusters) DeleteCollection(options *v1.DeleteOptions, list
 // Patch applies the patch and returns the patched cStorPoolCluster.
 func (c *FakeCStorPoolClusters) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CStorPoolCluster, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(cstorpoolclustersResource, c.ns, name, data, subresources...), &v1alpha1.CStorPoolCluster{})
+		Invokes(testing.NewPatchSubresourceAction(cstorpoolclustersResource, c.ns, name, pt, data, subresources...), &v1alpha1.CStorPoolCluster{})
 
 	if obj == nil {
 		return nil, err

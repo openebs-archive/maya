@@ -112,7 +112,7 @@ func (c *FakeStoragePools) DeleteCollection(options *v1.DeleteOptions, listOptio
 // Patch applies the patch and returns the patched storagePool.
 func (c *FakeStoragePools) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.StoragePool, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(storagepoolsResource, name, data, subresources...), &v1alpha1.StoragePool{})
+		Invokes(testing.NewRootPatchSubresourceAction(storagepoolsResource, name, pt, data, subresources...), &v1alpha1.StoragePool{})
 	if obj == nil {
 		return nil, err
 	}

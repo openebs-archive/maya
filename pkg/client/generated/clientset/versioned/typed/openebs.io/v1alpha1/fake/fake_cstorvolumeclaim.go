@@ -131,7 +131,7 @@ func (c *FakeCStorVolumeClaims) DeleteCollection(options *v1.DeleteOptions, list
 // Patch applies the patch and returns the patched cStorVolumeClaim.
 func (c *FakeCStorVolumeClaims) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CStorVolumeClaim, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(cstorvolumeclaimsResource, c.ns, name, data, subresources...), &v1alpha1.CStorVolumeClaim{})
+		Invokes(testing.NewPatchSubresourceAction(cstorvolumeclaimsResource, c.ns, name, pt, data, subresources...), &v1alpha1.CStorVolumeClaim{})
 
 	if obj == nil {
 		return nil, err
