@@ -123,7 +123,7 @@ func (c *FakeDisks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.L
 // Patch applies the patch and returns the patched disk.
 func (c *FakeDisks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Disk, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(disksResource, name, data, subresources...), &v1alpha1.Disk{})
+		Invokes(testing.NewRootPatchSubresourceAction(disksResource, name, pt, data, subresources...), &v1alpha1.Disk{})
 	if obj == nil {
 		return nil, err
 	}
