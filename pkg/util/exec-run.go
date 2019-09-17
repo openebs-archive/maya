@@ -23,7 +23,7 @@ import (
 
 	"context"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // Runner interface implements various methods of running binaries which can be
@@ -53,16 +53,16 @@ func (r RealRunner) RunStdoutPipe(command string, args ...string) ([]byte, error
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		glog.Errorf(err.Error())
+		klog.Errorf(err.Error())
 		return []byte{}, err
 	}
 	if err := cmd.Start(); err != nil {
-		glog.Errorf(err.Error())
+		klog.Errorf(err.Error())
 		return []byte{}, err
 	}
 	data, _ := ioutil.ReadAll(stdout)
 	if err := cmd.Wait(); err != nil {
-		glog.Errorf(err.Error())
+		klog.Errorf(err.Error())
 		return []byte{}, err
 	}
 	return data, nil

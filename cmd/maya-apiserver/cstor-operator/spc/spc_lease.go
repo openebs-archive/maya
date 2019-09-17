@@ -21,13 +21,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/klog"
 )
 
 const (
@@ -121,7 +121,7 @@ func (sl *Lease) Release() {
 		newErr := fmt.Errorf("Lease could not be removed:%v", err)
 		runtime.HandleError(newErr)
 	}
-	glog.Info("Lease removed successfully on storagepoolclaim")
+	klog.Info("Lease removed successfully on storagepoolclaim")
 }
 
 func (sl *Lease) getPodName() string {

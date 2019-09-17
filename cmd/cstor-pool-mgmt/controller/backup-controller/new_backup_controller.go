@@ -19,7 +19,6 @@ package backupcontroller
 import (
 	"os"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -76,16 +76,16 @@ func NewCStorBackupController(
 
 	err := openebsScheme.AddToScheme(scheme.Scheme)
 	if err != nil {
-		glog.Fatalf("Error adding scheme to openebs scheme: %s", err.Error())
+		klog.Fatalf("Error adding scheme to openebs scheme: %s", err.Error())
 		return nil
 	}
 
 	// Create event broadcaster
 	// Add backup-cstor-controller types to the default Kubernetes Scheme so Events can be
 	// logged for backup-cstor-controller types.
-	glog.V(4).Info("Creating backup event broadcaster")
+	klog.V(4).Info("Creating backup event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(klog.Infof)
 
 	// StartEventWatcher starts sending events received from this EventBroadcaster to the given
 	// event handler function. The return value can be ignored or used to stop recording, if
@@ -101,7 +101,7 @@ func NewCStorBackupController(
 		recorder:      recorder,
 	}
 
-	glog.Info("Setting up event handlers for backup")
+	klog.Info("Setting up event handlers for backup")
 
 	// Clean any pending backup for this cstor pool
 	controller.cleanupOldBackup(clientset)
@@ -141,7 +141,7 @@ func NewCStorBackupController(
 			if !IsRightCStorPoolMgmt(bkp) {
 				return
 			}
-			glog.Infof("CStorBackup Resource delete event: %v, %v", bkp.ObjectMeta.Name, string(bkp.ObjectMeta.UID))
+			klog.Infof("CStorBackup Resource delete event: %v, %v", bkp.ObjectMeta.Name, string(bkp.ObjectMeta.UID))
 		},
 	})
 	return controller
@@ -193,7 +193,7 @@ func updateBackupStatus(clientset clientset.Interface, bkp apis.CStorBackup, sta
 
 	_, err := clientset.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Update(&bkp)
 	if err != nil {
-		glog.Errorf("Failed to update backup(%s) status(%s)", status, bkp.Name)
+		klog.Errorf("Failed to update backup(%s) status(%s)", status, bkp.Name)
 		return
 	}
 }
@@ -204,7 +204,7 @@ func findLastBackupStat(clientset clientset.Interface, bkp apis.CStorBackup) api
 	lastbkp, err := clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
 	if err != nil {
 		// Unable to fetch the last backup, so we will return fail state
-		glog.Errorf("Failed to fetch last completed backup:%s error:%s", lastbkpname, err.Error())
+		klog.Errorf("Failed to fetch last completed backup:%s error:%s", lastbkpname, err.Error())
 		return apis.BKPCStorStatusFailed
 	}
 
@@ -220,14 +220,14 @@ func findLastBackupStat(clientset clientset.Interface, bkp apis.CStorBackup) api
 // handleBKPAddEvent is to handle add operation of backup controller
 func (c *BackupController) handleBKPAddEvent(bkp *apis.CStorBackup, q *common.QueueLoad) {
 	q.Operation = common.QOpAdd
-	glog.Infof("CStorBackup event added: %v, %v", bkp.ObjectMeta.Name, string(bkp.ObjectMeta.UID))
+	klog.Infof("CStorBackup event added: %v, %v", bkp.ObjectMeta.Name, string(bkp.ObjectMeta.UID))
 	c.recorder.Event(bkp, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
 	c.enqueueCStorBackup(bkp, *q)
 }
 
 // handleBKPUpdateEvent is to handle add operation of backup controller
 func (c *BackupController) handleBKPUpdateEvent(oldbkp, newbkp *apis.CStorBackup, q *common.QueueLoad) {
-	glog.Infof("Received Update for backup:%s", oldbkp.ObjectMeta.Name)
+	klog.Infof("Received Update for backup:%s", oldbkp.ObjectMeta.Name)
 
 	if newbkp.ResourceVersion == oldbkp.ResourceVersion {
 		return
@@ -235,10 +235,10 @@ func (c *BackupController) handleBKPUpdateEvent(oldbkp, newbkp *apis.CStorBackup
 
 	if IsDestroyEvent(newbkp) {
 		q.Operation = common.QOpDestroy
-		glog.Infof("CStorBackup Destroy event : %v, %v", newbkp.ObjectMeta.Name, string(newbkp.ObjectMeta.UID))
+		klog.Infof("CStorBackup Destroy event : %v, %v", newbkp.ObjectMeta.Name, string(newbkp.ObjectMeta.UID))
 		c.recorder.Event(newbkp, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
 	} else {
-		glog.Infof("CStorBackup Modify event : %v, %v", newbkp.ObjectMeta.Name, string(newbkp.ObjectMeta.UID))
+		klog.Infof("CStorBackup Modify event : %v, %v", newbkp.ObjectMeta.Name, string(newbkp.ObjectMeta.UID))
 		q.Operation = common.QOpSync
 		c.recorder.Event(newbkp, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageModifySynced))
 	}

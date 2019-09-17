@@ -23,13 +23,13 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha1/clientset/internalclientset"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 )
 
 // getClientsetFunc is a typed function that
@@ -146,7 +146,7 @@ func KubeClientInstanceOrDie(opts ...KubeclientBuildOption) *Kubeclient {
 		k := NewKubeClient(opts...)
 		_, err := k.getClientOrCached()
 		if err != nil {
-			glog.Fatalf("failed to initialise kubeclient instance: {%v}", err)
+			klog.Fatalf("failed to initialise kubeclient instance: {%v}", err)
 		}
 		coreClientInst = k.CoreClient
 	})

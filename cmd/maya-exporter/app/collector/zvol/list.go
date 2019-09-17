@@ -19,11 +19,11 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/golang/glog"
 	col "github.com/openebs/maya/cmd/maya-exporter/app/collector"
 	types "github.com/openebs/maya/pkg/exec"
 	zvol "github.com/openebs/maya/pkg/zvol/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog"
 )
 
 // volumeList implements prometheus.Collector interface
@@ -99,7 +99,7 @@ func (v *volumeList) get(ch chan<- prometheus.Metric) ([]fields, error) {
 	v.Lock()
 	defer v.Unlock()
 
-	glog.V(2).Info("Run zfs list command")
+	klog.V(2).Info("Run zfs list command")
 	stdout, err := zvol.Run(v.runner)
 	if err != nil {
 		v.zfsListCommandErrorCounter.Inc()
@@ -110,7 +110,7 @@ func (v *volumeList) get(ch chan<- prometheus.Metric) ([]fields, error) {
 	if err := v.checkError(stdout, ch); err != nil {
 		return nil, err
 	}
-	glog.V(2).Infof("Parse stdout of zfs list command, got stdout: \n%v", string(stdout))
+	klog.V(2).Infof("Parse stdout of zfs list command, got stdout: \n%v", string(stdout))
 	list := listParser(stdout, v.listMetrics)
 
 	return list, nil
@@ -135,7 +135,7 @@ func (v *volumeList) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	glog.V(2).Infof("Got zfs list: %#v", volumeLists)
+	klog.V(2).Infof("Got zfs list: %#v", volumeLists)
 	v.setListStats(volumeLists)
 	for _, col := range v.collectors() {
 		col.Collect(ch)

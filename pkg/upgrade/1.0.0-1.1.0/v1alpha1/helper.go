@@ -21,7 +21,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
@@ -31,6 +30,7 @@ import (
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 )
 
 func getDeployment(labels, namespace string) (*appsv1.Deployment, error) {
@@ -170,9 +170,9 @@ func patchService(targetServiceLabel, namespace string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch service %s", targetServiceName)
 		}
-		glog.Infof("targetservice %s patched", targetServiceName)
+		klog.Infof("targetservice %s patched", targetServiceName)
 	} else {
-		glog.Infof("service already in %s version", upgradeVersion)
+		klog.Infof("service already in %s version", upgradeVersion)
 	}
 	return nil
 }

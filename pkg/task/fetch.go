@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
@@ -179,7 +179,7 @@ func (g *getRunTask) Get() (runtask *v1alpha1.RunTask, err error) {
 		}
 
 		err = errors.Wrap(err, fmt.Sprintf("failed to get runtask '%s'", g.taskName))
-		glog.Warningf("%s", err)
+		klog.Warningf("%s", err)
 	}
 
 	// at this point, we have a real error we can not recover from

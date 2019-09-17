@@ -23,11 +23,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"k8s.io/klog"
 
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
@@ -232,16 +232,16 @@ func (r TestRunner) RunStdoutPipe(command string, args ...string) ([]byte, error
 	cmd = exec.Command(os.Args[0], cs...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		glog.Errorf(err.Error())
+		klog.Errorf(err.Error())
 		return []byte{}, err
 	}
 	if err := cmd.Start(); err != nil {
-		glog.Errorf(err.Error())
+		klog.Errorf(err.Error())
 		return []byte{}, err
 	}
 	data, _ := ioutil.ReadAll(stdout)
 	if err := cmd.Wait(); err != nil {
-		glog.Errorf(err.Error())
+		klog.Errorf(err.Error())
 		return []byte{}, err
 	}
 	return data, nil

@@ -18,12 +18,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/golang/glog"
 	col "github.com/openebs/maya/cmd/maya-exporter/app/collector"
 	types "github.com/openebs/maya/pkg/exec"
 	zvol "github.com/openebs/maya/pkg/zvol/v1alpha1"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog"
 )
 
 // volume implements prometheus.Collector interface
@@ -152,7 +152,7 @@ func (v *volume) get(ch chan<- prometheus.Metric) (zvol.Stats, error) {
 		stats  = zvol.Stats{}
 	)
 
-	glog.V(2).Info("Run zfs stats command")
+	klog.V(2).Info("Run zfs stats command")
 	stdout, err = zvol.Run(v.runner)
 	if err != nil {
 		v.zfsCommandErrorCounter.Inc()
@@ -165,7 +165,7 @@ func (v *volume) get(ch chan<- prometheus.Metric) (zvol.Stats, error) {
 		return stats, err
 	}
 
-	glog.V(2).Infof("Parse stdout of zfs stats command, got stdout: %v", string(stdout))
+	klog.V(2).Infof("Parse stdout of zfs stats command, got stdout: %v", string(stdout))
 	stats, err = zvol.StatsParser(stdout)
 	if err != nil {
 		v.zfsStatsParseErrorCounter.Inc()
@@ -196,7 +196,7 @@ func (v *volume) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	glog.V(2).Infof("Got zfs stats: %#v", zvolStats)
+	klog.V(2).Infof("Got zfs stats: %#v", zvolStats)
 	v.setZVolStats(zvolStats)
 	for _, col := range v.collectors() {
 		col.Collect(ch)

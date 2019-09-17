@@ -32,7 +32,7 @@ func NewCommand() *cobra.Command {
 		NewCmdStart(),
 	)
 
-	// fix glog parse error
+	// fix klog parse error
 	flag.CommandLine.Parse([]string{})
 
 	return cmd

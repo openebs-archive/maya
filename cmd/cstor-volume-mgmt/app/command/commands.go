@@ -19,9 +19,9 @@ package command
 import (
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 )
 
 var (
@@ -56,6 +56,6 @@ func NewCStorVolumeMgmt() (*cobra.Command, error) {
 
 // Run is to run cstor-volume-mgmt command without any arguments
 func Run(cmd *cobra.Command) error {
-	glog.Infof("cstor-volume-mgmt for CStorVolume objects and grpc server")
+	klog.Infof("cstor-volume-mgmt for CStorVolume objects and grpc server")
 	return nil
 }

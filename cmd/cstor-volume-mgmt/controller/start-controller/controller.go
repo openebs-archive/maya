@@ -23,11 +23,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
 
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/common"
 	volumecontroller "github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/volume-controller"
@@ -54,17 +54,17 @@ func StartControllers(kubeconfig string) {
 
 	cfg, err := getClusterConfig(kubeconfig)
 	if err != nil {
-		glog.Fatalf(err.Error())
+		klog.Fatalf(err.Error())
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		glog.Fatalf("Error building kubernetes clientset: %s", err.Error())
+		klog.Fatalf("Error building kubernetes clientset: %s", err.Error())
 	}
 
 	openebsClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		glog.Fatalf("Error building openebs clientset: %s", err.Error())
+		klog.Fatalf("Error building openebs clientset: %s", err.Error())
 	}
 
 	volume.FileOperatorVar = util.RealFileOperator{}
@@ -96,7 +96,7 @@ func StartControllers(kubeconfig string) {
 	// Run controller for cStorVolume.
 	go func() {
 		if err = cStorVolumeController.Run(NumThreads, stopCh); err != nil {
-			glog.Fatalf("Error running CStorVolume controller: %s", err.Error())
+			klog.Fatalf("Error running CStorVolume controller: %s", err.Error())
 		}
 		wg.Done()
 	}()
@@ -108,7 +108,7 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 	var masterURL string
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
-		glog.Errorf("Failed to get k8s Incluster config. %+v", err)
+		klog.Errorf("Failed to get k8s Incluster config. %+v", err)
 		if len(kubeconfig) == 0 {
 			return nil, fmt.Errorf("kubeconfig is empty: %v", err.Error())
 		}
@@ -126,7 +126,7 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 func getSyncInterval() time.Duration {
 	resyncInterval, err := strconv.Atoi(os.Getenv("RESYNC_INTERVAL"))
 	if err != nil || resyncInterval == 0 {
-		glog.Warningf("Incorrect resync interval %q obtained from env, defaulting to %q seconds", resyncInterval, common.DefaultSharedInformerInterval)
+		klog.Warningf("Incorrect resync interval %q obtained from env, defaulting to %q seconds", resyncInterval, common.DefaultSharedInformerInterval)
 		return common.DefaultSharedInformerInterval
 	}
 	return time.Duration(resyncInterval) * time.Second

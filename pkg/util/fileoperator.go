@@ -21,8 +21,8 @@ import (
 
 	"path/filepath"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 )
 
 //FileOperator operates on files
@@ -39,7 +39,7 @@ type RealFileOperator struct{}
 func (r RealFileOperator) Write(filename string, data []byte, perm os.FileMode) error {
 	err := ioutil.WriteFile(filename, data, perm)
 	if err != nil {
-		glog.Errorf("Failed to write file: " + filename)
+		klog.Errorf("Failed to write file: " + filename)
 	}
 	return err
 }
@@ -73,7 +73,7 @@ func (r RealFileOperator) Updatefile(fileName, updatedVal, searchString string, 
 		if strings.Contains(line, searchString) {
 			lines[index] = updatedVal
 			newbuffer := strings.Join(lines, "\n")
-			glog.V(4).Infof("content in a file %s\n", lines)
+			klog.V(4).Infof("content in a file %s\n", lines)
 			err = r.Write(fileName, []byte(newbuffer), perm)
 			return err
 		}

@@ -22,12 +22,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
 )
 
 type restoreAPIOps struct {
@@ -113,12 +113,12 @@ func createRestoreResource(openebsClient *versioned.Clientset, rst *v1alpha1.CSt
 
 			_, err = openebsClient.OpenebsV1alpha1().CStorRestores(rst.Namespace).Create(rst)
 			if err != nil {
-				glog.Errorf("Failed to create restore CR(volume:%s CSP:%s) : error '%s'",
+				klog.Errorf("Failed to create restore CR(volume:%s CSP:%s) : error '%s'",
 					rst.Spec.VolumeName, cvr.ObjectMeta.Labels["cstorpool.openebs.io/uid"],
 					err.Error())
 				return nil, CodedError(500, err.Error())
 			}
-			glog.Infof("Restore:%s created for volume %q poolUUID:%v", rst.Name,
+			klog.Infof("Restore:%s created for volume %q poolUUID:%v", rst.Name,
 				rst.Spec.VolumeName,
 				rst.ObjectMeta.Labels["cstorpool.openebs.io/uid"])
 		} else {
@@ -126,12 +126,12 @@ func createRestoreResource(openebsClient *versioned.Clientset, rst *v1alpha1.CSt
 			oldrst.Spec = rst.Spec
 			_, err = openebsClient.OpenebsV1alpha1().CStorRestores(oldrst.Namespace).Update(oldrst)
 			if err != nil {
-				glog.Errorf("Failed to re-initialize old existing restore CR(volume:%s CSP:%s) : error '%s'",
+				klog.Errorf("Failed to re-initialize old existing restore CR(volume:%s CSP:%s) : error '%s'",
 					rst.Spec.VolumeName, cvr.ObjectMeta.Labels["cstorpool.openebs.io/uid"],
 					err.Error())
 				return nil, CodedError(500, err.Error())
 			}
-			glog.Infof("Re-initializing old restore:%s  %q poolUUID:%v", rst.Name,
+			klog.Infof("Re-initializing old restore:%s  %q poolUUID:%v", rst.Name,
 				rst.Spec.VolumeName,
 				rst.ObjectMeta.Labels["cstorpool.openebs.io/uid"])
 		}
@@ -221,7 +221,7 @@ func getRestoreStatus(rst *v1alpha1.CStorRestore) (v1alpha1.CStorRestoreStatus, 
 			}
 		}
 
-		glog.Infof("Restore:%v status is %v", nr.Name, nr.Status)
+		klog.Infof("Restore:%v status is %v", nr.Name, nr.Status)
 
 		if rstStatus == v1alpha1.RSTCStorStatusInProgress {
 			break
@@ -251,7 +251,7 @@ func updateRestoreStatus(clientset versioned.Interface, rst v1alpha1.CStorRestor
 
 	_, err := clientset.OpenebsV1alpha1().CStorRestores(rst.Namespace).Update(&rst)
 	if err != nil {
-		glog.Errorf("Failed to update restore:%s with status:%v", rst.Name, status)
+		klog.Errorf("Failed to update restore:%s with status:%v", rst.Name, status)
 		return
 	}
 }

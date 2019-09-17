@@ -17,13 +17,13 @@ limitations under the License.
 package app
 
 import (
-	"github.com/golang/glog"
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apisbd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 func (pc *PoolConfig) handleOperations() {
@@ -37,7 +37,7 @@ func (pc *PoolConfig) handleOperations() {
 
 // replaceBlockDevice replaces block devices in cStor pools as specified in CSPC.
 func (pc *PoolConfig) replaceBlockDevice() {
-	glog.V(2).Info("block device replacement is not supported yet")
+	klog.V(2).Info("block device replacement is not supported yet")
 }
 
 // expandPool expands the required cStor pools as specified in CSPC
@@ -67,7 +67,7 @@ func (pc *PoolConfig) expandPool() error {
 
 		_, err = apiscsp.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).Update(cspiObj)
 		if err != nil {
-			glog.Errorf("could not update cspi %s: %s", cspiObj.Name, err.Error())
+			klog.Errorf("could not update cspi %s: %s", cspiObj.Name, err.Error())
 		}
 	}
 
@@ -87,13 +87,13 @@ func (pc *PoolConfig) addGroupToPool(cspcPoolSpec *apis.PoolSpec, cspi *apis.CSt
 			for _, bd := range cspcRaidGroup.BlockDevices {
 				err := pc.ClaimBD(bd.BlockDeviceName)
 				if err != nil {
-					glog.Errorf("failed to created bdc for bd %s:%s", bd.BlockDeviceName, err.Error())
+					klog.Errorf("failed to created bdc for bd %s:%s", bd.BlockDeviceName, err.Error())
 				}
 			}
 			for _, bd := range cspcRaidGroup.BlockDevices {
 				err := pc.isBDUsable(bd.BlockDeviceName)
 				if err != nil {
-					glog.Errorf("could not use bd %s for expanding pool "+
+					klog.Errorf("could not use bd %s for expanding pool "+
 						"%s:%s", bd.BlockDeviceName, cspi.Name, err.Error())
 					validGroup = false
 					break
@@ -135,14 +135,14 @@ func (pc *PoolConfig) addBlockDeviceToGroup(group *apis.RaidGroup, cspi *apis.CS
 			if len(group.BlockDevices) > len(groupOnCSPI.BlockDevices) {
 				newBDs := getAddedBlockDevicesInGroup(group, &groupOnCSPI)
 				if len(newBDs) == 0 {
-					glog.V(2).Infof("No new block devices "+
+					klog.V(2).Infof("No new block devices "+
 						"added for group {%+v} on cspi %s", groupOnCSPI, cspi.Name)
 				}
 				pc.ClaimBDList(newBDs)
 				for _, bdName := range newBDs {
 					err := pc.isBDUsable(bdName)
 					if err != nil {
-						glog.Errorf("could not use bd %s for "+
+						klog.Errorf("could not use bd %s for "+
 							"expanding pool %s:%s", bdName, cspi.Name, err.Error())
 						break
 					}
@@ -235,7 +235,7 @@ func (pc *PoolConfig) ClaimBDList(bdList []string) {
 	for _, bdName := range bdList {
 		err := pc.ClaimBD(bdName)
 		if err != nil {
-			glog.Errorf("failed to create bdc for bd %s: %s", bdName, err.Error())
+			klog.Errorf("failed to create bdc for bd %s: %s", bdName, err.Error())
 		}
 	}
 }

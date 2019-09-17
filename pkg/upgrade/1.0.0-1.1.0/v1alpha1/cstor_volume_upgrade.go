@@ -20,10 +20,10 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/golang/glog"
 	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
+	"k8s.io/klog"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -126,9 +126,9 @@ func patchTargetDeploy(d *appsv1.Deployment, ns string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch target deployment %s", d.Name)
 		}
-		glog.Infof("target deployment %s patched", d.Name)
+		klog.Infof("target deployment %s patched", d.Name)
 	} else {
-		glog.Infof("target deployment already in %s version", upgradeVersion)
+		klog.Infof("target deployment already in %s version", upgradeVersion)
 	}
 	return nil
 }
@@ -175,9 +175,9 @@ func patchCV(pvLabel, namespace string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch cstorvolume %s", cvObject.Items[0].Name)
 		}
-		glog.Infof("cstorvolume %s patched", cvObject.Items[0].Name)
+		klog.Infof("cstorvolume %s patched", cvObject.Items[0].Name)
 	} else {
-		glog.Infof("cstorvolume already in %s version", upgradeVersion)
+		klog.Infof("cstorvolume already in %s version", upgradeVersion)
 	}
 	return nil
 }
@@ -217,9 +217,9 @@ func patchCVR(cvrName, namespace string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch cstorvolumereplica %s", cvrObject.Name)
 		}
-		glog.Infof("cstorvolumereplica %s patched", cvrObject.Name)
+		klog.Infof("cstorvolumereplica %s patched", cvrObject.Name)
 	} else {
-		glog.Infof("cstorvolume replica already in %s version", upgradeVersion)
+		klog.Infof("cstorvolume replica already in %s version", upgradeVersion)
 	}
 	return nil
 }
@@ -431,6 +431,6 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 		return options.utaskObj, err
 	}
 
-	glog.Infof("Upgrade Successful for cstor volume %s", pvName)
+	klog.Infof("Upgrade Successful for cstor volume %s", pvName)
 	return options.utaskObj, nil
 }

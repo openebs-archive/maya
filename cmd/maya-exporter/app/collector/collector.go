@@ -15,9 +15,9 @@
 package collector
 
 import (
-	"github.com/golang/glog"
 	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog"
 )
 
 // collector implements prometheus.Collector interface
@@ -29,7 +29,7 @@ type collector struct {
 func New(vol Volume) *collector {
 	typ := casType(vol)
 	if typ == "" {
-		glog.Fatal("exiting...")
+		klog.Fatal("exiting...")
 	}
 	return &collector{
 		vol,
@@ -44,7 +44,7 @@ func casType(vol Volume) string {
 	case *cstor:
 		return "cstor"
 	default:
-		glog.Error("Unknown cas type: ", typ)
+		klog.Error("Unknown cas type: ", typ)
 		return ""
 	}
 }
@@ -122,19 +122,19 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 		stats       stats
 	)
 
-	glog.V(2).Info("Get metrics")
+	klog.V(2).Info("Get metrics")
 	metrics := &c.metrics
 	if volumeStats, err = c.get(); err != nil {
-		glog.Errorln(err)
+		klog.Errorln(err)
 		c.setError(err)
 	}
 
-	glog.V(2).Info("Parse metrics")
+	klog.V(2).Info("Parse metrics")
 	stats = c.parse(volumeStats, metrics)
 
 	c.set(stats)
 	// collect the metrics extracted by collect method
-	glog.V(2).Info("Collect metrics")
+	klog.V(2).Info("Collect metrics")
 	for _, col := range c.collectors() {
 		col.Collect(ch)
 	}
@@ -153,7 +153,7 @@ func (c *collector) set(volStats stats) {
 	//	var replicaAddress, replicaMode strings.Builder
 
 	if !volStats.got {
-		glog.Warningf("%s", "setting up empty values")
+		klog.Warningf("%s", "setting up empty values")
 	}
 	c.reads.Set(volStats.reads)
 	c.totalReadTime.Set(volStats.totalReadTime)

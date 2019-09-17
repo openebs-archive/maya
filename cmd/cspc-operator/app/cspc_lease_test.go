@@ -22,13 +22,13 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/golang/glog"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/klog"
 )
 
 // SpcCreator will create fake cspc objects
@@ -52,7 +52,7 @@ func (focs *clientSet) SpcCreator(poolName string, SpcLeaseKeyPresent bool, SpcL
 	}
 	cspcGot, err := focs.oecs.OpenebsV1alpha1().CStorPoolClusters("openebs").Create(cspcObject)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 	}
 	return cspcGot
 }
@@ -70,7 +70,7 @@ func PodCreator(fakeKubeClient kubernetes.Interface, podName string) {
 		}
 		_, err := fakeKubeClient.CoreV1().Pods("openebs").Create(podObjet)
 		if err != nil {
-			glog.Error("Fake pod object could not be created:", err)
+			klog.Error("Fake pod object could not be created:", err)
 		}
 	}
 }

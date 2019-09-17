@@ -17,7 +17,6 @@ limitations under the License.
 package spc
 
 import (
-	"github.com/golang/glog"
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha1"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -25,6 +24,7 @@ import (
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 // PoolCreateConfig is config object used to create a cstor pool.
@@ -142,7 +142,7 @@ func (cb *CasPoolBuilder) Build() *apis.CasPool {
 // poolCreateWorker is a worker function which will create a storagepool.
 func poolCreateWorker(pool *apis.CasPool) error {
 
-	glog.Infof("Creating storagepool for storagepoolclaim %s via CASTemplate", pool.StoragePoolClaim)
+	klog.Infof("Creating storagepool for storagepoolclaim %s via CASTemplate", pool.StoragePoolClaim)
 
 	storagepoolOps, err := storagepool.NewCasPoolOperation(pool)
 	if err != nil {
@@ -153,7 +153,7 @@ func poolCreateWorker(pool *apis.CasPool) error {
 		return errors.Wrapf(err, "failed to create cas template based storagepool")
 
 	}
-	glog.Infof("Cas template based storagepool created successfully: name '%s'", pool.StoragePoolClaim)
+	klog.Infof("Cas template based storagepool created successfully: name '%s'", pool.StoragePoolClaim)
 	return nil
 }
 

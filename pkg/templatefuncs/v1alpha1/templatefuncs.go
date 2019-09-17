@@ -28,7 +28,6 @@ import (
 
 	"github.com/Masterminds/sprig"
 	"github.com/ghodss/yaml"
-	"github.com/golang/glog"
 	poolselection "github.com/openebs/maya/pkg/algorithm/cstorpoolselect/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha2"
@@ -38,6 +37,7 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	kubever "github.com/openebs/maya/pkg/version/kubernetes"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 )
 
 // empty returns true if the given value has the zero value for its type.
@@ -721,7 +721,7 @@ func debugf(msg string, args interface{}) (err error) {
 	if args == nil {
 		return errors.Errorf("[Debug (Not for production)]Failed to get debug info, got empty args, msg: %s", msg)
 	}
-	glog.Infof("[Debug (Not for production)] %s", stringer.Yaml(msg, args))
+	klog.Infof("[Debug (Not for production)] %s", stringer.Yaml(msg, args))
 	return nil
 }
 

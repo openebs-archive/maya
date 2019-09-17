@@ -19,7 +19,6 @@ package volumecontroller
 import (
 	"os"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -28,6 +27,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/common"
 
@@ -76,9 +76,9 @@ func NewCStorVolumeController(
 	// Create event broadcaster to receive events and send them to any EventSink, watcher, or log.
 	// Add NewCstorVolumeController types to the default Kubernetes Scheme so Events can be
 	// logged for CstorVolume Controller types.
-	glog.Info("Creating event broadcaster")
+	klog.Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(klog.Infof)
 
 	// StartEventWatcher starts sending events received from this EventBroadcaster to the given
 	// event handler function. The return value can be ignored or used to stop recording, if
@@ -94,7 +94,7 @@ func NewCStorVolumeController(
 		recorder:          recorder,
 	}
 
-	glog.Info("Setting up event handlers")
+	klog.Info("Setting up event handlers")
 
 	// Instantiating QueueLoad before entering workqueue.
 	q := common.QueueLoad{}
@@ -106,7 +106,7 @@ func NewCStorVolumeController(
 				return
 			}
 			q.Operation = common.QOpAdd
-			glog.Infof("Add event received for cstorvolume : %s", obj.(*apis.CStorVolume).Name)
+			klog.Infof("Add event received for cstorvolume : %s", obj.(*apis.CStorVolume).Name)
 			controller.enqueueCStorVolume(obj.(*apis.CStorVolume), q)
 		},
 		UpdateFunc: func(old, new interface{}) {
@@ -119,23 +119,23 @@ func NewCStorVolumeController(
 			// Two different versions of the same CStorVolume will always have different RVs.
 			if newCStorVolume.ResourceVersion == oldCStorVolume.ResourceVersion {
 				q.Operation = common.QOpPeriodicSync
-				glog.V(4).Infof("cStorVolume periodic sync event : %v %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
+				klog.V(4).Infof("cStorVolume periodic sync event : %v %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
 			} else if IsOnlyStatusChange(oldCStorVolume, newCStorVolume) {
-				glog.V(4).Infof("Only cStorVolume status change: %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
+				klog.V(4).Infof("Only cStorVolume status change: %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
 				return
 			} else if IsDestroyEvent(newCStorVolume) {
 				q.Operation = common.QOpDestroy
-				glog.Infof("cStorVolume Destroy event : %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
+				klog.Infof("cStorVolume Destroy event : %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
 				controller.recorder.Event(newCStorVolume, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
 			} else {
 				q.Operation = common.QOpModify
-				glog.Infof("cStorVolume Modify event : %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
+				klog.Infof("cStorVolume Modify event : %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
 				controller.recorder.Event(newCStorVolume, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageModifySynced))
 			}
 			controller.enqueueCStorVolume(newCStorVolume, q)
 		},
 		DeleteFunc: func(obj interface{}) {
-			glog.Infof("Delete event received for cstorvolume : %s", obj.(*apis.CStorVolume).Name)
+			klog.Infof("Delete event received for cstorvolume : %s", obj.(*apis.CStorVolume).Name)
 		},
 	})
 

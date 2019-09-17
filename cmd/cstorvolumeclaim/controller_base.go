@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/versioned/scheme"
@@ -36,6 +35,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 )
 
 const controllerAgentName = "cstorvolumeclaim-controller"
@@ -165,9 +165,9 @@ func (cb *CVCControllerBuilder) withWorkqueueRateLimiting() *CVCControllerBuilde
 
 // withRecorder adds recorder to controller object.
 func (cb *CVCControllerBuilder) withRecorder(ks kubernetes.Interface) *CVCControllerBuilder {
-	glog.V(4).Info("Creating event broadcaster")
+	klog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: ks.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 	cb.CVCController.recorder = recorder
@@ -203,7 +203,7 @@ func (c *CVCController) addCVC(obj interface{}) {
 		return
 	}
 
-	glog.V(4).Infof("Queuing CVC %s for add event", cvc.Name)
+	klog.V(4).Infof("Queuing CVC %s for add event", cvc.Name)
 	c.enqueueCVC(cvc)
 }
 
@@ -234,7 +234,7 @@ func (c *CVCController) deleteCVC(obj interface{}) {
 			return
 		}
 	}
-	glog.V(4).Infof("Deleting cstorvolumeclaim %s", cvc.Name)
+	klog.V(4).Infof("Deleting cstorvolumeclaim %s", cvc.Name)
 	c.enqueueCVC(cvc)
 }
 
@@ -247,23 +247,23 @@ func (c *CVCController) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer c.workqueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches
-	glog.Info("Starting CVC controller")
+	klog.Info("Starting CVC controller")
 
 	// Wait for the k8s caches to be synced before starting workers
-	glog.Info("Waiting for informer caches to sync")
+	klog.Info("Waiting for informer caches to sync")
 	if ok := cache.WaitForCacheSync(stopCh, c.cvcSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
-	glog.Info("Starting CVC workers")
+	klog.Info("Starting CVC workers")
 	// Launch worker to process CVC resources
 	// Threadiness will decide the number of workers you want to launch to process work items from queue
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
 
-	glog.Info("Started CVC workers")
+	klog.Info("Started CVC workers")
 	<-stopCh
-	glog.Info("Shutting down CVC workers")
+	klog.Info("Shutting down CVC workers")
 
 	return nil
 }
@@ -319,7 +319,7 @@ func (c *CVCController) processNextWorkItem() bool {
 		// Finally, if no error occurs we Forget this item so it does not
 		// get queued again until another change happens.
 		c.workqueue.Forget(obj)
-		glog.V(4).Infof("Successfully synced '%s'", key)
+		klog.V(4).Infof("Successfully synced '%s'", key)
 		return nil
 	}(obj)
 

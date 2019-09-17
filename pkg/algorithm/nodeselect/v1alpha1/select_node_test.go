@@ -20,7 +20,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/golang/glog"
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
@@ -30,6 +29,7 @@ import (
 	sp "github.com/openebs/maya/pkg/sp/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/klog"
 )
 
 var blockDeviceK8sClient *blockdevice.KubernetesClient
@@ -82,7 +82,7 @@ func FakeDiskCreator(bd *blockdevice.KubernetesClient) {
 		}
 		_, err := bd.Create(diskObjectList[diskListIndex])
 		if err != nil {
-			glog.Error(err)
+			klog.Error(err)
 		}
 	}
 

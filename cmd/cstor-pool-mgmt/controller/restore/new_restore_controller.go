@@ -19,7 +19,6 @@ package restorecontroller
 import (
 	"os"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -30,6 +29,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -75,16 +75,16 @@ func NewCStorRestoreController(
 
 	err := openebsScheme.AddToScheme(scheme.Scheme)
 	if err != nil {
-		glog.Errorf("Failed to add scheme :%v", err.Error())
+		klog.Errorf("Failed to add scheme :%v", err.Error())
 		return nil
 	}
 
 	// Create event broadcaster
 	// Add cStor-Replica-controller types to the default Kubernetes Scheme so Events can be
 	// logged for cStor-Replica-controller types.
-	glog.V(4).Info("Creating restore event broadcaster")
+	klog.V(4).Info("Creating restore event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(klog.Infof)
 
 	// StartEventWatcher starts sending events received from this EventBroadcaster to the given
 	// event handler function. The return value can be ignored or used to stop recording, if
@@ -100,7 +100,7 @@ func NewCStorRestoreController(
 		recorder:      recorder,
 	}
 
-	glog.Info("Setting up event handlers for restore")
+	klog.Info("Setting up event handlers for restore")
 
 	// Clean any pending restore for this cstor pool
 	controller.cleanupOldRestore(clientset)
@@ -142,7 +142,7 @@ func NewCStorRestoreController(
 			if !IsRightCStorPoolMgmt(rst) {
 				return
 			}
-			glog.Infof("Restore resource deleted event: %v, %v", rst.ObjectMeta.Name, string(rst.ObjectMeta.UID))
+			klog.Infof("Restore resource deleted event: %v, %v", rst.ObjectMeta.Name, string(rst.ObjectMeta.UID))
 
 		},
 	})
@@ -166,13 +166,13 @@ func (c *RestoreController) enqueueCStorRestore(obj *apis.CStorRestore, q common
 // handleRSTAddEvent is to handle add operation of restore controller
 func (c *RestoreController) handleRSTAddEvent(rst *apis.CStorRestore, q *common.QueueLoad) {
 	q.Operation = common.QOpAdd
-	glog.Infof("cStorRestore event added: %v, %v", rst.ObjectMeta.Name, string(rst.ObjectMeta.UID))
+	klog.Infof("cStorRestore event added: %v, %v", rst.ObjectMeta.Name, string(rst.ObjectMeta.UID))
 	c.recorder.Event(rst, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
 	c.enqueueCStorRestore(rst, *q)
 }
 
 func (c *RestoreController) handleRSTUpdateEvent(oldrst, newrst *apis.CStorRestore, q *common.QueueLoad) {
-	glog.Infof("Received Update for restore:%s", oldrst.ObjectMeta.Name)
+	klog.Infof("Received Update for restore:%s", oldrst.ObjectMeta.Name)
 
 	// If there is no change in status then we will ignore the event
 	if newrst.Status == oldrst.Status {
@@ -185,14 +185,14 @@ func (c *RestoreController) handleRSTUpdateEvent(oldrst, newrst *apis.CStorResto
 
 	if IsDestroyEvent(newrst) {
 		q.Operation = common.QOpDestroy
-		glog.Infof("cStorRestore Destroy event : %v, %v", newrst.ObjectMeta.Name, string(newrst.ObjectMeta.UID))
+		klog.Infof("cStorRestore Destroy event : %v, %v", newrst.ObjectMeta.Name, string(newrst.ObjectMeta.UID))
 		c.recorder.Event(newrst, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
 	} else {
-		glog.Infof("cStorRestore Modify event : %v, %v", newrst.ObjectMeta.Name, string(newrst.ObjectMeta.UID))
+		klog.Infof("cStorRestore Modify event : %v, %v", newrst.ObjectMeta.Name, string(newrst.ObjectMeta.UID))
 
 		q.Operation = common.QOpSync
 		c.recorder.Event(newrst, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageModifySynced))
-		glog.Infof("Done modify event %v", newrst.Name)
+		klog.Infof("Done modify event %v", newrst.Name)
 	}
 	c.enqueueCStorRestore(newrst, *q)
 }
@@ -225,7 +225,7 @@ func updateRestoreStatus(clientset clientset.Interface, rst apis.CStorRestore, s
 
 	_, err := clientset.OpenebsV1alpha1().CStorRestores(rst.Namespace).Update(&rst)
 	if err != nil {
-		glog.Errorf("Failed to update restore(%s) status(%s)", status, rst.Name)
+		klog.Errorf("Failed to update restore(%s) status(%s)", status, rst.Name)
 		return
 	}
 }

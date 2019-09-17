@@ -17,10 +17,10 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 )
 
 const (
@@ -49,7 +49,7 @@ func addRaidGroup(csp *apis.CStorPoolInstance, r apis.RaidGroup) error {
 
 	disklist, err := getPathForBdevList(r.BlockDevices)
 	if err != nil {
-		glog.Errorf("Failed to get list of disk-path : %s", err.Error())
+		klog.Errorf("Failed to get list of disk-path : %s", err.Error())
 		return err
 	}
 
@@ -126,7 +126,7 @@ func removePoolVdev(csp *apis.CStorPoolInstance, bdev apis.CStorPoolClusterBlock
 		WithVdev(bdev.DevLink).
 		Execute(); err != nil {
 		// Let's just log the error
-		glog.Errorf("Failed to perform label clear for disk {%s}", bdev.DevLink)
+		klog.Errorf("Failed to perform label clear for disk {%s}", bdev.DevLink)
 	}
 
 	return nil
@@ -174,7 +174,7 @@ func replacePoolVdev(csp *apis.CStorPoolInstance, bdev apis.CStorPoolClusterBloc
 						WithVdev(bdev.DevLink).
 						Execute(); err != nil {
 						// Let's log the error
-						glog.Errorf("Failed to perform label clear for disk {%s}", bdev.DevLink)
+						klog.Errorf("Failed to perform label clear for disk {%s}", bdev.DevLink)
 					}
 					return npath[0], nil
 				}

@@ -17,10 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/golang/glog"
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 )
 
 // BlockDeviceClaim encapsulates BlockDeviceClaim api object.
@@ -111,7 +111,7 @@ func (bdc *BlockDeviceClaim) HasFinalizer(finalizer string) bool {
 // AddFinalizer adds the given finalizer to the object.
 func (bdc *BlockDeviceClaim) AddFinalizer(finalizer string) (*ndm.BlockDeviceClaim, error) {
 	if bdc.HasFinalizer(finalizer) {
-		glog.V(2).Infof("finalizer %s is already present on BDC %s", finalizer, bdc.Object.Name)
+		klog.V(2).Infof("finalizer %s is already present on BDC %s", finalizer, bdc.Object.Name)
 		return bdc.Object, nil
 	}
 
@@ -126,19 +126,19 @@ func (bdc *BlockDeviceClaim) AddFinalizer(finalizer string) (*ndm.BlockDeviceCla
 			bdc.Object.Name, finalizer)
 	}
 
-	glog.Infof("Finalizer %s added on blockdeviceclaim %s", finalizer, bdc.Object.Name)
+	klog.Infof("Finalizer %s added on blockdeviceclaim %s", finalizer, bdc.Object.Name)
 	return bdcAPIObj, nil
 }
 
 // RemoveFinalizer removes the given finalizer from the object.
 func (bdc *BlockDeviceClaim) RemoveFinalizer(finalizer string) error {
 	if len(bdc.Object.Finalizers) == 0 {
-		glog.V(2).Infof("no finalizer present on BDC %s", bdc.Object.Name)
+		klog.V(2).Infof("no finalizer present on BDC %s", bdc.Object.Name)
 		return nil
 	}
 
 	if !bdc.HasFinalizer(finalizer) {
-		glog.V(2).Infof("finalizer %s is already removed on BDC %s", finalizer, bdc.Object.Name)
+		klog.V(2).Infof("finalizer %s is already removed on BDC %s", finalizer, bdc.Object.Name)
 		return nil
 	}
 
@@ -150,7 +150,7 @@ func (bdc *BlockDeviceClaim) RemoveFinalizer(finalizer string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to update object while removing finalizer")
 	}
-	glog.Infof("Finalizer %s removed successfully from BDC %s", finalizer, bdc.Object.Name)
+	klog.Infof("Finalizer %s removed successfully from BDC %s", finalizer, bdc.Object.Name)
 	return nil
 }
 

@@ -28,7 +28,7 @@ import (
 	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
 	"github.com/pkg/errors"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // jiva implements the Volume interface. It exposes
@@ -72,7 +72,7 @@ func (j *jiva) getVolumeStats(obj *v1.VolumeStats) error {
 	if err != nil {
 		return err
 	}
-	glog.V(2).Info("Got response: ", string(body))
+	klog.V(2).Info("Got response: ", string(body))
 	err = json.Unmarshal(body, &obj)
 
 	if err != nil {
@@ -86,7 +86,7 @@ func (j *jiva) getVolumeStats(obj *v1.VolumeStats) error {
 func (j *jiva) parse(volStats v1.VolumeStats, metrics *metrics) stats {
 	var stats = stats{}
 	if !volStats.Got {
-		glog.Warningf("%s", "can't parse stats, controller may not be reachable")
+		klog.Warningf("%s", "can't parse stats, controller may not be reachable")
 		return stats
 	}
 	stats.got = true

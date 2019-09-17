@@ -19,9 +19,9 @@ package executor
 import (
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	upgrade090to100 "github.com/openebs/maya/pkg/upgrade/0.9.0-1.0.0/v1alpha1"
@@ -83,16 +83,16 @@ func (u *UpgradeOptions) RunCStorSPCUpgrade(cmd *cobra.Command) error {
 
 	switch from + "-" + to {
 	case "0.9.0-1.0.0":
-		glog.Infof("Upgrading to 1.0.0")
+		klog.Infof("Upgrading to 1.0.0")
 		err := upgrade090to100.Exec(u.resourceKind,
 			u.cstorSPC.spcName,
 			u.openebsNamespace)
 		if err != nil {
-			glog.Error(err)
+			klog.Error(err)
 			return errors.Errorf("Failed to upgrade cStor SPC %v:", u.cstorSPC.spcName)
 		}
 	case "1.0.0-1.1.0", "1.0.0-1.2.0", "1.1.0-1.2.0":
-		glog.Infof("Upgrading to %s", u.toVersion)
+		klog.Infof("Upgrading to %s", u.toVersion)
 		err := upgrade100to120.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
 			u.cstorSPC.spcName,
@@ -100,7 +100,7 @@ func (u *UpgradeOptions) RunCStorSPCUpgrade(cmd *cobra.Command) error {
 			u.imageURLPrefix,
 			u.toVersionImageTag)
 		if err != nil {
-			glog.Error(err)
+			klog.Error(err)
 			return errors.Errorf("Failed to upgrade cStor SPC %v:", u.cstorSPC.spcName)
 		}
 	default:

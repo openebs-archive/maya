@@ -20,7 +20,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -131,9 +131,9 @@ func patchCSP(cspObj *apis.CStorPool) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch csp %s", cspObj.Name)
 		}
-		glog.Infof("patched csp %s", cspObj.Name)
+		klog.Infof("patched csp %s", cspObj.Name)
 	} else {
-		glog.Infof("csp %s already in %s version", cspObj.Name, upgradeVersion)
+		klog.Infof("csp %s already in %s version", cspObj.Name, upgradeVersion)
 	}
 	return nil
 }
@@ -166,9 +166,9 @@ func patchCSPDeploy(cspDeployObj *appsv1.Deployment, openebsNamespace string) er
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch deployment %s", cspDeployObj.Name)
 		}
-		glog.Infof("patched csp deployment %s", cspDeployObj.Name)
+		klog.Infof("patched csp deployment %s", cspDeployObj.Name)
 	} else {
-		glog.Infof("csp deployment %s already in %s version",
+		klog.Infof("csp deployment %s already in %s version",
 			cspDeployObj.Name,
 			upgradeVersion,
 		)
@@ -288,7 +288,7 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		return options.utaskObj, err
 	}
 
-	glog.Infof("Upgrade Successful for csp %s", cspName)
+	klog.Infof("Upgrade Successful for csp %s", cspName)
 
 	return options.utaskObj, nil
 }

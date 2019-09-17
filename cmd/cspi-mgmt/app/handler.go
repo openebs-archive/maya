@@ -19,9 +19,9 @@ package app
 import (
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 
 	zpool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -134,11 +134,11 @@ func (c *CStorPoolInstanceController) destroy(cspi *apis.CStorPoolInstance) erro
 	err = c.removeFinalizer(cspi)
 	if err != nil {
 		// Object will exist. Let's set status as offline
-		glog.Errorf("removeFinalizer failed %s", err.Error())
+		klog.Errorf("removeFinalizer failed %s", err.Error())
 		phase = apis.CStorPoolStatusDeletionFailed
 		goto updatestatus
 	}
-	glog.Infof("Pool %s deleted successfully", cspi.Name)
+	klog.Infof("Pool %s deleted successfully", cspi.Name)
 	return nil
 
 updatestatus:
@@ -147,7 +147,7 @@ updatestatus:
 		OpenebsV1alpha1().
 		CStorPoolInstances(cspi.Namespace).
 		Update(cspi); er != nil {
-		glog.Errorf("Update failed %s", er.Error())
+		klog.Errorf("Update failed %s", er.Error())
 	}
 	return err
 }
@@ -249,7 +249,7 @@ func (c *CStorPoolInstanceController) removeFinalizer(cspi *apis.CStorPoolInstan
 	if err != nil {
 		return err
 	}
-	glog.Infof("Removed Finalizer: %v, %v",
+	klog.Infof("Removed Finalizer: %v, %v",
 		cspi.Name,
 		string(cspi.GetUID()))
 	return nil

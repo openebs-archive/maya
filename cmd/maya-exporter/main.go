@@ -17,11 +17,11 @@ package main
 import (
 	"os"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-exporter/app/command"
 	mayalogger "github.com/openebs/maya/pkg/logs"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog"
 )
 
 func init() {
@@ -44,7 +44,7 @@ func run() error {
 	// Create & execute new command
 	cmd, err := command.NewCmdVolumeExporter()
 	if err != nil {
-		glog.Error("Can't execute the command, error :", err)
+		klog.Error("Can't execute the command, error :", err)
 		return err
 	}
 

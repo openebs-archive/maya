@@ -25,7 +25,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // We need to run several instances of Exporter for each volume just like node
@@ -38,7 +38,7 @@ import (
 // <clusterIP>:9500/metrics endpoint and for getting the metrics in json
 // the "type=json" action can be used. e.g <clusterIP>:9500/metrics/?type=json
 func (options *VolumeExporterOptions) StartMayaExporter() error {
-	glog.Info("Starting http server....")
+	klog.Info("Starting http server....")
 	http.HandleFunc(options.MetricsPath, metricsHandler) // For backward compatibility
 	http.HandleFunc(options.MetricsPath+"/", metricsHandler)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +55,7 @@ func (options *VolumeExporterOptions) StartMayaExporter() error {
 	})
 	err := http.ListenAndServe(options.ListenAddress, nil)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 	}
 	return err
 }

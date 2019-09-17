@@ -19,44 +19,56 @@ package logs
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog"
 )
 
 var logFlushFreq = pflag.Duration("log-flush-frequency", 5*time.Second, "Maximum number of seconds between log flushes")
 
 // TODO(thockin): This is temporary until we agree on log dirs and put those into each cmd.
 func init() {
+	klog.InitFlags(flag.CommandLine)
+	//klog.InitFlags(nil)
 	flag.Set("logtostderr", "true")
 }
 
-// GlogWriter serves as a bridge between the standard log package and the glog package.
-type GlogWriter struct{}
+// KlogWriter serves as a bridge between the standard log package and the klog package.
+type KlogWriter struct{}
 
 // Write implements the io.Writer interface.
-func (writer GlogWriter) Write(data []byte) (n int, err error) {
-	glog.Info(string(data))
+func (writer KlogWriter) Write(data []byte) (n int, err error) {
+	klog.Info(string(data))
 	return len(data), nil
 }
 
 // InitLogs initializes logs the way we want for kubernetes.
 func InitLogs() {
-	log.SetOutput(GlogWriter{})
+	log.SetOutput(KlogWriter{})
 	log.SetFlags(0)
-	// The default glog flush interval is 30 seconds, which is frighteningly long.
-	go wait.Until(glog.Flush, *logFlushFreq, wait.NeverStop)
+	// The default klog flush interval is 30 seconds, which is frighteningly long.
+	go wait.Until(klog.Flush, *logFlushFreq, wait.NeverStop)
 }
 
 // FlushLogs flushes logs immediately.
 func FlushLogs() {
-	glog.Flush()
+	klog.Flush()
 }
 
-// NewLogger creates a new log.Logger which sends logs to glog.Info.
+// NewLogger creates a new log.Logger which sends logs to klog.Info.
 func NewLogger(prefix string) *log.Logger {
-	return log.New(GlogWriter{}, prefix, 0)
+	return log.New(KlogWriter{}, prefix, 0)
+}
+
+// GlogSetter is a setter to set glog level.
+func GlogSetter(val string) (string, error) {
+	var level klog.Level
+	if err := level.Set(val); err != nil {
+		return "", fmt.Errorf("failed set klog.logging.verbosity %s: %v", val, err)
+	}
+	return fmt.Sprintf("successfully set klog.logging.verbosity to %s", val), nil
 }

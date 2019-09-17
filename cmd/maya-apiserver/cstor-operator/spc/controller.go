@@ -19,7 +19,6 @@ package spc
 import (
 	"fmt"
 
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/versioned/scheme"
@@ -35,6 +34,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 )
 
 const controllerAgentName = "spc-controller"
@@ -119,9 +119,9 @@ func (cb *ControllerBuilder) withWorkqueueRateLimiting() *ControllerBuilder {
 
 // withRecorder adds recorder to controller object.
 func (cb *ControllerBuilder) withRecorder(ks kubernetes.Interface) *ControllerBuilder {
-	glog.V(4).Info("Creating event broadcaster")
+	klog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: ks.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 	cb.Controller.recorder = recorder
@@ -166,7 +166,7 @@ func (c *Controller) addSpc(obj interface{}) {
 		c.recorder.Event(spc, corev1.EventTypeWarning, "Create", message)
 		return
 	}
-	glog.V(4).Infof("Queuing SPC %s for add event", spc.Name)
+	klog.V(4).Infof("Queuing SPC %s for add event", spc.Name)
 	c.enqueueSpc(spc)
 }
 
@@ -207,6 +207,6 @@ func (c *Controller) deleteSpc(obj interface{}) {
 		c.recorder.Event(spc, corev1.EventTypeWarning, "Delete", message)
 		return
 	}
-	glog.V(4).Infof("Deleting storagepoolclaim %s", spc.Name)
+	klog.V(4).Infof("Deleting storagepoolclaim %s", spc.Name)
 	c.enqueueSpc(spc)
 }

@@ -22,9 +22,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 )
 
 const (
@@ -144,7 +144,7 @@ func (c *cstor) readHeader() error {
 	for {
 		n, err = c.conn.Read(buf[:])
 		if err != nil {
-			glog.Error("Error in reading response, error : ", err)
+			klog.Error("Error in reading response, error : ", err)
 			return err
 		}
 		// apend the chunks into str
@@ -154,7 +154,7 @@ func (c *cstor) readHeader() error {
 			break
 		}
 	}
-	glog.V(2).Infof("Connection established with istgt, got header: %#v", str)
+	klog.V(2).Infof("Connection established with istgt, got header: %#v", str)
 	return nil
 }
 
@@ -172,7 +172,7 @@ func (c *cstor) removeItem(slice []string, str string) []string {
 func (c *cstor) unmarshal(result string) (v1.VolumeStats, error) {
 	metrics := v1.VolumeStats{}
 	if err := json.Unmarshal([]byte(result), &metrics); err != nil {
-		glog.Error("Error in unmarshalling, found error: ", err)
+		klog.Error("Error in unmarshalling, found error: ", err)
 		return metrics, err
 	}
 	return metrics, nil
@@ -208,7 +208,7 @@ func (c *cstor) get() (v1.VolumeStats, error) {
 		stats v1.VolumeStats
 	)
 
-	glog.V(2).Info("Initiate connection")
+	klog.V(2).Info("Initiate connection")
 	if err := c.initiateConnection(); err != nil {
 		return v1.VolumeStats{}, &colErr{
 			errors.Wrap(err, "Can't connect to istgt"),
@@ -216,7 +216,7 @@ func (c *cstor) get() (v1.VolumeStats, error) {
 	}
 	defer c.close()
 
-	glog.V(2).Info("Request istgt to get volume stats")
+	klog.V(2).Info("Request istgt to get volume stats")
 	c.conn.SetDeadline(time.Now().Add(5 * time.Second))
 
 	if err := c.writer(); err != nil {
@@ -225,12 +225,12 @@ func (c *cstor) get() (v1.VolumeStats, error) {
 		}
 	}
 
-	glog.V(2).Info("Read response from istgt")
+	klog.V(2).Info("Read response from istgt")
 	c.conn.SetDeadline(time.Now().Add(5 * time.Second))
 
 	buf, err := c.reader()
 	if err != nil {
-		glog.Errorf("Got response: %v", buf)
+		klog.Errorf("Got response: %v", buf)
 		return v1.VolumeStats{}, &colErr{
 			errors.Errorf("%v: closing connection", err),
 		}
@@ -243,7 +243,7 @@ func (c *cstor) get() (v1.VolumeStats, error) {
 
 	// unmarshal the json response into metrics instances.
 	if stats, err = c.unmarshal(resp); err != nil {
-		glog.Errorf("Got response: %v", buf)
+		klog.Errorf("Got response: %v", buf)
 		return v1.VolumeStats{}, err
 	}
 
@@ -255,7 +255,7 @@ func (c *cstor) get() (v1.VolumeStats, error) {
 func (c *cstor) parse(volStats v1.VolumeStats, metrics *metrics) stats {
 	var stats = stats{}
 	if !volStats.Got {
-		glog.Warningf("%s", "can't parse, got empty stats, istgt may not be reachable")
+		klog.Warningf("%s", "can't parse, got empty stats, istgt may not be reachable")
 		return stats
 	}
 	stats.got = true

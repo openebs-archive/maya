@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"testing"
 )
 
@@ -168,7 +168,7 @@ func TestMsgsLog(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			m := mockMsgsFromType(mock.mtypes)
-			m.Log(glog.Infof)
+			m.Log(klog.Infof)
 		})
 	}
 }
@@ -187,7 +187,7 @@ func TestMsgsLogErrors(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			m := mockMsgsFromType(mock.mtypes)
-			m.LogErrors(glog.Errorf)
+			m.LogErrors(klog.Errorf)
 		})
 	}
 }
@@ -206,7 +206,7 @@ func TestMsgsLogNonErrors(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			m := mockMsgsFromType(mock.mtypes)
-			m.LogNonErrors(glog.Infof)
+			m.LogNonErrors(klog.Infof)
 		})
 	}
 }
@@ -225,7 +225,7 @@ func TestMsgsLogNonInfos(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			m := mockMsgsFromType(mock.mtypes)
-			m.LogNonInfos(glog.Errorf)
+			m.LogNonInfos(klog.Errorf)
 		})
 	}
 }

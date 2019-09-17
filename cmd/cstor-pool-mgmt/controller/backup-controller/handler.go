@@ -21,7 +21,6 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -31,13 +30,14 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the CStorReplicaUpdated resource
 // with the current status of the resource.
 func (c *BackupController) syncHandler(key string, operation common.QueueOperation) error {
-	glog.Infof("Sync handler called for key:%s with op:%s", key, operation)
+	klog.Infof("Sync handler called for key:%s with op:%s", key, operation)
 	bkp, err := c.getCStorBackupResource(key)
 	if err != nil {
 		return err
@@ -55,7 +55,7 @@ func (c *BackupController) syncHandler(key string, operation common.QueueOperati
 	}
 
 	if err != nil {
-		glog.Errorf(err.Error())
+		klog.Errorf(err.Error())
 		bkp.Status = apis.BKPCStorStatusFailed
 	} else {
 		bkp.Status = apis.CStorBackupStatus(status)
@@ -73,7 +73,7 @@ func (c *BackupController) syncHandler(key string, operation common.QueueOperati
 		return err
 	}
 
-	glog.Infof("Completed operation:%v for backup:%v, status:%v", operation, nbkp.Name, nbkp.Status)
+	klog.Infof("Completed operation:%v for backup:%v, status:%v", operation, nbkp.Name, nbkp.Status)
 	return nil
 }
 
@@ -109,19 +109,19 @@ func (c *BackupController) syncEventHandler(bkp *apis.CStorBackup) (string, erro
 		bkp.Status = apis.BKPCStorStatusInProgress
 		_, err := c.clientset.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Update(bkp)
 		if err != nil {
-			glog.Errorf("Failed to update backup:%s status : %v", bkp.Name, err.Error())
+			klog.Errorf("Failed to update backup:%s status : %v", bkp.Name, err.Error())
 			return "", err
 		}
 
 		err = volumereplica.CreateVolumeBackup(bkp)
 		if err != nil {
 			c.recorder.Event(bkp, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
-			glog.Errorf("Failed to create backup(%v): %v", bkp.ObjectMeta.Name, err.Error())
+			klog.Errorf("Failed to create backup(%v): %v", bkp.ObjectMeta.Name, err.Error())
 			return string(apis.BKPCStorStatusFailed), err
 		}
 
 		c.recorder.Event(bkp, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
-		glog.Infof("backup creation successful: %v, %v", bkp.ObjectMeta.Name, string(bkp.GetUID()))
+		klog.Infof("backup creation successful: %v, %v", bkp.ObjectMeta.Name, string(bkp.GetUID()))
 		err = c.updateCStorCompletedBackup(bkp)
 		if err != nil {
 			return string(apis.BKPCStorStatusFailed), err
@@ -134,7 +134,7 @@ func (c *BackupController) syncEventHandler(bkp *apis.CStorBackup) (string, erro
 // getCStorBackupResource returns a backup object corresponding to the resource key
 func (c *BackupController) getCStorBackupResource(key string) (*apis.CStorBackup, error) {
 	// Convert the key(namespace/name) string into a distinct name
-	glog.Infof("Finding backup for key:%s", key)
+	klog.Infof("Finding backup for key:%s", key)
 	ns, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
@@ -221,7 +221,7 @@ func (c *BackupController) updateCStorCompletedBackup(bkp *apis.CStorBackup) err
 	lastbkpname := bkp.Spec.BackupName + "-" + bkp.Spec.VolumeName
 	bkplast, err := c.clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
 	if err != nil {
-		glog.Errorf("Failed to get last completed backup for %s vol:%v", bkp.Spec.BackupName, bkp.Spec.VolumeName)
+		klog.Errorf("Failed to get last completed backup for %s vol:%v", bkp.Spec.BackupName, bkp.Spec.VolumeName)
 		return nil
 	}
 
@@ -229,7 +229,7 @@ func (c *BackupController) updateCStorCompletedBackup(bkp *apis.CStorBackup) err
 	bkplast.Spec.PrevSnapName = bkp.Spec.SnapName
 	_, err = c.clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Update(bkplast)
 	if err != nil {
-		glog.Errorf("Failed to update lastbackup for %s", bkplast.Name)
+		klog.Errorf("Failed to update lastbackup for %s", bkplast.Name)
 		return err
 	}
 

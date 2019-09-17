@@ -22,7 +22,7 @@ import (
 	//"os"
 	"strings"
 
-	//"github.com/golang/glog"
+	//"k8s.io/klog"
 	"github.com/spf13/cobra"
 	//errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 )

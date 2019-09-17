@@ -18,11 +18,11 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/golang/glog"
 	col "github.com/openebs/maya/cmd/maya-exporter/app/collector"
 	types "github.com/openebs/maya/pkg/exec"
 	zpool "github.com/openebs/maya/pkg/zpool/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog"
 )
 
 // pool implements prometheus.Collector interface
@@ -122,7 +122,7 @@ func (p *pool) getZpoolStats(ch chan<- prometheus.Metric) (zpool.Stats, error) {
 		zpoolStats  = zpool.Stats{}
 	)
 
-	glog.V(2).Info("Run zpool list command")
+	klog.V(2).Info("Run zpool list command")
 	stdoutZpool, err = zpool.Run(p.runner)
 	if err != nil {
 		p.zpoolCommandErrorCounter.Inc()
@@ -135,7 +135,7 @@ func (p *pool) getZpoolStats(ch chan<- prometheus.Metric) (zpool.Stats, error) {
 		return zpoolStats, err
 	}
 
-	glog.V(2).Infof("Parse stdout of zpool list command, stdout: %v", string(stdoutZpool))
+	klog.V(2).Infof("Parse stdout of zpool list command, stdout: %v", string(stdoutZpool))
 	zpoolStats, err = zpool.ListParser(stdoutZpool)
 	if err != nil {
 		p.inCompleteOutputErrorCounter.Inc()
@@ -166,7 +166,7 @@ func (p *pool) Collect(ch chan<- prometheus.Metric) {
 		p.setRequestToFalse()
 		return
 	}
-	glog.V(2).Infof("Got zpool stats: %#v", zpoolStats)
+	klog.V(2).Infof("Got zpool stats: %#v", zpoolStats)
 	poolStats.parse(zpoolStats, p)
 	p.setZPoolStats(poolStats, zpoolStats.Name)
 	for _, col := range p.collectors() {

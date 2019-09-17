@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
+	"k8s.io/klog"
 )
 
 // redactJsonResult will update the provided map by removing the original json
@@ -163,25 +163,25 @@ func (m *TaskGroupRunner) planForRollback(te *executor, objectName string) error
 func (m *TaskGroupRunner) rollback() {
 	count := len(m.rollbacks)
 	if count == 0 {
-		glog.Warningf("nothing to rollback: no rollback tasks were found")
+		klog.Warningf("nothing to rollback: no rollback tasks were found")
 		return
 	}
 
-	glog.Warningf("will rollback previously executed runtask(s)")
+	klog.Warningf("will rollback previously executed runtask(s)")
 
 	// execute the rollback tasks in **reverse order**
 	for i := count - 1; i >= 0; i-- {
 		err := m.rollbacks[i].ExecuteIt()
 		if err != nil {
 			// warn this rollback error & continue with the next rollbacks
-			glog.Warningf("failed to rollback run task {%s}: %s", m.rollbacks[i].Runtask.Name, errors.Cause(err))
+			klog.Warningf("failed to rollback run task {%s}: %s", m.rollbacks[i].Runtask.Name, errors.Cause(err))
 		}
 	}
 }
 
 // rollback will rollback the previously run operation(s)
 func (m *TaskGroupRunner) fallback(values map[string]interface{}) (output []byte, err error) {
-	glog.Warningf("task group runner will fallback to {%s}", m.fallbackTemplate)
+	klog.Warningf("task group runner will fallback to {%s}", m.fallbackTemplate)
 	f, err := NewFallbackRunner(m.fallbackTemplate, values)
 	if err != nil {
 		return

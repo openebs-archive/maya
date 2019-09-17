@@ -17,9 +17,9 @@ package command
 import (
 	goflag "flag"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 )
 
 var (
@@ -73,7 +73,7 @@ func NewMayaAgent() (*cobra.Command, error) {
 	}
 
 	// Bind & parse flags defined by external projects.
-	// e.g. This imports the golang/glog pkg flags into the cmd flagset
+	// e.g. This imports the golang/klog pkg flags into the cmd flagset
 	cmd.Flags().AddGoFlagSet(goflag.CommandLine)
 	goflag.CommandLine.Parse([]string{})
 	cmd.AddCommand(
@@ -90,7 +90,7 @@ func NewMayaAgent() (*cobra.Command, error) {
 
 // Run maya-agent
 func Run(cmd *cobra.Command, options *MayaAgentOptions) error {
-	glog.Infof("Starting maya-agent...")
+	klog.Infof("Starting maya-agent...")
 
 	return nil
 }

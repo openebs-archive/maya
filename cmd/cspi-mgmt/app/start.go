@@ -23,13 +23,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	backupcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/backup-controller"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	replicacontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/replica-controller"
 	restorecontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/restore"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
@@ -55,7 +55,7 @@ const (
 func Start() error {
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
-
+	klog.InitFlags(nil)
 	err := flag.Set("logtostderr", "true")
 	if err != nil {
 		return errors.Wrap(err, "failed to set logtostderr flag")
@@ -113,7 +113,7 @@ func Start() error {
 	// Run controller for cStorPoolInstance
 	go func() {
 		if err = cStorPoolInstanceController.Run(NumThreads, stopCh); err != nil {
-			glog.Fatalf("Error running CStorPoolInstance controller: %s", err.Error())
+			klog.Fatalf("Error running CStorPoolInstance controller: %s", err.Error())
 		}
 		wg.Done()
 	}()
@@ -126,7 +126,7 @@ func Start() error {
 	// Run controller for cStorVolumeReplica.
 	go func() {
 		if err = volumeReplicaController.Run(NumThreads, stopCh); err != nil {
-			glog.Fatalf("Error running CStorVolumeReplica controller: %s", err.Error())
+			klog.Fatalf("Error running CStorVolumeReplica controller: %s", err.Error())
 		}
 		wg.Done()
 	}()
@@ -135,7 +135,7 @@ func Start() error {
 	// Run controller for CStorBackup
 	go func() {
 		if err = backupController.Run(NumThreads, stopCh); err != nil {
-			glog.Fatalf("Error running CStorBackup controller: %s", err.Error())
+			klog.Fatalf("Error running CStorBackup controller: %s", err.Error())
 		}
 		wg.Done()
 	}()
@@ -144,7 +144,7 @@ func Start() error {
 	// Run controller for CStorRestore.
 	go func() {
 		if err = restoreController.Run(NumThreads, stopCh); err != nil {
-			glog.Fatalf("Error running CStorRestore controller: %s", err.Error())
+			klog.Fatalf("Error running CStorRestore controller: %s", err.Error())
 		}
 		wg.Done()
 	}()
@@ -158,7 +158,7 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 	if kubeconfig != "" {
 		return clientcmd.BuildConfigFromFlags("", kubeconfig)
 	}
-	glog.V(2).Info("Kubeconfig flag is empty")
+	klog.V(2).Info("Kubeconfig flag is empty")
 	return rest.InClusterConfig()
 }
 
@@ -168,7 +168,7 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 func getSyncInterval() time.Duration {
 	resyncInterval, err := strconv.Atoi(os.Getenv("RESYNC_INTERVAL"))
 	if err != nil || resyncInterval == 0 {
-		glog.Warningf("Incorrect resync interval %q obtained from env, defaulting to %q seconds", resyncInterval, common.SharedInformerInterval)
+		klog.Warningf("Incorrect resync interval %q obtained from env, defaulting to %q seconds", resyncInterval, common.SharedInformerInterval)
 		return common.SharedInformerInterval
 	}
 	return time.Duration(resyncInterval) * time.Second

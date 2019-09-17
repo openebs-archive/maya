@@ -18,11 +18,12 @@ package app
 
 import (
 	"flag"
-	"github.com/golang/glog"
-	"github.com/pkg/errors"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/pkg/errors"
+	"k8s.io/klog"
 
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
@@ -47,7 +48,7 @@ const (
 func Start() error {
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
-
+	klog.InitFlags(nil)
 	err := flag.Set("logtostderr", "true")
 	if err != nil {
 		return errors.Wrap(err, "failed to set logtostderr flag")
@@ -115,7 +116,7 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 	if kubeconfig != "" {
 		return clientcmd.BuildConfigFromFlags("", kubeconfig)
 	}
-	glog.V(2).Info("Kubeconfig flag is empty")
+	klog.V(2).Info("Kubeconfig flag is empty")
 	return rest.InClusterConfig()
 }
 
@@ -125,7 +126,7 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 func getSyncInterval() time.Duration {
 	resyncInterval, err := strconv.Atoi(os.Getenv("RESYNC_INTERVAL"))
 	if err != nil || resyncInterval == 0 {
-		glog.Warningf("Incorrect resync interval %q obtained from env, defaulting to %q seconds", resyncInterval, ResyncInterval)
+		klog.Warningf("Incorrect resync interval %q obtained from env, defaulting to %q seconds", resyncInterval, ResyncInterval)
 		return ResyncInterval
 	}
 	return time.Duration(resyncInterval) * time.Second

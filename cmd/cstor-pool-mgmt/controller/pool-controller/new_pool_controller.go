@@ -19,7 +19,6 @@ package poolcontroller
 import (
 	"fmt"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	kubeinformers "k8s.io/client-go/informers"
@@ -29,6 +28,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 
@@ -77,14 +77,14 @@ func NewCStorPoolController(
 
 	err := openebsScheme.AddToScheme(scheme.Scheme)
 	if err != nil {
-		glog.Errorf("failed to add to scheme: error {%v}", err)
+		klog.Errorf("failed to add to scheme: error {%v}", err)
 	}
 	// Create event broadcaster to receive events and send them to any EventSink, watcher, or log.
 	// Add NewCstorPoolController types to the default Kubernetes Scheme so Events can be
 	// logged for CstorPool Controller types.
-	glog.V(4).Info("Creating event broadcaster")
+	klog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(klog.Infof)
 
 	// StartEventWatcher starts sending events received from this EventBroadcaster to the given
 	// event handler function. The return value can be ignored or used to stop recording, if
@@ -100,7 +100,7 @@ func NewCStorPoolController(
 		recorder:        recorder,
 	}
 
-	glog.Info("Setting up event handlers")
+	klog.Info("Setting up event handlers")
 
 	// Instantiating QueueLoad before entering workqueue.
 	q := common.QueueLoad{}
@@ -121,7 +121,7 @@ func NewCStorPoolController(
 				return
 			}
 			q.Operation = common.QOpAdd
-			glog.Infof("cStorPool Added event : %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
+			klog.Infof("cStorPool Added event : %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
 			controller.recorder.Event(cStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
 
 			if !IsCStorPoolCreateStatuses(cStorPool) {
@@ -138,7 +138,7 @@ func NewCStorPoolController(
 				return
 			}
 			if IsOnlyStatusChange(oldCStorPool, newCStorPool) {
-				glog.V(4).Infof("Only cStorPool status change: %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
+				klog.V(4).Infof("Only cStorPool status change: %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
 				return
 			}
 			if IsDeletionFailedBefore(newCStorPool) || IsErrorDuplicate(newCStorPool) {
@@ -154,14 +154,14 @@ func NewCStorPoolController(
 			if newCStorPool.ResourceVersion == oldCStorPool.ResourceVersion {
 				// Synchronize Cstor pool status
 				q.Operation = common.QOpSync
-				glog.V(4).Infof("cStorPool sync event for %s", newCStorPool.ObjectMeta.Name)
+				klog.V(4).Infof("cStorPool sync event for %s", newCStorPool.ObjectMeta.Name)
 			} else if IsDestroyEvent(newCStorPool) {
 				q.Operation = common.QOpDestroy
-				glog.Infof("cStorPool Destroy event : %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
+				klog.Infof("cStorPool Destroy event : %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
 				controller.recorder.Event(newCStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
 			} else {
 				q.Operation = common.QOpModify
-				glog.Infof("cStorPool Modify event : %v, %v", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
+				klog.Infof("cStorPool Modify event : %v, %v", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
 				controller.recorder.Event(newCStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageModifySynced))
 				return // will be removed once modify is implemented
 			}
@@ -177,7 +177,7 @@ func NewCStorPoolController(
 				controller.recorder.Event(cStorPool, corev1.EventTypeWarning, "Delete", message)
 				return
 			}
-			glog.Infof("cStorPool Resource deleted event: %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
+			klog.Infof("cStorPool Resource deleted event: %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
 		},
 	})
 

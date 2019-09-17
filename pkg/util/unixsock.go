@@ -19,7 +19,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // IstgtUctlUnxpath is the storage path for the UNIX domain socket from istgt
@@ -44,13 +44,13 @@ func Reader(r io.Reader, cmd string) []string {
 		buf := make([]byte, 1024)
 		n, err := r.Read(buf[:])
 		if n > 0 {
-			glog.Infof("Client got: %s", string(buf[0:n]))
+			klog.Infof("Client got: %s", string(buf[0:n]))
 			fulllines = append(fulllines, buf[0:n]...)
 			if strings.HasSuffix(string(fulllines), EndOfLine) {
 				lines := strings.Split(string(fulllines), EndOfLine)
 				for _, line := range lines {
 					if len(line) != 0 {
-						glog.Infof("Appending line to resp: %s", line)
+						klog.Infof("Appending line to resp: %s", line)
 						resp = append(resp, line+EndOfLine)
 					}
 				}
@@ -58,17 +58,17 @@ func Reader(r io.Reader, cmd string) []string {
 				fulllines = nil
 			}
 			if IsResponseEOD(resp, cmd) {
-				glog.Infof("Breaking out of loop for line: %s", resp[len(resp)-1])
+				klog.Infof("Breaking out of loop for line: %s", resp[len(resp)-1])
 				break
 			}
 		}
 		if err != nil {
-			glog.Errorf("Read error : %v", err)
+			klog.Errorf("Read error : %v", err)
 			break
 		}
 		buf = nil
 	}
-	glog.Infof("response : %v", resp)
+	klog.Infof("response : %v", resp)
 	return resp
 }
 
@@ -76,9 +76,9 @@ func Reader(r io.Reader, cmd string) []string {
 func Writer(w io.Writer, msg string) error {
 	_, err := w.Write([]byte(msg))
 	if err != nil {
-		glog.Fatalf("Write error: %s", err)
+		klog.Fatalf("Write error: %s", err)
 	} else {
-		glog.Infof("Client sent: %s", msg)
+		klog.Infof("Client sent: %s", msg)
 	}
 	return err
 }
@@ -95,7 +95,7 @@ type RealUnixSock struct{}
 func (r RealUnixSock) SendCommand(cmd string) ([]string, error) {
 	c, err := net.Dial("unix", IstgtUctlUnxpath)
 	if err != nil {
-		glog.Fatal("Dial error", err)
+		klog.Fatal("Dial error", err)
 	}
 	err = Writer(c, cmd+EndOfLine)
 	if err != nil {

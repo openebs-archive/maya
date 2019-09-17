@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/golang/glog"
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
@@ -28,6 +27,7 @@ import (
 	volume "github.com/openebs/maya/pkg/volume"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 // BDDetails holds the claimed block device details
@@ -373,7 +373,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to create block device claim for bdc {%s}", bdcName)
 			}
-			glog.Infof("successfully created block device claim {%s} for block device {%s}", bdcName, bdName)
+			klog.Infof("successfully created block device claim {%s} for block device {%s}", bdcName, bdName)
 			// As a part of reconcilation we will create pool if all the block
 			// devices are claimed
 			pendingBDCCount++

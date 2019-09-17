@@ -23,7 +23,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -34,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 )
 
 // CVRPatch struct represent the struct used to patch
@@ -126,7 +126,7 @@ func (c *CStorVolumeReplicaController) syncHandler(
 		)
 	}
 
-	glog.V(4).Infof(
+	klog.V(4).Infof(
 		"cvr {%s} reconciled successfully with current phase being {%s}",
 		key,
 		cvrGot.Status.Phase,
@@ -164,7 +164,7 @@ func (c *CStorVolumeReplicaController) cVREventHandler(
 
 	switch operation {
 	case common.QOpAdd:
-		glog.Infof(
+		klog.Infof(
 			"will process add event for cvr {%s} as volume {%s}",
 			cvrObj.Name,
 			fullVolName,
@@ -174,7 +174,7 @@ func (c *CStorVolumeReplicaController) cVREventHandler(
 		return status, err
 
 	case common.QOpDestroy:
-		glog.Infof(
+		klog.Infof(
 			"will process delete event for cvr {%s} as volume {%s}",
 			cvrObj.Name,
 			fullVolName,
@@ -208,7 +208,7 @@ func (c *CStorVolumeReplicaController) cVREventHandler(
 		fallthrough
 
 	case common.QOpSync:
-		glog.V(4).Infof(
+		klog.V(4).Infof(
 			"will process sync event for cvr {%s} as volume {%s}",
 			cvrObj.Name,
 			operation,
@@ -216,7 +216,7 @@ func (c *CStorVolumeReplicaController) cVREventHandler(
 		return c.getCVRStatus(cvrObj)
 	}
 
-	glog.Errorf(
+	klog.Errorf(
 		"failed to handle event for cvr {%s}: operation {%s} not supported",
 		cvrObj.Name,
 		string(operation),
@@ -257,7 +257,7 @@ func (c *CStorVolumeReplicaController) removeFinalizer(
 		)
 	}
 
-	glog.Infof("finalizers removed successfully from cvr {%s}", cvrObj.Name)
+	klog.Infof("finalizers removed successfully from cvr {%s}", cvrObj.Name)
 	return nil
 }
 
@@ -276,7 +276,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 			fullVolName,
 		)
 		if importedFlag && !IsEmptyStatus(cVR) {
-			glog.Infof(
+			klog.Infof(
 				"CStorVolumeReplica %v is already imported",
 				string(cVR.ObjectMeta.UID),
 			)
@@ -296,7 +296,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 	// then it is required to cross-check whether the volume exists or not.
 	existingvol, _ := volumereplica.GetVolumes()
 	if common.CheckIfPresent(existingvol, fullVolName) {
-		glog.Warningf(
+		klog.Warningf(
 			"CStorVolumeReplica %v is already present",
 			string(cVR.GetUID()),
 		)
@@ -313,7 +313,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 	// Setting quorum to true for newly creating Volumes.
 	var quorum = true
 	if IsRecreateStatus(cVR) {
-		glog.Infof(
+		klog.Infof(
 			"Pool is recreated hence creating the volumes by setting off the quorum property",
 		)
 		quorum = false
@@ -323,7 +323,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 	if IsEmptyStatus(cVR) || IsInitStatus(cVR) || IsRecreateStatus(cVR) {
 		err := volumereplica.CreateVolumeReplica(cVR, fullVolName, quorum)
 		if err != nil {
-			glog.Errorf("cVR creation failure: %v", err.Error())
+			klog.Errorf("cVR creation failure: %v", err.Error())
 			return string(apis.CVRStatusOffline), err
 		}
 		c.recorder.Event(
@@ -332,7 +332,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 			string(common.SuccessCreated),
 			string(common.MessageResourceCreated),
 		)
-		glog.Infof(
+		klog.Infof(
 			"cVR creation successful: %v, %v",
 			cVR.ObjectMeta.Name,
 			string(cVR.GetUID()),
@@ -419,10 +419,10 @@ func IsDeletionFailedBefore(cvrObj *apis.CStorVolumeReplica) bool {
 // Healthy.
 func IsOnlineStatus(cVR *apis.CStorVolumeReplica) bool {
 	if string(cVR.Status.Phase) == string(apis.CVRStatusOnline) {
-		glog.Infof("cVR Healthy status: %v", string(cVR.ObjectMeta.UID))
+		klog.Infof("cVR Healthy status: %v", string(cVR.ObjectMeta.UID))
 		return true
 	}
-	glog.Infof(
+	klog.Infof(
 		"cVR '%s': uid '%s': phase '%s': is_healthy_status: false",
 		string(cVR.ObjectMeta.Name),
 		string(cVR.ObjectMeta.UID),
@@ -434,10 +434,10 @@ func IsOnlineStatus(cVR *apis.CStorVolumeReplica) bool {
 // IsEmptyStatus is to check if the status of cStorVolumeReplica object is empty.
 func IsEmptyStatus(cVR *apis.CStorVolumeReplica) bool {
 	if string(cVR.Status.Phase) == string(apis.CVRStatusEmpty) {
-		glog.Infof("cVR empty status: %v", string(cVR.ObjectMeta.UID))
+		klog.Infof("cVR empty status: %v", string(cVR.ObjectMeta.UID))
 		return true
 	}
-	glog.Infof(
+	klog.Infof(
 		"cVR '%s': uid '%s': phase '%s': is_empty_status: false",
 		string(cVR.ObjectMeta.Name),
 		string(cVR.ObjectMeta.UID),
@@ -449,10 +449,10 @@ func IsEmptyStatus(cVR *apis.CStorVolumeReplica) bool {
 // IsInitStatus is to check if the status of cStorVolumeReplica object is pending.
 func IsInitStatus(cVR *apis.CStorVolumeReplica) bool {
 	if string(cVR.Status.Phase) == string(apis.CVRStatusInit) {
-		glog.Infof("cVR pending: %v", string(cVR.ObjectMeta.UID))
+		klog.Infof("cVR pending: %v", string(cVR.ObjectMeta.UID))
 		return true
 	}
-	glog.V(4).Infof("Not pending status: %v", string(cVR.ObjectMeta.UID))
+	klog.V(4).Infof("Not pending status: %v", string(cVR.ObjectMeta.UID))
 	return false
 }
 
@@ -460,10 +460,10 @@ func IsInitStatus(cVR *apis.CStorVolumeReplica) bool {
 // in recreated state.
 func IsRecreateStatus(cVR *apis.CStorVolumeReplica) bool {
 	if string(cVR.Status.Phase) == string(apis.CVRStatusRecreate) {
-		glog.Infof("cVR Recreate: %v", string(cVR.ObjectMeta.UID))
+		klog.Infof("cVR Recreate: %v", string(cVR.ObjectMeta.UID))
 		return true
 	}
-	glog.V(4).Infof("Not Recreate status: %v", string(cVR.ObjectMeta.UID))
+	klog.V(4).Infof("Not Recreate status: %v", string(cVR.ObjectMeta.UID))
 	return false
 }
 
@@ -500,7 +500,7 @@ func (c *CStorVolumeReplicaController) syncCvr(cvr *apis.CStorVolumeReplica) {
 	// Get the zfs volume name corresponding to this cvr.
 	volumeName, err := volumereplica.GetVolumeName(cvr)
 	if err != nil {
-		glog.Errorf("Unable to sync CVR capacity: %v", err)
+		klog.Errorf("Unable to sync CVR capacity: %v", err)
 		c.recorder.Event(
 			cvr,
 			corev1.EventTypeWarning,
@@ -511,7 +511,7 @@ func (c *CStorVolumeReplicaController) syncCvr(cvr *apis.CStorVolumeReplica) {
 	// Get capacity of the volume.
 	capacity, err := volumereplica.Capacity(volumeName)
 	if err != nil {
-		glog.Errorf("Unable to sync CVR capacity: %v", err)
+		klog.Errorf("Unable to sync CVR capacity: %v", err)
 		c.recorder.Event(
 			cvr,
 			corev1.EventTypeWarning,

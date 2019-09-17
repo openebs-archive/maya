@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	patch "github.com/openebs/maya/pkg/patch/v1alpha1"
@@ -30,6 +29,7 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/klog"
 )
 
 const (
@@ -113,7 +113,7 @@ func (sl *Lease) Release() {
 		newErr := fmt.Errorf("Lease could not be removed:%v", err)
 		runtime.HandleError(newErr)
 	}
-	glog.Info("Lease removed successfully on csp")
+	klog.Info("Lease removed successfully on csp")
 }
 
 func (sl *Lease) getPodName() (string, error) {
@@ -171,7 +171,7 @@ func (sl *Lease) isLeaderALive(leaseValueObj LeaseContract) bool {
 		if errors.IsNotFound(err) {
 			return false
 		}
-		glog.Warningf("Could not fetch the pod which have acquired the lease on CSP:%s", err)
+		klog.Warningf("Could not fetch the pod which have acquired the lease on CSP:%s", err)
 		return true
 	}
 	if pod == nil {
@@ -179,7 +179,7 @@ func (sl *Lease) isLeaderALive(leaseValueObj LeaseContract) bool {
 	}
 	podStatus := pod.Status.Phase
 	if string(podStatus) == string(corev1.PodUnknown) {
-		glog.Warning("Could not get the pod status which have acquired the lease on CSP")
+		klog.Warning("Could not get the pod status which have acquired the lease on CSP")
 		return true
 	}
 	if string(podStatus) != string(corev1.PodRunning) {

@@ -23,12 +23,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/klog"
 )
 
 // ResourceCreator abstracts creating an unstructured instance in kubernetes
@@ -272,7 +272,7 @@ func (r *ResourceCreateOrUpdater) Apply(
 		return nil, err
 	}
 	if r.IsSkipUpdate {
-		glog.V(2).Infof("%s: Skipping update", r)
+		klog.V(2).Infof("%s: Skipping update", r)
 		return resource, nil
 	}
 	return r.Updater.Update(resource, obj, subresources...)

@@ -73,12 +73,12 @@ func (k *Kubeclient) withDefaults() {
 	}
 	if k.list == nil {
 		k.list = func(cs *kubernetes.Clientset, opts metav1.ListOptions) (*admission.ValidatingWebhookConfigurationList, error) {
-			return cs.Admissionregistration().ValidatingWebhookConfigurations().List(opts)
+			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().List(opts)
 		}
 	}
 	if k.get == nil {
 		k.get = func(cs *kubernetes.Clientset, name string, opts metav1.GetOptions) (*admission.ValidatingWebhookConfiguration, error) {
-			return cs.Admissionregistration().ValidatingWebhookConfigurations().Get(name, opts)
+			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(name, opts)
 		}
 	}
 }

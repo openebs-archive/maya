@@ -17,10 +17,10 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 )
 
 // Create will create the pool for given csp object
@@ -37,7 +37,7 @@ func Create(csp *apis.CStorPoolInstance) error {
 		return errors.Errorf("Pool {%s} is in faulty state.. %s", PoolName(csp), ret)
 	}
 
-	glog.Infof("Creating a pool for %s %s", csp.Name, PoolName(csp))
+	klog.Infof("Creating a pool for %s %s", csp.Name, PoolName(csp))
 
 	// First create a pool
 	// TODO, IsWriteCache, IsSpare, IsReadCache should be disable for actual pool?

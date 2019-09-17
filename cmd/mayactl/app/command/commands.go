@@ -20,6 +20,8 @@ import (
 	"os"
 
 	"github.com/openebs/maya/cmd/mayactl/app/command/pool"
+	"k8s.io/klog"
+
 	//"github.com/openebs/maya/cmd/mayactl/app/command/snapshot"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/spf13/cobra"
@@ -59,7 +61,8 @@ func NewMayaCommand() *cobra.Command {
 		pool.NewCmdPool(),
 	)
 
-	// add the glog flags
+	// add the klog flags
+	klog.InitFlags(flag.CommandLine)
 	cmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 
 	// add the api addr flag

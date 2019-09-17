@@ -19,9 +19,9 @@ package command
 import (
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 )
 
 var (
@@ -62,6 +62,6 @@ func NewCStorPoolMgmt() (*cobra.Command, error) {
 
 // Run is to CStorPoolMgmt.
 func Run(cmd *cobra.Command) error {
-	glog.Infof("cstor-pool-mgmt watcher for CStorPool and CStorVolumeReplica objects")
+	klog.Infof("cstor-pool-mgmt watcher for CStorPool and CStorVolumeReplica objects")
 	return nil
 }
