@@ -17,7 +17,6 @@ limitations under the License.
 package app
 
 import (
-	"fmt"
 	"os"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -94,7 +93,6 @@ func (pc *PoolConfig) CreateStoragePool() error {
 }
 
 func (pc *PoolConfig) createCSP(csp *apis.CStorPoolInstance) (*apis.CStorPoolInstance, error) {
-	fmt.Println(csp.Spec.PoolConfig.Resources)
 	gotCSP, err := apiscsp.NewKubeClient().WithNamespace(pc.AlgorithmConfig.Namespace).Create(csp)
 	return gotCSP, err
 }
@@ -136,7 +134,7 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.CStorPoolInstance) (*appsv1.De
 					container.NewBuilder().
 						WithImage(getPoolImage()).
 						WithName(PoolContainerName).
-						WithResources(getResourceRequirementForCstorPool(csp)).
+						WithResources(getResourceRequirementForCStorPool(csp)).
 						WithImagePullPolicy(corev1.PullIfNotPresent).
 						WithPrivilegedSecurityContext(&privileged).
 						WithPortsNew(getContainerPort(12000, 3232, 3233)).
@@ -383,8 +381,8 @@ func getPoolLifeCycle() *corev1.Lifecycle {
 	return lc
 }
 
-// getResourceRequirementForCstorPool returns resource requirement.
-func getResourceRequirementForCstorPool(cspi *apis.CStorPoolInstance) *corev1.ResourceRequirements {
+// getResourceRequirementForCStorPool returns resource requirement.
+func getResourceRequirementForCStorPool(cspi *apis.CStorPoolInstance) *corev1.ResourceRequirements {
 	var resourceRequirements *corev1.ResourceRequirements
 	if cspi.Spec.PoolConfig.Resources == nil {
 		resourceRequirements = &corev1.ResourceRequirements{}
