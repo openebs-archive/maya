@@ -59,6 +59,7 @@ type CStorPoolCluster struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec              CStorPoolClusterSpec   `json:"spec"`
 	Status            CStorPoolClusterStatus `json:"status"`
+	VersionDetails    VersionDetails         `json:"versionDetails"`
 }
 
 // CStorPoolClusterSpec is the spec for a CStorPoolClusterSpec resource

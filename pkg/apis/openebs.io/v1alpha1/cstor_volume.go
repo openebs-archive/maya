@@ -31,6 +31,7 @@ type CStorVolume struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec              CStorVolumeSpec   `json:"spec"`
 	Status            CStorVolumeStatus `json:"status"`
+	VersionDetails    VersionDetails    `json:"versionDetails"`
 }
 
 // CStorVolumeSpec is the spec for a CStorVolume resource

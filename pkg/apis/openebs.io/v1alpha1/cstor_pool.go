@@ -32,8 +32,9 @@ type CStorPool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CStorPoolSpec   `json:"spec"`
-	Status CStorPoolStatus `json:"status"`
+	Spec           CStorPoolSpec   `json:"spec"`
+	Status         CStorPoolStatus `json:"status"`
+	VersionDetails VersionDetails  `json:"versionDetails"`
 }
 
 // CStorPoolSpec is the spec listing fields for a CStorPool resource.
