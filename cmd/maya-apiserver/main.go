@@ -21,6 +21,7 @@ import (
 
 func main() {
 	// Init logging
+	//	klog.InitFlags(nil)
 	mlogger.InitLogs()
 	defer mlogger.FlushLogs()
 

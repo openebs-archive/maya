@@ -21,10 +21,10 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/client/generated/cstor-volume-mgmt/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"google.golang.org/grpc"
+	"k8s.io/klog"
 )
 
 // StartServer instantiates CStorVolume gRPC server
@@ -39,18 +39,18 @@ func StartServer(unixSockVar util.UnixSock, port string) error {
 			// Blocking call for running the gRPC server
 			return RunCStorVolumeGrpcServer(i)
 		}
-		glog.Warningf("Invalid listen port. Using default port %d ", VolumeGrpcListenPort)
+		klog.Warningf("Invalid listen port. Using default port %d ", VolumeGrpcListenPort)
 	}
 	return RunCStorVolumeGrpcServer(VolumeGrpcListenPort)
 }
 
 // RunCStorVolumeGrpcServer is Blocking call for listen for grpc requests of CStorVolume.
 func RunCStorVolumeGrpcServer(port int) error {
-	glog.Infof("Starting gRPC server on port : %d", port)
+	klog.Infof("Starting gRPC server on port : %d", port)
 	// create a listener on TCP port 7777
 	lis, err := net.Listen("tcp4", fmt.Sprintf(":%d", port))
 	if err != nil {
-		glog.Fatalf("failed to listen: %v", err)
+		klog.Fatalf("failed to listen: %v", err)
 	}
 	// create a server instance
 	s := Server{}
@@ -60,7 +60,7 @@ func RunCStorVolumeGrpcServer(port int) error {
 	v1alpha1.RegisterRunSnapCommandServer(grpcServer, &s)
 	// start the server
 	if err := grpcServer.Serve(lis); err != nil {
-		glog.Fatalf("failed to serve: %s", err)
+		klog.Fatalf("failed to serve: %s", err)
 	}
 	return nil
 }

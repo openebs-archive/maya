@@ -19,7 +19,7 @@ package executor
 import (
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -136,7 +136,7 @@ func (u *UpgradeOptions) RunResourceUpgrade(cmd *cobra.Command) error {
 
 	switch from + "-" + to {
 	case "1.0.0-1.1.0", "1.0.0-1.2.0", "1.1.0-1.2.0":
-		glog.Infof("Upgrading to %s", u.toVersion)
+		klog.Infof("Upgrading to %s", u.toVersion)
 		err := upgrade100to120.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
 			u.resource.name,

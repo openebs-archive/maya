@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
@@ -121,12 +121,12 @@ func (spc *SPC) IsAutoProvisioning() bool {
 // RemoveFinalizer removes the given finalizer from the object.
 func (spc *SPC) RemoveFinalizer(finalizer string) error {
 	if len(spc.Object.Finalizers) == 0 {
-		glog.V(2).Infof("no finalizer present on SPC %s", spc.Object.Name)
+		klog.V(2).Infof("no finalizer present on SPC %s", spc.Object.Name)
 		return nil
 	}
 
 	if !spc.HasFinalizer(finalizer) {
-		glog.V(2).Infof("finalizer %s is already removed on SPC %s", finalizer, spc.Object.Name)
+		klog.V(2).Infof("finalizer %s is already removed on SPC %s", finalizer, spc.Object.Name)
 		return nil
 	}
 
@@ -137,14 +137,14 @@ func (spc *SPC) RemoveFinalizer(finalizer string) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to remove finalizers from SPC %s", spc.Object.Name)
 	}
-	glog.Infof("Finalizer %s removed successfully from SPC %s", finalizer, spc.Object.Name)
+	klog.Infof("Finalizer %s removed successfully from SPC %s", finalizer, spc.Object.Name)
 	return nil
 }
 
 // AddFinalizer adds the given finalizer to the object.
 func (spc *SPC) AddFinalizer(finalizer string) (*apis.StoragePoolClaim, error) {
 	if spc.HasFinalizer(finalizer) {
-		glog.V(2).Infof("finalizer %s is already present on SPC %s", finalizer, spc.Object.Name)
+		klog.V(2).Infof("finalizer %s is already present on SPC %s", finalizer, spc.Object.Name)
 		return spc.Object, nil
 	}
 
@@ -156,7 +156,7 @@ func (spc *SPC) AddFinalizer(finalizer string) (*apis.StoragePoolClaim, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update SPC while adding finalizers")
 	}
-	glog.Infof("Finalizer %s added on storagepoolclaim %s", finalizer, spc.Object.Name)
+	klog.Infof("Finalizer %s added on storagepoolclaim %s", finalizer, spc.Object.Name)
 	return spcAPIObj, nil
 }
 

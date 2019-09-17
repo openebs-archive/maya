@@ -17,19 +17,19 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
+	"k8s.io/klog"
 )
 
 // Delete will destroy the pool for given cspi.
 // It will also perform labelclear for pool disk.
 func Delete(cspi *apis.CStorPoolInstance) error {
-	glog.Infof("Destroying a pool {%s}", PoolName(cspi))
+	klog.Infof("Destroying a pool {%s}", PoolName(cspi))
 
 	// Let's check if pool exists or not
 	if poolExist := checkIfPoolPresent(PoolName(cspi)); !poolExist {
-		glog.Infof("Pool %s not imported.. so, can't destroy", PoolName(cspi))
+		klog.Infof("Pool %s not imported.. so, can't destroy", PoolName(cspi))
 		return nil
 	}
 
@@ -38,7 +38,7 @@ func Delete(cspi *apis.CStorPoolInstance) error {
 		WithPool(PoolName(cspi)).
 		Execute()
 	if err != nil {
-		glog.Errorf("Failed to destroy a pool {%s}.. %s", ret, err.Error())
+		klog.Errorf("Failed to destroy a pool {%s}.. %s", ret, err.Error())
 		return err
 	}
 
@@ -47,13 +47,13 @@ func Delete(cspi *apis.CStorPoolInstance) error {
 	for _, r := range cspi.Spec.RaidGroups {
 		disklist, err := getPathForBdevList(r.BlockDevices)
 		if err != nil {
-			glog.Errorf("Failed to fetch vdev path, skipping labelclear.. %s", err.Error())
+			klog.Errorf("Failed to fetch vdev path, skipping labelclear.. %s", err.Error())
 		}
 		for _, v := range disklist {
 			if _, err := zfs.NewPoolLabelClear().
 				WithForceFully(true).
 				WithVdev(v[0]).Execute(); err != nil {
-				glog.Errorf("Failed to perform label clear for disk {%s}.. %s", v, err.Error())
+				klog.Errorf("Failed to perform label clear for disk {%s}.. %s", v, err.Error())
 			}
 		}
 	}

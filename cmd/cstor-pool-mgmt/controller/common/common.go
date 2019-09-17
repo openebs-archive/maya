@@ -21,13 +21,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	"github.com/openebs/maya/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 //EventReason is used as part of the Event reason when a resource goes through different phases
@@ -188,7 +188,7 @@ func PoolNameHandler(cVR *apis.CStorVolumeReplica, cnt int) bool {
 		poolname, _ := pool.GetPoolName()
 		if reflect.DeepEqual(poolname, []string{}) ||
 			!CheckIfPresent(poolname, volumereplica.PoolNameFromCVR(cVR)) {
-			glog.Warningf("Attempt %v: No pool found", i+1)
+			klog.Warningf("Attempt %v: No pool found", i+1)
 			time.Sleep(PoolNameHandlerInterval)
 			if i > cnt {
 				return false
@@ -204,11 +204,11 @@ func CheckForCStorPoolCRD(clientset clientset.Interface) {
 	for {
 		_, err := clientset.OpenebsV1alpha1().CStorPools().List(metav1.ListOptions{})
 		if err != nil {
-			glog.Errorf("CStorPool CRD not found. Retrying after %v, error: %v", CRDRetryInterval, err)
+			klog.Errorf("CStorPool CRD not found. Retrying after %v, error: %v", CRDRetryInterval, err)
 			time.Sleep(CRDRetryInterval)
 			continue
 		}
-		glog.Info("CStorPool CRD found")
+		klog.Info("CStorPool CRD found")
 		break
 	}
 }
@@ -222,11 +222,11 @@ func CheckForCStorVolumeReplicaCRD(clientset clientset.Interface) {
 		// for default namespace works fine, then CR list api works for all namespaces.
 		_, err := clientset.OpenebsV1alpha1().CStorVolumeReplicas(string(DefaultNameSpace)).List(metav1.ListOptions{})
 		if err != nil {
-			glog.Errorf("CStorVolumeReplica CRD not found. Retrying after %v, error: %v", CRDRetryInterval, err)
+			klog.Errorf("CStorVolumeReplica CRD not found. Retrying after %v, error: %v", CRDRetryInterval, err)
 			time.Sleep(CRDRetryInterval)
 			continue
 		}
-		glog.Info("CStorVolumeReplica CRD found")
+		klog.Info("CStorVolumeReplica CRD found")
 		break
 	}
 }
@@ -261,14 +261,14 @@ func CheckForCStorPool() {
 	for {
 		poolname, err := pool.GetPoolName()
 		if reflect.DeepEqual(poolname, []string{}) {
-			glog.Warningf("CStorPool not found. Retrying after %v, err: %v", PoolNameHandlerInterval, err)
+			klog.Warningf("CStorPool not found. Retrying after %v, err: %v", PoolNameHandlerInterval, err)
 			time.Sleep(PoolNameHandlerInterval)
 			continue
 		}
 		//	if SyncResources.IsImported {
 		//		break
 		//	}
-		glog.Infof("CStorPool found: %v", poolname)
+		klog.Infof("CStorPool found: %v", poolname)
 		break
 	}
 }

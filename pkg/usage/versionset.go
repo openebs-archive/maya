@@ -16,11 +16,11 @@ limitations under the License.
 package usage
 
 import (
-	"github.com/golang/glog"
 	k8sapi "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	openebsversion "github.com/openebs/maya/pkg/version"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 var (
@@ -83,7 +83,7 @@ func (v *versionSet) getVersion(override bool) error {
 	// values from the K8s APIserver
 	if _, present := env.Lookup(openEBSversion); !present || override {
 		if err := v.fetchAndSetVersion(); err != nil {
-			glog.Error(err.Error())
+			klog.Error(err.Error())
 			return err
 		}
 	}

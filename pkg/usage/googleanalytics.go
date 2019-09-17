@@ -16,8 +16,8 @@ limitations under the License.
 package usage
 
 import (
-	"github.com/golang/glog"
 	analytics "github.com/jpillora/go-ogle-analytics"
+	"k8s.io/klog"
 )
 
 // Send sends a single usage metric to Google Analytics with some
@@ -45,7 +45,7 @@ func (u *Usage) Send() {
 		event.Label(u.label)
 		event.Value(u.value)
 		if err := gaClient.Send(event); err != nil {
-			glog.Errorf(err.Error())
+			klog.Errorf(err.Error())
 			return
 		}
 	}()

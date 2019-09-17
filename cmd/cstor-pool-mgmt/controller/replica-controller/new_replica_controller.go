@@ -17,7 +17,6 @@ limitations under the License.
 package replicacontroller
 
 import (
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	kubeinformers "k8s.io/client-go/informers"
@@ -27,6 +26,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -78,14 +78,14 @@ func NewCStorVolumeReplicaController(
 
 	err := openebsScheme.AddToScheme(scheme.Scheme)
 	if err != nil {
-		glog.Errorf("failed to initialise cvr controller: %v", err)
+		klog.Errorf("failed to initialise cvr controller: %v", err)
 	}
 
 	// add cvr controller types to default Kubernetes scheme
 	// to enable logging of cvr contrller events
-	glog.V(4).Info("creating event broadcaster for cvr")
+	klog.V(4).Info("creating event broadcaster for cvr")
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(klog.Infof)
 
 	// start sending events received from this event broadcaster
 	// to the assigned event handler
@@ -115,7 +115,7 @@ func NewCStorVolumeReplicaController(
 		recorder: recorder,
 	}
 
-	glog.Info("will set up informer event handlers for cvr")
+	klog.Info("will set up informer event handlers for cvr")
 
 	ql := common.QueueLoad{}
 
@@ -129,7 +129,7 @@ func NewCStorVolumeReplicaController(
 					return
 				}
 
-				glog.V(4).Infof(
+				klog.V(4).Infof(
 					"received informer add event for cvr {%s}",
 					cvrObj.Name,
 				)
@@ -190,7 +190,7 @@ func NewCStorVolumeReplicaController(
 					return
 				}
 
-				glog.V(4).Infof(
+				klog.V(4).Infof(
 					"received informer update event for cvr {%s}",
 					newCVR.Name,
 				)
@@ -239,7 +239,7 @@ func NewCStorVolumeReplicaController(
 			DeleteFunc: func(obj interface{}) {
 				cvrObj := obj.(*apis.CStorVolumeReplica)
 
-				glog.V(4).Infof(
+				klog.V(4).Infof(
 					"received informer delete event for cvr {%s}",
 					cvrObj.Name,
 				)

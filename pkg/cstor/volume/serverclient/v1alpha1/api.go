@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"github.com/openebs/maya/pkg/client/generated/cstor-volume-mgmt/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -58,7 +58,7 @@ func init() {
 
 // RunVolumeSnapCreateCommand performs snapshot create operation and sends back the response
 func (s *Server) RunVolumeSnapCreateCommand(ctx context.Context, in *v1alpha1.VolumeSnapCreateRequest) (*v1alpha1.VolumeSnapCreateResponse, error) {
-	glog.Infof("Received snapshot create request. volname = %s, snapname = %s, version = %d", in.Volume, in.Snapname, in.Version)
+	klog.Infof("Received snapshot create request. volname = %s, snapname = %s, version = %d", in.Volume, in.Snapname, in.Version)
 	volcmd, err := CreateSnapshot(ctx, in)
 	return volcmd, err
 
@@ -66,7 +66,7 @@ func (s *Server) RunVolumeSnapCreateCommand(ctx context.Context, in *v1alpha1.Vo
 
 // RunVolumeSnapDeleteCommand performs snapshot create operation and sends back the response
 func (s *Server) RunVolumeSnapDeleteCommand(ctx context.Context, in *v1alpha1.VolumeSnapDeleteRequest) (*v1alpha1.VolumeSnapDeleteResponse, error) {
-	glog.Infof("Received snapshot delete request. volname = %s, snapname = %s, version = %d", in.Volume, in.Snapname, in.Version)
+	klog.Infof("Received snapshot delete request. volname = %s, snapname = %s, version = %d", in.Volume, in.Snapname, in.Version)
 	volcmd, err := DeleteSnapshot(ctx, in)
 	return volcmd, err
 }

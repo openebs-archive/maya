@@ -24,12 +24,12 @@ import (
 
 	"strings"
 
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cvapis "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/klog"
 )
 
 // VolumeOperator is the name of the tool that makes volume-related operations.
@@ -127,16 +127,16 @@ func CreateVolumeTarget(cStorVolume *apis.CStorVolume) error {
 	}
 	err = FileOperatorVar.Write(util.IstgtConfPath, data, 0644)
 	if err != nil {
-		glog.Errorf("Failed to write istgt.conf")
+		klog.Errorf("Failed to write istgt.conf")
 	}
-	glog.Info("Done writing istgt.conf")
+	klog.Info("Done writing istgt.conf")
 
 	// send refresh command to istgt and read the response
 	_, err = UnixSockVar.SendCommand(util.IstgtRefreshCmd)
 	if err != nil {
-		glog.Info("Failed to refresh iscsi service with new configuration.")
+		klog.Info("Failed to refresh iscsi service with new configuration.")
 	}
-	glog.Info("Creating Iscsi Volume Successful")
+	klog.Info("Creating Iscsi Volume Successful")
 	return nil
 
 }
@@ -146,7 +146,7 @@ func GetVolumeStatus(cStorVolume *apis.CStorVolume) (*apis.CVStatus, error) {
 	// send replica command to istgt and read the response
 	statuses, err := UnixSockVar.SendCommand(util.IstgtReplicaCmd)
 	if err != nil {
-		glog.Errorf("Failed to list replicas.")
+		klog.Errorf("Failed to list replicas.")
 		return nil, err
 	}
 	stringResp := fmt.Sprintf("%s", statuses)
@@ -227,7 +227,7 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 			util.IstgtConfPath,
 			updateStorageVal)
 	}
-	glog.Infof("Updated '%s' file with capacity '%s'", util.IstgtConfPath, updateStorageVal)
+	klog.Infof("Updated '%s' file with capacity '%s'", util.IstgtConfPath, updateStorageVal)
 	return nil
 }
 

@@ -17,9 +17,9 @@ package collector
 import (
 	"encoding/json"
 
-	"github.com/golang/glog"
 	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog"
 )
 
 // A gauge is a metric that represents a single numerical value that can
@@ -274,7 +274,7 @@ func (v *stats) getReplicaCount() {
 		case readWrite, healthy:
 			rw++
 		default:
-			glog.Error("Unknown replica mode: ", rep.Mode)
+			klog.Error("Unknown replica mode: ", rep.Mode)
 		}
 	}
 	v.degradedReplicaCount = ro
@@ -297,7 +297,7 @@ func (v *stats) getVolumeStatus() volumeStatus {
 func parseFloat64(entity json.Number, metrics *metrics) float64 {
 	num, err := entity.Float64()
 	if err != nil {
-		glog.Error("failed to parse, err: ", err)
+		klog.Error("failed to parse, err: ", err)
 		metrics.parseErrorCounter.Inc()
 	}
 	return num

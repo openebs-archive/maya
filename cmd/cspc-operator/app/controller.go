@@ -18,7 +18,6 @@ package app
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/versioned/scheme"
@@ -33,6 +32,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 )
 
 const controllerAgentName = "cspc-controller"
@@ -117,9 +117,9 @@ func (cb *ControllerBuilder) withWorkqueueRateLimiting() *ControllerBuilder {
 
 // withRecorder adds recorder to controller object.
 func (cb *ControllerBuilder) withRecorder(ks kubernetes.Interface) *ControllerBuilder {
-	glog.V(4).Info("Creating event broadcaster")
+	klog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
-	// eventBroadcaster.StartLogging(glog.Infof)
+	// eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: ks.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 	cb.Controller.recorder = recorder
@@ -160,7 +160,7 @@ func (c *Controller) addCSPC(obj interface{}) {
 		c.recorder.Event(cspc, corev1.EventTypeWarning, "Create", message)
 		return
 	}
-	glog.V(4).Infof("Queuing CSPC %s for add event", cspc.Name)
+	klog.V(4).Infof("Queuing CSPC %s for add event", cspc.Name)
 	c.enqueueCSPC(cspc)
 }
 
@@ -199,6 +199,6 @@ func (c *Controller) deleteCSPC(obj interface{}) {
 		c.recorder.Event(cspc, corev1.EventTypeWarning, "Delete", message)
 		return
 	}
-	glog.V(4).Infof("Deleting cstorpoolcluster %s", cspc.Name)
+	klog.V(4).Infof("Deleting cstorpoolcluster %s", cspc.Name)
 	c.enqueueCSPC(cspc)
 }

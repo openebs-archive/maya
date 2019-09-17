@@ -19,10 +19,10 @@ package webhook
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
 	"k8s.io/api/admission/v1beta1"
+	"k8s.io/klog"
 	"net/http"
 )
 
@@ -32,14 +32,14 @@ func (wh *webhook) validateCSPC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 	response := &v1beta1.AdmissionResponse{}
 	// validates only if requested operation is CREATE or UPDATE
 	if req.Operation == v1beta1.Update {
-		glog.V(5).Infof("Admission webhook update request for type %s", req.Kind.Kind)
+		klog.V(5).Infof("Admission webhook update request for type %s", req.Kind.Kind)
 		return wh.validateCSPCUpdateRequest(req)
 	} else if req.Operation == v1beta1.Create {
-		glog.V(5).Infof("Admission webhook create request for type %s", req.Kind.Kind)
+		klog.V(5).Infof("Admission webhook create request for type %s", req.Kind.Kind)
 		return wh.validateCSPCCreateRequest(req)
 	}
 
-	glog.V(2).Info("Admission wehbook for PVC not " +
+	klog.V(2).Info("Admission wehbook for PVC not " +
 		"configured for operations other than UPDATE and CREATE")
 	return response
 }
@@ -50,7 +50,7 @@ func (wh *webhook) validateCSPCCreateRequest(req *v1beta1.AdmissionRequest) *v1b
 	var cspc apis.CStorPoolCluster
 	err := json.Unmarshal(req.Object.Raw, &cspc)
 	if err != nil {
-		glog.Errorf("Could not unmarshal raw object: %v, %v", err, req.Object.Raw)
+		klog.Errorf("Could not unmarshal raw object: %v, %v", err, req.Object.Raw)
 		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusBadRequest).AR
 		return response
 	}

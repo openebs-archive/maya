@@ -17,13 +17,13 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	template "github.com/openebs/maya/pkg/template/v1alpha1"
 	"github.com/openebs/maya/pkg/version"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog"
 )
 
 // A map of resources that is restricted to be updated by this
@@ -60,7 +60,7 @@ func (i *simpleInstaller) prepareResources() k8s.UnstructedList {
 
 	// set the environments conditionally required for install
 	eslist := elist.SetIf(version.Current(), isEnvNotPresent)
-	glog.V(2).Infof("%+v", eslist.Infos())
+	klog.V(2).Infof("%+v", eslist.Infos())
 	i.addErrors(eslist.Errors())
 
 	// list the artifacts w.r.t latest version
@@ -127,7 +127,7 @@ func (i *simpleInstaller) Install() []error {
 		)
 		u, err := applier.Apply(unstruct)
 		if err == nil {
-			glog.V(2).Infof(
+			klog.V(2).Infof(
 				"Installer: %s %s/%s applied successfully",
 				u.GroupVersionKind(),
 				u.GetNamespace(),

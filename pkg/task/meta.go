@@ -23,8 +23,8 @@ import (
 	"time"
 
 	"github.com/ghodss/yaml"
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/template"
+	"k8s.io/klog"
 
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -630,7 +630,7 @@ func (m *MetaExecutor) asRollbackInstance(objectName string) (*MetaExecutor, boo
 
 	if len(objectName) == 0 {
 		errMsg := fmt.Sprintf("failed to build rollback instance for task '%s': object name is missing", m.getIdentity())
-		glog.Errorf(fmt.Sprintf("%s: meta task '%+v'", errMsg, m.getMetaInfo()))
+		klog.Errorf(fmt.Sprintf("%s: meta task '%+v'", errMsg, m.getMetaInfo()))
 		return nil, true, fmt.Errorf(errMsg)
 	}
 

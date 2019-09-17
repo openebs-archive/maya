@@ -19,12 +19,12 @@ package replicacontroller
 import (
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 )
 
 // Run will set up the event handlers for types we are interested in, as well
@@ -36,24 +36,24 @@ func (c *CStorVolumeReplicaController) Run(threadiness int, stopCh <-chan struct
 	defer c.workqueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches
-	glog.Info("Starting CStorVolumeReplica controller")
+	klog.Info("Starting CStorVolumeReplica controller")
 
 	// Wait for the k8s caches to be synced before starting workers
-	glog.Info("Waiting for informer caches to sync")
+	klog.Info("Waiting for informer caches to sync")
 	if ok := cache.WaitForCacheSync(stopCh, c.cStorReplicaSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
-	glog.Info("Starting CStorVolumeReplica workers")
+	klog.Info("Starting CStorVolumeReplica workers")
 
 	// Launch two workers to process CStorReplica resources
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, common.ResourceWorkerInterval, stopCh)
 	}
 
-	glog.Info("Started CStorVolumeReplica workers")
+	klog.Info("Started CStorVolumeReplica workers")
 	<-stopCh
-	glog.Info("Shutting down CStorVolumeReplica workers")
+	klog.Info("Shutting down CStorVolumeReplica workers")
 
 	return nil
 }
@@ -121,7 +121,7 @@ func (c *CStorVolumeReplicaController) processNextWorkItem() bool {
 		// Finally, if no error occurs we forget this item so that it
 		// does not get queued again until another change happens
 		c.workqueue.Forget(obj)
-		glog.V(4).Infof(
+		klog.V(4).Infof(
 			"workqueue item {%s} processed successfully for {%s} operation",
 			q.Key,
 			string(q.Operation),

@@ -22,13 +22,13 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/golang/glog"
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/klog"
 )
 
 type fakeClientset struct {
@@ -56,7 +56,7 @@ func (focs *fakeClientset) CspCreator(poolName string, CspLeaseKeyPresent bool, 
 	}
 	cspGot, err := focs.oecs.OpenebsV1alpha1().CStorPools().Create(cspObject)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 	}
 	return cspGot
 }
@@ -74,7 +74,7 @@ func PodCreator(fakeKubeClient kubernetes.Interface, podName string) {
 		}
 		_, err := fakeKubeClient.CoreV1().Pods("openebs").Create(podObjet)
 		if err != nil {
-			glog.Error("Fake pod object could not be created:", err)
+			klog.Error("Fake pod object could not be created:", err)
 		}
 	}
 }

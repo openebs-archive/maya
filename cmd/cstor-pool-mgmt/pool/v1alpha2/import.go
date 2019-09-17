@@ -17,12 +17,12 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	pool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
+	"k8s.io/klog"
 )
 
 // Import will import pool for given CSP object.
@@ -47,7 +47,7 @@ func Import(cspi *apis.CStorPoolInstance) (bool, error) {
 		return false, err
 	}
 
-	glog.Infof("Importing pool %s %s", string(cspi.GetUID()), PoolName(cspi))
+	klog.Infof("Importing pool %s %s", string(cspi.GetUID()), PoolName(cspi))
 	devID := pool.GetDevPathIfNotSlashDev(bdPath[0])
 	if len(devID) != 0 {
 		cmdOut, err = zfs.NewPoolImport().
@@ -60,7 +60,7 @@ func Import(cspi *apis.CStorPoolInstance) (bool, error) {
 			poolImported = true
 		} else {
 			// If pool import failed, fallback to try for import without Directory
-			glog.Errorf("Failed to import pool with directory %s : %s : %s",
+			klog.Errorf("Failed to import pool with directory %s : %s : %s",
 				devID, cmdOut, err.Error())
 		}
 	}
@@ -75,11 +75,11 @@ func Import(cspi *apis.CStorPoolInstance) (bool, error) {
 
 	if err != nil {
 		// TODO may be possible that there is no pool exists..
-		glog.Errorf("Failed to import pool : %s : %s", cmdOut, err.Error())
+		klog.Errorf("Failed to import pool : %s : %s", cmdOut, err.Error())
 		return false, err
 	}
 
-	glog.Infof("Pool Import successful: %v", string(PoolName(cspi)))
+	klog.Infof("Pool Import successful: %v", string(PoolName(cspi)))
 	return true, nil
 }
 

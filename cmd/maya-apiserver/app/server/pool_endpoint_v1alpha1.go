@@ -20,9 +20,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	pool "github.com/openebs/maya/pkg/storagepool"
+	"k8s.io/klog"
 )
 
 type poolAPIOpsV1alpha1 struct {
@@ -37,7 +37,7 @@ func (s *HTTPServer) poolV1alpha1SpecificRequest(resp http.ResponseWriter, req *
 		return nil, CodedError(400, "failed to handle storage pool request: nil http request received")
 	}
 
-	glog.Infof(" received storage pool request: method '%s'", req.Method)
+	klog.Infof(" received storage pool request: method '%s'", req.Method)
 
 	poolOp := &poolAPIOpsV1alpha1{
 		req:  req,
@@ -63,7 +63,7 @@ func (p *poolAPIOpsV1alpha1) httpGet() (interface{}, error) {
 }
 
 func (p *poolAPIOpsV1alpha1) list() (*v1alpha1.CStorPoolList, error) {
-	glog.Infof("received storage pool list request")
+	klog.Infof("received storage pool list request")
 	sOps, err := pool.NewStoragePoolOperation("")
 	if err != nil {
 		return nil, CodedErrorWrap(400, err)
@@ -71,16 +71,16 @@ func (p *poolAPIOpsV1alpha1) list() (*v1alpha1.CStorPoolList, error) {
 
 	pools, err := sOps.List()
 	if err != nil {
-		glog.Errorf("failed to list storage pool: '%+v'", err)
+		klog.Errorf("failed to list storage pool: '%+v'", err)
 		return nil, CodedErrorWrap(500, err)
 	}
 
-	glog.Infof("storage pools listed successfully")
+	klog.Infof("storage pools listed successfully")
 	return pools, nil
 }
 
 func (p *poolAPIOpsV1alpha1) read(poolName string) (*v1alpha1.CStorPool, error) {
-	glog.Infof("received storage pool read request: %s", poolName)
+	klog.Infof("received storage pool read request: %s", poolName)
 	sOps, err := pool.NewStoragePoolOperation(poolName)
 	if err != nil {
 		return nil, CodedErrorWrap(400, err)
@@ -88,13 +88,13 @@ func (p *poolAPIOpsV1alpha1) read(poolName string) (*v1alpha1.CStorPool, error) 
 
 	pools, err := sOps.Read()
 	if err != nil {
-		glog.Errorf("failed to read storage pool '%s': %+v", poolName, err)
+		klog.Errorf("failed to read storage pool '%s': %+v", poolName, err)
 		if isNotFound(err) {
 			return nil, CodedErrorWrapf(404, err, "pool '%s' not found", poolName)
 		}
 		return nil, CodedErrorWrapf(500, err, "failed to read storage pool '%s'", poolName)
 	}
 
-	glog.Infof("storage pool '%s' read successfully", poolName)
+	klog.Infof("storage pool '%s' read successfully", poolName)
 	return pools, nil
 }

@@ -19,8 +19,8 @@ package spc
 import (
 	"sync"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 
 	"time"
 
@@ -44,7 +44,7 @@ func Start(controllerMtx *sync.RWMutex) error {
 	var err error
 	defer func() {
 		if err != nil {
-			glog.Fatal(err)
+			klog.Fatal(err)
 		}
 	}()
 
@@ -120,7 +120,7 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 	var masterURL string
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
-		glog.Errorf("Failed to get k8s Incluster config. %+v", err)
+		klog.Errorf("Failed to get k8s Incluster config. %+v", err)
 		if kubeconfig == "" {
 			return nil, errors.Wrap(err, "kubeconfig is empty")
 		}

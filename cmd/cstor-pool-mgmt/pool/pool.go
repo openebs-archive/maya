@@ -21,11 +21,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 )
 
 var (
@@ -84,13 +84,13 @@ func ImportPool(cStorPool *apis.CStorPool, importOptions *ImportOptions) (string
 
 	stdoutStderr, err2 := RunnerVar.RunCombinedOutput(zpool.PoolOperator, importAttr...)
 	if err2 != nil {
-		glog.Errorf("Unable to import pool: %v, %v devpath: %v cacheflag: %v importAttr: %v",
+		klog.Errorf("Unable to import pool: %v, %v devpath: %v cacheflag: %v importAttr: %v",
 			err2.Error(), string(stdoutStderr), importOptions.DevPath,
 			importOptions.CachefileFlag, importAttr)
 		return string(stdoutStderr), err2
 	}
 
-	glog.Infof("Import command successful with %v %v dontimport: %v importattr: %v out: %v",
+	klog.Infof("Import command successful with %v %v dontimport: %v importattr: %v out: %v",
 		importOptions.CachefileFlag, importOptions.DevPath, importOptions.dontImport,
 		importAttr, string(stdoutStderr))
 
@@ -98,10 +98,10 @@ func ImportPool(cStorPool *apis.CStorPool, importOptions *ImportOptions) (string
 	statusPoolStr := []string{"status", poolName}
 	stdoutStderr1, err1 := RunnerVar.RunCombinedOutput(zpool.PoolOperator, statusPoolStr...)
 	if err1 != nil {
-		glog.Errorf("Unable to get pool status: %v %v", string(stdoutStderr1), statusPoolStr)
+		klog.Errorf("Unable to get pool status: %v %v", string(stdoutStderr1), statusPoolStr)
 		return "", err1
 	}
-	glog.Infof("pool status: %v", string(stdoutStderr1))
+	klog.Infof("pool status: %v", string(stdoutStderr1))
 	return string(stdoutStderr), nil
 }
 
@@ -187,7 +187,7 @@ func checkForPoolExistence(cStorPool *apis.CStorPool, blockDeviceList []string) 
 	importOptions.DevPath = GetDevPathIfNotSlashDev(blockDeviceList[0])
 	importOptions.dontImport = true
 	stdoutStderr, _ := ImportPool(cStorPool, &importOptions)
-	glog.Infof("checkForPoolExistence output: %v", stdoutStderr)
+	klog.Infof("checkForPoolExistence output: %v", stdoutStderr)
 	return strings.Contains(stdoutStderr, string(PoolPrefix)+string(cStorPool.ObjectMeta.UID))
 }
 
@@ -209,30 +209,30 @@ func CreatePool(cStorPool *apis.CStorPool, blockDeviceList []string) error {
 		return errors.Errorf("Unable to get poolname %s", err.Error())
 	}
 	if checkIfPresent(existingPool, string(PoolPrefix)+string(cStorPool.GetUID())) {
-		glog.Infof("Pool %s already imported", string(cStorPool.GetUID()))
+		klog.Infof("Pool %s already imported", string(cStorPool.GetUID()))
 		return nil
 	}
 
 	// check if pool exists but didn't got imported
 	exists := checkForPoolExistence(cStorPool, blockDeviceList)
 	if exists {
-		glog.Errorf("pool %v exists, but failed to import", string(cStorPool.ObjectMeta.UID))
+		klog.Errorf("pool %v exists, but failed to import", string(cStorPool.ObjectMeta.UID))
 		return errors.Errorf("pool %v exists, but failed to import", string(cStorPool.ObjectMeta.UID))
 	}
 
 	err = LabelClear(blockDeviceList)
 	if err != nil {
-		glog.Errorf(err.Error(), "label clear failed %v", cStorPool.GetUID())
+		klog.Errorf(err.Error(), "label clear failed %v", cStorPool.GetUID())
 	} else {
-		glog.Infof("Label clear successful: %v", string(cStorPool.GetUID()))
+		klog.Infof("Label clear successful: %v", string(cStorPool.GetUID()))
 	}
 
 	createAttr := createPoolBuilder(cStorPool, blockDeviceList)
-	glog.V(4).Info("createAttr : ", createAttr)
+	klog.V(4).Info("createAttr : ", createAttr)
 
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, createAttr...)
 	if err != nil {
-		glog.Errorf("Unable to create pool: %v", string(stdoutStderr))
+		klog.Errorf("Unable to create pool: %v", string(stdoutStderr))
 		return err
 	}
 	return nil
@@ -323,7 +323,7 @@ func DeletePool(poolName string) error {
 	deletePoolStr := []string{"destroy", poolName}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, deletePoolStr...)
 	if err != nil {
-		glog.Errorf("Unable to delete pool: %v", string(stdoutStderr))
+		klog.Errorf("Unable to delete pool: %v", string(stdoutStderr))
 		return err
 	}
 	return nil
@@ -342,7 +342,7 @@ func Capacity(poolName string) (*apis.CStorPoolCapacityAttr, error) {
 	capacityPoolStr := []string{"get", "size,free,allocated", poolName}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, capacityPoolStr...)
 	if err != nil {
-		glog.Errorf("Unable to get pool capacity: %v", string(stdoutStderr))
+		klog.Errorf("Unable to get pool capacity: %v", string(stdoutStderr))
 		return nil, err
 	}
 	poolCapacity := capacityOutputParser(string(stdoutStderr))
@@ -373,7 +373,7 @@ func Status(poolName string) (string, error) {
 	statusPoolStr := []string{"status", poolName}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, statusPoolStr...)
 	if err != nil {
-		glog.Errorf("Unable to get pool status: %v", string(stdoutStderr))
+		klog.Errorf("Unable to get pool status: %v", string(stdoutStderr))
 		return "", err
 	}
 	poolStatus = poolStatusOutputParser(string(stdoutStderr))
@@ -444,7 +444,7 @@ func SetCachefile(cStorPool *apis.CStorPool) error {
 		poolNameUID}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, setCachefileStr...)
 	if err != nil {
-		glog.Errorf("Unable to set cachefile: %v", string(stdoutStderr))
+		klog.Errorf("Unable to set cachefile: %v", string(stdoutStderr))
 		return err
 	}
 	return nil
@@ -456,8 +456,8 @@ func CheckForZreplInitial(ZreplRetryInterval time.Duration) {
 		_, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, "status")
 		if err != nil {
 			time.Sleep(ZreplRetryInterval)
-			glog.Errorf("zpool status returned error in zrepl startup : %v", err)
-			glog.Infof("Waiting for zpool replication container to start...")
+			klog.Errorf("zpool status returned error in zrepl startup : %v", err)
+			klog.Infof("Waiting for zpool replication container to start...")
 			continue
 		}
 		break
@@ -477,7 +477,7 @@ func CheckForZreplContinuous(ZreplRetryInterval time.Duration) {
 			time.Sleep(ZreplRetryInterval)
 			continue
 		}
-		glog.Errorf("zpool status returned error in zrepl healthcheck : %v, out: %s", err, out)
+		klog.Errorf("zpool status returned error in zrepl healthcheck : %v, out: %s", err, out)
 		break
 	}
 }
@@ -489,11 +489,11 @@ func LabelClear(blockDevices []string) error {
 		labelClearStr := []string{"labelclear", "-f", bd}
 		stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, labelClearStr...)
 		if err != nil {
-			glog.Errorf("Unable to clear label on blockdevice %v: %v, err = %v", bd,
+			klog.Errorf("Unable to clear label on blockdevice %v: %v, err = %v", bd,
 				string(stdoutStderr), err)
 			failLabelClear = true
 		} else {
-			glog.Infof("successfully cleared label on blockdevice %v", bd)
+			klog.Infof("successfully cleared label on blockdevice %v", bd)
 		}
 	}
 	if failLabelClear {

@@ -18,11 +18,11 @@ package spc
 import (
 	"strconv"
 
-	"github.com/golang/glog"
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha1"
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
+	"k8s.io/klog"
 
 	ndmFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/fake"
 	cstorpool "github.com/openebs/maya/pkg/cstor/pool/v1alpha1"
@@ -79,7 +79,7 @@ func FakeDiskCreator(dc *blockdevice.KubernetesClient) {
 		}
 		_, err := dc.Create(diskObjectList[diskListIndex])
 		if err != nil {
-			glog.Error(err)
+			klog.Error(err)
 		}
 	}
 	fakeDiskCreateFlag = true
@@ -127,7 +127,7 @@ func (focs *PoolCreateConfig) FakeDiskCreator() {
 		}
 		_, err := focs.ndmclientset.OpenebsV1alpha1().BlockDevices("fake-ns").Create(diskObjectList[diskListIndex])
 		if err != nil {
-			glog.Error(err)
+			klog.Error(err)
 		}
 	}
 }

@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
@@ -49,6 +48,7 @@ import (
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 var (
@@ -355,7 +355,7 @@ func (m *executor) retryOnVerificationError() (err error) {
 		err, _ = verifyErr.(*templatefuncs.VerifyError)
 
 		if i != retryAttempts {
-			glog.Warningf(
+			klog.Warningf(
 				"verify error was found for runtask {%s}: error {%s}: will retry task execution-'%d'",
 				m.getTaskIdentity(),
 				err,
@@ -416,7 +416,7 @@ func (m *executor) postExecuteIt() (err error) {
 	// extracted and thrown as VersionMismatchError
 	verMismatchErr := m.getTaskResultVersionMismatchError()
 	if verMismatchErr != nil {
-		glog.Warningf(
+		klog.Warningf(
 			"version mismatch error at runtask {%s}: error {%s}",
 			m.getTaskIdentity(),
 			verMismatchErr,
@@ -430,7 +430,7 @@ func (m *executor) postExecuteIt() (err error) {
 	// extracted and thrown as NotFoundError
 	notFoundErr := m.getNotFoundError()
 	if notFoundErr != nil {
-		glog.Warningf(
+		klog.Warningf(
 			"notfound error at runtask {%s}: error {%s}",
 			m.getTaskIdentity(),
 			notFoundErr,

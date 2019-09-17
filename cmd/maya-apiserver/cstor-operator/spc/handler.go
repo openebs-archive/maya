@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
@@ -34,6 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 )
 
 var (
@@ -62,9 +62,9 @@ type clientSet struct {
 // with the current status of the resource.
 func (c *Controller) syncHandler(key string) error {
 	startTime := time.Now()
-	glog.V(4).Infof("Started syncing storagepoolclaim %q (%v)", key, startTime)
+	klog.V(4).Infof("Started syncing storagepoolclaim %q (%v)", key, startTime)
 	defer func() {
-		glog.V(4).Infof("Finished syncing storagepoolclaim %q (%v)", key, time.Since(startTime))
+		klog.V(4).Infof("Finished syncing storagepoolclaim %q (%v)", key, time.Since(startTime))
 	}()
 
 	// Convert the namespace/name string into a distinct namespace and name
@@ -110,7 +110,7 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 	if !spc.DeletionTimestamp.IsZero() {
 		err := handleSPCDeletion(spc)
 		if err != nil {
-			glog.Errorf("Failed to sync spc:%s", err.Error())
+			klog.Errorf("Failed to sync spc:%s", err.Error())
 		}
 		return nil
 	}
@@ -118,7 +118,7 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 	gotSPC, err := spcv1alpha1.BuilderForAPIObject(spc).Spc.AddFinalizer(spcv1alpha1.SPCFinalizer)
 
 	if err != nil {
-		glog.Errorf("Failed to add finalizer on SPC %s:%s", spc.Name, err.Error())
+		klog.Errorf("Failed to add finalizer on SPC %s:%s", spc.Name, err.Error())
 		return nil
 	}
 
@@ -127,7 +127,7 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 
 	err = validate(spc)
 	if err != nil {
-		glog.Errorf("Validation of spc failed:%s", err)
+		klog.Errorf("Validation of spc failed:%s", err)
 		return nil
 	}
 	pendingPoolCount, err := c.getPendingPoolCount(spc)
@@ -179,14 +179,14 @@ func deleteAssociatedCSP(spc *apis.StoragePoolClaim) error {
 	)
 
 	if k8serror.IsNotFound(err) {
-		glog.V(2).Infof("Associated CSP(s) of storagepoolclaim %s is already deleted:%s", spc.Name, err.Error())
+		klog.V(2).Infof("Associated CSP(s) of storagepoolclaim %s is already deleted:%s", spc.Name, err.Error())
 		return nil
 	}
 
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete associated CSP(s):%s", err.Error())
 	}
-	glog.Infof("Associated CSP(s) of storagepoolclaim deleted successfully for storagepoolclaim %s", spc.Name)
+	klog.Infof("Associated CSP(s) of storagepoolclaim deleted successfully for storagepoolclaim %s", spc.Name)
 	return nil
 }
 
@@ -258,19 +258,19 @@ func (c *Controller) create(pendingPoolCount int, spc *apis.StoragePoolClaim) er
 	if err != nil {
 		return errors.Wrapf(err, "Could not acquire lease on spc object")
 	}
-	glog.V(4).Infof("Lease acquired successfully on storagepoolclaim %s ", spc.Name)
+	klog.V(4).Infof("Lease acquired successfully on storagepoolclaim %s ", spc.Name)
 	defer newSpcLease.Release()
 	poolConfig := c.NewPoolCreateConfig(spc)
 	namespace := env.Get(env.OpenEBSNamespace)
 	if namespace == "" {
 		message := fmt.Sprint("Could not create spc: got empty namespace for openebs from env variable")
 		c.recorder.Event(spc, corev1.EventTypeWarning, "Getting Namespace", message)
-		glog.Errorf("Could not sync SPC {%s}: got empty namespace for openebs from env variable", spc.Name)
+		klog.Errorf("Could not sync SPC {%s}: got empty namespace for openebs from env variable", spc.Name)
 		return nil
 	}
 	poolConfig.Namespace = namespace
 	for poolCount := 1; poolCount <= pendingPoolCount; poolCount++ {
-		glog.Infof("Provisioning pool %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, spc.Name)
+		klog.Infof("Provisioning pool %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, spc.Name)
 		err = poolConfig.CreateStoragePool(spc)
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Pool provisioning failed for %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, spc.Name))
@@ -347,7 +347,7 @@ func (c *Controller) getCurrentPoolCount(spc *apis.StoragePoolClaim) (int, error
 func (c *Controller) isPoolPending(spc *apis.StoragePoolClaim) bool {
 	pCount, err := c.getPendingPoolCount(spc)
 	if err != nil {
-		glog.Errorf("Unable to get pending pool count for spc %s:%s", spc.Name, err)
+		klog.Errorf("Unable to get pending pool count for spc %s:%s", spc.Name, err)
 		return false
 	}
 	if pCount > 0 {

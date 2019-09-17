@@ -24,9 +24,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 type TestRunner struct{}
@@ -80,16 +80,16 @@ func (r TestRunner) RunStdoutPipe(command string, args ...string) ([]byte, error
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		glog.Errorf(err.Error())
+		klog.Errorf(err.Error())
 		return []byte{}, err
 	}
 	if err := cmd.Start(); err != nil {
-		glog.Errorf(err.Error())
+		klog.Errorf(err.Error())
 		return []byte{}, err
 	}
 	data, _ := ioutil.ReadAll(stdout)
 	if err := cmd.Wait(); err != nil {
-		glog.Errorf(err.Error())
+		klog.Errorf(err.Error())
 		return []byte{}, err
 	}
 	return data, nil

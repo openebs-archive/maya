@@ -23,7 +23,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	snapclient "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1alpha1/clientset/internalclientset"
@@ -31,6 +30,7 @@ import (
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -114,7 +114,7 @@ func admissionRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool {
 	// skip special kubernetes system namespaces
 	for _, namespace := range ignoredList {
 		if metadata.Namespace == namespace {
-			glog.V(4).Infof("Skip validation for %v for it's in special namespace:%v", metadata.Name, metadata.Namespace)
+			klog.V(4).Infof("Skip validation for %v for it's in special namespace:%v", metadata.Name, metadata.Namespace)
 			return false
 		}
 	}
@@ -123,7 +123,7 @@ func admissionRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool {
 
 func validationRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool {
 	required := admissionRequired(ignoredList, metadata)
-	glog.V(4).Infof("Validation policy for %v/%v: required:%v", metadata.Namespace, metadata.Name, required)
+	klog.V(4).Infof("Validation policy for %v/%v: required:%v", metadata.Namespace, metadata.Name, required)
 	return required
 }
 
@@ -138,7 +138,7 @@ func (wh *webhook) validatePVCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 		return response
 	}
 
-	glog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
+	klog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
 
 	// TODO* use raw object once validation webhooks support DELETE request
@@ -146,7 +146,7 @@ func (wh *webhook) validatePVCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 	//var pvc corev1.PersistentVolumeClaim
 	//err := json.Unmarshal(req.Object.Raw, &pvc)
 	//if err != nil {
-	//	glog.Errorf("Could not unmarshal raw object: %v, %v", err, req.Object.Raw)
+	//	klog.Errorf("Could not unmarshal raw object: %v, %v", err, req.Object.Raw)
 	//	status.Allowed = false
 	//	status.Result = &metav1.Status{
 	//		Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
@@ -166,7 +166,7 @@ func (wh *webhook) validatePVCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 	}
 
 	if !validationRequired(ignoredNamespaces, &pvc.ObjectMeta) {
-		glog.V(4).Infof("Skipping validation for %s/%s due to policy check", pvc.Namespace, pvc.Name)
+		klog.V(4).Infof("Skipping validation for %s/%s due to policy check", pvc.Namespace, pvc.Name)
 		return response
 	}
 
@@ -209,7 +209,7 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 	var pvc corev1.PersistentVolumeClaim
 	err := json.Unmarshal(req.Object.Raw, &pvc)
 	if err != nil {
-		glog.Errorf("Could not unmarshal raw object: %v, %v", err, req.Object.Raw)
+		klog.Errorf("Could not unmarshal raw object: %v, %v", err, req.Object.Raw)
 		response.Allowed = false
 		response.Result = &metav1.Status{
 			Status:  metav1.StatusFailure,
@@ -227,13 +227,13 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 		return response
 	}
 
-	glog.V(4).Infof("AdmissionReview for creating a clone volume Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
+	klog.V(4).Infof("AdmissionReview for creating a clone volume Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
 	// get the snapshot object to get snapshotdata object
 	// Note: If snapname is empty then below call will retrun error
 	snapObj, err := wh.snapClientSet.OpenebsV1alpha1().VolumeSnapshots(pvc.Namespace).Get(snapname, metav1.GetOptions{})
 	if err != nil {
-		glog.Errorf("failed to get the snapshot object for snapshot name: '%s' namespace: '%s' PVC: '%s'"+
+		klog.Errorf("failed to get the snapshot object for snapshot name: '%s' namespace: '%s' PVC: '%s'"+
 			"error: '%v'", snapname, pvc.Namespace, pvc.Name, err)
 		response.Allowed = false
 		response.Result = &metav1.Status{
@@ -245,7 +245,7 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 
 	snapDataName := snapObj.Spec.SnapshotDataName
 	if len(snapDataName) == 0 {
-		glog.Errorf("Snapshotdata name is empty for snapshot: '%s' snapshot Namespace: '%s' PVC: '%s'",
+		klog.Errorf("Snapshotdata name is empty for snapshot: '%s' snapshot Namespace: '%s' PVC: '%s'",
 			snapname, snapObj.ObjectMeta.Namespace, pvc.Name)
 		response.Allowed = false
 		response.Result = &metav1.Status{
@@ -254,13 +254,13 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 		}
 		return response
 	}
-	glog.V(4).Infof("snapshotdata name: '%s'", snapDataName)
+	klog.V(4).Infof("snapshotdata name: '%s'", snapDataName)
 
 	// get the snapDataObj to get the snapshotdataname
 	// Note: If snapDataName is empty then below call will return error
 	snapDataObj, err := wh.snapClientSet.OpenebsV1alpha1().VolumeSnapshotDatas().Get(snapDataName, metav1.GetOptions{})
 	if err != nil {
-		glog.Errorf("Failed to get the snapshotdata object for snapshotdata  name: '%s' "+
+		klog.Errorf("Failed to get the snapshotdata object for snapshotdata  name: '%s' "+
 			"snapName: '%s' namespace: '%s' PVC: '%s' error: '%v'", snapDataName, snapname, snapObj.ObjectMeta.Namespace, pvc.Name, err)
 		response.Allowed = false
 		response.Result = &metav1.Status{
@@ -273,7 +273,7 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 	snapSizeString := snapDataObj.Spec.OpenEBSSnapshot.Capacity
 	// If snapshotdata object doesn't consist Capacity field then we will log it and return false.
 	if len(snapSizeString) == 0 {
-		glog.Infof("snapshot size not found for snapshot name: '%s' snapshot namespace: '%s' snapshotdata name: '%s'",
+		klog.Infof("snapshot size not found for snapshot name: '%s' snapshot namespace: '%s' snapshotdata name: '%s'",
 			snapname, snapObj.ObjectMeta.Namespace, snapDataName)
 		response.Allowed = false
 		response.Result = &metav1.Status{
@@ -285,7 +285,7 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 	snapCapacity := resource.MustParse(snapSizeString)
 	pvcSize := pvc.Spec.Resources.Requests[corev1.ResourceName(corev1.ResourceStorage)]
 	if pvcSize.Cmp(snapCapacity) != 0 {
-		glog.Errorf("Requested pvc size not matched the snapshot size '%s' belongs to snapshot name: '%s' "+
+		klog.Errorf("Requested pvc size not matched the snapshot size '%s' belongs to snapshot name: '%s' "+
 			"snapshot Namespace: '%s' VolumeSnapshotData '%s'", snapSizeString, snapObj.ObjectMeta.Name, snapObj.ObjectMeta.Namespace, snapDataName)
 		response.Allowed = false
 		response.Result = &metav1.Status{
@@ -303,15 +303,15 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 	req := ar.Request
 	response := &v1beta1.AdmissionResponse{}
 	response.Allowed = true
-	glog.Info("Admission webhook request received")
+	klog.Info("Admission webhook request received")
 	switch req.Kind.Kind {
 	case "PersistentVolumeClaim":
 		return wh.validatePVC(ar)
 	case "CStorPoolCluster":
-		glog.V(2).Infof("Admission webhook request for type %s", req.Kind.Kind)
+		klog.V(2).Infof("Admission webhook request for type %s", req.Kind.Kind)
 		return wh.validateCSPC(ar)
 	default:
-		glog.V(2).Infof("Admission webhook not configured for type %s", req.Kind.Kind)
+		klog.V(2).Infof("Admission webhook not configured for type %s", req.Kind.Kind)
 		return response
 	}
 }
@@ -326,7 +326,7 @@ func (wh *webhook) validatePVC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRe
 	} else if req.Operation == v1beta1.Delete {
 		return wh.validatePVCDeleteRequest(req)
 	}
-	glog.V(2).Info("Admission wehbook for PVC module not " +
+	klog.V(2).Info("Admission wehbook for PVC module not " +
 		"configured for operations other than DELETE and CREATE")
 	return response
 }
@@ -349,7 +349,7 @@ func (wh *webhook) Serve(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(body) == 0 {
-		glog.Error("empty body")
+		klog.Error("empty body")
 		http.Error(w, "empty body", http.StatusBadRequest)
 		return
 	}
@@ -357,7 +357,7 @@ func (wh *webhook) Serve(w http.ResponseWriter, r *http.Request) {
 	// verify the content type is accurate
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
-		glog.Errorf("Content-Type=%s, expect application/json", contentType)
+		klog.Errorf("Content-Type=%s, expect application/json", contentType)
 		http.Error(w, "invalid Content-Type, expect `application/json`", http.StatusUnsupportedMediaType)
 		return
 	}
@@ -365,7 +365,7 @@ func (wh *webhook) Serve(w http.ResponseWriter, r *http.Request) {
 	var admissionResponse *v1beta1.AdmissionResponse
 	ar := v1beta1.AdmissionReview{}
 	if _, _, err := deserializer.Decode(body, nil, &ar); err != nil {
-		glog.Errorf("Can't decode body: %v", err)
+		klog.Errorf("Can't decode body: %v", err)
 		admissionResponse = &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
@@ -387,12 +387,12 @@ func (wh *webhook) Serve(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := json.Marshal(admissionReview)
 	if err != nil {
-		glog.Errorf("Can't encode response: %v", err)
+		klog.Errorf("Can't encode response: %v", err)
 		http.Error(w, fmt.Sprintf("could not encode response: %v", err), http.StatusInternalServerError)
 	}
-	glog.V(5).Infof("Ready to write reponse ...")
+	klog.V(5).Infof("Ready to write reponse ...")
 	if _, err := w.Write(resp); err != nil {
-		glog.Errorf("Can't write response: %v", err)
+		klog.Errorf("Can't write response: %v", err)
 		http.Error(w, fmt.Sprintf("could not write response: %v", err), http.StatusInternalServerError)
 	}
 }

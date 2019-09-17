@@ -17,14 +17,15 @@ limitations under the License.
 package main
 
 import (
-	"github.com/golang/glog"
-	"github.com/openebs/maya/cmd/cspc-operator/app"
 	"os"
+
+	"github.com/openebs/maya/cmd/cspc-operator/app"
+	"k8s.io/klog"
 )
 
 func main() {
 	if err := app.Start(); err != nil {
-		glog.Errorf("Failed to start the controller:{%s}", err.Error())
+		klog.Errorf("Failed to start the controller:{%s}", err.Error())
 		os.Exit(1)
 	}
 	os.Exit(0)

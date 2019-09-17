@@ -17,11 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/golang/glog"
 	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 // to verify that no two csp are on same node
@@ -72,6 +72,6 @@ func spcUpgrade(spcName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			}
 		}
 	}
-	glog.Infof("Upgrade Successful for spc %s", spcName)
+	klog.Infof("Upgrade Successful for spc %s", spcName)
 	return nil, nil
 }

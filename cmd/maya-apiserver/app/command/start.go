@@ -28,7 +28,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/golang/glog"
 	cvc "github.com/openebs/maya/cmd/cstorvolumeclaim"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/server"
@@ -43,6 +42,7 @@ import (
 	"github.com/openebs/maya/pkg/version"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 var (
@@ -146,7 +146,7 @@ func checkForNDMrelatedCRDs() error {
 
 // Run does tasks related to mayaserver.
 func Run(cmd *cobra.Command, c *CmdStartOptions) error {
-	glog.Infof("Initializing maya-apiserver...")
+	klog.Infof("Initializing maya-apiserver...")
 
 	var ControllerMutex = sync.RWMutex{}
 	// Read and merge with default configuration
@@ -191,24 +191,24 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 
 	// Maya server configuration output
 	padding := 18
-	glog.Info("Maya api server configuration:\n")
+	klog.Info("Maya api server configuration:\n")
 	for _, k := range infoKeys {
-		glog.Infof(
+		klog.Infof(
 			"%s%s: %s",
 			strings.Repeat(" ", padding-len(k)),
 			strings.Title(k),
 			info[k])
 	}
-	glog.Infof("")
+	klog.Infof("")
 
 	// Output the header that the server has started
-	glog.Info("Maya api server started! Log data will stream in below:\n")
+	klog.Info("Maya api server started! Log data will stream in below:\n")
 
 	// start storage pool controller
 	go func() {
 		err := spc.Start(&ControllerMutex)
 		if err != nil {
-			glog.Errorf("Failed to start storage pool controller: %s", err.Error())
+			klog.Errorf("Failed to start storage pool controller: %s", err.Error())
 		}
 
 	}()
@@ -216,7 +216,7 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 	go func() {
 		err := cvc.Start(&ControllerMutex)
 		if err != nil {
-			glog.Errorf("Failed to start cstorvolume claim controller: %s", err.Error())
+			klog.Errorf("Failed to start cstorvolume claim controller: %s", err.Error())
 		}
 	}()
 
@@ -240,7 +240,7 @@ func (c *CmdStartOptions) readMayaConfig() *config.MayaConfig {
 	if c.ConfigPath != "" {
 		current, err := config.LoadMayaConfig(c.ConfigPath)
 		if err != nil {
-			glog.Errorf(
+			klog.Errorf(
 				"Error loading configuration from %s: %s", c.ConfigPath, err)
 			return nil
 		}
@@ -248,7 +248,7 @@ func (c *CmdStartOptions) readMayaConfig() *config.MayaConfig {
 		// The user asked us to load some config here but we didn't find any,
 		// so we'll complain but continue.
 		if current == nil || reflect.DeepEqual(current, &config.MayaConfig{}) {
-			glog.Warningf("No configuration loaded from %s", c.ConfigPath)
+			klog.Warningf("No configuration loaded from %s", c.ConfigPath)
 		}
 
 		if mconfig == nil {
@@ -275,7 +275,7 @@ func (c *CmdStartOptions) readMayaConfig() *config.MayaConfig {
 
 	// Normalize binds, ports, addresses, and advertise
 	if err := mconfig.NormalizeAddrs(); err != nil {
-		glog.Errorf(err.Error())
+		klog.Errorf(err.Error())
 		return nil
 	}
 
@@ -284,21 +284,21 @@ func (c *CmdStartOptions) readMayaConfig() *config.MayaConfig {
 
 // setupMayaServer is used to start Maya server
 func (c *CmdStartOptions) setupMayaServer(mconfig *config.MayaConfig) error {
-	glog.Info("Starting maya api server ...")
+	klog.Info("Starting maya api server ...")
 
 	// run maya installer
 	installErrs := install.SimpleInstaller().Install()
 	if len(installErrs) != 0 {
-		glog.Errorf("failed to apply resources: %+v", installErrs)
+		klog.Errorf("failed to apply resources: %+v", installErrs)
 		return errors.New("failed to apply resources")
 	}
 
-	glog.Info("resources applied successfully by installer")
+	klog.Info("resources applied successfully by installer")
 
 	// Setup maya service i.e. maya api server
 	maya, err := server.NewMayaApiServer(mconfig, os.Stdout)
 	if err != nil {
-		glog.Errorf("failed to start api server: %+v", err)
+		klog.Errorf("failed to start api server: %+v", err)
 		return err
 	}
 
@@ -308,7 +308,7 @@ func (c *CmdStartOptions) setupMayaServer(mconfig *config.MayaConfig) error {
 	http, err := server.NewHTTPServer(maya, mconfig, os.Stdout)
 	if err != nil {
 		maya.Shutdown()
-		glog.Errorf("failed to start http server: %+v", err)
+		klog.Errorf("failed to start http server: %+v", err)
 		return err
 	}
 
@@ -330,7 +330,7 @@ WAIT:
 	case <-c.ShutdownCh:
 		sig = os.Interrupt
 	}
-	glog.Infof("Caught signal: %v", sig)
+	klog.Infof("Caught signal: %v", sig)
 
 	// Skip any SIGPIPE signal (See issue #1798)
 	if sig == syscall.SIGPIPE {
@@ -361,10 +361,10 @@ WAIT:
 
 	// Attempt a graceful leave
 	gracefulCh := make(chan struct{})
-	glog.Info("Gracefully shutting maya api server...")
+	klog.Info("Gracefully shutting maya api server...")
 	go func() {
 		if err := c.maya.Leave(); err != nil {
-			glog.Errorf("Error: %s", err)
+			klog.Errorf("Error: %s", err)
 			return
 		}
 		close(gracefulCh)
@@ -388,16 +388,16 @@ WAIT:
 // process
 func (c *CmdStartOptions) handleReload(mconfig *config.MayaConfig) *config.MayaConfig {
 
-	glog.Info("Reloading maya api server configuration...")
+	klog.Info("Reloading maya api server configuration...")
 
 	newConf := c.readMayaConfig()
 	if newConf == nil {
-		glog.Error("Failed to reload config")
+		klog.Error("Failed to reload config")
 		return mconfig
 	}
 
 	//TODO Change the log level dynamically
-	glog.Infof("Log level is : %s", strings.ToUpper(newConf.LogLevel))
+	klog.Infof("Log level is : %s", strings.ToUpper(newConf.LogLevel))
 
 	return newConf
 }

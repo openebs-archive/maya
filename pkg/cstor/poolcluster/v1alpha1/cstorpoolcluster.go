@@ -15,10 +15,10 @@
 package v1alpha1
 
 import (
-	"github.com/golang/glog"
 	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 )
 
 const (
@@ -135,12 +135,12 @@ func (c *CSPC) HasFinalizer(finalizer string) bool {
 // RemoveFinalizer removes the given finalizer from the object.
 func (c *CSPC) RemoveFinalizer(finalizer string) error {
 	if len(c.object.Finalizers) == 0 {
-		glog.V(2).Infof("no finalizer present on CSPC %s", c.object.Name)
+		klog.V(2).Infof("no finalizer present on CSPC %s", c.object.Name)
 		return nil
 	}
 
 	if !c.HasFinalizer(finalizer) {
-		glog.V(2).Infof("finalizer %s is already removed on CSPC %s", finalizer, c.object.Name)
+		klog.V(2).Infof("finalizer %s is already removed on CSPC %s", finalizer, c.object.Name)
 		return nil
 	}
 
@@ -152,14 +152,14 @@ func (c *CSPC) RemoveFinalizer(finalizer string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to update object while removing finalizer")
 	}
-	glog.Infof("Finalizer %s removed successfully from CSPC %s", finalizer, c.object.Name)
+	klog.Infof("Finalizer %s removed successfully from CSPC %s", finalizer, c.object.Name)
 	return nil
 }
 
 // AddFinalizer adds the given finalizer to the object.
 func (c *CSPC) AddFinalizer(finalizer string) (*apisv1alpha1.CStorPoolCluster, error) {
 	if c.HasFinalizer(finalizer) {
-		glog.V(2).Infof("finalizer %s is already present on CSPC %s", finalizer, c.object.Name)
+		klog.V(2).Infof("finalizer %s is already present on CSPC %s", finalizer, c.object.Name)
 		return c.object, nil
 	}
 
@@ -174,6 +174,6 @@ func (c *CSPC) AddFinalizer(finalizer string) (*apisv1alpha1.CStorPoolCluster, e
 			c.object.Name, finalizer)
 	}
 
-	glog.Infof("Finalizer %s added on CSPC %s", finalizer, c.object.Name)
+	klog.Infof("Finalizer %s added on CSPC %s", finalizer, c.object.Name)
 	return cspcAPIObj, nil
 }

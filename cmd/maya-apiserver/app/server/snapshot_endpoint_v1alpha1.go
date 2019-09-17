@@ -19,9 +19,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/snapshot/v1alpha1"
+	"k8s.io/klog"
 )
 
 type snapshotAPIOps struct {
@@ -64,7 +64,7 @@ func (s *HTTPServer) snapshotV1alpha1SpecificRequest(resp http.ResponseWriter, r
 
 // list is http handler for listing all created snapshot specific to particular volume
 func (sOps *snapshotAPIOps) list(volName, namespace, casType string) (interface{}, error) {
-	glog.Infof("Snapshot list request was received")
+	klog.Infof("Snapshot list request was received")
 
 	// Volume name is expected
 	if len(strings.TrimSpace(volName)) == 0 {
@@ -76,7 +76,7 @@ func (sOps *snapshotAPIOps) list(volName, namespace, casType string) (interface{
 		return nil, CodedError(400, fmt.Sprintf("failed to list snapshot: missing namespace "))
 	}
 
-	glog.Infof("Listing snapshots for volume %q ", volName)
+	klog.Infof("Listing snapshots for volume %q ", volName)
 
 	snapOps, err := snapshot.Snapshot(&v1alpha1.SnapshotOptions{
 		CasType:    casType,
@@ -89,17 +89,17 @@ func (sOps *snapshotAPIOps) list(volName, namespace, casType string) (interface{
 
 	snaps, err := snapOps.List()
 	if err != nil {
-		glog.Errorf("Failed to list snapshots: error '%s'", err.Error())
+		klog.Errorf("Failed to list snapshots: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
 	}
 
-	glog.Infof("Snapshots listed successfully for volume '%s'", volName)
+	klog.Infof("Snapshots listed successfully for volume '%s'", volName)
 	return snaps, nil
 }
 
 // Create is http handler which handles snaphsot-create request
 func (sOps *snapshotAPIOps) create() (interface{}, error) {
-	glog.Infof("Snapshot create request was received")
+	klog.Infof("Snapshot create request was received")
 
 	snap := &v1alpha1.CASSnapshot{}
 
@@ -107,7 +107,7 @@ func (sOps *snapshotAPIOps) create() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	glog.V(2).Infof("CASSnapshot object received: %+v", sOps.req)
+	klog.V(2).Infof("CASSnapshot object received: %+v", sOps.req)
 	// snapshot name is expected
 	if len(strings.TrimSpace(snap.Name)) == 0 {
 		return nil, CodedError(400, fmt.Sprintf("failed to create snapshot: missing snapshot name "))
@@ -123,7 +123,7 @@ func (sOps *snapshotAPIOps) create() (interface{}, error) {
 		return nil, CodedError(400, fmt.Sprintf("failed to create snapshot '%v': missing volume name", snap.Name))
 	}
 
-	glog.Infof("Creating snapshot %q for %s volume %q ", snap.Name, snap.Spec.CasType, snap.Spec.VolumeName)
+	klog.Infof("Creating snapshot %q for %s volume %q ", snap.Name, snap.Spec.CasType, snap.Spec.VolumeName)
 
 	snapOps, err := snapshot.Snapshot(&v1alpha1.SnapshotOptions{
 		VolumeName: snap.Spec.VolumeName,
@@ -135,21 +135,21 @@ func (sOps *snapshotAPIOps) create() (interface{}, error) {
 		return nil, CodedError(400, err.Error())
 	}
 
-	glog.Infof("Creating %s volume %q snapshot", snap.Spec.CasType, snap.Spec.VolumeName)
+	klog.Infof("Creating %s volume %q snapshot", snap.Spec.CasType, snap.Spec.VolumeName)
 
 	snap, err = snapOps.Create()
 	if err != nil {
-		glog.Errorf("Failed to create snapshot: error '%s'", err.Error())
+		klog.Errorf("Failed to create snapshot: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
 	}
 
-	glog.Infof("Snapshot created successfully: name '%s'", snap.Name)
+	klog.Infof("Snapshot created successfully: name '%s'", snap.Name)
 	return snap, nil
 }
 
 // read is http handler for reading a snapshot specific to particular volume
 func (sOps *snapshotAPIOps) get(snapName, volName, namespace, casType string) (interface{}, error) {
-	glog.Infof("Received request for snapshot get")
+	klog.Infof("Received request for snapshot get")
 
 	// snapshot name is expected
 	if len(strings.TrimSpace(snapName)) == 0 {
@@ -166,7 +166,7 @@ func (sOps *snapshotAPIOps) get(snapName, volName, namespace, casType string) (i
 		return nil, CodedError(400, fmt.Sprintf("failed to get snapshot '%v': missing namespace", snapName))
 	}
 
-	glog.Infof("Processing snapshot %q get request for volume: %q", snapName, volName)
+	klog.Infof("Processing snapshot %q get request for volume: %q", snapName, volName)
 
 	snapOps, err := snapshot.Snapshot(&v1alpha1.SnapshotOptions{
 		CasType:    casType,
@@ -178,19 +178,19 @@ func (sOps *snapshotAPIOps) get(snapName, volName, namespace, casType string) (i
 		return nil, CodedError(400, err.Error())
 	}
 
-	glog.Infof("Getting %s volume %q snapshot %q", casType, volName, snapName)
+	klog.Infof("Getting %s volume %q snapshot %q", casType, volName, snapName)
 	snap, err := snapOps.Read()
 	if err != nil {
-		glog.Errorf("Failed to get snapshot: error '%s'", err.Error())
+		klog.Errorf("Failed to get snapshot: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
 	}
 
-	glog.Infof("Snapshot created successfully: name '%s'", snap.Name)
+	klog.Infof("Snapshot created successfully: name '%s'", snap.Name)
 	return snap, nil
 }
 
 func (sOps *snapshotAPIOps) delete(snapName, volName, namespace, casType string) (interface{}, error) {
-	glog.Infof("Received request for snapshot delete")
+	klog.Infof("Received request for snapshot delete")
 	// snapshot name is expected
 	if len(strings.TrimSpace(snapName)) == 0 {
 		return nil, CodedError(400, fmt.Sprintf("failed to delete snapshot: missing snapshot name"))
@@ -216,12 +216,12 @@ func (sOps *snapshotAPIOps) delete(snapName, volName, namespace, casType string)
 		return nil, CodedError(400, err.Error())
 	}
 
-	glog.Infof("Deleting snapshot %q of %s volume %q", snapName, casType, volName)
+	klog.Infof("Deleting snapshot %q of %s volume %q", snapName, casType, volName)
 	output, err := snapOps.Delete()
 	if err != nil {
-		glog.Errorf("Failed to delete snapshot %q for volume %q: %s", snapName, volName, err)
+		klog.Errorf("Failed to delete snapshot %q for volume %q: %s", snapName, volName, err)
 		return nil, err
 	}
-	glog.Infof("Snapshot deleted successfully: name '%s'", snapName)
+	klog.Infof("Snapshot deleted successfully: name '%s'", snapName)
 	return output, nil
 }

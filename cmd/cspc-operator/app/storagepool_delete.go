@@ -17,13 +17,13 @@ limitations under the License.
 package app
 
 import (
-	"github.com/golang/glog"
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 // DownScalePool deletes the required pool.
@@ -44,7 +44,7 @@ func (pc *PoolConfig) DownScalePool() error {
 		if err != nil {
 			pc.Controller.recorder.Event(pc.AlgorithmConfig.CSPC, corev1.EventTypeWarning,
 				"DownScale", "De-provisioning pool "+cspName+"failed")
-			glog.Errorf("De-provisioning pool %s failed: %s", cspName, err)
+			klog.Errorf("De-provisioning pool %s failed: %s", cspName, err)
 		}
 	}
 	return nil

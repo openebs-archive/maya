@@ -17,13 +17,13 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	"github.com/pkg/errors"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 // GetPendingPoolCount returns the pending pool count that should be created for the
@@ -51,7 +51,7 @@ func (c *Config) GetCurrentPoolCount() (int, error) {
 func (c *Config) IsPoolPending() bool {
 	pc, err := c.GetPendingPoolCount()
 	if err != nil {
-		glog.Errorf("unable to get pending pool count : %v", err)
+		klog.Errorf("unable to get pending pool count : %v", err)
 		return false
 	}
 	if pc > 0 {
@@ -75,7 +75,7 @@ func (c *Config) GetCSPIWithoutDeployment() ([]apis.CStorPoolInstance, error) {
 			continue
 		}
 		if err != nil {
-			glog.Errorf("Could not get pool deployment for csp {%s}", cspObj.Name)
+			klog.Errorf("Could not get pool deployment for csp {%s}", cspObj.Name)
 		}
 	}
 	return cspList, nil

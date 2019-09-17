@@ -23,11 +23,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
 
 	backupcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/backup-controller"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
@@ -61,23 +61,23 @@ func StartControllers(kubeconfig string) {
 
 	cfg, err := getClusterConfig(kubeconfig)
 	if err != nil {
-		glog.Fatalf(err.Error())
+		klog.Fatalf(err.Error())
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		glog.Fatalf("Error building kubernetes clientset: %s", err.Error())
+		klog.Fatalf("Error building kubernetes clientset: %s", err.Error())
 	}
 
 	openebsClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		glog.Fatalf("Error building openebs clientset: %s", err.Error())
+		klog.Fatalf("Error building openebs clientset: %s", err.Error())
 	}
 
 	//TODO: Remove below code
 	//openebsClient2, err := clientset.NewForConfig(cfg)
 	//if err != nil {
-	//	glog.Fatalf("Error building openebs clientset: %s", err.Error())
+	//	klog.Fatalf("Error building openebs clientset: %s", err.Error())
 	//}
 
 	common.Init()
@@ -92,7 +92,7 @@ func StartControllers(kubeconfig string) {
 		// for zrepl container such that the period(x) of the goroutine thread will
 		// be half that of this initialTimeDelay y. (x = 1/2 y).
 		pool.CheckForZreplContinuous(common.ContinuousZreplRetryInterval)
-		glog.Errorf("Zrepl/Pool is not available, Shutting down")
+		klog.Errorf("Zrepl/Pool is not available, Shutting down")
 		os.Exit(1)
 	}()
 	// Blocking call for checking status of CStorPool CRD.
@@ -137,7 +137,7 @@ func StartControllers(kubeconfig string) {
 	// Run controller for cStorPool.
 	go func() {
 		if err = cStorPoolController.Run(NumThreads, stopCh); err != nil {
-			glog.Fatalf("Error running CStorPool controller: %s", err.Error())
+			klog.Fatalf("Error running CStorPool controller: %s", err.Error())
 		}
 		wg.Done()
 	}()
@@ -150,7 +150,7 @@ func StartControllers(kubeconfig string) {
 	// Run controller for cStorVolumeReplica.
 	go func() {
 		if err = volumeReplicaController.Run(NumThreads, stopCh); err != nil {
-			glog.Fatalf("Error running CStorVolumeReplica controller: %s", err.Error())
+			klog.Fatalf("Error running CStorVolumeReplica controller: %s", err.Error())
 		}
 		wg.Done()
 	}()
@@ -159,7 +159,7 @@ func StartControllers(kubeconfig string) {
 	// Run controller for CStorBackup
 	go func() {
 		if err = backupController.Run(NumThreads, stopCh); err != nil {
-			glog.Fatalf("Error running CStorBackup controller: %s", err.Error())
+			klog.Fatalf("Error running CStorBackup controller: %s", err.Error())
 		}
 		wg.Done()
 	}()
@@ -168,7 +168,7 @@ func StartControllers(kubeconfig string) {
 	// Run controller for CStorRestore.
 	go func() {
 		if err = restoreController.Run(NumThreads, stopCh); err != nil {
-			glog.Fatalf("Error running CStorRestore controller: %s", err.Error())
+			klog.Fatalf("Error running CStorRestore controller: %s", err.Error())
 		}
 		wg.Done()
 	}()
@@ -181,7 +181,7 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 	var masterURL string
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
-		glog.Errorf("Failed to get k8s Incluster config. %+v", err)
+		klog.Errorf("Failed to get k8s Incluster config. %+v", err)
 		if len(kubeconfig) == 0 {
 			return nil, fmt.Errorf("kubeconfig is empty: %v", err.Error())
 		}
@@ -199,7 +199,7 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 func getSyncInterval() time.Duration {
 	resyncInterval, err := strconv.Atoi(os.Getenv("RESYNC_INTERVAL"))
 	if err != nil || resyncInterval == 0 {
-		glog.Warningf("Incorrect resync interval %q obtained from env, defaulting to %q seconds", resyncInterval, common.SharedInformerInterval)
+		klog.Warningf("Incorrect resync interval %q obtained from env, defaulting to %q seconds", resyncInterval, common.SharedInformerInterval)
 		return common.SharedInformerInterval
 	}
 	return time.Duration(resyncInterval) * time.Second

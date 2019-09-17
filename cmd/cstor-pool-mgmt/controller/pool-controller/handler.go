@@ -25,7 +25,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	pool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
@@ -38,6 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -61,14 +61,14 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		return fmt.Errorf("expected csp object but got %#v", cspObject)
 	}
 	if err != nil {
-		glog.Errorf("Could not acquire lease on csp object:%v", err)
+		klog.Errorf("Could not acquire lease on csp object:%v", err)
 		return err
 	}
-	glog.V(4).Infof("Lease acquired successfully on csp %s ", cspObject.Name)
+	klog.V(4).Infof("Lease acquired successfully on csp %s ", cspObject.Name)
 
 	status, err := c.cStorPoolEventHandler(operation, cspObject)
 	if status == "" {
-		glog.Warning("Empty status recieved for csp status in sync handler")
+		klog.Warning("Empty status recieved for csp status in sync handler")
 		return nil
 	}
 	cspObject.Status.LastUpdateTime = metav1.Now()
@@ -78,12 +78,12 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	}
 
 	if err != nil {
-		glog.Errorf(err.Error())
+		klog.Errorf(err.Error())
 		_, err := c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObject)
 		if err != nil {
 			return err
 		}
-		glog.Infof("cStorPool:%v, %v; Status: %v", cspObject.Name,
+		klog.Infof("cStorPool:%v, %v; Status: %v", cspObject.Name,
 			string(cspObject.GetUID()), cspObject.Status.Phase)
 		return err
 	}
@@ -99,9 +99,9 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		return err
 	}
 	if string(cspObject.Status.Phase) == string(apis.CStorPoolStatusOnline) {
-		glog.V(4).Infof("cStorPool:%v, %v; Status: Online", cspObject.Name, string(cspObject.GetUID()))
+		klog.V(4).Infof("cStorPool:%v, %v; Status: Online", cspObject.Name, string(cspObject.GetUID()))
 	} else {
-		glog.Infof("cStorPool:%v, %v; Status: %v", cspObject.Name,
+		klog.Infof("cStorPool:%v, %v; Status: %v", cspObject.Name,
 			string(cspObject.GetUID()), cspObject.Status.Phase)
 	}
 	return nil
@@ -123,7 +123,7 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 		pool.ImportedCStorPools[uid] = cStorPoolGot.DeepCopy()
 		pool.CStorZpools[uid], zpoolDumpErr = zpool.Dump()
 		if zpoolDumpErr != nil {
-			glog.Errorf("failed in getting zpool dump %v", zpoolDumpErr)
+			klog.Errorf("failed in getting zpool dump %v", zpoolDumpErr)
 			delete(pool.CStorZpools, uid)
 		}
 	}
@@ -136,7 +136,7 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperation, cStorPoolGot *apis.CStorPool) (string, error) {
 	switch operation {
 	case common.QOpAdd:
-		glog.Infof("Processing cStorPool added event: %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
+		klog.Infof("Processing cStorPool added event: %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
 
 		if IsCStorPoolCreateStatuses(cStorPoolGot) {
 			return c.cStorPoolCreate(cStorPoolGot)
@@ -147,7 +147,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		return status, err
 
 	case common.QOpDestroy:
-		glog.Infof("Processing cStorPool Destroy event %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
+		klog.Infof("Processing cStorPool Destroy event %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
 		status, err := c.cStorPoolDestroyEventHandler(cStorPoolGot)
 		return status, err
 	case common.QOpSync:
@@ -161,11 +161,11 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 			status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
 			return status, err
 		}
-		glog.V(4).Infof("Synchronizing cStor pool status for pool %s", cStorPoolGot.ObjectMeta.Name)
+		klog.V(4).Infof("Synchronizing cStor pool status for pool %s", cStorPoolGot.ObjectMeta.Name)
 		status, err := c.getPoolStatus(cStorPoolGot)
 		return status, err
 	}
-	glog.Errorf("ignored event '%s' for cstor pool '%s'", string(operation), string(cStorPoolGot.ObjectMeta.Name))
+	klog.Errorf("ignored event '%s' for cstor pool '%s'", string(operation), string(cStorPoolGot.ObjectMeta.Name))
 	return string(apis.CStorPoolStatusInvalid), nil
 }
 
@@ -189,18 +189,18 @@ func (c *CStorPoolController) cStorPoolCreate(cStorPoolGot *apis.CStorPool) (str
 	}
 
 	if len(common.InitialImportedPoolVol) != 0 {
-		glog.Errorf("failed to handle add event: invalid status %v for pool %v with existing volumes", string(cStorPoolGot.Status.Phase), string(cStorPoolGot.GetUID()))
+		klog.Errorf("failed to handle add event: invalid status %v for pool %v with existing volumes", string(cStorPoolGot.Status.Phase), string(cStorPoolGot.GetUID()))
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageImproperPoolStatus))
 		return string(apis.CStorPoolStatusCreateFailed), err
 	}
 	// CreatePool is to create cstor pool.
 	err = pool.CreatePool(cStorPoolGot, devIDList)
 	if err != nil {
-		glog.Errorf("Pool creation failure: %v", string(cStorPoolGot.GetUID()))
+		klog.Errorf("Pool creation failure: %v", string(cStorPoolGot.GetUID()))
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureCreate), string(common.MessageResourceFailCreate))
 		return string(apis.CStorPoolStatusCreateFailed), err
 	}
-	glog.Infof("Pool creation successful: %v", string(cStorPoolGot.GetUID()))
+	klog.Infof("Pool creation successful: %v", string(cStorPoolGot.GetUID()))
 	c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
 	return string(apis.CStorPoolStatusOnline), nil
 }
@@ -257,17 +257,17 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 					// Pool CR status is init. This means pool deployment was done
 					// successfully, but before updating the CR to Online status,
 					// the watcher container got restarted.
-					glog.Infof("Pool %v is online", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
+					klog.Infof("Pool %v is online", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
 					c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
 					common.SyncResources.IsImported = true
 					return string(apis.CStorPoolStatusOnline), nil
 				}
-				glog.Infof("Pool %v already present", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
+				klog.Infof("Pool %v already present", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
 				c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
 				common.SyncResources.IsImported = true
 				return string(apis.CStorPoolStatusErrorDuplicate), fmt.Errorf("Duplicate resource request")
 			}
-			glog.Infof("Attempt %v: Waiting...", i+1)
+			klog.Infof("Attempt %v: Waiting...", i+1)
 			time.Sleep(common.PoolWaitInterval)
 		} else {
 			// If no pool is present while trying for getpoolname, set isPoolExists to false and
@@ -315,7 +315,7 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 		common.SyncResources.IsImported = false
 	}
 
-	glog.Infof("Not init status %v: %v, %v", string(cStorPoolGot.Status.Phase), cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
+	klog.Infof("Not init status %v: %v, %v", string(cStorPoolGot.Status.Phase), cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
 
 	return string(apis.CStorPoolStatusOffline), importPoolErr
 }
@@ -335,9 +335,9 @@ func (c *CStorPoolController) cStorPoolDestroyEventHandler(cStorPoolGot *apis.CS
 	}
 	err = pool.LabelClear(devIDList)
 	if err != nil {
-		glog.Errorf(err.Error(), cStorPoolGot.GetUID())
+		klog.Errorf(err.Error(), cStorPoolGot.GetUID())
 	} else {
-		glog.Infof("Label clear successful: %v", string(cStorPoolGot.GetUID()))
+		klog.Infof("Label clear successful: %v", string(cStorPoolGot.GetUID()))
 	}
 
 	// removeFinalizer is to remove finalizer of cStorPool resource.
@@ -392,7 +392,7 @@ func (c *CStorPoolController) removeFinalizer(cStorPoolGot *apis.CStorPool) erro
 	if err != nil {
 		return err
 	}
-	glog.Infof("Removed Finalizer: %v, %v", cStorPoolGot.Name, string(cStorPoolGot.GetUID()))
+	klog.Infof("Removed Finalizer: %v, %v", cStorPoolGot.Name, string(cStorPoolGot.GetUID()))
 	return nil
 }
 
@@ -404,7 +404,7 @@ func (c *CStorPoolController) triggerImportPool(cStorPoolGot *apis.CStorPool, im
 		return status, nil
 	}
 	if importPoolErr != nil {
-		glog.Errorf("failed to handle add event: import succeded with failed operations %v", importPoolErr)
+		klog.Errorf("failed to handle add event: import succeded with failed operations %v", importPoolErr)
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureImported), string(common.FailureImportOperations))
 		return status, importPoolErr
 	}
@@ -419,7 +419,7 @@ func (c *CStorPoolController) importPool(cStorPoolGot *apis.CStorPool, importOpt
 			common.SyncResources.IsImported = false
 			return string(apis.CStorPoolStatusOffline), err
 		}
-		glog.Infof("Set cachefile successful: %v", string(cStorPoolGot.GetUID()))
+		klog.Infof("Set cachefile successful: %v", string(cStorPoolGot.GetUID()))
 		// GetVolumes is called because, while importing a pool, volumes corresponding
 		// to the pool are also imported. This needs to be handled and made visible
 		// to cvr controller.
@@ -428,7 +428,7 @@ func (c *CStorPoolController) importPool(cStorPoolGot *apis.CStorPool, importOpt
 			common.SyncResources.IsImported = false
 			return string(apis.CStorPoolStatusOffline), err
 		}
-		glog.Infof("Import Pool with cachefile successful: %v", string(cStorPoolGot.GetUID()))
+		klog.Infof("Import Pool with cachefile successful: %v", string(cStorPoolGot.GetUID()))
 		return string(apis.CStorPoolStatusOnline), nil
 	}
 	return "", nil
@@ -463,40 +463,40 @@ func IsOnlyStatusChange(oldCStorPool, newCStorPool *apis.CStorPool) bool {
 func IsCStorPoolCreateStatuses(cstorPool *apis.CStorPool) bool {
 	status := string(cstorPool.Status.Phase)
 	if strings.EqualFold(status, string(apis.CStorPoolStatusInit)) || strings.EqualFold(status, string(apis.CStorPoolStatusCreateFailed)) {
-		glog.V(4).Infof("cStorPool status %s for %v", status, string(cstorPool.ObjectMeta.UID))
+		klog.V(4).Infof("cStorPool status %s for %v", status, string(cstorPool.ObjectMeta.UID))
 		return true
 	}
-	glog.V(4).Infof("cstor pool '%s': uid '%s': phase '%s': is_empty_status: false", string(cstorPool.ObjectMeta.Name), string(cstorPool.ObjectMeta.UID), cstorPool.Status.Phase)
+	klog.V(4).Infof("cstor pool '%s': uid '%s': phase '%s': is_empty_status: false", string(cstorPool.ObjectMeta.Name), string(cstorPool.ObjectMeta.UID), cstorPool.Status.Phase)
 	return false
 }
 
 // IsEmptyStatus is to check if the status of cStorPool object is empty.
 func IsEmptyStatus(cStorPool *apis.CStorPool) bool {
 	if string(cStorPool.Status.Phase) == string(apis.CStorPoolStatusEmpty) {
-		glog.Infof("cStorPool empty status: %v", string(cStorPool.ObjectMeta.UID))
+		klog.Infof("cStorPool empty status: %v", string(cStorPool.ObjectMeta.UID))
 		return true
 	}
-	glog.Infof("cstor pool '%s': uid '%s': phase '%s': is_empty_status: false", string(cStorPool.ObjectMeta.Name), string(cStorPool.ObjectMeta.UID), cStorPool.Status.Phase)
+	klog.Infof("cstor pool '%s': uid '%s': phase '%s': is_empty_status: false", string(cStorPool.ObjectMeta.Name), string(cStorPool.ObjectMeta.UID), cStorPool.Status.Phase)
 	return false
 }
 
 // IsPendingStatus is to check if the status of cStorPool object is pending.
 func IsPendingStatus(cStorPool *apis.CStorPool) bool {
 	if string(cStorPool.Status.Phase) == string(apis.CStorPoolStatusPending) {
-		glog.Infof("cStorPool pending: %v", string(cStorPool.ObjectMeta.UID))
+		klog.Infof("cStorPool pending: %v", string(cStorPool.ObjectMeta.UID))
 		return true
 	}
-	glog.V(4).Infof("cstor pool '%s': uid '%s': phase '%s': is_pending_status: false", string(cStorPool.ObjectMeta.Name), string(cStorPool.ObjectMeta.UID), cStorPool.Status.Phase)
+	klog.V(4).Infof("cstor pool '%s': uid '%s': phase '%s': is_pending_status: false", string(cStorPool.ObjectMeta.Name), string(cStorPool.ObjectMeta.UID), cStorPool.Status.Phase)
 	return false
 }
 
 // IsErrorDuplicate is to check if the status of cStorPool object is error-duplicate.
 func IsErrorDuplicate(cStorPool *apis.CStorPool) bool {
 	if string(cStorPool.Status.Phase) == string(apis.CStorPoolStatusErrorDuplicate) {
-		glog.Infof("cStorPool duplication error: %v", string(cStorPool.ObjectMeta.UID))
+		klog.Infof("cStorPool duplication error: %v", string(cStorPool.ObjectMeta.UID))
 		return true
 	}
-	glog.V(4).Infof("Not error duplicate status: %v", string(cStorPool.ObjectMeta.UID))
+	klog.V(4).Infof("Not error duplicate status: %v", string(cStorPool.ObjectMeta.UID))
 	return false
 }
 
@@ -514,7 +514,7 @@ func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
 	// Get capacity of the pool.
 	capacity, err := pool.Capacity(string(pool.PoolPrefix) + string(cStorPool.ObjectMeta.UID))
 	if err != nil {
-		glog.Errorf("Unable to sync CSP capacity: %v", err)
+		klog.Errorf("Unable to sync CSP capacity: %v", err)
 		c.recorder.Event(cStorPool, corev1.EventTypeWarning, string(common.FailureCapacitySync), string(common.MessageResourceFailCapacitySync))
 	} else {
 		cStorPool.Status.Capacity = *capacity

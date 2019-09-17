@@ -27,12 +27,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	snapshot "github.com/openebs/maya/pkg/snapshot/v1alpha1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 )
 
 type backupAPIOps struct {
@@ -123,17 +123,17 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 	bkp.Status = v1alpha1.BKPCStorStatusPending
 	bkp.Spec.PrevSnapName = lastsnap
 
-	glog.Infof("Creating backup %s for volume %q poolUUID:%v", bkp.Spec.SnapName,
+	klog.Infof("Creating backup %s for volume %q poolUUID:%v", bkp.Spec.SnapName,
 		bkp.Spec.VolumeName,
 		bkp.ObjectMeta.Labels["cstorpool.openebs.io/uid"])
 
 	_, err = openebsClient.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Create(bkp)
 	if err != nil {
-		glog.Errorf("Failed to create backup: error '%s'", err.Error())
+		klog.Errorf("Failed to create backup: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
 	}
 
-	glog.Infof("Backup resource:'%s' created successfully", bkp.Name)
+	klog.Infof("Backup resource:'%s' created successfully", bkp.Name)
 	return "", nil
 }
 
@@ -149,14 +149,14 @@ func createSnapshotForBackup(bkp *v1alpha1.CStorBackup) error {
 		return CodedError(400, err.Error())
 	}
 
-	glog.Infof("Creating backup snapshot %s for volume %q", bkp.Spec.SnapName, bkp.Spec.VolumeName)
+	klog.Infof("Creating backup snapshot %s for volume %q", bkp.Spec.SnapName, bkp.Spec.VolumeName)
 
 	snap, err := snapOps.Create()
 	if err != nil {
-		glog.Errorf("Failed to create snapshot:%s error '%s'", bkp.Spec.SnapName, err.Error())
+		klog.Errorf("Failed to create snapshot:%s error '%s'", bkp.Spec.SnapName, err.Error())
 		return CodedError(500, err.Error())
 	}
-	glog.Infof("Snapshot:'%s' created successfully for backup:%s", snap.Name, bkp.Name)
+	klog.Infof("Snapshot:'%s' created successfully for backup:%s", snap.Name, bkp.Name)
 	return nil
 }
 
@@ -165,19 +165,19 @@ func createSnapshotForBackup(bkp *v1alpha1.CStorBackup) error {
 func loadClientFromServiceAccount() (*versioned.Clientset, *kubernetes.Clientset, error) {
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
-		glog.Errorf("Failed to fetch k8s cluster config. %+v", err)
+		klog.Errorf("Failed to fetch k8s cluster config. %+v", err)
 		return nil, nil, err
 	}
 
 	k8sClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		glog.Errorf("Failed to create k8s client: %v", err)
+		klog.Errorf("Failed to create k8s client: %v", err)
 		return nil, nil, err
 	}
 
 	openebsClient, err := versioned.NewForConfig(cfg)
 	if err != nil {
-		glog.Errorf("Failed to create openeEBS client. %+v", err)
+		klog.Errorf("Failed to create openeEBS client. %+v", err)
 		return nil, nil, err
 	}
 
@@ -225,10 +225,10 @@ func getLastBackupSnap(openebsClient *versioned.Clientset, bkp *v1alpha1.CStorBa
 
 		_, err := openebsClient.OpenebsV1alpha1().CStorCompletedBackups(bk.Namespace).Create(bk)
 		if err != nil {
-			glog.Errorf("Error creating last completed-backup resource for backup:%v err:%v", bk.Spec.BackupName, err)
+			klog.Errorf("Error creating last completed-backup resource for backup:%v err:%v", bk.Spec.BackupName, err)
 			return "", err
 		}
-		glog.Infof("LastBackup resource created for backup:%s volume:%s", bk.Spec.BackupName, bk.Spec.VolumeName)
+		klog.Infof("LastBackup resource created for backup:%s volume:%s", bk.Spec.BackupName, bk.Spec.VolumeName)
 		return "", nil
 	}
 	return b.Spec.PrevSnapName, nil
@@ -307,7 +307,7 @@ func checkIfCSPPoolNodeDown(k8sclient *kubernetes.Clientset, cstorID string) boo
 
 	pod, err := findPodFromCStorID(k8sclient, cstorID)
 	if err != nil {
-		glog.Errorf("Failed to find pod for cstorID:%v err:%s", cstorID, err.Error())
+		klog.Errorf("Failed to find pod for cstorID:%v err:%s", cstorID, err.Error())
 		return nodeDown
 	}
 
@@ -317,12 +317,12 @@ func checkIfCSPPoolNodeDown(k8sclient *kubernetes.Clientset, cstorID string) boo
 
 	node, err := k8sclient.CoreV1().Nodes().Get(pod.Spec.NodeName, v1.GetOptions{})
 	if err != nil {
-		glog.Infof("Failed to fetch node info for cstorID:%v: %v", cstorID, err)
+		klog.Infof("Failed to fetch node info for cstorID:%v: %v", cstorID, err)
 		return nodeDown
 	}
 	for _, nodestat := range node.Status.Conditions {
 		if nodestat.Type == corev1.NodeReady && nodestat.Status != corev1.ConditionTrue {
-			glog.Infof("Node:%v is not in ready state", node.Name)
+			klog.Infof("Node:%v is not in ready state", node.Name)
 			return nodeDown
 		}
 	}
@@ -335,7 +335,7 @@ func checkIfCSPPoolPodDown(k8sclient *kubernetes.Clientset, cstorID string) bool
 
 	pod, err := findPodFromCStorID(k8sclient, cstorID)
 	if err != nil {
-		glog.Errorf("Failed to find pod for cstorID:%v err:%s", cstorID, err.Error())
+		klog.Errorf("Failed to find pod for cstorID:%v err:%s", cstorID, err.Error())
 		return podDown
 	}
 
@@ -362,7 +362,7 @@ func findPodFromCStorID(k8sclient *kubernetes.Clientset, cstorID string) (corev1
 
 	podlist, err := k8sclient.CoreV1().Pods(openebsNs).List(podlistops)
 	if err != nil {
-		glog.Errorf("Failed to fetch pod list :%v", err)
+		klog.Errorf("Failed to fetch pod list :%v", err)
 		return corev1.Pod{}, errors.New("Failed to fetch pod list")
 	}
 
@@ -382,7 +382,7 @@ func findLastBackupStat(clientset versioned.Interface, bkp *v1alpha1.CStorBackup
 	lastbkp, err := clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
 	if err != nil {
 		// Unable to fetch the last backup, so we will return fail state
-		glog.Errorf("Failed to fetch last completed-backup:%s error:%s", lastbkpname, err.Error())
+		klog.Errorf("Failed to fetch last completed-backup:%s error:%s", lastbkpname, err.Error())
 		return v1alpha1.BKPCStorStatusFailed
 	}
 
@@ -401,7 +401,7 @@ func updateBackupStatus(clientset versioned.Interface, bkp *v1alpha1.CStorBackup
 
 	_, err := clientset.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Update(bkp)
 	if err != nil {
-		glog.Errorf("Failed to update backup:%s with status:%v", bkp.Name, status)
+		klog.Errorf("Failed to update backup:%s with status:%v", bkp.Name, status)
 		return
 	}
 }

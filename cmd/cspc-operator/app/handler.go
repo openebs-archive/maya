@@ -25,7 +25,6 @@ import (
 	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	"time"
 
-	"github.com/golang/glog"
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
@@ -35,6 +34,7 @@ import (
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 )
 
 type clientSet struct {
@@ -66,9 +66,9 @@ func (c *Controller) NewPoolConfig(cspc *apis.CStorPoolCluster, namespace string
 // with the current status of the resource.
 func (c *Controller) syncHandler(key string) error {
 	startTime := time.Now()
-	glog.V(4).Infof("Started syncing cstorpoolcluster %q (%v)", key, startTime)
+	klog.V(4).Infof("Started syncing cstorpoolcluster %q (%v)", key, startTime)
 	defer func() {
-		glog.V(4).Infof("Finished syncing cstorpoolcluster %q (%v)", key, time.Since(startTime))
+		klog.V(4).Infof("Finished syncing cstorpoolcluster %q (%v)", key, time.Since(startTime))
 	}()
 
 	// Convert the namespace/name string into a distinct namespace and name
@@ -115,7 +115,7 @@ func (c *Controller) syncCSPC(cspcGot *apis.CStorPoolCluster) error {
 	if openebsNameSpace == "" {
 		message := fmt.Sprint("Could not sync CSPC: got empty namespace for openebs from env variable")
 		c.recorder.Event(cspcGot, corev1.EventTypeWarning, "Getting Namespace", message)
-		glog.Errorf("Could not sync CSPC {%s}: got empty namespace for openebs from env variable", cspcGot.Name)
+		klog.Errorf("Could not sync CSPC {%s}: got empty namespace for openebs from env variable", cspcGot.Name)
 		return nil
 	}
 
@@ -123,7 +123,7 @@ func (c *Controller) syncCSPC(cspcGot *apis.CStorPoolCluster) error {
 	if err != nil {
 		message := fmt.Sprintf("Could not sync CSPC : failed to get pool config: {%s}", err.Error())
 		c.recorder.Event(cspcGot, corev1.EventTypeWarning, "Creating Pool Config", message)
-		glog.Errorf("Could not sync CSPC {%s}: failed to get pool config: {%s}", cspcGot.Name, err.Error())
+		klog.Errorf("Could not sync CSPC {%s}: failed to get pool config: {%s}", cspcGot.Name, err.Error())
 		return nil
 	}
 
@@ -131,20 +131,20 @@ func (c *Controller) syncCSPC(cspcGot *apis.CStorPoolCluster) error {
 	if !cspcGot.DeletionTimestamp.IsZero() {
 		err = pc.handleCSPCDeletion()
 		if err != nil {
-			glog.Errorf("Failed to sync CSPC for deletion:%s", err.Error())
+			klog.Errorf("Failed to sync CSPC for deletion:%s", err.Error())
 		}
 		return nil
 	}
 
 	cspcBuilderObj, err := apiscspc.BuilderForAPIObject(cspcGot).Build()
 	if err != nil {
-		glog.Errorf("Failed to build CSPC api object %s", cspcGot.Name)
+		klog.Errorf("Failed to build CSPC api object %s", cspcGot.Name)
 		return nil
 	}
 
 	cspc, err := cspcBuilderObj.AddFinalizer(apiscspc.CSPCFinalizer)
 	if err != nil {
-		glog.Errorf("Failed to add finalizer on CSPC %s:%s", cspcGot.Name, err.Error())
+		klog.Errorf("Failed to add finalizer on CSPC %s:%s", cspcGot.Name, err.Error())
 		return nil
 	}
 
@@ -152,7 +152,7 @@ func (c *Controller) syncCSPC(cspcGot *apis.CStorPoolCluster) error {
 	if err != nil {
 		message := fmt.Sprintf("Could not sync CSPC : failed to get pending pool count: {%s}", err.Error())
 		c.recorder.Event(cspc, corev1.EventTypeWarning, "Getting Pending Pool(s) ", message)
-		glog.Errorf("Could not sync CSPC {%s}: failed to get pending pool count:{%s}", cspc.Name, err.Error())
+		klog.Errorf("Could not sync CSPC {%s}: failed to get pending pool count:{%s}", cspc.Name, err.Error())
 		return nil
 	}
 
@@ -161,7 +161,7 @@ func (c *Controller) syncCSPC(cspcGot *apis.CStorPoolCluster) error {
 		if err != nil {
 			message := fmt.Sprintf("Could not downscale pool: %s", err.Error())
 			c.recorder.Event(cspc, corev1.EventTypeWarning, "PoolDownScale", message)
-			glog.Errorf("Could not downscale pool for CSPC %s: %s", cspc.Name, err.Error())
+			klog.Errorf("Could not downscale pool for CSPC %s: %s", cspc.Name, err.Error())
 			return nil
 		}
 	}
@@ -171,7 +171,7 @@ func (c *Controller) syncCSPC(cspcGot *apis.CStorPoolCluster) error {
 		if err != nil {
 			message := fmt.Sprintf("Could not create pool(s) for CSPC: %s", err.Error())
 			c.recorder.Event(cspc, corev1.EventTypeWarning, "Pool Create", message)
-			glog.Errorf("Could not create pool(s) for CSPC {%s}:{%s}", cspc.Name, err.Error())
+			klog.Errorf("Could not create pool(s) for CSPC {%s}:{%s}", cspc.Name, err.Error())
 			return nil
 		}
 	}
@@ -181,7 +181,7 @@ func (c *Controller) syncCSPC(cspcGot *apis.CStorPoolCluster) error {
 		// Note: CSP for which pool deployment does not exists are known as orphaned.
 		message := fmt.Sprintf("Error in getting orphaned CSP :{%s}", err.Error())
 		c.recorder.Event(cspc, corev1.EventTypeWarning, "Pool Create", message)
-		glog.Errorf("Error in getting orphaned CSP for CSPC {%s}:{%s}", cspc.Name, err.Error())
+		klog.Errorf("Error in getting orphaned CSP for CSPC {%s}:{%s}", cspc.Name, err.Error())
 		return nil
 	}
 
@@ -190,7 +190,7 @@ func (c *Controller) syncCSPC(cspcGot *apis.CStorPoolCluster) error {
 	}
 
 	if pendingPoolCount == 0 {
-		glog.V(2).Infof("Handling pool operations for CSPC %s if any", cspc.Name)
+		klog.V(2).Infof("Handling pool operations for CSPC %s if any", cspc.Name)
 		pc.handleOperations()
 	}
 
@@ -205,7 +205,7 @@ func (pc *PoolConfig) create(pendingPoolCount int, cspc *apis.CStorPoolCluster) 
 	if err != nil {
 		return errors.Wrapf(err, "Could not acquire lease on cspc object")
 	}
-	glog.V(4).Infof("Lease acquired successfully on cstorpoolcluster %s ", cspc.Name)
+	klog.V(4).Infof("Lease acquired successfully on cstorpoolcluster %s ", cspc.Name)
 	defer newSpcLease.Release()
 	for poolCount := 1; poolCount <= pendingPoolCount; poolCount++ {
 		err = pc.CreateStoragePool()
@@ -216,7 +216,7 @@ func (pc *PoolConfig) create(pendingPoolCount int, cspc *apis.CStorPoolCluster) 
 		} else {
 			message := fmt.Sprintf("Pool Provisioned %d/%d ", poolCount, pendingPoolCount)
 			pc.Controller.recorder.Event(cspc, corev1.EventTypeNormal, "Create", message)
-			glog.Infof("Pool provisioned successfully %d/%d for cstorpoolcluster %s", poolCount, pendingPoolCount, cspc.Name)
+			klog.Infof("Pool provisioned successfully %d/%d for cstorpoolcluster %s", poolCount, pendingPoolCount, cspc.Name)
 		}
 	}
 	return nil
@@ -262,7 +262,7 @@ func (pc *PoolConfig) handleCSPCDeletion() error {
 
 	cspcBuilderObj, err := apiscspc.BuilderForAPIObject(pc.AlgorithmConfig.CSPC).Build()
 	if err != nil {
-		glog.Errorf("Failed to build CSPC api object %s:%s", pc.AlgorithmConfig.CSPC.Name, err.Error())
+		klog.Errorf("Failed to build CSPC api object %s:%s", pc.AlgorithmConfig.CSPC.Name, err.Error())
 		return nil
 	}
 
@@ -288,14 +288,14 @@ func (pc *PoolConfig) deleteAssociatedCSPI() error {
 	)
 
 	if k8serror.IsNotFound(err) {
-		glog.V(2).Infof("Associated CSPI(s) of CSPC %s is already deleted:%s", pc.AlgorithmConfig.CSPC.Name, err.Error())
+		klog.V(2).Infof("Associated CSPI(s) of CSPC %s is already deleted:%s", pc.AlgorithmConfig.CSPC.Name, err.Error())
 		return nil
 	}
 
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete associated CSPI(s):%s", err.Error())
 	}
-	glog.Infof("Associated CSPI(s) of CSPC %s deleted successfully ", pc.AlgorithmConfig.CSPC.Name)
+	klog.Infof("Associated CSPI(s) of CSPC %s deleted successfully ", pc.AlgorithmConfig.CSPC.Name)
 	return nil
 }
 
@@ -323,7 +323,7 @@ func (pc *PoolConfig) removeCSPCFinalizer() error {
 
 	cspcBuilderObj, err := apiscspc.BuilderForAPIObject(pc.AlgorithmConfig.CSPC).Build()
 	if err != nil {
-		glog.Errorf("Failed to build CSPC api object %s", pc.AlgorithmConfig.CSPC.Name)
+		klog.Errorf("Failed to build CSPC api object %s", pc.AlgorithmConfig.CSPC.Name)
 		return nil
 	}
 

@@ -30,12 +30,12 @@ import (
 	"time"
 
 	"github.com/ghodss/yaml"
-	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/ugorji/go/codec"
+	"k8s.io/klog"
 )
 
 const (
@@ -403,7 +403,7 @@ func (s *HTTPServer) wrap(RequestCounter *prometheus.CounterVec, RequestDuration
 		reqURL := req.URL.String()
 		start := time.Now()
 		defer func() {
-			glog.V(5).Infof("[DEBUG] http: Request %v (%v)", reqURL, time.Since(start))
+			klog.V(5).Infof("[DEBUG] http: Request %v (%v)", reqURL, time.Since(start))
 		}()
 
 		// It captures the no of requests and duration of request coming on "/latest/volumes" endpoint.
@@ -421,7 +421,7 @@ func (s *HTTPServer) wrap(RequestCounter *prometheus.CounterVec, RequestDuration
 			RequestCounter.WithLabelValues(strconv.Itoa(code), req.Method).Inc()
 		}()
 
-		glog.V(5).Infof("[DEBUG] http: Request %v (%v)", reqURL, req.Method)
+		klog.V(5).Infof("[DEBUG] http: Request %v (%v)", reqURL, req.Method)
 		// Original handler is invoked
 		obj, err := handler(resp, req)
 

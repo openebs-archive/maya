@@ -20,7 +20,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-exporter/app/collector"
 	"github.com/openebs/maya/cmd/maya-exporter/app/collector/pool"
 	"github.com/openebs/maya/cmd/maya-exporter/app/collector/zvol"
@@ -29,6 +28,7 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 )
 
 // Constants defined here are the default value of the flags. Which can be
@@ -116,19 +116,19 @@ It can be deployed alongside the openebs volume or pool containers as sidecars.`
 // Run used to process commands,args and call openebs exporter and it returns
 // nil on successful execution.
 func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
-	glog.Infof("Starting maya-exporter ...")
+	klog.Infof("Starting maya-exporter ...")
 	switch options.CASType {
 	case "cstor":
-		glog.Infof("Initialising maya-exporter for the cstor")
+		klog.Infof("Initialising maya-exporter for the cstor")
 		options.RegisterCstor()
 	case "jiva":
-		glog.Infof("Initialising maya-exporter for the jiva")
+		klog.Infof("Initialising maya-exporter for the jiva")
 		if err := options.RegisterJiva(); err != nil {
-			glog.Fatal(err)
+			klog.Fatal(err)
 			return nil
 		}
 	case "pool":
-		glog.Infof("Initialising maya-exporter for the cstor pool")
+		klog.Infof("Initialising maya-exporter for the cstor pool")
 		options.RegisterPool()
 	default:
 		return errors.New("unsupported CAS")
@@ -143,13 +143,13 @@ func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
 func (o *VolumeExporterOptions) RegisterJiva() error {
 	url, err := url.ParseRequestURI(o.ControllerAddress)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return errors.New("Error in parsing the URI")
 	}
 	jiva := collector.Jiva(url)
 	exporter := collector.New(jiva)
 	prometheus.MustRegister(exporter)
-	glog.Info("Registered maya exporter for jiva")
+	klog.Info("Registered maya exporter for jiva")
 	return nil
 }
 
@@ -160,7 +160,7 @@ func (o *VolumeExporterOptions) RegisterCstor() {
 	cstor := collector.Cstor(socketPath)
 	exporter := collector.New(cstor)
 	prometheus.MustRegister(exporter)
-	glog.Info("Registered maya exporter for cstor")
+	klog.Info("Registered maya exporter for cstor")
 	return
 }
 
@@ -171,7 +171,7 @@ func (o *VolumeExporterOptions) RegisterPool() {
 	z := zvol.New(buildRunner(timeout, "zfs", "stats"))
 	l := zvol.NewVolumeList(buildRunner(timeout, "zfs", "list", "-Hp"))
 	prometheus.MustRegister(p, z, l)
-	glog.Info("Registered maya exporter for cstor pool")
+	klog.Info("Registered maya exporter for cstor pool")
 	return
 }
 

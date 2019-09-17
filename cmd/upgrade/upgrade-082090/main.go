@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"os"
 
-	log "github.com/golang/glog"
 	upgrade "github.com/openebs/maya/cmd/upgrade/app/v1alpha1"
+	log "k8s.io/klog"
 )
 
 func main() {

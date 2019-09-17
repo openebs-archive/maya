@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -78,9 +78,9 @@ type Patch struct {
 // with the current status of the resource.
 func (c *CVCController) syncHandler(key string) error {
 	startTime := time.Now()
-	glog.V(4).Infof("Started syncing cstorvolumeclaim %q (%v)", key, startTime)
+	klog.V(4).Infof("Started syncing cstorvolumeclaim %q (%v)", key, startTime)
 	defer func() {
-		glog.V(4).Infof("Finished syncing cstorvolumeclaim %q (%v)", key, time.Since(startTime))
+		klog.V(4).Infof("Finished syncing cstorvolumeclaim %q (%v)", key, time.Since(startTime))
 	}()
 
 	// Convert the namespace/name string into a distinct namespace and name
@@ -122,10 +122,10 @@ func (c *CVCController) enqueueCVC(obj interface{}) {
 		if cvc, ok := obj.(*apis.CStorVolumeClaim); ok {
 			objName, err := cache.DeletionHandlingMetaNamespaceKeyFunc(cvc)
 			if err != nil {
-				glog.Errorf("failed to get key from object: %v, %v", err, cvc)
+				klog.Errorf("failed to get key from object: %v, %v", err, cvc)
 				return
 			}
-			glog.V(5).Infof("enqueued %q for sync", objName)
+			klog.V(5).Infof("enqueued %q for sync", objName)
 			c.workqueue.Add(objName)
 		}
 	*/
@@ -138,7 +138,7 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 	// CStor Volume Claim should be deleted. Check if deletion timestamp is set
 	// and remove finalizer.
 	if c.isClaimDeletionCandidate(cvc) {
-		glog.Infof("syncClaim: remove finalizer for CStorVolumeClaimVolume [%s]", cvc.Name)
+		klog.Infof("syncClaim: remove finalizer for CStorVolumeClaimVolume [%s]", cvc.Name)
 		return c.removeClaimFinalizer(cvc)
 	}
 
@@ -161,7 +161,7 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 	}
 
 	if cvc.Status.Phase == apis.CStorVolumeClaimPhasePending {
-		glog.Infof("provisioning cstor volume %+v", cvc)
+		klog.Infof("provisioning cstor volume %+v", cvc)
 		cvc, err = c.createVolumeOperation(cvc)
 	}
 	// If an error occurs during Get/Create, we'll requeue the item so we can
@@ -219,25 +219,25 @@ func (c *CVCController) updateCVCObj(
 func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeClaim, error) {
 	_ = cvc.Annotations[string(apis.ConfigClassKey)]
 
-	glog.V(2).Infof("creating cstorvolume service resource")
+	klog.V(2).Infof("creating cstorvolume service resource")
 	svcObj, err := getOrCreateTargetService(cvc)
 	if err != nil {
 		return nil, err
 	}
 
-	glog.V(2).Infof("creating cstorvolume resource")
+	klog.V(2).Infof("creating cstorvolume resource")
 	cvObj, err := getOrCreateCStorVolumeResource(svcObj, cvc)
 	if err != nil {
 		return nil, err
 	}
 
-	glog.V(2).Infof("creating cstorvolume target deployment")
+	klog.V(2).Infof("creating cstorvolume target deployment")
 	_, err = getOrCreateCStorTargetDeployment(cvObj)
 	if err != nil {
 		return nil, err
 	}
 
-	glog.V(2).Infof("creating cstorvolume replica resource")
+	klog.V(2).Infof("creating cstorvolume replica resource")
 	err = c.distributePendingCVRs(cvc, cvObj, svcObj)
 	if err != nil {
 		return nil, err
@@ -317,7 +317,7 @@ func (c *CVCController) removeClaimFinalizer(
 			cvc.Name,
 		)
 	}
-	glog.Infof("finalizers removed successfully from cstorvolumeclaim {%s}", cvc.Name)
+	klog.Infof("finalizers removed successfully from cstorvolumeclaim {%s}", cvc.Name)
 	return nil
 }
 
@@ -405,7 +405,7 @@ func (c *CVCController) resizeCVC(cvc *apis.CStorVolumeClaim) error {
 		c.recorder.Event(cvc, corev1.EventTypeNormal, string(apis.CStorVolumeClaimResizing),
 			fmt.Sprintf("Resize already in progress %s", cvc.Name))
 
-		glog.Warningf("Resize already in progress on %q from: %v to: %v",
+		klog.Warningf("Resize already in progress on %q from: %v to: %v",
 			cvc.Name, cv.Status.Capacity.String(), cv.Spec.Capacity.String())
 		return nil
 	}
@@ -418,7 +418,7 @@ func (c *CVCController) resizeCVC(cvc *apis.CStorVolumeClaim) error {
 
 	//if desiredCVCSize.Cmp(cv.Spec.Capacity) > 0 {
 	if updatedCVC, err = c.markCVCResizeInProgress(cvc); err != nil {
-		glog.Errorf("failed to mark cvc %q as resizing: %v", cvc.Name, err)
+		klog.Errorf("failed to mark cvc %q as resizing: %v", cvc.Name, err)
 		return err
 	}
 	cvc = updatedCVC
@@ -491,11 +491,11 @@ func (c *CVCController) markCVCResizeFinished(cvc *apis.CStorVolumeClaim) error 
 	newCVC.Status.Conditions = MergeResizeConditionsOfCVC(cvc.Status.Conditions, []apis.CStorVolumeClaimCondition{})
 	_, err := c.PatchCVCStatus(cvc, newCVC)
 	if err != nil {
-		glog.Errorf("Mark CVC %q as resize finished failed: %v", cvc.Name, err)
+		klog.Errorf("Mark CVC %q as resize finished failed: %v", cvc.Name, err)
 		return err
 	}
 
-	glog.V(4).Infof("Resize CVC %q finished", cvc.Name)
+	klog.V(4).Infof("Resize CVC %q finished", cvc.Name)
 	c.recorder.Eventf(cvc, corev1.EventTypeNormal, string(apis.CStorVolumeClaimResizeSuccess), "Resize volume succeeded")
 
 	return nil

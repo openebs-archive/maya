@@ -24,9 +24,9 @@ import (
 
 	"encoding/json"
 
-	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
+	"k8s.io/klog"
 )
 
 const (
@@ -181,7 +181,7 @@ func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolNam
 		snapName = cStorVolumeReplica.Annotations[string(apis.SnapshotNameKey)]
 		// Get the dataset name from volume name
 		dataset := strings.Split(fullVolName, "/")[0]
-		glog.Infof("Creating clone volume: %s from snapshot %s", fullVolName, srcVolume+"@"+snapName)
+		klog.Infof("Creating clone volume: %s from snapshot %s", fullVolName, srcVolume+"@"+snapName)
 		// zfs snapshots are named as dataset/volname@snapname
 		cmd = buildVolumeCloneCommand(cStorVolumeReplica, dataset+"/"+srcVolume+"@"+snapName, fullVolName)
 	} else {
@@ -194,9 +194,9 @@ func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolNam
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, cmd...)
 	if err != nil {
 		if isClone {
-			glog.Errorf("Unable to create clone volume: %s for snapshot %s. error : %v", fullVolName, snapName, string(stdoutStderr))
+			klog.Errorf("Unable to create clone volume: %s for snapshot %s. error : %v", fullVolName, snapName, string(stdoutStderr))
 		} else {
-			glog.Errorf("Unable to create volume %s. error : %v", fullVolName, string(stdoutStderr))
+			klog.Errorf("Unable to create volume %s. error : %v", fullVolName, string(stdoutStderr))
 		}
 
 		return err
@@ -265,12 +265,12 @@ func CreateVolumeBackup(bkp *apis.CStorBackup) error {
 	// Parse capacity unit on CVR to support backward compatibility
 	cmd = buildVolumeBackupCommand(PoolNameFromBackup(bkp), bkp.Spec.VolumeName, bkp.Spec.PrevSnapName, bkp.Spec.SnapName, bkp.Spec.BackupDest)
 
-	glog.Infof("Backup Command for volume: %v created, Cmd: %v\n", bkp.Spec.VolumeName, cmd)
+	klog.Infof("Backup Command for volume: %v created, Cmd: %v\n", bkp.Spec.VolumeName, cmd)
 
 	for retryCount < MaxBackupRetryCount {
 		stdoutStderr, err = RunnerVar.RunCombinedOutput("/usr/local/bin/execute.sh", cmd...)
 		if err != nil {
-			glog.Errorf("Unable to start backup %s. error : %v retry:%v :%s", bkp.Spec.VolumeName, string(stdoutStderr), retryCount, err.Error())
+			klog.Errorf("Unable to start backup %s. error : %v retry:%v :%s", bkp.Spec.VolumeName, string(stdoutStderr), retryCount, err.Error())
 			retryCount++
 			time.Sleep(BackupRetryDelay * time.Second)
 			continue
@@ -303,12 +303,12 @@ func CreateVolumeRestore(rst *apis.CStorRestore) error {
 
 	cmd = buildVolumeRestoreCommand(PoolNameFromRestore(rst), rst.Spec.VolumeName, rst.Spec.RestoreSrc)
 
-	glog.Infof("Restore Command for volume: %v created, Cmd: %v\n", rst.Spec.VolumeName, cmd)
+	klog.Infof("Restore Command for volume: %v created, Cmd: %v\n", rst.Spec.VolumeName, cmd)
 
 	for retryCount < MaxRestoreRetryCount {
 		stdoutStderr, err = RunnerVar.RunCombinedOutput("/usr/local/bin/execute.sh", cmd...)
 		if err != nil {
-			glog.Errorf("Unable to start restore %s. error : %v.. trying again", rst.Spec.VolumeName, string(stdoutStderr))
+			klog.Errorf("Unable to start restore %s. error : %v.. trying again", rst.Spec.VolumeName, string(stdoutStderr))
 			time.Sleep(RestoreRetryDelay * time.Second)
 			retryCount++
 			continue
@@ -334,7 +334,7 @@ func GetVolumes() ([]string, error) {
 	volStrCmd := []string{"get", "-Hp", "name", "-o", "name"}
 	volnameByte, err := RunnerVar.RunStdoutPipe(VolumeReplicaOperator, volStrCmd...)
 	if err != nil || string(volnameByte) == "" {
-		glog.Errorf("Unable to get volumes:%v", string(volnameByte))
+		klog.Errorf("Unable to get volumes:%v", string(volnameByte))
 		return []string{}, err
 	}
 	noisyVolname := string(volnameByte)
@@ -354,10 +354,10 @@ func DeleteVolume(fullVolName string) error {
 	if err != nil {
 		// If volume is missing then do not return error
 		if strings.Contains(err.Error(), "dataset does not exist") {
-			glog.Infof("Assuming volume deletion successful for error: %v", string(stdoutStderr))
+			klog.Infof("Assuming volume deletion successful for error: %v", string(stdoutStderr))
 			return nil
 		}
-		glog.Errorf("Unable to delete volume : %v", string(stdoutStderr))
+		klog.Errorf("Unable to delete volume : %v", string(stdoutStderr))
 		return err
 	}
 	return nil
@@ -385,7 +385,7 @@ func Capacity(volName string) (*apis.CStorVolumeCapacityAttr, error) {
 	capacityVolStr := []string{"get", "used,logicalused", volName}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, capacityVolStr...)
 	if err != nil {
-		glog.Errorf("Unable to get volume capacity: %v", string(stdoutStderr))
+		klog.Errorf("Unable to get volume capacity: %v", string(stdoutStderr))
 		return nil, err
 	}
 	poolCapacity := capacityOutputParser(string(stdoutStderr))
@@ -401,7 +401,7 @@ func Status(volumeName string) (string, error) {
 	statusPoolStr := []string{StatsCmd, volumeName}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, statusPoolStr...)
 	if err != nil {
-		glog.Errorf("Unable to get volume stats: %v", string(stdoutStderr))
+		klog.Errorf("Unable to get volume stats: %v", string(stdoutStderr))
 		return "", fmt.Errorf("Unable to get volume stats: %s", err.Error())
 	}
 	volumeStats := &CvrStats{}
@@ -414,7 +414,7 @@ func Status(volumeName string) (string, error) {
 		volumeStatus = volumeStats.Stats[0].Status
 	}
 	if strings.TrimSpace(volumeStatus) == "" {
-		glog.Warningf("Empty volume status for volume stats: '%+v'", volumeStats)
+		klog.Warningf("Empty volume status for volume stats: '%+v'", volumeStats)
 	}
 	cvrStatus := ZfsToCvrStatusMapper(volumeStatus)
 	return cvrStatus, nil

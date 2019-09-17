@@ -19,13 +19,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/golang/glog"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
+	"k8s.io/klog"
 
 	"k8s.io/client-go/kubernetes"
 )
@@ -161,7 +161,7 @@ func KubeClientInstanceOrDie() *Kubeclient {
 		k := NewKubeClient()
 		_, err := k.getClientsetOrCached()
 		if err != nil {
-			glog.Fatalf("failed to initialise kubeclient instance: {%v}", err)
+			klog.Fatalf("failed to initialise kubeclient instance: {%v}", err)
 		}
 		kubeClientInst = k
 	})

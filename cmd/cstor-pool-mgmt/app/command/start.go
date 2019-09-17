@@ -19,7 +19,7 @@ package command
 import (
 	goflag "flag"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/start-controller"
 	"github.com/spf13/cobra"
@@ -42,11 +42,11 @@ func NewCmdStart() *cobra.Command {
 		},
 	}
 	// Bind & parse flags defined by external projects.
-	// e.g. This imports the golang/glog pkg flags into the cmd flagset.
+	// e.g. This imports the golang/klog pkg flags into the cmd flagset.
 	getCmd.Flags().AddGoFlagSet(goflag.CommandLine)
 	err := goflag.CommandLine.Parse([]string{})
 	if err != nil {
-		glog.Errorf("failed to parse command-line flags: error {%v}", err)
+		klog.Errorf("failed to parse command-line flags: error {%v}", err)
 	}
 	getCmd.Flags().StringVar(&options.kubeconfig, "kubeconfig", "",
 		`kubeconfig needs to be specified if out of cluster`)

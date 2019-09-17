@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"github.com/golang/glog"
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
@@ -29,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 // SelectNode returns a node where pool should be created.
@@ -42,7 +42,7 @@ func (ac *Config) SelectNode() (*apis.PoolSpec, string, error) {
 		pool := pool
 		nodeName, err := GetNodeFromLabelSelector(pool.NodeSelector)
 		if err != nil || nodeName == "" {
-			glog.Errorf("could not use node for selectors {%v}", pool.NodeSelector)
+			klog.Errorf("could not use node for selectors {%v}", pool.NodeSelector)
 			continue
 		}
 		if ac.VisitedNodes[nodeName] {
@@ -171,7 +171,7 @@ func (ac *Config) ClaimBD(bdObj *ndmapis.BlockDevice) error {
 	}
 	_, err = bdc.NewKubeClient().WithNamespace(ac.Namespace).Create(newBDCObj.Object)
 	if k8serror.IsAlreadyExists(err) {
-		glog.Infof("BDC for BD {%s} already created", bdObj.Name)
+		klog.Infof("BDC for BD {%s} already created", bdObj.Name)
 		return nil
 	}
 	if err != nil {

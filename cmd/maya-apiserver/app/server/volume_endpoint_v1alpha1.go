@@ -20,7 +20,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
@@ -28,6 +27,7 @@ import (
 	"github.com/openebs/maya/pkg/usage"
 	"github.com/openebs/maya/pkg/volume"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/klog"
 )
 
 const (
@@ -74,7 +74,7 @@ func (s *HTTPServer) volumeV1alpha1SpecificRequest(resp http.ResponseWriter, req
 		return nil, CodedError(400, "failed to handle volume request: nil http request received")
 	}
 
-	glog.Infof("received cas volume request: http method {%s}", req.Method)
+	klog.Infof("received cas volume request: http method {%s}", req.Method)
 
 	volOp := &volumeAPIOpsV1alpha1{
 		req:  req,
@@ -127,7 +127,7 @@ func (v *volumeAPIOpsV1alpha1) httpDelete() (*v1alpha1.CASVolume, error) {
 }
 
 func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
-	glog.Infof("received volume create request")
+	klog.Infof("received volume create request")
 	vol := &v1alpha1.CASVolume{}
 	err := decodeBody(v.req, vol)
 	if err != nil {
@@ -157,12 +157,12 @@ func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
 		return nil, CodedErrorWrap(500, errors.Wrapf(err, "failed to create volume: %s", vol))
 	}
 
-	glog.Infof("volume '%s' created successfully", cvol.Name)
+	klog.Infof("volume '%s' created successfully", cvol.Name)
 	return cvol, nil
 }
 
 func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, error) {
-	glog.Infof("received volume read request: %s", volumeName)
+	klog.Infof("received volume read request: %s", volumeName)
 
 	vol := &v1alpha1.CASVolume{}
 	// hdrNS will store namespace from http header
@@ -217,12 +217,12 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 		return nil, CodedErrorWrap(500, errors.Wrap(err, "failed to handle volume read request"))
 	}
 
-	glog.Infof("volume '%s' read successfully", cvol.Name)
+	klog.Infof("volume '%s' read successfully", cvol.Name)
 	return cvol, nil
 }
 
 func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, error) {
-	glog.Infof("received volume delete request")
+	klog.Infof("received volume delete request")
 
 	vol := &v1alpha1.CASVolume{}
 	// hdrNS will store namespace from http header
@@ -265,12 +265,12 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 		return nil, CodedErrorWrap(500, errors.Wrapf(err, "failed to delete volume: %s", vol))
 	}
 
-	glog.Infof("volume '%s' deleted successfully", cvol.Name)
+	klog.Infof("volume '%s' deleted successfully", cvol.Name)
 	return cvol, nil
 }
 
 func (v *volumeAPIOpsV1alpha1) list() (*v1alpha1.CASVolumeList, error) {
-	glog.Infof("received volume list request")
+	klog.Infof("received volume list request")
 
 	vols := &v1alpha1.CASVolumeList{}
 	// hdrNS will store namespace from http header
@@ -300,12 +300,12 @@ func (v *volumeAPIOpsV1alpha1) list() (*v1alpha1.CASVolumeList, error) {
 		return nil, CodedErrorWrap(500, errors.Wrapf(err, "failed to list volumes: %s", vols))
 	}
 
-	glog.Infof("volumes listed successfully for namespace(s) {%s}", vols.Namespace)
+	klog.Infof("volumes listed successfully for namespace(s) {%s}", vols.Namespace)
 	return cvols, nil
 }
 
 func (v *volumeAPIOpsV1alpha1) readStats(volumeName string) (interface{}, error) {
-	glog.Infof("received volume stats request")
+	klog.Infof("received volume stats request")
 	vol := &v1alpha1.CASVolume{}
 	// hdrNS will store namespace from http header
 	hdrNS := ""
@@ -357,6 +357,6 @@ func (v *volumeAPIOpsV1alpha1) readStats(volumeName string) (interface{}, error)
 	// pipelining the response
 	v.resp.Write(stats)
 
-	glog.Infof("read volume stats was successful for '%s'", volumeName)
+	klog.Infof("read volume stats was successful for '%s'", volumeName)
 	return nil, nil
 }

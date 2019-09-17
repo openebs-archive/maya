@@ -22,7 +22,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/golang/glog"
 	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	jivaClient "github.com/openebs/maya/pkg/client/jiva"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
@@ -32,6 +31,7 @@ import (
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 
 	// auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -200,9 +200,9 @@ func patchReplica(replicaObj *replicaDetails, namespace string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch replica deployment")
 		}
-		glog.Infof("%s patched", replicaObj.name)
+		klog.Infof("%s patched", replicaObj.name)
 	} else {
-		glog.Infof("replica deployment already in %s version", upgradeVersion)
+		klog.Infof("replica deployment already in %s version", upgradeVersion)
 	}
 	return nil
 }
@@ -229,9 +229,9 @@ func patchController(controllerObj *controllerDetails, namespace string) error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch replica deployment")
 		}
-		glog.Infof("%s patched", controllerObj.name)
+		klog.Infof("%s patched", controllerObj.name)
 	} else {
-		glog.Infof("controller deployment already in %s version\n", upgradeVersion)
+		klog.Infof("controller deployment already in %s version\n", upgradeVersion)
 	}
 	return nil
 }
@@ -282,7 +282,7 @@ func getPVCDeploymentsNamespace(
 }
 
 func validateSync(ctrlLabel, namespace string) error {
-	glog.Infof("Verifying replica sync")
+	klog.Infof("Verifying replica sync")
 	quorum := false
 	ctrlList, err := podClient.WithNamespace(namespace).List(
 		metav1.ListOptions{
@@ -331,11 +331,11 @@ func validateSync(ctrlLabel, namespace string) error {
 			}
 		}
 		if !quorum && syncedReplicas > (replicationFactor/2) {
-			glog.Infof("Synced replica quorum is reached")
+			klog.Infof("Synced replica quorum is reached")
 			quorum = true
 		}
 	}
-	glog.Infof("Replica syncing complete")
+	klog.Infof("Replica syncing complete")
 	return nil
 }
 
@@ -510,7 +510,7 @@ func (j *jivaVolumeOptions) verify(controllerLabel, openebsNamespace string) err
 			return uerr
 		}
 		if k8serror.IsForbidden(err) {
-			glog.Warningf("failed to verify replica sync : %v\n Please check it manually using the steps mentioned in https://docs.openebs.io/docs/next/mayactl.html", err)
+			klog.Warningf("failed to verify replica sync : %v\n Please check it manually using the steps mentioned in https://docs.openebs.io/docs/next/mayactl.html", err)
 			return nil
 		}
 		return err
@@ -560,6 +560,6 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		return options.utaskObj, err
 	}
 
-	glog.Info("Upgrade Successful for", pvName)
+	klog.Info("Upgrade Successful for", pvName)
 	return options.utaskObj, nil
 }

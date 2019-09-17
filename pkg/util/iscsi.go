@@ -18,7 +18,7 @@ package util
 import (
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -38,7 +38,7 @@ func CheckForIscsi(UnixSockVar UnixSock) {
 		_, err := UnixSockVar.SendCommand(IstgtStatusCmd)
 		if err != nil {
 			time.Sleep(WaitTimeForIscsi)
-			glog.Warningf("Waiting for istgt... err : %v", err)
+			klog.Warningf("Waiting for istgt... err : %v", err)
 			continue
 		}
 		break
