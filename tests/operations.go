@@ -19,15 +19,19 @@ package tests
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	poolspec "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
+	rgrp "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/raidgroups"
 	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
@@ -47,6 +51,7 @@ import (
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/tests/artifacts"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,7 +60,8 @@ import (
 )
 
 const (
-	maxRetry = 30
+	maxRetry              = 30
+	openEBSCSIProvisioner = "openebs-csi.openebs.io"
 )
 
 // Options holds the args used for exec'ing into the pod
@@ -88,6 +94,24 @@ type Operations struct {
 	BDClient       *bd.Kubeclient
 	BDCClient      *bdc.Kubeclient
 	KubeConfigPath string
+	ResourceHelper interface{}
+}
+
+// CspcResource helpful to create or verify cspc resource
+type CspcResource struct {
+	Namespace string
+	CacheFile string
+	PoolType  string
+	PoolCount int
+	PoolName  string
+}
+
+// CSISCResource helpful to create or verify cspc resource
+type CSISCResource struct {
+	ReplicaCount int
+	PoolName     string
+	CasType      string
+	SCName       string
 }
 
 // OperationsOptions abstracts creating an
@@ -828,4 +852,105 @@ func (ops *Operations) IsDeploymentSuccessEventually(
 	},
 		120, 10).
 		Should(Equal(expectedRepCount))
+}
+
+// CreateAndVerifyCStorPoolCluster creates cspc and
+// verify whether pools are ONLINE or not
+func (ops *Operations) CreateAndVerifyCStorPoolCluster() *apis.CStorPoolCluster {
+	poolHelper := ops.ResourceHelper.(CspcResource)
+	minRequiredBD := cspc.DefaultBDCount[poolHelper.PoolType]
+	blockDeviceList, err := bd.GetBlockDeviceList(
+		poolHelper.Namespace,
+		metav1.ListOptions{},
+		bd.WithKubeConfigPath(ops.KubeConfigPath),
+	)
+	Expect(err).To(BeNil(), "while getting blockdeviceList")
+	// Create pools on sparse blockdevices
+	filteredBlockDevices := blockDeviceList.Filter(
+		bd.IsActive(),
+		bd.IsSparse(),
+		bd.IsNonFSType(),
+		bd.IsClaimStateMatched(ndmapis.BlockDeviceUnclaimed),
+	)
+	nodeBlockDevices := filteredBlockDevices.NodeBlockDeviceTopology()
+	Expect(len(nodeBlockDevices)).Should(
+		BeNumerically(">=", poolHelper.PoolCount),
+		"while segrigating blockdevices per node",
+	)
+	cspcBuild := cspc.NewBuilder().
+		WithGenerateName(poolHelper.PoolName).
+		WithNamespace(poolHelper.Namespace)
+
+	//TODO: Move to some package other than test
+	// Build pool spec configurations
+	poolSpecCount := 0
+	for hostName, blockdevices := range nodeBlockDevices {
+		if len(blockdevices) < minRequiredBD {
+			continue
+		}
+		if poolSpecCount == poolHelper.PoolCount {
+			break
+		}
+		cspcBDList := []*apis.CStorPoolClusterBlockDevice{}
+		for i, bd := range blockdevices {
+			cspcBDList = append(cspcBDList, &apis.CStorPoolClusterBlockDevice{
+				BlockDeviceName: bd,
+			})
+			if i == minRequiredBD-1 {
+				break
+			}
+		}
+		nodeSelector := map[string]string{string(apis.HostNameCPK): hostName}
+		poolSpecBuilder := poolspec.NewBuilder().
+			WithNodeSelector(nodeSelector).
+			WithCompression("off").
+			WithDefaultRaidGroupType(poolHelper.PoolType).
+			WithRaidGroupBuilder(
+				rgrp.NewBuilder().
+					WithCSPCBlockDeviceList(cspcBDList),
+			)
+		if poolHelper.CacheFile != "" {
+			poolSpecBuilder = poolSpecBuilder.WithCacheFilePath(poolHelper.CacheFile)
+		}
+		cspcBuild = cspcBuild.WithPoolSpecBuilder(poolSpecBuilder)
+		poolSpecCount++
+	}
+	cspcBuildObj, err := cspcBuild.GetObj()
+	Expect(err).To(BeNil(), "while building cstorpoolcluster")
+
+	By("creating above cstorpoolcluster")
+	cspcObj, err := ops.CSPCClient.
+		WithNamespace(poolHelper.Namespace).
+		Create(cspcBuildObj)
+	Expect(err).To(BeNil(),
+		"while creating cspc with prefix {%s}", poolHelper.PoolName)
+
+	By("verifying healthy cstorpoolinstance count")
+	cspCount := ops.GetHealthyCSPICount(cspcObj.Name, poolHelper.PoolCount)
+	Expect(cspCount).To(Equal(poolHelper.PoolCount),
+		"while checking healthy cstorpoolinstance count")
+	return cspcObj
+}
+
+// CreateStorageClass creates csi storage class
+func (ops *Operations) CreateStorageClass() *storagev1.StorageClass {
+	scHelper := ops.ResourceHelper.(CSISCResource)
+	parameters := map[string]string{
+		"replicaCount":     strconv.Itoa(scHelper.ReplicaCount),
+		"cstorPoolCluster": scHelper.PoolName,
+		"cas-type":         scHelper.CasType,
+	}
+
+	By("building a storageclass")
+	scObj, err := sc.NewBuilder().
+		WithGenerateName(scHelper.SCName).
+		WithParametersNew(parameters).
+		WithProvisioner(openEBSCSIProvisioner).Build()
+	Expect(err).ShouldNot(HaveOccurred(),
+		"while building storageclass obj with prefix {%s}", scHelper.SCName)
+
+	By("creating above storageclass")
+	newSCObj, err := ops.SCClient.Create(scObj)
+	Expect(err).To(BeNil(), "while creating storageclass with prefix {%s}", scHelper.SCName)
+	return newSCObj
 }
