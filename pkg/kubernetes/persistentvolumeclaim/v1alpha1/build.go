@@ -33,6 +33,24 @@ func NewBuilder() *Builder {
 	return &Builder{pvc: &PVC{object: &corev1.PersistentVolumeClaim{}}}
 }
 
+// BuildFrom returns new instance of Builder
+// from the provided api instance
+func BuildFrom(pvc *corev1.PersistentVolumeClaim) *Builder {
+	if pvc == nil {
+		b := NewBuilder()
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build cstorvolumeclaim object: nil pvc"),
+		)
+		return b
+	}
+	return &Builder{
+		pvc: &PVC{
+			object: pvc,
+		},
+	}
+}
+
 // WithName sets the Name field of PVC with provided value.
 func (b *Builder) WithName(name string) *Builder {
 	if len(name) == 0 {

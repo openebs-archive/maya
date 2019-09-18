@@ -53,6 +53,10 @@ type deleteCollectionFn func(cli *kubernetes.Clientset, namespace string, listOp
 // creation of pvc
 type createFn func(cli *kubernetes.Clientset, namespace string, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error)
 
+// updateFn is a typed function that abstracts
+// updation of pvc
+type updateFn func(cli *kubernetes.Clientset, namespace string, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error)
+
 // Kubeclient enables kubernetes API operations
 // on pvc instance
 type Kubeclient struct {
@@ -74,6 +78,7 @@ type Kubeclient struct {
 	list                listFn
 	get                 getFn
 	create              createFn
+	update              updateFn
 	del                 deleteFn
 	delCollection       deleteCollectionFn
 }
@@ -124,6 +129,12 @@ func (k *Kubeclient) withDefaults() {
 	if k.create == nil {
 		k.create = func(cli *kubernetes.Clientset, namespace string, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
 			return cli.CoreV1().PersistentVolumeClaims(namespace).Create(pvc)
+		}
+	}
+
+	if k.update == nil {
+		k.update = func(cli *kubernetes.Clientset, namespace string, pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
+			return cli.CoreV1().PersistentVolumeClaims(namespace).Update(pvc)
 		}
 	}
 }
@@ -230,6 +241,18 @@ func (k *Kubeclient) Create(pvc *corev1.PersistentVolumeClaim) (*corev1.Persiste
 		return nil, errors.Wrapf(err, "failed to create pvc {%s} in namespace {%s}", pvc.Name, pvc.Namespace)
 	}
 	return k.create(cli, k.namespace, pvc)
+}
+
+// Update updates a pvc in specified namespace in kubernetes cluster
+func (k *Kubeclient) Update(pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
+	if pvc == nil {
+		return nil, errors.New("failed to update pvc: nil pvc object")
+	}
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update pvc {%s} in namespace {%s}", pvc.Name, pvc.Namespace)
+	}
+	return k.update(cli, k.namespace, pvc)
 }
 
 // CreateCollection creates a list of pvcs

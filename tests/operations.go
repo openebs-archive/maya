@@ -48,6 +48,7 @@ import (
 	"github.com/openebs/maya/tests/artifacts"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
@@ -350,6 +351,20 @@ func (ops *Operations) IsPVCBoundEventually(pvcName string) bool {
 		Should(BeTrue())
 }
 
+// VerifyCapacity checks if the pvc capacity has been updated
+func (ops *Operations) VerifyCapacity(pvcName, capacity string) bool {
+	return Eventually(func() bool {
+		volume, err := ops.PVCClient.
+			Get(pvcName, metav1.GetOptions{})
+		Expect(err).ShouldNot(HaveOccurred())
+		actualCapacity := volume.Status.Capacity[corev1.ResourceStorage]
+		desiredCapacity, _ := resource.ParseQuantity(capacity)
+		return (desiredCapacity.Cmp(actualCapacity) == 0)
+	},
+		120, 10).
+		Should(BeTrue())
+}
+
 // PodDeleteCollection deletes all the pods in a namespace matched the given
 // labelselector
 func (ops *Operations) PodDeleteCollection(ns string, lopts metav1.ListOptions) error {
@@ -376,7 +391,11 @@ func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
 
 // ExecuteCMDEventually executes the command on pod container
 // and returns stdout
-func (ops *Operations) ExecuteCMDEventually(podObj *corev1.Pod, cmd string) string {
+func (ops *Operations) ExecuteCMDEventually(
+	podObj *corev1.Pod,
+	containerName,
+	cmd string,
+) string {
 	var err error
 	output := &pod.ExecOutput{}
 	podName := podObj.Name
@@ -393,7 +412,7 @@ func (ops *Operations) ExecuteCMDEventually(podObj *corev1.Pod, cmd string) stri
 				podName,
 				&corev1.PodExecOptions{
 					Command: []string{
-						"/bin/bash",
+						"/bin/sh",
 						"-c",
 						cmd,
 					},
@@ -509,6 +528,32 @@ func (ops *Operations) IsPVCDeleted(pvcName string) bool {
 		return true
 	}
 	return false
+}
+
+// IsPVCDeletedEventually tries to get the deleted pvc
+// and returns true if pvc is not found
+// else returns false
+func (ops *Operations) IsPVCDeletedEventually(pvcName string) bool {
+	return Eventually(func() bool {
+		_, err := ops.PVCClient.
+			Get(pvcName, metav1.GetOptions{})
+		return isNotFound(err)
+	},
+		120, 10).
+		Should(BeTrue())
+}
+
+// IsCSPCDeletedEventually tries to get the deleted cspc
+// and returns true if cspc is not found
+// else returns false
+func (ops *Operations) IsCSPCDeletedEventually(cspcName string) bool {
+	return Eventually(func() bool {
+		_, err := ops.CSPCClient.
+			Get(cspcName, metav1.GetOptions{})
+		return isNotFound(err)
+	},
+		120, 10).
+		Should(BeTrue())
 }
 
 // IsPodDeletedEventually checks if the pod is deleted or not eventually

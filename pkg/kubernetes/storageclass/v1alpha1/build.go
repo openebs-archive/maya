@@ -89,6 +89,12 @@ func (b *Builder) WithProvisioner(provisioner string) *Builder {
 	return b
 }
 
+// WithVolumeExpansion sets the AllowedVolumeExpansion field of storageclass with provided argument.
+func (b *Builder) WithVolumeExpansion(expansionAllowed bool) *Builder {
+	b.sc.object.AllowVolumeExpansion = &expansionAllowed
+	return b
+}
+
 // Build returns the StorageClass API instance
 func (b *Builder) Build() (*storagev1.StorageClass, error) {
 	if len(b.errs) > 0 {

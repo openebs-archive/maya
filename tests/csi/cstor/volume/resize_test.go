@@ -20,31 +20,32 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING WITH APP POD RESTART", func() {
-	BeforeEach(prepareForVolumeCreationTest)
-	AfterEach(cleanupAfterVolumeCreationTest)
+var _ = Describe("[cstor] [sparse] TEST VOLUME RESIZE", func() {
+	BeforeEach(prepareForVolumeResizeTest)
+	AfterEach(cleanupAfterVolumeResizeTest)
 
-	Context("App is deployed and restarted on pvc with replica count 1", func() {
-		It("Should run Volume Creation Test", volumeCreationTest)
+	Context("App is deployed with volume replica count 1 and pvc is resized", func() {
+		It("Should run Volume Resize Test", volumeResizeTest)
 	})
 })
 
-func volumeCreationTest() {
+func volumeResizeTest() {
 	By("creating and verifying PVC bound status", createAndVerifyPVC)
 	By("Creating and deploying app pod", createDeployVerifyApp)
 	By("Verifying the presence of components related to volume", verifyVolumeComponents)
-	By("Restarting app pod and verifying app pod running status", restartAppPodAndVerifyRunningStatus)
+	By("Expanding PVC", expandPVC)
+	By("Verifying updated size in application pod", verifyIncreasedSizeInAppPod)
 	By("Deleting application deployment", deleteAppDeployment)
 	By("Deleting pvc", deletePVC)
 	By("Verifying deletion of components related to volume", verifyVolumeComponentsDeletion)
 }
 
-func prepareForVolumeCreationTest() {
+func prepareForVolumeResizeTest() {
 	By("Creating and verifying cstorpoolcluster", createAndVerifyCstorPoolCluster)
 	By("Creating storage class", createStorageClass)
 }
 
-func cleanupAfterVolumeCreationTest() {
+func cleanupAfterVolumeResizeTest() {
 	By("Deleting cstorpoolcluster", deleteCstorPoolCluster)
 	By("Deleting storage class", deleteStorageClass)
 }

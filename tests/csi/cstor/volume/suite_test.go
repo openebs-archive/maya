@@ -24,6 +24,7 @@ import (
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,18 +39,21 @@ var (
 	scName             = "cstor-volume"
 	openebsProvisioner = "openebs-csi.openebs.io"
 	cspcName           = "cspc-sparse"
-	nsObj              *corev1.Namespace
-	scObj              *storagev1.StorageClass
-	cspcObj            *apis.CStorPoolCluster
-	bdList             *ndmapis.BlockDeviceList
-	pvcObj             *corev1.PersistentVolumeClaim
-	podObj             *corev1.Pod
-	targetLabel        = "openebs.io/target=cstor-target"
-	pvcLabel           = "openebs.io/persistent-volume-claim="
-	pvLabel            = "openebs.io/persistent-volume="
-	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	capacity           = "5G"
-	annotations        = map[string]string{}
+	pvcName            = "cstor-volume-claim"
+	appName            = "busybox-cstor"
+
+	nsObj           *corev1.Namespace
+	scObj           *storagev1.StorageClass
+	cspcObj         *apis.CStorPoolCluster
+	deployObj       *appsv1.Deployment
+	bdList          *ndmapis.BlockDeviceList
+	pvcObj          *corev1.PersistentVolumeClaim
+	appPod          *corev1.PodList
+	targetLabel     = "openebs.io/target=cstor-target"
+	pvLabel         = "openebs.io/persistent-volume="
+	accessModes     = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+	capacity        = "5G"
+	updatedCapacity = "10G"
 )
 
 func TestSource(t *testing.T) {
