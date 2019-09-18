@@ -80,15 +80,15 @@ func deleteStorageClass() {
 		"while deleting storageclass {%s}", scObj.Name)
 }
 
-var (
-	GetSizeCmd = "df -h | grep \"/mnt/cstore1\" | awk '{print $2}'"
+const (
+	getSizeCmd = "df -h | grep \"/mnt/cstore1\" | awk '{print $2}'"
 )
 
 func verifyIncreasedSizeInAppPod() {
 	size := ops.ExecuteCMDEventually(
 		&appPod.Items[0],
 		"busybox",
-		GetSizeCmd,
+		getSizeCmd,
 	)
 	actualSizeInAppPod, _ := resource.ParseQuantity(size)
 	previousSize, _ := resource.ParseQuantity(capacity)

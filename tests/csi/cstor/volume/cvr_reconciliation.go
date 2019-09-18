@@ -26,11 +26,11 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING WITH APP POD RESTART
 	AfterEach(cleanupAfterCVRReconcilationTest)
 
 	Context("App is deployed and restarted on pvc with replica count 1", func() {
-		It("Should run Volume Creation Test", CVRReconcilationTest)
+		It("Should run Volume Creation Test", cvrReconcilationTest)
 	})
 })
 
-func CVRReconcilationTest() {
+func cvrReconcilationTest() {
 	By("creating and verifying PVC bound status", createAndVerifyPVC)
 	By("Creating and deploying app pod", createAndDeployAppPod)
 	By("should verify target pod count as 1", func() { verifyTargetPodCount(1) })
