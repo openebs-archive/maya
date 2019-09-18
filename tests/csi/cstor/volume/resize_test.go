@@ -34,7 +34,7 @@ func volumeResizeTest() {
 	By("Creating and deploying app pod", createDeployVerifyApp)
 	By("Verifying the presence of components related to volume", verifyVolumeComponents)
 	By("Expanding PVC", expandPVC)
-	By("Verifying updated size in application pod", verifyUpdatedSizeInAppPod)
+	By("Verifying updated size in application pod", verifyIncreasedSizeInAppPod)
 	By("Deleting application deployment", deleteAppDeployment)
 	By("Deleting pvc", deletePVC)
 	By("Verifying deletion of components related to volume", verifyVolumeComponentsDeletion)

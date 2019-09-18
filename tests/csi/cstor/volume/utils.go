@@ -35,6 +35,7 @@ import (
 	k8svolume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	"github.com/openebs/maya/tests/cstor"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -83,14 +84,17 @@ var (
 	GetSizeCmd = "df -h | grep \"/mnt/cstore1\" | awk '{print $2}'"
 )
 
-func verifyUpdatedSizeInAppPod() {
+func verifyIncreasedSizeInAppPod() {
 	size := ops.ExecuteCMDEventually(
 		&appPod.Items[0],
 		"busybox",
 		GetSizeCmd,
 	)
-	Expect(size).To(Equal(updatedCapacity),
-		"while verifying updated size in app pod ")
+	actualSizeInAppPod, _ := resource.ParseQuantity(size)
+	previousSize, _ := resource.ParseQuantity(capacity)
+
+	Expect((actualSizeInAppPod).Cmp(previousSize) < 0).To(Equal(true),
+		"while verifying updated size in app pod")
 }
 
 func createAndVerifyCstorPoolCluster() {
@@ -174,7 +178,6 @@ func createAndVerifyPVC() {
 
 func createDeployVerifyApp() {
 	By("creating and deploying app pod", createAndDeployAppPod)
-	createAndDeployAppPod()
 	time.Sleep(30 * time.Second)
 	By("verifying app pod is running", verifyAppPodRunning)
 }

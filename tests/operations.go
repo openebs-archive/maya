@@ -412,7 +412,7 @@ func (ops *Operations) ExecuteCMDEventually(
 				podName,
 				&corev1.PodExecOptions{
 					Command: []string{
-						"/bin/bash",
+						"/bin/sh",
 						"-c",
 						cmd,
 					},
