@@ -87,6 +87,6 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 
 	By("deleting namespace")
-	//err := ops.NSClient.Delete(nsObj.Name, &metav1.DeleteOptions{})
-	//Expect(err).To(BeNil(), "while deleting namespace {%s}", nsObj.Name)
+	err := ops.NSClient.Delete(nsObj.Name, &metav1.DeleteOptions{})
+	Expect(err).To(BeNil(), "while deleting namespace {%s}", nsObj.Name)
 })
