@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -67,6 +68,14 @@ type CStorPoolClusterSpec struct {
 	// Pools is the spec for pools for various nodes
 	// where it should be created.
 	Pools []PoolSpec `json:"pools"`
+	// DefaultResources are the compute resources required by the cstor-pool
+	// container.
+	// If the resources at PoolConfig is not specified, this is written
+	// to CSPI PoolConfig.
+	DefaultResources *v1.ResourceRequirements `json:"resources"`
+	// AuxResources are the compute resources required by the cstor-pool pod
+	// side car containers.
+	AuxResources v1.ResourceRequirements `json:"auxResources"`
 }
 
 //PoolSpec is the spec for pool on node where it should be created.
@@ -101,6 +110,9 @@ type PoolConfig struct {
 	// Optional -- defaults to off
 	// Possible values : lz, off
 	Compression string `json:"compression"`
+	// Resources are the compute resources required by the cstor-pool
+	// container.
+	Resources *v1.ResourceRequirements `json:"resources"`
 }
 
 // RaidGroup contains the details of a raid group for the pool

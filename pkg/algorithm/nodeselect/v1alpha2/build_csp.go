@@ -37,12 +37,18 @@ func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 	if err != nil || nodeName == "" {
 		return nil, errors.Wrap(err, "failed to select a node")
 	}
+
+	if poolSpec.PoolConfig.Resources == nil {
+		poolSpec.PoolConfig.Resources = ac.CSPC.Spec.DefaultResources
+	}
+
 	csplabels := ac.buildLabelsForCSPI(nodeName)
 	cspObj, err := apiscsp.NewBuilder().
 		WithName(ac.CSPC.Name + "-" + rand.String(4)).
 		WithNamespace(ac.Namespace).
 		WithNodeSelectorByReference(poolSpec.NodeSelector).
 		WithNodeName(nodeName).
+		WithAuxResourceRequirement(ac.CSPC.Spec.AuxResources).
 		WithPoolConfig(&poolSpec.PoolConfig).
 		WithRaidGroups(poolSpec.RaidGroups).
 		WithCSPCOwnerReference(ac.CSPC).

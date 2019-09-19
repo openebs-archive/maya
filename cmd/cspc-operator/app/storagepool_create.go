@@ -128,13 +128,13 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.CStorPoolInstance) (*appsv1.De
 						WithPrivilegedSecurityContext(&privileged).
 						WithEnvsNew(getPoolMgmtEnv(csp)).
 						WithEnvs(getPoolUIDAsEnv(pc.AlgorithmConfig.CSPC)).
-						// TODO : Resource and Limit
+						WithResourcesByValue(getAuxResourceRequirement(csp)).
 						WithVolumeMountsNew(getPoolMgmtMounts()),
 					// For CStor-Pool container
 					container.NewBuilder().
 						WithImage(getPoolImage()).
 						WithName(PoolContainerName).
-						// TODO : Resource and Limit
+						WithResources(getResourceRequirementForCStorPool(csp)).
 						WithImagePullPolicy(corev1.PullIfNotPresent).
 						WithPrivilegedSecurityContext(&privileged).
 						WithPortsNew(getContainerPort(12000, 3232, 3233)).
@@ -147,6 +147,7 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.CStorPoolInstance) (*appsv1.De
 					container.NewBuilder().
 						WithImage(getMayaExporterImage()).
 						WithName(PoolExporterContainerName).
+						WithResourcesByValue(getAuxResourceRequirement(csp)).
 						// TODO : Resource and Limit
 						WithImagePullPolicy(corev1.PullIfNotPresent).
 						WithPrivilegedSecurityContext(&privileged).
@@ -378,4 +379,19 @@ func getPoolLifeCycle() *corev1.Lifecycle {
 		},
 	}
 	return lc
+}
+
+// getResourceRequirementForCStorPool returns resource requirement.
+func getResourceRequirementForCStorPool(cspi *apis.CStorPoolInstance) *corev1.ResourceRequirements {
+	var resourceRequirements *corev1.ResourceRequirements
+	if cspi.Spec.PoolConfig.Resources == nil {
+		resourceRequirements = &corev1.ResourceRequirements{}
+	} else {
+		resourceRequirements = cspi.Spec.PoolConfig.Resources
+	}
+	return resourceRequirements
+}
+
+func getAuxResourceRequirement(cspi *apis.CStorPoolInstance) corev1.ResourceRequirements {
+	return cspi.Spec.AuxResources
 }
