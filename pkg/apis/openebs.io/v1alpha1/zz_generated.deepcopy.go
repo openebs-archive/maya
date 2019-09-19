@@ -1222,6 +1222,13 @@ func (in *CStorVolumeStatus) DeepCopyInto(out *CStorVolumeStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.KnownReplicas != nil {
+		in, out := &in.KnownReplicas, &out.KnownReplicas
+		*out = make(map[string]uint64, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	return
 }
 
