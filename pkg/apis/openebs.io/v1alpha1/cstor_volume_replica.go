@@ -78,8 +78,6 @@ const (
 	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "DeletionFailed"
 	// CVRStatusInvalid ensures invalid resource.
 	CVRStatusInvalid CStorVolumeReplicaPhase = "Invalid"
-	// CVRStatusErrorDuplicate ensures error due to duplicate resource.
-	CVRStatusErrorDuplicate CStorVolumeReplicaPhase = "Invalid"
 	// CVRStatusInit ensures Init task of cvr resource.
 	CVRStatusInit CStorVolumeReplicaPhase = "Init"
 	// CVRStatusRecreate ensures recreation task of cvr resource.
