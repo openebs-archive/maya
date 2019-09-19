@@ -64,7 +64,7 @@ func NewLogger(prefix string) *log.Logger {
 	return log.New(KlogWriter{}, prefix, 0)
 }
 
-// GlogSetter is a setter to set glog level.
+// GlogSetter is a setter to set klog level.
 func GlogSetter(val string) (string, error) {
 	var level klog.Level
 	if err := level.Set(val); err != nil {

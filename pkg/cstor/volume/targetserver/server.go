@@ -26,7 +26,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
+
 	cstorv1alpha1 "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
@@ -49,7 +50,7 @@ func Reader(r io.Reader) (string, error) {
 		n, err := r.Read(buf[:])
 		if err != nil {
 			if err == io.EOF {
-				glog.Info("Reached End Of file")
+				klog.Info("Reached End Of file")
 				break
 			}
 			return "", errors.Wrapf(err, "failed to read data on wire")
@@ -88,29 +89,29 @@ func ServeRequest(conn net.Conn, kubeClient *cstorv1alpha1.Kubeclient) {
 		if err != nil {
 			_, er := conn.Write([]byte(respErr + endOfLine))
 			if er != nil {
-				glog.Errorf("failed to inform to client")
+				klog.Errorf("failed to inform to client")
 			}
 		} else {
 			_, er := conn.Write([]byte(respOk + endOfLine))
 			if er != nil {
-				glog.Errorf("failed to inform to client")
+				klog.Errorf("failed to inform to client")
 			}
 		}
 	}(err)
 	readData, err = Reader(conn)
 	if err != nil {
-		glog.Errorf("failed to read data: {%v}", err)
+		klog.Errorf("failed to read data: {%v}", err)
 		return
 	}
 	filteredData, err = GetRequiredData(readData)
 	if err != nil {
-		glog.Errorf("failed to get required information: {%v}", err)
+		klog.Errorf("failed to get required information: {%v}", err)
 		return
 	}
 	replicationData := &cstorv1alpha1.CStorVolumeReplication{}
 	err = json.Unmarshal([]byte(filteredData), replicationData)
 	if err != nil {
-		glog.Errorf("failed to unmarshal replication data {%v}", err)
+		klog.Errorf("failed to unmarshal replication data {%v}", err)
 		return
 	}
 	csc := &cstorv1alpha1.CStorVolumeConfig{
@@ -119,7 +120,7 @@ func ServeRequest(conn net.Conn, kubeClient *cstorv1alpha1.Kubeclient) {
 	}
 	err = csc.UpdateCVWithReplicationDetails()
 	if err != nil {
-		glog.Errorf("failed to update cstorvolume {%s} with details {%v}"+
+		klog.Errorf("failed to update cstorvolume {%s} with details {%v}"+
 			" error: {%v}", csc.VolumeName,
 			replicationData, err)
 		return
@@ -129,20 +130,20 @@ func ServeRequest(conn net.Conn, kubeClient *cstorv1alpha1.Kubeclient) {
 // StartTargetServer starts the UnixDomainServer
 func StartTargetServer(kubeConfig string) {
 
-	glog.Info("Starting unix domain server")
+	klog.Info("Starting unix domain server")
 	if err := os.RemoveAll(string(volumeMgmtUnixSock)); err != nil {
-		glog.Fatalf("failed to clear path: {%v}", err)
+		klog.Fatalf("failed to clear path: {%v}", err)
 	}
 
 	listen, err := net.Listen("unix", volumeMgmtUnixSock)
 	if err != nil {
-		glog.Fatalf("listen error: {%v}", err)
+		klog.Fatalf("listen error: {%v}", err)
 	}
 
 	//TODO: Remove hard coded ENV
 	namespace := env.Get("CSTOR_TARGET_NAMESPACE")
 	if namespace == "" {
-		glog.Fatalf("failed to get volume namespace empty value for env %s",
+		klog.Fatalf("failed to get volume namespace empty value for env %s",
 			"CStorVolumeReplication",
 		)
 	}
@@ -151,10 +152,10 @@ func StartTargetServer(kubeConfig string) {
 	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
 	go func(ln net.Listener, c chan os.Signal) {
 		sig := <-c
-		glog.Fatalf("Caught signal %s: shutting down", sig)
+		klog.Fatalf("Caught signal %s: shutting down", sig)
 		err := ln.Close()
 		if err != nil {
-			glog.Errorf("failed to close the connection error: %v", err)
+			klog.Errorf("failed to close the connection error: %v", err)
 		}
 	}(listen, sigc)
 
@@ -166,7 +167,7 @@ func StartTargetServer(kubeConfig string) {
 	for {
 		sockFd, err := listen.Accept()
 		if err != nil {
-			glog.Fatalf("failed to accept error: {%v}", err)
+			klog.Fatalf("failed to accept error: {%v}", err)
 		}
 		go ServeRequest(sockFd, kubeClient)
 	}
