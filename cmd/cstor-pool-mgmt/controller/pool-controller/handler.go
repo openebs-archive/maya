@@ -538,8 +538,7 @@ func (c *CStorPoolController) getDeviceIDs(csp *apis.CStorPool) ([]string, error
 }
 
 func (c *CStorPoolController) upgrade(csp *apis.CStorPool) (*apis.CStorPool, error) {
-	if csp.VersionDetails.Current != csp.VersionDetails.Desired &&
-		csp.VersionDetails.Desired != "" {
+	if csp.VersionDetails.Current != csp.VersionDetails.Desired {
 		if !isCurrentVersionValid(csp) {
 			return nil, errors.Errorf("invalid current version %s", csp.VersionDetails.Current)
 		}

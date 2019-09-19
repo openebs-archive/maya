@@ -493,8 +493,7 @@ func isManualProvisioning(spc *apis.StoragePoolClaim) bool {
 }
 
 func (c *Controller) upgrade(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
-	if spc.VersionDetails.Current != spc.VersionDetails.Desired &&
-		spc.VersionDetails.Current != "" && spc.VersionDetails.Desired != "" {
+	if spc.VersionDetails.Current != spc.VersionDetails.Desired {
 		if !isCurrentVersionValid(spc) {
 			return nil, errors.Errorf("invalid current version %s", spc.VersionDetails.Current)
 		}
