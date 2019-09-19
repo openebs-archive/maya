@@ -209,7 +209,7 @@ func NewCStorVolumeReplicaController(
 					return
 				}
 
-				if IsErrorDuplicate(newCVR) || IsOnlyStatusChange(oldCVR, newCVR) {
+				if IsOnlyStatusChange(oldCVR, newCVR) {
 					// do nothing
 					return
 				}
