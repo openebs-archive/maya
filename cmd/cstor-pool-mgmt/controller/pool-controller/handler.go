@@ -89,12 +89,12 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	}
 	cspGot, err := c.populateVersion(cspObject)
 	if err != nil {
-		glog.Errorf("failed to add versionDetails to cstorpool %s:%s", cspObject.Name, err.Error())
+		klog.Errorf("failed to add versionDetails to cstorpool %s:%s", cspObject.Name, err.Error())
 		return err
 	}
 	cspGot, err = c.upgrade(cspGot)
 	if err != nil {
-		glog.Errorf("failed to upgrade CSP %s:%s", cspObject.Name, err.Error())
+		klog.Errorf("failed to upgrade CSP %s:%s", cspObject.Name, err.Error())
 		return err
 	}
 	cspObject = cspGot
@@ -567,7 +567,7 @@ func (c *CStorPoolController) populateVersion(csp *apis.CStorPool) (
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to update SPC while adding versiondetails")
 		}
-		glog.Infof("Version %s added on storagepoolclaim %s", v, csp.Name)
+		klog.Infof("Version %s added on storagepoolclaim %s", v, csp.Name)
 		return obj, nil
 	}
 	return csp, nil

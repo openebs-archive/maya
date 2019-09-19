@@ -124,12 +124,12 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 
 	spcObj, err := c.populateVersion(gotSPC)
 	if err != nil {
-		glog.Errorf("failed to add versionDetails to SPC %s:%s", spc.Name, err.Error())
+		klog.Errorf("failed to add versionDetails to SPC %s:%s", spc.Name, err.Error())
 		return err
 	}
 	spcObj, err = c.upgrade(spcObj)
 	if err != nil {
-		glog.Errorf("failed to upgrade SPC %s:%s", spc.Name, err.Error())
+		klog.Errorf("failed to upgrade SPC %s:%s", spc.Name, err.Error())
 		return err
 	}
 	gotSPC = spcObj
@@ -536,7 +536,7 @@ func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StorageP
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to update storagepoolclaim while adding versiondetails")
 		}
-		glog.Infof("Version %s added on storagepoolclaim %s", v, spc.Name)
+		klog.Infof("Version %s added on storagepoolclaim %s", v, spc.Name)
 		return obj, nil
 	}
 	return spc, nil
