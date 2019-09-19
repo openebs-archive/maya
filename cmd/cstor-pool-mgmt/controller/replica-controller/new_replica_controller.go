@@ -124,7 +124,7 @@ func NewCStorVolumeReplicaController(
 			AddFunc: func(obj interface{}) {
 				cvrObj := obj.(*apis.CStorVolumeReplica)
 
-				if !IsRightCStorVolumeReplica(cvrObj) || IsErrorDuplicate(cvrObj) {
+				if !IsRightCStorVolumeReplica(cvrObj) {
 					// do nothing
 					return
 				}

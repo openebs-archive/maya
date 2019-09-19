@@ -306,8 +306,8 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 			string(common.AlreadyPresent),
 			string(common.MessageResourceAlreadyPresent),
 		)
-		// If the volume already present then return the cvr status as duplicate
-		return string(apis.CVRStatusErrorDuplicate), nil
+		// If the volume already present then return the cvr status as online
+		return string(apis.CVRStatusOnline), nil
 	}
 
 	// Setting quorum to true for newly creating Volumes.
@@ -465,12 +465,6 @@ func IsRecreateStatus(cVR *apis.CStorVolumeReplica) bool {
 	}
 	glog.V(4).Infof("Not Recreate status: %v", string(cVR.ObjectMeta.UID))
 	return false
-}
-
-// IsErrorDuplicate flags if cvr resource is a duplicate
-// entry
-func IsErrorDuplicate(cvrObj *apis.CStorVolumeReplica) bool {
-	return cvrObj.Status.Phase == apis.CVRStatusErrorDuplicate
 }
 
 //  getCVRStatus is a wrapper that fetches the status of cstor volume.
