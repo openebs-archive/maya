@@ -542,7 +542,6 @@ func (c *CStorPoolController) upgrade(csp *apis.CStorPool) (*apis.CStorPool, err
 		csp.VersionDetails.Desired != "" {
 		// As no other steps are required just change current version to
 		// desired version
-		csp.Labels[string(apis.OpenEBSVersionKey)] = csp.VersionDetails.Desired
 		csp.VersionDetails.Current = csp.VersionDetails.Desired
 		obj, err := c.clientset.OpenebsV1alpha1().CStorPools().Update(csp)
 		if err != nil {
