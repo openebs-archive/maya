@@ -206,7 +206,6 @@ func (pc *PoolConfig) create(pendingPoolCount int, cspc *apis.CStorPoolCluster) 
 		return errors.Wrapf(err, "Could not acquire lease on cspc object")
 	}
 	klog.V(4).Infof("Lease acquired successfully on cstorpoolcluster %s ", cspc.Name)
-	defer newSpcLease.Release()
 	for poolCount := 1; poolCount <= pendingPoolCount; poolCount++ {
 		err = pc.CreateStoragePool()
 		if err != nil {
