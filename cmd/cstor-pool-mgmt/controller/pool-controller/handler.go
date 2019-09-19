@@ -540,6 +540,12 @@ func (c *CStorPoolController) getDeviceIDs(csp *apis.CStorPool) ([]string, error
 func (c *CStorPoolController) upgrade(csp *apis.CStorPool) (*apis.CStorPool, error) {
 	if csp.VersionDetails.Current != csp.VersionDetails.Desired &&
 		csp.VersionDetails.Desired != "" {
+		if !isCurrentVersionValid(csp) {
+			return nil, errors.Errorf("invalid current version %s", csp.VersionDetails.Current)
+		}
+		if !isDesiredVersionValid(csp) {
+			return nil, errors.Errorf("invalid desired version %s", csp.VersionDetails.Desired)
+		}
 		// As no other steps are required just change current version to
 		// desired version
 		csp.VersionDetails.Current = csp.VersionDetails.Desired
@@ -570,4 +576,22 @@ func (c *CStorPoolController) populateVersion(csp *apis.CStorPool) (
 		return obj, nil
 	}
 	return csp, nil
+}
+
+func isCurrentVersionValid(csp *apis.CStorPool) bool {
+	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
+	version := strings.Split(csp.VersionDetails.Current, "-")[0]
+	if !util.ContainsString(validVersions, version) {
+		return false
+	}
+	return true
+}
+
+func isDesiredVersionValid(csp *apis.CStorPool) bool {
+	validVersions := []string{"1.3.0"}
+	version := strings.Split(csp.VersionDetails.Desired, "-")[0]
+	if !util.ContainsString(validVersions, version) {
+		return false
+	}
+	return true
 }

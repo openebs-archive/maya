@@ -27,6 +27,7 @@ import (
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -494,6 +495,12 @@ func isManualProvisioning(spc *apis.StoragePoolClaim) bool {
 func (c *Controller) upgrade(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
 	if spc.VersionDetails.Current != spc.VersionDetails.Desired &&
 		spc.VersionDetails.Current != "" && spc.VersionDetails.Desired != "" {
+		if !isCurrentVersionValid(spc) {
+			return nil, errors.Errorf("invalid current version %s", spc.VersionDetails.Current)
+		}
+		if !isDesiredVersionValid(spc) {
+			return nil, errors.Errorf("invalid desired version %s", spc.VersionDetails.Desired)
+		}
 		// As no other steps are required just change current version to
 		// desired version
 		spc.VersionDetails.Current = spc.VersionDetails.Desired
@@ -527,8 +534,7 @@ func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StorageP
 			v = cspList.Items[0].Labels[string(apis.OpenEBSVersionKey)]
 		}
 		spc.VersionDetails.Current = v
-		// As there are no upgrade steps for spc in 1.3.0 and for newly created spc
-		// Desired field will also be empty.
+		// For newly created spc Desired field will also be empty.
 		spc.VersionDetails.Desired = v
 		obj, err := c.clientset.OpenebsV1alpha1().StoragePoolClaims().
 			Update(spc)
@@ -540,4 +546,22 @@ func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StorageP
 		return obj, nil
 	}
 	return spc, nil
+}
+
+func isCurrentVersionValid(spc *apis.StoragePoolClaim) bool {
+	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
+	version := strings.Split(spc.VersionDetails.Current, "-")[0]
+	if !util.ContainsString(validVersions, version) {
+		return false
+	}
+	return true
+}
+
+func isDesiredVersionValid(spc *apis.StoragePoolClaim) bool {
+	validVersions := []string{"1.3.0"}
+	version := strings.Split(spc.VersionDetails.Desired, "-")[0]
+	if !util.ContainsString(validVersions, version) {
+		return false
+	}
+	return true
 }
