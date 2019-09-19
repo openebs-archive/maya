@@ -580,6 +580,12 @@ func IsOnlyStatusChange(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
 func (c *CStorVolumeController) upgrade(cv *apis.CStorVolume) (*apis.CStorVolume, error) {
 	if cv.VersionDetails.Current != cv.VersionDetails.Desired &&
 		cv.VersionDetails.Desired != "" {
+		if !isCurrentVersionValid(cv) {
+			return nil, pkg_errors.Errorf("invalid current version %s", cv.VersionDetails.Current)
+		}
+		if !isDesiredVersionValid(cv) {
+			return nil, pkg_errors.Errorf("invalid desired version %s", cv.VersionDetails.Desired)
+		}
 		// Set new field DesiredReplicationFactor as ReplicationFactor
 		cv.Spec.DesiredReplicationFactor = cv.Spec.ReplicationFactor
 		cv.VersionDetails.Current = cv.VersionDetails.Desired
@@ -611,4 +617,22 @@ func (c *CStorVolumeController) populateVersion(cv *apis.CStorVolume) (
 		return obj, nil
 	}
 	return cv, nil
+}
+
+func isCurrentVersionValid(cv *apis.CStorVolume) bool {
+	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
+	version := strings.Split(cv.VersionDetails.Current, "-")[0]
+	if !util.ContainsString(validVersions, version) {
+		return false
+	}
+	return true
+}
+
+func isDesiredVersionValid(cv *apis.CStorVolume) bool {
+	validVersions := []string{"1.3.0"}
+	version := strings.Split(cv.VersionDetails.Desired, "-")[0]
+	if !util.ContainsString(validVersions, version) {
+		return false
+	}
+	return true
 }

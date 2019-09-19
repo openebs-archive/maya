@@ -28,6 +28,7 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	hash "github.com/openebs/maya/pkg/hash/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	pkg_errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -544,6 +545,12 @@ func (c *CStorVolumeReplicaController) upgrade(cvr *apis.CStorVolumeReplica) (
 ) {
 	if cvr.VersionDetails.Current != cvr.VersionDetails.Desired &&
 		cvr.VersionDetails.Desired != "" {
+		if !isCurrentVersionValid(cvr) {
+			return nil, pkg_errors.Errorf("invalid current version %s", cvr.VersionDetails.Current)
+		}
+		if !isDesiredVersionValid(cvr) {
+			return nil, pkg_errors.Errorf("invalid desired version %s", cvr.VersionDetails.Desired)
+		}
 		replicaID, err := hash.Hash(cvr.UID)
 		if err != nil {
 			return nil, pkg_errors.Wrapf(
@@ -597,4 +604,22 @@ func (c *CStorVolumeReplicaController) populateVersion(cvr *apis.CStorVolumeRepl
 		return obj, nil
 	}
 	return cvr, nil
+}
+
+func isCurrentVersionValid(cvr *apis.CStorVolumeReplica) bool {
+	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
+	version := strings.Split(cvr.VersionDetails.Current, "-")[0]
+	if !util.ContainsString(validVersions, version) {
+		return false
+	}
+	return true
+}
+
+func isDesiredVersionValid(cvr *apis.CStorVolumeReplica) bool {
+	validVersions := []string{"1.3.0"}
+	version := strings.Split(cvr.VersionDetails.Desired, "-")[0]
+	if !util.ContainsString(validVersions, version) {
+		return false
+	}
+	return true
 }
