@@ -124,7 +124,6 @@ func ServeRequest(conn net.Conn, kubeClient *cstorv1alpha1.Kubeclient) {
 			replicationData, err)
 		return
 	}
-	err = nil
 }
 
 // StartTargetServer starts the UnixDomainServer
