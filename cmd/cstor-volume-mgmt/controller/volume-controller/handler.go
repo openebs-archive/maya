@@ -61,6 +61,17 @@ func (c *CStorVolumeController) syncHandler(
 		cStorVolumeGot.Status.LastTransitionTime = cStorVolumeGot.Status.LastUpdateTime
 		cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(status)
 	}
+	cStorVolumeObj, err := c.populateVersion(cStorVolumeGot)
+	if err != nil {
+		klog.Errorf("failed to add versionDetails to cstorvolume %s:%s", cStorVolumeGot.Name, err.Error())
+		return err
+	}
+	cStorVolumeObj, err = c.upgrade(cStorVolumeObj)
+	if err != nil {
+		klog.Errorf("failed to upgrade cstorvolume %s:%s", cStorVolumeGot.Name, err.Error())
+		return err
+	}
+	cStorVolumeGot = cStorVolumeObj
 	if err != nil {
 		klog.Errorf(err.Error())
 		klog.Infof("cStorVolume:%v, %v; Status: %v", cStorVolumeGot.Name,
@@ -564,4 +575,40 @@ func IsOnlyStatusChange(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
 	}
 	klog.Infof("No status changed for cstor volume : %s", newCStorVolume.Name)
 	return false
+}
+
+func (c *CStorVolumeController) upgrade(cv *apis.CStorVolume) (*apis.CStorVolume, error) {
+	if cv.VersionDetails.Current != cv.VersionDetails.Desired &&
+		cv.VersionDetails.Desired != "" {
+		// Set new field DesiredReplicationFactor as ReplicationFactor
+		cv.Spec.DesiredReplicationFactor = cv.Spec.ReplicationFactor
+		cv.VersionDetails.Current = cv.VersionDetails.Desired
+		obj, err := c.clientset.OpenebsV1alpha1().
+			CStorVolumes(cv.Namespace).Update(cv)
+		if err != nil {
+			return nil, pkg_errors.Wrap(err, "failed to update cstorvolume")
+		}
+		return obj, nil
+	}
+	return cv, nil
+}
+
+// populateVersion assigns VersionDetails for old cv object
+func (c *CStorVolumeController) populateVersion(cv *apis.CStorVolume) (
+	*apis.CStorVolume, error,
+) {
+	v := cv.Labels[string(apis.OpenEBSVersionKey)]
+	// 1.3.0 onwards new CV will have the field populated during creation
+	if v < "1.3.0" && cv.VersionDetails.Current == "" {
+		cv.VersionDetails.Current = v
+		obj, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cv.Namespace).
+			Update(cv)
+
+		if err != nil {
+			return nil, pkg_errors.Wrap(err, "failed to update cstorvolume while adding versiondetails")
+		}
+		klog.Infof("Version %s added on cstorvolume %s", v, cv.Name)
+		return obj, nil
+	}
+	return cv, nil
 }

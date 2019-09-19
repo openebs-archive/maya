@@ -514,6 +514,7 @@ func capacityOutputParser(output string) *apis.CStorVolumeCapacityAttr {
 	return capacity
 }
 
+<<<<<<< HEAD
 // GenerateReplicaID generate new replicaID for given CVR
 func GenerateReplicaID(cvr *apis.CStorVolumeReplica) error {
 	if len(cvr.Spec.ReplicaID) != 0 {
@@ -576,6 +577,17 @@ func GetAndUpdateReplicaID(cvr *apis.CStorVolumeReplica) error {
 
 	if err := SetReplicaID(cvr); err != nil {
 		return errors.Errorf("Failed to set ReplicaID for CVR(%s).. %s", cvr.Name, err)
+=======
+// SetReplicaID sets the io.openebs:replicaid for given cvr
+func SetReplicaID(replicaid, volname string) error {
+	var replicaidStr []string
+	replicaidStr = append(replicaidStr, "set", "io.openebs:replicaid="+replicaid, volname)
+	klog.Infof("command : zfs %v", replicaidStr)
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, replicaidStr...)
+	if err != nil {
+		klog.Errorf("Unable to set io.openebs:replicaid : %v", string(stdoutStderr))
+		return fmt.Errorf("Unable to set io.openebs:replicaid : %s", err.Error())
+>>>>>>> refact(cv,cvr): added code to populate versiondetails and upgrade steps
 	}
 	return nil
 }

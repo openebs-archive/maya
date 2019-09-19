@@ -27,6 +27,8 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	hash "github.com/openebs/maya/pkg/hash/v1alpha1"
+	pkg_errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,7 +77,15 @@ func (c *CStorVolumeReplicaController) syncHandler(
 			key,
 		)
 	}
-
+	cvrObj, err := c.populateVersion(cvrGot)
+	if err != nil {
+		return err
+	}
+	cvrObj, err = c.upgrade(cvrObj)
+	if err != nil {
+		return err
+	}
+	cvrGot = cvrObj
 	status, err := c.cVREventHandler(operation, cvrGot)
 	if status == "" {
 		// TODO
@@ -527,4 +537,64 @@ func (c *CStorVolumeReplicaController) syncCvr(cvr *apis.CStorVolumeReplica) {
 	} else {
 		cvr.Status.Capacity = *capacity
 	}
+}
+
+func (c *CStorVolumeReplicaController) upgrade(cvr *apis.CStorVolumeReplica) (
+	*apis.CStorVolumeReplica, error,
+) {
+	if cvr.VersionDetails.Current != cvr.VersionDetails.Desired &&
+		cvr.VersionDetails.Desired != "" {
+		replicaID, err := hash.Hash(cvr.UID)
+		if err != nil {
+			return nil, pkg_errors.Wrapf(
+				err,
+				"failed to generate ReplicaID for cvr %s",
+				cvr.Name,
+			)
+		}
+		cvr.Spec.ReplicaID = replicaID
+		cvr.VersionDetails.Current = cvr.VersionDetails.Desired
+		obj, err := c.clientset.OpenebsV1alpha1().
+			CStorVolumeReplicas(cvr.Namespace).Update(cvr)
+		if err != nil {
+			return nil, pkg_errors.Wrap(
+				err,
+				"failed to update CVR with versionDetails",
+			)
+		}
+		volname, err := volumereplica.GetVolumeName(cvr)
+		if err != nil {
+			return nil, err
+		}
+		err = volumereplica.SetReplicaID(replicaID, volname)
+		if err != nil {
+			return nil, pkg_errors.Wrapf(
+				err,
+				"failed to execute zfs set command for cvr %s",
+				cvr.Name,
+			)
+		}
+		return obj, nil
+	}
+	return cvr, nil
+}
+
+// populateVersion assigns VersionDetails for old cvr object
+func (c *CStorVolumeReplicaController) populateVersion(cvr *apis.CStorVolumeReplica) (
+	*apis.CStorVolumeReplica, error,
+) {
+	v := cvr.Labels[string(apis.OpenEBSVersionKey)]
+	// 1.3.0 onwards new CSP will have the field populated during creation
+	if v < "1.3.0" && cvr.VersionDetails.Current == "" {
+		cvr.VersionDetails.Current = v
+		obj, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cvr.Namespace).
+			Update(cvr)
+
+		if err != nil {
+			return nil, pkg_errors.Wrap(err, "failed to update SPC while adding versiondetails")
+		}
+		klog.Infof("Version %s added on storagepoolclaim %s", v, cvr.Name)
+		return obj, nil
+	}
+	return cvr, nil
 }
