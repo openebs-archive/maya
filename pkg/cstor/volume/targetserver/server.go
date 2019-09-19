@@ -63,7 +63,6 @@ func Reader(r io.Reader) (string, error) {
 						req = append(req, line+endOfLine)
 					}
 				}
-				completeBytes = nil
 				break
 			}
 		}
@@ -83,23 +82,35 @@ func GetRequiredData(data string) (string, error) {
 
 //ServeRequest process the request from the client
 func ServeRequest(conn net.Conn, kubeClient *cstorv1alpha1.Kubeclient) {
-	readData, err := Reader(conn)
+	var err error
+	var readData, filteredData string
+	defer func(err error) {
+		if err != nil {
+			_, er := conn.Write([]byte(respErr + endOfLine))
+			if er != nil {
+				glog.Errorf("failed to inform to client")
+			}
+		} else {
+			_, er := conn.Write([]byte(respOk + endOfLine))
+			if er != nil {
+				glog.Errorf("failed to inform to client")
+			}
+		}
+	}(err)
+	readData, err = Reader(conn)
 	if err != nil {
 		glog.Errorf("failed to read data: {%v}", err)
-		conn.Write([]byte(respErr))
 		return
 	}
-	filteredData, err := GetRequiredData(readData)
+	filteredData, err = GetRequiredData(readData)
 	if err != nil {
 		glog.Errorf("failed to get required information: {%v}", err)
-		conn.Write([]byte(respErr))
 		return
 	}
 	replicationData := &cstorv1alpha1.CStorVolumeReplication{}
 	err = json.Unmarshal([]byte(filteredData), replicationData)
 	if err != nil {
 		glog.Errorf("failed to unmarshal replication data {%v}", err)
-		conn.Write([]byte(respErr))
 		return
 	}
 	csc := &cstorv1alpha1.CStorVolumeConfig{
@@ -111,11 +122,9 @@ func ServeRequest(conn net.Conn, kubeClient *cstorv1alpha1.Kubeclient) {
 		glog.Errorf("failed to update cstorvolume {%s} with details {%v}"+
 			" error: {%v}", csc.VolumeName,
 			replicationData, err)
-		conn.Write([]byte(respErr))
 		return
 	}
-	conn.Write([]byte(respOk))
-	return
+	err = nil
 }
 
 // StartTargetServer starts the UnixDomainServer
@@ -144,7 +153,10 @@ func StartTargetServer(kubeConfig string) {
 	go func(ln net.Listener, c chan os.Signal) {
 		sig := <-c
 		glog.Fatalf("Caught signal %s: shutting down", sig)
-		ln.Close()
+		err := ln.Close()
+		if err != nil {
+			glog.Errorf("failed to close the connection error: %v", err)
+		}
 	}(listen, sigc)
 
 	// Since we are reading kubeClient there is no need to taking lock
