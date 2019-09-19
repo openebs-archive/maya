@@ -609,17 +609,11 @@ func (c *CStorVolumeReplicaController) populateVersion(cvr *apis.CStorVolumeRepl
 func isCurrentVersionValid(cvr *apis.CStorVolumeReplica) bool {
 	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
 	version := strings.Split(cvr.VersionDetails.Current, "-")[0]
-	if !util.ContainsString(validVersions, version) {
-		return false
-	}
-	return true
+	return util.ContainsString(validVersions, version)
 }
 
 func isDesiredVersionValid(cvr *apis.CStorVolumeReplica) bool {
 	validVersions := []string{"1.3.0"}
 	version := strings.Split(cvr.VersionDetails.Desired, "-")[0]
-	if !util.ContainsString(validVersions, version) {
-		return false
-	}
-	return true
+	return util.ContainsString(validVersions, version)
 }
