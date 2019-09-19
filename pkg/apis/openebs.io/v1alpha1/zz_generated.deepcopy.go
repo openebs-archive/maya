@@ -886,6 +886,7 @@ func (in *CStorVolumeClaim) DeepCopyInto(out *CStorVolumeClaim) {
 	in.Spec.DeepCopyInto(&out.Spec)
 	out.Publish = in.Publish
 	in.Status.DeepCopyInto(&out.Status)
+	out.VersionDetails = in.VersionDetails
 	return
 }
 

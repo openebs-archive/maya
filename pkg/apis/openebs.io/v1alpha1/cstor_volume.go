@@ -37,16 +37,15 @@ type CStorVolume struct {
 // CStorVolumeSpec is the spec for a CStorVolume resource
 type CStorVolumeSpec struct {
 	// Capacity represents the desired size of the underlying volume.
-	Capacity                 resource.Quantity `json:"capacity"`
-	TargetIP                 string            `json:"targetIP"`
-	TargetPort               string            `json:"targetPort"`
-	Iqn                      string            `json:"iqn"`
-	TargetPortal             string            `json:"targetPortal"`
-	Status                   string            `json:"status"`
-	NodeBase                 string            `json:"nodeBase"`
-	ReplicationFactor        int               `json:"replicationFactor"`
-	ConsistencyFactor        int               `json:"consistencyFactor"`
-	DesiredReplicationFactor int               `json:"desiredReplicationFactor"`
+	Capacity          resource.Quantity `json:"capacity"`
+	TargetIP          string            `json:"targetIP"`
+	TargetPort        string            `json:"targetPort"`
+	Iqn               string            `json:"iqn"`
+	TargetPortal      string            `json:"targetPortal"`
+	Status            string            `json:"status"`
+	NodeBase          string            `json:"nodeBase"`
+	ReplicationFactor int               `json:"replicationFactor"`
+	ConsistencyFactor int               `json:"consistencyFactor"`
 }
 
 // CStorVolumePhase is to hold result of action.
