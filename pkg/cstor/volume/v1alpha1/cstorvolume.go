@@ -16,6 +16,7 @@ package v1alpha1
 
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -43,6 +44,23 @@ type CStorVolumeList struct {
 type ListBuilder struct {
 	list    *CStorVolumeList
 	filters PredicateList
+}
+
+//CStorVolumeReplication enables to update RF,CF and
+//known replicas into etcd
+type CStorVolumeReplication struct {
+	VolumeName        string `json:"volumeName"`
+	ReplicationFactor int    `json:"replicationFactor"`
+	ConsistencyFactor int    `json:"consistencyFactor"`
+	ReplicaKey        string `json:"replicaId"`
+	ReplicaValue      uint64 `json:"replicaZvolGuid,string"`
+}
+
+//CStorVolumeConfig embed CStorVolumeReplication and Kubeclient of
+//corresponding namespace
+type CStorVolumeConfig struct {
+	*CStorVolumeReplication
+	*Kubeclient
 }
 
 // Conditions enables building CRUD operations on cstorvolume conditions
@@ -208,4 +226,63 @@ func (c Conditions) UpdateCondition(cond apis.CStorVolumeCondition) []apis.CStor
 		}
 	}
 	return c
+}
+
+// Validate verifies whether CStorReplication data read on wire is valid or not
+func (csr *CStorVolumeReplication) Validate() error {
+	if csr.VolumeName == "" {
+		return errors.Errorf("volume name can not be empty")
+	}
+	if csr.ReplicaKey == "" {
+		return errors.Errorf("replicaKey can not be empty to perform "+
+			"volume %s update", csr.VolumeName)
+	}
+	if csr.ReplicaValue == 0 {
+		return errors.Errorf("replicaKey can not be empty to perform "+
+			"volume %s update", csr.VolumeName)
+	}
+	return nil
+}
+
+// UpdateCVWithReplicationDetails updates the cstorvolume with known replicas
+// and updated replication details
+func (csc *CStorVolumeConfig) UpdateCVWithReplicationDetails() error {
+	err := csc.Validate()
+	if err != nil {
+		return errors.Wrapf(err, "validate errors")
+	}
+	cv, err := csc.Get(csc.VolumeName, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to get cstorvolume")
+	}
+	if len(cv.Status.KnownReplicas) >= cv.Spec.DesiredReplicationFactor {
+		return errors.Errorf("can not update cstorvolume %d known replica"+
+			" count %d is greater than or equal to desired replication factor",
+			len(cv.Status.KnownReplicas), cv.Spec.DesiredReplicationFactor,
+		)
+	}
+	if csc.ReplicationFactor != 0 {
+		if cv.Spec.ReplicationFactor > csc.ReplicationFactor {
+			return errors.Errorf("requested replication factor {%d}"+
+				" can not be smaller than existing replication factor {%d}",
+				cv.Spec.ReplicationFactor, csc.ReplicationFactor,
+			)
+		}
+		cv.Spec.ReplicationFactor = csc.ReplicationFactor
+	}
+	if csc.ConsistencyFactor != 0 {
+		if cv.Spec.ConsistencyFactor > csc.ConsistencyFactor {
+			return errors.Errorf("requested consistencyFactor factor {%d}"+
+				" can not be smaller than existing consistencyFactor factor {%d}",
+				cv.Spec.ReplicationFactor, csc.ReplicationFactor,
+			)
+		}
+		cv.Spec.ConsistencyFactor = csc.ConsistencyFactor
+	}
+	if cv.Status.KnownReplicas == nil {
+		cv.Status.KnownReplicas = map[string]uint64{}
+	}
+	cv.Status.KnownReplicas[csc.ReplicaKey] = csc.ReplicaValue
+	_, err = csc.Update(cv)
+	return err
 }

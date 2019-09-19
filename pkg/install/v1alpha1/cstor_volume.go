@@ -631,6 +631,8 @@ spec:
               value: {{ .TaskResult.cvolcreateputvolume.cstorid }}
             - name: RESYNC_INTERVAL
               value: {{ .Config.ResyncInterval.value }}
+            - name: CSTOR_TARGET_NAMESPACE
+              value: {{ .Volume.runNamespace }}
             - name: NODE_NAME
               valueFrom:
                 fieldRef:

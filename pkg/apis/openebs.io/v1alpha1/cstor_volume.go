@@ -46,6 +46,9 @@ type CStorVolumeSpec struct {
 	NodeBase          string            `json:"nodeBase"`
 	ReplicationFactor int               `json:"replicationFactor"`
 	ConsistencyFactor int               `json:"consistencyFactor"`
+	// DesiredReplicationFactor represents maximum number of replicas
+	// that are allowed to connect to the target
+	DesiredReplicationFactor int `json:"desiredReplicationFactor"`
 }
 
 // CStorVolumePhase is to hold result of action.
@@ -67,6 +70,9 @@ type CStorVolumeStatus struct {
 	// +patchMergeKey=type
 	// +patchStrategy=merge
 	Conditions []CStorVolumeCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,4,rep,name=conditions"`
+	// KnownReplicas represents the replicas that target can trust to read the
+	// data
+	KnownReplicas map[string]uint64 `json:"knownReplicas,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
