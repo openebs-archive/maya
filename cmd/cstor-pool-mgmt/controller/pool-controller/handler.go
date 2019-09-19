@@ -87,6 +87,17 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 			string(cspObject.GetUID()), cspObject.Status.Phase)
 		return err
 	}
+	cspGot, err := c.populateVersion(cspObject)
+	if err != nil {
+		glog.Errorf("failed to add versionDetails to cstorpool %s:%s", cspObject.Name, err.Error())
+		return err
+	}
+	cspGot, err = c.upgrade(cspGot)
+	if err != nil {
+		glog.Errorf("failed to upgrade CSP %s:%s", cspObject.Name, err.Error())
+		return err
+	}
+	cspObject = cspGot
 	// Synchronize cstor pool used and free capacity fields on CSP object.
 	// Any kind of sync activity should be done from here.
 	// ToDo: Move status sync (of csp) here from cStorPoolEventHandler function.
@@ -524,4 +535,40 @@ func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
 func (c *CStorPoolController) getDeviceIDs(csp *apis.CStorPool) ([]string, error) {
 	// TODO: Add error handling
 	return pool.GetDeviceIDs(csp)
+}
+
+func (c *CStorPoolController) upgrade(csp *apis.CStorPool) (*apis.CStorPool, error) {
+	if csp.VersionDetails.Current != csp.VersionDetails.Desired &&
+		csp.VersionDetails.Desired != "" {
+		// As no other steps are required just change current version to
+		// desired version
+		csp.Labels[string(apis.OpenEBSVersionKey)] = csp.VersionDetails.Desired
+		csp.VersionDetails.Current = csp.VersionDetails.Desired
+		obj, err := c.clientset.OpenebsV1alpha1().CStorPools().Update(csp)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to update SPC with versionDetails")
+		}
+		return obj, nil
+	}
+	return csp, nil
+}
+
+// populateVersion assigns VersionDetails for old csp object
+func (c *CStorPoolController) populateVersion(csp *apis.CStorPool) (
+	*apis.CStorPool, error,
+) {
+	v := csp.Labels[string(apis.OpenEBSVersionKey)]
+	// 1.3.0 onwards new CSP will have the field populated during creation
+	if v < "1.3.0" && csp.VersionDetails.Current == "" {
+		csp.VersionDetails.Current = v
+		obj, err := c.clientset.OpenebsV1alpha1().CStorPools().
+			Update(csp)
+
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to update SPC while adding versiondetails")
+		}
+		glog.Infof("Version %s added on storagepoolclaim %s", v, csp.Name)
+		return obj, nil
+	}
+	return csp, nil
 }

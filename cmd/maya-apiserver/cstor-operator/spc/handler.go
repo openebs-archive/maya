@@ -27,6 +27,7 @@ import (
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
+	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -116,12 +117,22 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 	}
 
 	gotSPC, err := spcv1alpha1.BuilderForAPIObject(spc).Spc.AddFinalizer(spcv1alpha1.SPCFinalizer)
-
 	if err != nil {
 		klog.Errorf("Failed to add finalizer on SPC %s:%s", spc.Name, err.Error())
 		return nil
 	}
 
+	spcObj, err := c.populateVersion(gotSPC)
+	if err != nil {
+		glog.Errorf("failed to add versionDetails to SPC %s:%s", spc.Name, err.Error())
+		return err
+	}
+	spcObj, err = c.upgrade(spcObj)
+	if err != nil {
+		glog.Errorf("failed to upgrade SPC %s:%s", spc.Name, err.Error())
+		return err
+	}
+	gotSPC = spcObj
 	// assinging the latest spc object
 	spc = gotSPC
 
@@ -478,4 +489,55 @@ func isAutoProvisioning(spc *apis.StoragePoolClaim) bool {
 // isManualProvisioning returns true if the spc is auto provisioning type.
 func isManualProvisioning(spc *apis.StoragePoolClaim) bool {
 	return spc.Spec.BlockDevices.BlockDeviceList != nil
+}
+
+func (c *Controller) upgrade(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
+	if spc.VersionDetails.Current != spc.VersionDetails.Desired &&
+		spc.VersionDetails.Current != "" && spc.VersionDetails.Desired != "" {
+		// As no other steps are required just change current version to
+		// desired version
+		spc.VersionDetails.Current = spc.VersionDetails.Desired
+		obj, err := c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spc)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to update storagepoolclaim")
+		}
+		return obj, nil
+	}
+	return spc, nil
+}
+
+// populateVersion assigns VersionDetails for old spc object
+func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
+	if spc.VersionDetails.Current == "" {
+		var v string
+		cspList, err := c.clientset.OpenebsV1alpha1().CStorPools().List(
+			metav1.ListOptions{
+				LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name,
+			})
+		if err != nil {
+			return nil, errors.Wrapf(
+				err,
+				"failed to get csplist for %s to add version details",
+				spc.Name,
+			)
+		}
+		if len(cspList.Items) == 0 {
+			v = version.Current()
+		} else {
+			v = cspList.Items[0].Labels[string(apis.OpenEBSVersionKey)]
+		}
+		spc.VersionDetails.Current = v
+		// As there are no upgrade steps for spc in 1.3.0 and for newly created spc
+		// Desired field will also be empty.
+		spc.VersionDetails.Desired = v
+		obj, err := c.clientset.OpenebsV1alpha1().StoragePoolClaims().
+			Update(spc)
+
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to update storagepoolclaim while adding versiondetails")
+		}
+		glog.Infof("Version %s added on storagepoolclaim %s", v, spc.Name)
+		return obj, nil
+	}
+	return spc, nil
 }
