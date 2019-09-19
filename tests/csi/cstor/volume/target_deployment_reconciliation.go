@@ -18,36 +18,32 @@ package volume
 
 import (
 	. "github.com/onsi/ginkgo"
-	"github.com/openebs/maya/tests/cstor"
 )
 
-var _ = Describe("[csi] [cstor] TEST CSTOR VOLUME REPLICA RECONCILIATION", func() {
-	BeforeEach(prepareForCVRReconcilationTest)
-	AfterEach(cleanupAfterCVRReconcilationTest)
+var _ = Describe("[csi] [cstor] TEST TARGET DEPLOYMENT RECONCILIATION", func() {
+	BeforeEach(prepareForTargetDeploymentReconciliationTest)
+	AfterEach(cleanupAfterTargetDeploymentReconciliationTest)
 
-	Context("App is deployed without creating cspc", func() {
-		It("Should run cvr reconciliation test", cvrReconcilationTest)
+	Context("App is deployed and target deployment is deleted", func() {
+		It("Should run Target Deployment Reconciliation Test", targetDeploymentReconciliationTest)
 	})
 })
 
-func cvrReconcilationTest() {
+func targetDeploymentReconciliationTest() {
 	By("creating and verifying PVC bound status", createAndVerifyPVC)
 	By("Creating and deploying app pod", createAndDeployAppPod)
 	By("should verify target pod count as 1", func() { verifyTargetPodCount(1) })
-	By("Verifying cstorvolume replica count", func() { verifyCstorVolumeReplicaCount(0) })
-	By("Creating and verifying cstorpoolcluster", createAndVerifyCstorPoolCluster)
-	By("Verifying cstorvolume replica count", func() { verifyCstorVolumeReplicaCount(cstor.ReplicaCount) })
-	By("Creating and deploying app pod", verifyAppPodRunning)
+	By("Delete target deployment", verifyTargetDeploymentReconciliation)
+	By("should verify target pod count as 1", func() { verifyTargetPodCount(1) })
 	By("Deleting application deployment", deleteAppDeployment)
 	By("Deleting pvc", deletePVC)
 	By("Verifying deletion of components related to volume", verifyVolumeComponentsDeletion)
-	By("Deleting cstorpoolcluster", deleteCstorPoolCluster)
 }
 
-func prepareForCVRReconcilationTest() {
+func prepareForTargetDeploymentReconciliationTest() {
 	By("Creating storage class", createStorageClass)
 }
 
-func cleanupAfterCVRReconcilationTest() {
+func cleanupAfterTargetDeploymentReconciliationTest() {
 	By("Deleting storage class", deleteStorageClass)
 }

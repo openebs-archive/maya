@@ -20,7 +20,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING WITH APP POD RESTART", func() {
+var _ = Describe("[csi] [cstor] TEST VOLUME PROVISIONING WITH APP POD RESTART", func() {
 	BeforeEach(prepareForVolumeCreationTest)
 	AfterEach(cleanupAfterVolumeCreationTest)
 
