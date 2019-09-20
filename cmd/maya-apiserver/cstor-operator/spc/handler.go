@@ -29,7 +29,6 @@ import (
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
-	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -511,7 +510,7 @@ func (c *Controller) upgrade(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim
 		// desired version
 		path := strings.Split(spc.VersionDetails.Current, "-")[0] + "-" +
 			strings.Split(spc.VersionDetails.Desired, "-")[0]
-		u := &upgradeOptions{
+		u := &upgradeParams{
 			spc:    spc,
 			client: c.clientset,
 		}
@@ -532,23 +531,7 @@ func (c *Controller) upgrade(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim
 // populateVersion assigns VersionDetails for old spc object and newly created spc
 func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
 	if spc.VersionDetails.Current == "" {
-		var v string
-		cspList, err := c.clientset.OpenebsV1alpha1().CStorPools().List(
-			metav1.ListOptions{
-				LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name,
-			})
-		if err != nil {
-			return nil, errors.Wrapf(
-				err,
-				"failed to get csplist for %s to add version details",
-				spc.Name,
-			)
-		}
-		if len(cspList.Items) == 0 {
-			v = version.Current()
-		} else {
-			v = cspList.Items[0].Labels[string(apis.OpenEBSVersionKey)]
-		}
+		v, err := spcv1alpha1.BuilderForAPIObject(spc).Spc.EstimateSPCVersion()
 		spc.VersionDetails.Current = v
 		// For newly created spc Desired field will also be empty.
 		spc.VersionDetails.Desired = v
@@ -556,9 +539,13 @@ func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StorageP
 			Update(spc)
 
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to update storagepoolclaim while adding versiondetails")
+			return nil, errors.Wrapf(
+				err,
+				"failed to update spc %s while adding versiondetails",
+				spc.Name,
+			)
 		}
-		klog.Infof("Version %s added on storagepoolclaim %s", v, spc.Name)
+		klog.Infof("Version %s added on spc %s", v, spc.Name)
 		return obj, nil
 	}
 	return spc, nil
@@ -576,14 +563,14 @@ func isDesiredVersionValid(spc *apis.StoragePoolClaim) bool {
 	return util.ContainsString(validVersions, version)
 }
 
-type upgradeOptions struct {
+type upgradeParams struct {
 	spc    *apis.StoragePoolClaim
 	client clientset.Interface
 }
 
-type upgradeFunc func(u *upgradeOptions) (*apis.StoragePoolClaim, error)
+type upgradeFunc func(u *upgradeParams) (*apis.StoragePoolClaim, error)
 
-func nothing(u *upgradeOptions) (*apis.StoragePoolClaim, error) {
+func nothing(u *upgradeParams) (*apis.StoragePoolClaim, error) {
 	// No upgrade steps for 1.3.0
 	return u.spc, nil
 }

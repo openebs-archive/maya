@@ -557,7 +557,7 @@ func (c *CStorPoolController) upgrade(csp *apis.CStorPool) (*apis.CStorPool, err
 		}
 		path := strings.Split(csp.VersionDetails.Current, "-")[0] + "-" +
 			strings.Split(csp.VersionDetails.Desired, "-")[0]
-		u := &upgradeOptions{
+		u := &upgradeParams{
 			csp:    csp,
 			client: c.clientset,
 		}
@@ -608,14 +608,14 @@ func isDesiredVersionValid(csp *apis.CStorPool) bool {
 	return util.ContainsString(validVersions, version)
 }
 
-type upgradeOptions struct {
+type upgradeParams struct {
 	csp    *apis.CStorPool
 	client clientset.Interface
 }
 
-type upgradeFunc func(u *upgradeOptions) (*apis.CStorPool, error)
+type upgradeFunc func(u *upgradeParams) (*apis.CStorPool, error)
 
-func nothing(u *upgradeOptions) (*apis.CStorPool, error) {
+func nothing(u *upgradeParams) (*apis.CStorPool, error) {
 	// No upgrade steps for 1.3.0
 	return u.csp, nil
 }
