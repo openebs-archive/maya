@@ -35,6 +35,7 @@ import (
 	k8svolume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	"github.com/openebs/maya/tests/cstor"
 	corev1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -288,9 +289,8 @@ func verifyCstorVolumeReplicaCount(count int) {
 }
 
 func restartAppPodAndVerifyRunningStatus() {
-	var err error
 	By("restarting application to remount the volume again")
-	err = ops.PodClient.WithNamespace(nsObj.Name).
+	err := ops.PodClient.WithNamespace(nsObj.Name).
 		Delete(appPod.Items[0].Name, &metav1.DeleteOptions{})
 	Expect(err).ShouldNot(HaveOccurred(), "while restarting application pod")
 
@@ -310,17 +310,34 @@ func restartAppPodAndVerifyRunningStatus() {
 }
 
 func deleteAppDeployment() {
-	var err error
-	By("deleting application deployment")
-	err = ops.DeployClient.WithNamespace(nsObj.Name).
+	err := ops.DeployClient.WithNamespace(nsObj.Name).
 		Delete(deployObj.Name, &metav1.DeleteOptions{})
 	Expect(err).ShouldNot(HaveOccurred(), "while deleting application pod")
 }
 
+func verifyTargetDeploymentReconciliation() {
+	currTime := metav1.Now()
+	targetDeploymentName := pvcObj.Spec.VolumeName + "-" + "target"
+	err := ops.DeployClient.WithNamespace(openebsNamespace).
+		Delete(targetDeploymentName, &metav1.DeleteOptions{})
+	Expect(err).ShouldNot(HaveOccurred(), "while deleting target deployment")
+
+	isRecreated := Eventually(func() bool {
+		targetDeploy, err := ops.DeployClient.WithNamespace(openebsNamespace).
+			Get(targetDeploymentName)
+		if k8serror.IsNotFound(err) {
+			return false
+		}
+		Expect(err).ShouldNot(HaveOccurred(), "while fetching target deployment")
+		return currTime.Before(&targetDeploy.CreationTimestamp)
+	},
+		120, 10).
+		Should(Equal(true))
+	Expect(isRecreated).To(Equal(true), "while verifying target deployment recreation")
+}
+
 func deletePVC() {
-	var err error
-	By("deleting above pvc")
-	err = ops.PVCClient.WithNamespace(nsObj.Name).Delete(pvcName, &metav1.DeleteOptions{})
+	err := ops.PVCClient.WithNamespace(nsObj.Name).Delete(pvcName, &metav1.DeleteOptions{})
 	Expect(err).To(
 		BeNil(),
 		"while deleting pvc {%s} in namespace {%s}",

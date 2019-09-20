@@ -20,7 +20,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("[cstor] [sparse] TEST VOLUME RESIZE", func() {
+var _ = Describe("[csi] [cstor] TEST VOLUME RESIZE", func() {
 	BeforeEach(prepareForVolumeResizeTest)
 	AfterEach(cleanupAfterVolumeResizeTest)
 
