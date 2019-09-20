@@ -42,8 +42,8 @@ const (
 	defaultRetryPeriod   = 5 * time.Second
 )
 
-// leaderElection is a convenience wrapper around client-go's leader election library.
-type leaderElection struct {
+// LeaderElection is a convenience wrapper around client-go's leader election library.
+type LeaderElection struct {
 	runFunc func(ctx context.Context)
 
 	// the lockName identifies the leader election config and should be shared across all members
@@ -65,13 +65,13 @@ type leaderElection struct {
 }
 
 // NewLeaderElection returns the default & preferred leader election type
-func NewLeaderElection(clientset kubernetes.Interface, lockName string, runFunc func(ctx context.Context)) *leaderElection {
+func NewLeaderElection(clientset kubernetes.Interface, lockName string, runFunc func(ctx context.Context)) *LeaderElection {
 	return NewLeaderElectionWithLeases(clientset, lockName, runFunc)
 }
 
 // NewLeaderElectionWithLeases returns an implementation of leader election using Leases
-func NewLeaderElectionWithLeases(clientset kubernetes.Interface, lockName string, runFunc func(ctx context.Context)) *leaderElection {
-	return &leaderElection{
+func NewLeaderElectionWithLeases(clientset kubernetes.Interface, lockName string, runFunc func(ctx context.Context)) *LeaderElection {
+	return &LeaderElection{
 		runFunc:       runFunc,
 		lockName:      lockName,
 		resourceLock:  resourcelock.LeasesResourceLock,
@@ -83,8 +83,8 @@ func NewLeaderElectionWithLeases(clientset kubernetes.Interface, lockName string
 }
 
 // NewLeaderElectionWithEndpoints returns an implementation of leader election using Endpoints
-func NewLeaderElectionWithEndpoints(clientset kubernetes.Interface, lockName string, runFunc func(ctx context.Context)) *leaderElection {
-	return &leaderElection{
+func NewLeaderElectionWithEndpoints(clientset kubernetes.Interface, lockName string, runFunc func(ctx context.Context)) *LeaderElection {
+	return &LeaderElection{
 		runFunc:       runFunc,
 		lockName:      lockName,
 		resourceLock:  resourcelock.EndpointsResourceLock,
@@ -96,8 +96,8 @@ func NewLeaderElectionWithEndpoints(clientset kubernetes.Interface, lockName str
 }
 
 // NewLeaderElectionWithConfigMaps returns an implementation of leader election using ConfigMaps
-func NewLeaderElectionWithConfigMaps(clientset kubernetes.Interface, lockName string, runFunc func(ctx context.Context)) *leaderElection {
-	return &leaderElection{
+func NewLeaderElectionWithConfigMaps(clientset kubernetes.Interface, lockName string, runFunc func(ctx context.Context)) *LeaderElection {
+	return &LeaderElection{
 		runFunc:       runFunc,
 		lockName:      lockName,
 		resourceLock:  resourcelock.ConfigMapsResourceLock,
@@ -108,27 +108,33 @@ func NewLeaderElectionWithConfigMaps(clientset kubernetes.Interface, lockName st
 	}
 }
 
-func (l *leaderElection) WithIdentity(identity string) {
+// WithIdentity ...
+func (l *LeaderElection) WithIdentity(identity string) {
 	l.identity = identity
 }
 
-func (l *leaderElection) WithNamespace(namespace string) {
+// WithNamespace ...
+func (l *LeaderElection) WithNamespace(namespace string) {
 	l.namespace = namespace
 }
 
-func (l *leaderElection) WithLeaseDuration(leaseDuration time.Duration) {
+// WithLeaseDuration ...
+func (l *LeaderElection) WithLeaseDuration(leaseDuration time.Duration) {
 	l.leaseDuration = leaseDuration
 }
 
-func (l *leaderElection) WithRenewDeadline(renewDeadline time.Duration) {
+// WithRenewDeadline ...
+func (l *LeaderElection) WithRenewDeadline(renewDeadline time.Duration) {
 	l.renewDeadline = renewDeadline
 }
 
-func (l *leaderElection) WithRetryPeriod(retryPeriod time.Duration) {
+// WithRetryPeriod ...
+func (l *LeaderElection) WithRetryPeriod(retryPeriod time.Duration) {
 	l.retryPeriod = retryPeriod
 }
 
-func (l *leaderElection) Run() error {
+// Run ...
+func (l *LeaderElection) Run() error {
 	if l.identity == "" {
 		id, err := defaultLeaderElectionIdentity()
 		if err != nil {
