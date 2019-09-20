@@ -597,7 +597,7 @@ func (c *CStorVolumeController) upgrade(cv *apis.CStorVolume) (*apis.CStorVolume
 		}
 		path := strings.Split(cv.VersionDetails.Current, "-")[0] + "-" +
 			strings.Split(cv.VersionDetails.Desired, "-")[0]
-		u := &upgradeOptions{
+		u := &upgradeParams{
 			cv:     cv,
 			client: c.clientset,
 		}
@@ -643,14 +643,14 @@ func isDesiredVersionValid(cv *apis.CStorVolume) bool {
 	return util.ContainsString(validVersions, version)
 }
 
-type upgradeOptions struct {
+type upgradeParams struct {
 	cv     *apis.CStorVolume
 	client clientset.Interface
 }
 
-type upgradeFunc func(u *upgradeOptions) (*apis.CStorVolume, error)
+type upgradeFunc func(u *upgradeParams) (*apis.CStorVolume, error)
 
-func setDesiredRF(u *upgradeOptions) (*apis.CStorVolume, error) {
+func setDesiredRF(u *upgradeParams) (*apis.CStorVolume, error) {
 	cv := u.cv
 	// Set new field DesiredReplicationFactor as ReplicationFactor
 	cv.Spec.DesiredReplicationFactor = cv.Spec.ReplicationFactor
@@ -658,7 +658,7 @@ func setDesiredRF(u *upgradeOptions) (*apis.CStorVolume, error) {
 	cv, err := u.client.OpenebsV1alpha1().
 		CStorVolumes(cv.Namespace).Update(cv)
 	if err != nil {
-		return nil, pkg_errors.Wrap(err, "failed to update cstorvolume")
+		return nil, err
 	}
 	return cv, nil
 }
