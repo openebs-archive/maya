@@ -30,6 +30,7 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	lease "github.com/openebs/maya/pkg/lease/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -38,6 +39,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+)
+
+var (
+	upgradeMap = map[string]upgradeFunc{
+		"1.0.0-1.3.0": nothing,
+		"1.1.0-1.3.0": nothing,
+		"1.2.0-1.3.0": nothing,
+	}
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -538,6 +547,7 @@ func (c *CStorPoolController) getDeviceIDs(csp *apis.CStorPool) ([]string, error
 }
 
 func (c *CStorPoolController) upgrade(csp *apis.CStorPool) (*apis.CStorPool, error) {
+	var err error
 	if csp.VersionDetails.Current != csp.VersionDetails.Desired {
 		if !isCurrentVersionValid(csp) {
 			return nil, errors.Errorf("invalid current version %s", csp.VersionDetails.Current)
@@ -545,14 +555,22 @@ func (c *CStorPoolController) upgrade(csp *apis.CStorPool) (*apis.CStorPool, err
 		if !isDesiredVersionValid(csp) {
 			return nil, errors.Errorf("invalid desired version %s", csp.VersionDetails.Desired)
 		}
-		// As no other steps are required just change current version to
-		// desired version
+		path := strings.Split(csp.VersionDetails.Current, "-")[0] + "-" +
+			strings.Split(csp.VersionDetails.Desired, "-")[0]
+		u := &upgradeOptions{
+			csp:    csp,
+			client: c.clientset,
+		}
+		csp, err = upgradeMap[path](u)
+		if err != nil {
+			return csp, err
+		}
 		csp.VersionDetails.Current = csp.VersionDetails.Desired
-		obj, err := c.clientset.OpenebsV1alpha1().CStorPools().Update(csp)
+		csp, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(csp)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to update SPC with versionDetails")
 		}
-		return obj, nil
+		return csp, nil
 	}
 	return csp, nil
 }
@@ -587,4 +605,16 @@ func isDesiredVersionValid(csp *apis.CStorPool) bool {
 	validVersions := []string{"1.3.0"}
 	version := strings.Split(csp.VersionDetails.Desired, "-")[0]
 	return util.ContainsString(validVersions, version)
+}
+
+type upgradeOptions struct {
+	csp    *apis.CStorPool
+	client clientset.Interface
+}
+
+type upgradeFunc func(u *upgradeOptions) (*apis.CStorPool, error)
+
+func nothing(u *upgradeOptions) (*apis.CStorPool, error) {
+	// No upgrade steps for 1.3.0
+	return u.csp, nil
 }
