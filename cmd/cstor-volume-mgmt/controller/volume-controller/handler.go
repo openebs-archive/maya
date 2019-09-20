@@ -605,6 +605,12 @@ func (c *CStorVolumeController) upgrade(cv *apis.CStorVolume) (*apis.CStorVolume
 		if err != nil {
 			return nil, err
 		}
+		cv.VersionDetails.Current = cv.VersionDetails.Desired
+		cv, err = u.client.OpenebsV1alpha1().
+			CStorVolumes(cv.Namespace).Update(cv)
+		if err != nil {
+			return nil, err
+		}
 		return cv, nil
 	}
 	return cv, nil
@@ -654,11 +660,5 @@ func setDesiredRF(u *upgradeParams) (*apis.CStorVolume, error) {
 	cv := u.cv
 	// Set new field DesiredReplicationFactor as ReplicationFactor
 	cv.Spec.DesiredReplicationFactor = cv.Spec.ReplicationFactor
-	cv.VersionDetails.Current = cv.VersionDetails.Desired
-	cv, err := u.client.OpenebsV1alpha1().
-		CStorVolumes(cv.Namespace).Update(cv)
-	if err != nil {
-		return nil, err
-	}
 	return cv, nil
 }
