@@ -531,11 +531,17 @@ func (c *Controller) upgrade(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim
 // populateVersion assigns VersionDetails for old spc object and newly created spc
 func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
 	if spc.VersionDetails.Current == "" {
-		v, err := spcv1alpha1.BuilderForAPIObject(spc).Spc.EstimateSPCVersion()
+		var err error
+		var v string
+		var obj *apis.StoragePoolClaim
+		v, err = spcv1alpha1.BuilderForAPIObject(spc).Spc.EstimateSPCVersion()
+		if err != nil {
+			return nil, err
+		}
 		spc.VersionDetails.Current = v
 		// For newly created spc Desired field will also be empty.
 		spc.VersionDetails.Desired = v
-		obj, err := c.clientset.OpenebsV1alpha1().StoragePoolClaims().
+		obj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().
 			Update(spc)
 
 		if err != nil {
