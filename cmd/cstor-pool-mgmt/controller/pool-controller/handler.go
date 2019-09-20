@@ -583,6 +583,7 @@ func (c *CStorPoolController) populateVersion(csp *apis.CStorPool) (
 	// 1.3.0 onwards new CSP will have the field populated during creation
 	if v < "1.3.0" && csp.VersionDetails.Current == "" {
 		csp.VersionDetails.Current = v
+		csp.VersionDetails.Desired = v
 		obj, err := c.clientset.OpenebsV1alpha1().CStorPools().
 			Update(csp)
 
