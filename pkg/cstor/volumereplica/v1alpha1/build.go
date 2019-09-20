@@ -22,13 +22,13 @@ import (
 
 // Builder is the builder object for CStorVolume
 type Builder struct {
-	cvr  *CVR
+	Cvr  *CVR
 	errs []error
 }
 
 // NewBuilder returns new instance of Builder
 func NewBuilder() *Builder {
-	return &Builder{cvr: &CVR{object: &apis.CStorVolumeReplica{}}}
+	return &Builder{Cvr: &CVR{object: &apis.CStorVolumeReplica{}}}
 }
 
 // WithName sets the Name field of CStorVolumeReplica with provided value.
@@ -40,7 +40,7 @@ func (b *Builder) WithName(name string) *Builder {
 		)
 		return b
 	}
-	b.cvr.object.Name = name
+	b.Cvr.object.Name = name
 	return b
 }
 
@@ -55,7 +55,7 @@ func (b *Builder) WithGenerateName(name string) *Builder {
 		return b
 	}
 
-	b.cvr.object.GenerateName = name
+	b.Cvr.object.GenerateName = name
 	return b
 }
 
@@ -69,7 +69,7 @@ func (b *Builder) WithNamespace(namespace string) *Builder {
 		)
 		return b
 	}
-	b.cvr.object.Namespace = namespace
+	b.Cvr.object.Namespace = namespace
 	return b
 }
 
@@ -84,12 +84,12 @@ func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 		return b
 	}
 
-	if b.cvr.object.Labels == nil {
+	if b.Cvr.object.Labels == nil {
 		return b.WithAnnotationsNew(annotations)
 	}
 
 	for key, value := range annotations {
-		b.cvr.object.Annotations[key] = value
+		b.Cvr.object.Annotations[key] = value
 	}
 	return b
 }
@@ -112,7 +112,7 @@ func (b *Builder) WithAnnotationsNew(annotations map[string]string) *Builder {
 	}
 
 	// override
-	b.cvr.object.Annotations = newannotations
+	b.Cvr.object.Annotations = newannotations
 	return b
 }
 
@@ -127,7 +127,7 @@ func (b *Builder) WithOwnerRefernceNew(ownerRefernce []metav1.OwnerReference) *B
 		return b
 	}
 
-	b.cvr.object.OwnerReferences = ownerRefernce
+	b.Cvr.object.OwnerReferences = ownerRefernce
 	return b
 }
 
@@ -142,12 +142,12 @@ func (b *Builder) WithLabels(labels map[string]string) *Builder {
 		return b
 	}
 
-	if b.cvr.object.Labels == nil {
+	if b.Cvr.object.Labels == nil {
 		return b.WithLabelsNew(labels)
 	}
 
 	for key, value := range labels {
-		b.cvr.object.Labels[key] = value
+		b.Cvr.object.Labels[key] = value
 	}
 	return b
 }
@@ -170,7 +170,7 @@ func (b *Builder) WithLabelsNew(labels map[string]string) *Builder {
 	}
 
 	// override
-	b.cvr.object.Labels = newlbls
+	b.Cvr.object.Labels = newlbls
 	return b
 }
 
@@ -184,7 +184,7 @@ func (b *Builder) WithTargetIP(targetip string) *Builder {
 		)
 		return b
 	}
-	b.cvr.object.Spec.TargetIP = targetip
+	b.Cvr.object.Spec.TargetIP = targetip
 	return b
 }
 
@@ -198,7 +198,7 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 		)
 		return b
 	}
-	b.cvr.object.Spec.Capacity = capacity
+	b.Cvr.object.Spec.Capacity = capacity
 	return b
 }
 
@@ -213,15 +213,15 @@ func (b *Builder) WithFinalizers(finalizers []string) *Builder {
 		return b
 	}
 
-	if b.cvr.object.Finalizers == nil {
+	if b.Cvr.object.Finalizers == nil {
 		return b.WithFinalizersNew(finalizers)
 	}
 	// copy of original slice
 	newfinalizers := []string{}
 	newfinalizers = append(newfinalizers, finalizers...)
 
-	b.cvr.object.Finalizers = append(
-		b.cvr.object.Finalizers,
+	b.Cvr.object.Finalizers = append(
+		b.Cvr.object.Finalizers,
 		newfinalizers...,
 	)
 	return b
@@ -243,7 +243,7 @@ func (b *Builder) WithFinalizersNew(finalizers []string) *Builder {
 	newfinalizers = append(newfinalizers, finalizers...)
 
 	// override
-	b.cvr.object.Finalizers = newfinalizers
+	b.Cvr.object.Finalizers = newfinalizers
 	return b
 }
 
@@ -252,5 +252,5 @@ func (b *Builder) Build() (*apis.CStorVolumeReplica, error) {
 	if len(b.errs) > 0 {
 		return nil, errors.Errorf("%+v", b.errs)
 	}
-	return b.cvr.object, nil
+	return b.Cvr.object, nil
 }

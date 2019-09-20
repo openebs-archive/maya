@@ -26,8 +26,9 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	cvrv1alpha1 "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
-	hash "github.com/openebs/maya/pkg/hash/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	pkg_errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -37,6 +38,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+)
+
+var (
+	upgradeMap = map[string]upgradeFunc{
+		"1.0.0-1.3.0": setReplicaID,
+		"1.1.0-1.3.0": setReplicaID,
+		"1.2.0-1.3.0": setReplicaID,
+	}
 )
 
 // CVRPatch struct represent the struct used to patch
@@ -550,17 +559,18 @@ func (c *CStorVolumeReplicaController) upgrade(cvr *apis.CStorVolumeReplica) (
 		if !isDesiredVersionValid(cvr) {
 			return nil, pkg_errors.Errorf("invalid desired version %s", cvr.VersionDetails.Desired)
 		}
-		replicaID, err := hash.Hash(cvr.UID)
-		if err != nil {
-			return nil, pkg_errors.Wrapf(
-				err,
-				"failed to generate ReplicaID for cvr %s",
-				cvr.Name,
-			)
+		path := strings.Split(cvr.VersionDetails.Current, "-")[0] + "-" +
+			strings.Split(cvr.VersionDetails.Desired, "-")[0]
+		u := &upgradeOptions{
+			cvr:    cvr,
+			client: c.clientset,
 		}
-		cvr.Spec.ReplicaID = replicaID
+		cvr, err := upgradeMap[path](u)
+		if err != nil {
+			return nil, err
+		}
 		cvr.VersionDetails.Current = cvr.VersionDetails.Desired
-		obj, err := c.clientset.OpenebsV1alpha1().
+		cvr, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumeReplicas(cvr.Namespace).Update(cvr)
 		if err != nil {
 			return nil, pkg_errors.Wrap(
@@ -568,19 +578,7 @@ func (c *CStorVolumeReplicaController) upgrade(cvr *apis.CStorVolumeReplica) (
 				"failed to update CVR with versionDetails",
 			)
 		}
-		volname, err := volumereplica.GetVolumeName(cvr)
-		if err != nil {
-			return nil, err
-		}
-		err = volumereplica.SetReplicaID(replicaID, volname)
-		if err != nil {
-			return nil, pkg_errors.Wrapf(
-				err,
-				"failed to execute zfs set command for cvr %s",
-				cvr.Name,
-			)
-		}
-		return obj, nil
+		return cvr, nil
 	}
 	return cvr, nil
 }
@@ -593,13 +591,14 @@ func (c *CStorVolumeReplicaController) populateVersion(cvr *apis.CStorVolumeRepl
 	// 1.3.0 onwards new CSP will have the field populated during creation
 	if v < "1.3.0" && cvr.VersionDetails.Current == "" {
 		cvr.VersionDetails.Current = v
+		cvr.VersionDetails.Desired = v
 		obj, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cvr.Namespace).
 			Update(cvr)
 
 		if err != nil {
-			return nil, pkg_errors.Wrap(err, "failed to update SPC while adding versiondetails")
+			return nil, pkg_errors.Wrap(err, "failed to update cvr while adding versiondetails")
 		}
-		klog.Infof("Version %s added on storagepoolclaim %s", v, cvr.Name)
+		klog.Infof("Version %s added on cvr %s", v, cvr.Name)
 		return obj, nil
 	}
 	return cvr, nil
@@ -615,4 +614,45 @@ func isDesiredVersionValid(cvr *apis.CStorVolumeReplica) bool {
 	validVersions := []string{"1.3.0"}
 	version := strings.Split(cvr.VersionDetails.Desired, "-")[0]
 	return util.ContainsString(validVersions, version)
+}
+
+type upgradeOptions struct {
+	cvr    *apis.CStorVolumeReplica
+	client clientset.Interface
+}
+
+type upgradeFunc func(u *upgradeOptions) (*apis.CStorVolumeReplica, error)
+
+func setReplicaID(u *upgradeOptions) (*apis.CStorVolumeReplica, error) {
+	cvr := u.cvr
+	replicaID, err := cvrv1alpha1.BuilderForAPIObject(cvr).Cvr.GetReplicaID()
+	if err != nil {
+		return nil, pkg_errors.Wrapf(
+			err,
+			"failed to get ReplicaID for cvr %s",
+			cvr.Name,
+		)
+	}
+	cvr.Spec.ReplicaID = replicaID
+	cvr, err = u.client.OpenebsV1alpha1().
+		CStorVolumeReplicas(cvr.Namespace).Update(cvr)
+	if err != nil {
+		return nil, pkg_errors.Wrap(
+			err,
+			"failed to update CVR with replicaid",
+		)
+	}
+	volname, err := volumereplica.GetVolumeName(cvr)
+	if err != nil {
+		return nil, err
+	}
+	err = volumereplica.SetReplicaID(replicaID, volname)
+	if err != nil {
+		return nil, pkg_errors.Wrapf(
+			err,
+			"failed to execute zfs set command for cvr %s",
+			cvr.Name,
+		)
+	}
+	return cvr, nil
 }

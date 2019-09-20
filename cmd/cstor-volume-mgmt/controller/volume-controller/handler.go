@@ -29,6 +29,7 @@ import (
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/common"
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/volume"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	"github.com/openebs/maya/pkg/client/k8s"
 	cstorvolume_v1alpha1 "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -38,6 +39,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+)
+
+var (
+	upgradeMap = map[string]upgradeFunc{
+		"1.0.0-1.3.0": setDesiredRF,
+		"1.1.0-1.3.0": setDesiredRF,
+		"1.2.0-1.3.0": setDesiredRF,
+	}
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -585,15 +594,17 @@ func (c *CStorVolumeController) upgrade(cv *apis.CStorVolume) (*apis.CStorVolume
 		if !isDesiredVersionValid(cv) {
 			return nil, pkg_errors.Errorf("invalid desired version %s", cv.VersionDetails.Desired)
 		}
-		// Set new field DesiredReplicationFactor as ReplicationFactor
-		cv.Spec.DesiredReplicationFactor = cv.Spec.ReplicationFactor
-		cv.VersionDetails.Current = cv.VersionDetails.Desired
-		obj, err := c.clientset.OpenebsV1alpha1().
-			CStorVolumes(cv.Namespace).Update(cv)
-		if err != nil {
-			return nil, pkg_errors.Wrap(err, "failed to update cstorvolume")
+		path := strings.Split(cv.VersionDetails.Current, "-")[0] + "-" +
+			strings.Split(cv.VersionDetails.Desired, "-")[0]
+		u := &upgradeOptions{
+			cv:     cv,
+			client: c.clientset,
 		}
-		return obj, nil
+		cv, err := upgradeMap[path](u)
+		if err != nil {
+			return nil, err
+		}
+		return cv, nil
 	}
 	return cv, nil
 }
@@ -606,6 +617,7 @@ func (c *CStorVolumeController) populateVersion(cv *apis.CStorVolume) (
 	// 1.3.0 onwards new CV will have the field populated during creation
 	if v < "1.3.0" && cv.VersionDetails.Current == "" {
 		cv.VersionDetails.Current = v
+		cv.VersionDetails.Desired = v
 		obj, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cv.Namespace).
 			Update(cv)
 
@@ -628,4 +640,24 @@ func isDesiredVersionValid(cv *apis.CStorVolume) bool {
 	validVersions := []string{"1.3.0"}
 	version := strings.Split(cv.VersionDetails.Desired, "-")[0]
 	return util.ContainsString(validVersions, version)
+}
+
+type upgradeOptions struct {
+	cv     *apis.CStorVolume
+	client clientset.Interface
+}
+
+type upgradeFunc func(u *upgradeOptions) (*apis.CStorVolume, error)
+
+func setDesiredRF(u *upgradeOptions) (*apis.CStorVolume, error) {
+	cv := u.cv
+	// Set new field DesiredReplicationFactor as ReplicationFactor
+	cv.Spec.DesiredReplicationFactor = cv.Spec.ReplicationFactor
+	cv.VersionDetails.Current = cv.VersionDetails.Desired
+	cv, err := u.client.OpenebsV1alpha1().
+		CStorVolumes(cv.Namespace).Update(cv)
+	if err != nil {
+		return nil, pkg_errors.Wrap(err, "failed to update cstorvolume")
+	}
+	return cv, nil
 }
