@@ -552,6 +552,7 @@ func (c *CStorVolumeReplicaController) syncCvr(cvr *apis.CStorVolumeReplica) {
 func (c *CStorVolumeReplicaController) upgrade(cvr *apis.CStorVolumeReplica) (
 	*apis.CStorVolumeReplica, error,
 ) {
+	var err error
 	if cvr.VersionDetails.Current != cvr.VersionDetails.Desired {
 		if !isCurrentVersionValid(cvr) {
 			return nil, pkg_errors.Errorf("invalid current version %s", cvr.VersionDetails.Current)
@@ -565,7 +566,7 @@ func (c *CStorVolumeReplicaController) upgrade(cvr *apis.CStorVolumeReplica) (
 			cvr:    cvr,
 			client: c.clientset,
 		}
-		cvr, err := upgradeMap[path](u)
+		cvr, err = upgradeMap[path](u)
 		if err != nil {
 			return nil, err
 		}

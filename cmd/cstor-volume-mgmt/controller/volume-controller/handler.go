@@ -587,6 +587,7 @@ func IsOnlyStatusChange(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
 }
 
 func (c *CStorVolumeController) upgrade(cv *apis.CStorVolume) (*apis.CStorVolume, error) {
+	var err error
 	if cv.VersionDetails.Current != cv.VersionDetails.Desired {
 		if !isCurrentVersionValid(cv) {
 			return nil, pkg_errors.Errorf("invalid current version %s", cv.VersionDetails.Current)
@@ -600,7 +601,7 @@ func (c *CStorVolumeController) upgrade(cv *apis.CStorVolume) (*apis.CStorVolume
 			cv:     cv,
 			client: c.clientset,
 		}
-		cv, err := upgradeMap[path](u)
+		cv, err = upgradeMap[path](u)
 		if err != nil {
 			return nil, err
 		}
