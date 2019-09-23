@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"strings"
 	"text/template"
+	"time"
 
 	"k8s.io/klog"
 
@@ -113,7 +114,7 @@ func patchCSP(cspObj *apis.CStorPool) error {
 	cspVersion := cspObj.Labels["openebs.io/version"]
 	if cspVersion == currentVersion {
 		tmpl, err := template.New("cspPatch").
-			Parse(templates.OpenebsVersionPatch)
+			Parse(templates.VersionDetailsPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for csp patch")
 		}
@@ -231,6 +232,19 @@ func (c *cstorCSPOptions) preUpgrade(cspName, openebsNamespace string) error {
 	return nil
 }
 
+func (c *cstorCSPOptions) waitForCurrentVersion() error {
+	for c.cspObj.VersionDetails.Current == "" {
+		obj, err := cspClient.Get(c.cspObj.Name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		c.cspObj = obj
+		// Sleep equal to the default sync time
+		time.Sleep(30 * time.Second)
+	}
+	return nil
+}
+
 func (c *cstorCSPOptions) poolInstanceUpgarde(openebsNamespace string) error {
 	var err, uerr error
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.PoolInstanceUpgrade}
@@ -244,6 +258,17 @@ func (c *cstorCSPOptions) poolInstanceUpgarde(openebsNamespace string) error {
 	err = patchCSPDeploy(c.cspDeployObj, openebsNamespace)
 	if err != nil {
 		statusObj.Message = "failed to patch cstor pool deployment"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
+		return err
+	}
+
+	err = c.waitForCurrentVersion()
+	if err != nil {
+		statusObj.Message = "failed to verify versiondetails for cstor pool"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
 		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {

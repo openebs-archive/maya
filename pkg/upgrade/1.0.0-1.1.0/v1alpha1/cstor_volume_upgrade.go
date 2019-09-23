@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"strings"
 	"text/template"
+	"time"
 
 	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -156,7 +157,7 @@ func patchCV(pvLabel, namespace string) error {
 	}
 	if version == currentVersion {
 		tmpl, err := template.New("cvPatch").
-			Parse(templates.OpenebsVersionPatch)
+			Parse(templates.VersionDetailsPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for cstorvolume patch")
 		}
@@ -198,7 +199,7 @@ func patchCVR(cvrName, namespace string) error {
 	}
 	if version == currentVersion {
 		tmpl, err := template.New("cvPatch").
-			Parse(templates.OpenebsVersionPatch)
+			Parse(templates.VersionDetailsPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for cstorvolumereplica patch")
 		}
@@ -318,6 +319,31 @@ func (c *cstorVolumeOptions) preUpgrade(pvName, openebsNamespace string) error {
 	return nil
 }
 
+func waitForCVCurrentVersion(pvLabel, namespace string) error {
+	cvList, err := cvClient.WithNamespace(namespace).List(
+		metav1.ListOptions{
+			LabelSelector: pvLabel,
+		},
+	)
+	if err != nil {
+		return err
+	}
+	if len(cvList.Items) == 0 {
+		return errors.Errorf("cstorvolume not found")
+	}
+	cvObject := cvList.Items[0]
+	for cvObject.VersionDetails.Current == "" {
+		obj, err := cvClient.Get(cvObject.Name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		cvObject = *obj
+		// Sleep equal to the default sync time
+		time.Sleep(30 * time.Second)
+	}
+	return nil
+}
+
 func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) error {
 	var (
 		err, uerr          error
@@ -346,6 +372,17 @@ func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) erro
 	err = patchService(targetServiceLabel, c.ns)
 	if err != nil {
 		statusObj.Message = "failed to patch target service"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
+		return err
+	}
+
+	err = waitForCVCurrentVersion(pvLabel, c.ns)
+	if err != nil {
+		statusObj.Message = "failed to verify version details for cstor volume"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
 		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 		if uerr != nil && isENVPresent {

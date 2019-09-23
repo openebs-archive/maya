@@ -20,6 +20,7 @@ import (
 	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 )
@@ -72,6 +73,24 @@ func spcUpgrade(spcName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			}
 		}
 	}
+	err = updateSPC(spcName)
+	if err != nil {
+		return nil, err
+	}
 	klog.Infof("Upgrade Successful for spc %s", spcName)
 	return nil, nil
+}
+
+func updateSPC(name string) error {
+	client := spc.NewKubeClient()
+	spcObj, err := client.Get(name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	spcObj.VersionDetails.Desired = upgradeVersion
+	_, err = client.Update(spcObj)
+	if err != nil {
+		return err
+	}
+	return nil
 }

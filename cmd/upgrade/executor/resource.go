@@ -135,7 +135,7 @@ func (u *UpgradeOptions) RunResourceUpgrade(cmd *cobra.Command) error {
 	to := strings.Split(u.toVersion, "-")[0]
 
 	switch from + "-" + to {
-	case "1.0.0-1.1.0", "1.0.0-1.2.0", "1.1.0-1.2.0":
+	case "1.0.0-1.3.0", "1.1.0-1.3.0", "1.2.0-1.3.0":
 		klog.Infof("Upgrading to %s", u.toVersion)
 		err := upgrade100to120.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,

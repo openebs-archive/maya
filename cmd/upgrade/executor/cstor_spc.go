@@ -91,7 +91,7 @@ func (u *UpgradeOptions) RunCStorSPCUpgrade(cmd *cobra.Command) error {
 			klog.Error(err)
 			return errors.Errorf("Failed to upgrade cStor SPC %v:", u.cstorSPC.spcName)
 		}
-	case "1.0.0-1.1.0", "1.0.0-1.2.0", "1.1.0-1.2.0":
+	case "1.0.0-1.3.0", "1.1.0-1.3.0", "1.2.0-1.3.0":
 		klog.Infof("Upgrading to %s", u.toVersion)
 		err := upgrade100to120.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
