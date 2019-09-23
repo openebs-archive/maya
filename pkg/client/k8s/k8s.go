@@ -832,6 +832,18 @@ func (k *K8sClient) ListAppsV1B1DeploymentAsRaw(opts mach_apis_meta_v1.ListOptio
 	return
 }
 
+// ListAppsV1DeploymentAsRaw fetches a list of K8s apps/v1 Deployments as per the
+// provided options
+func (k *K8sClient) ListAppsV1DeploymentAsRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+	result, err = k.cs.AppsV1().RESTClient().Get().
+		Namespace(k.ns).
+		Resource("deployments").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		DoRaw()
+	err = errors.WithStack(err)
+	return
+}
+
 // ListOEV1alpha1BlockDeviceRaw fetches a list of BlockDevices as per the
 // provided options
 func (k *K8sClient) ListOEV1alpha1BlockDeviceRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
@@ -1117,6 +1129,18 @@ func (k *K8sClient) PatchExtnV1B1DeploymentAsRaw(name string, patchType types.Pa
 	return
 }
 
+// PatchAppsV1DeploymentAsRaw patches the K8s Deployment with the provided patches
+func (k *K8sClient) PatchAppsV1DeploymentAsRaw(name string, patchType types.PatchType, patches []byte) (result []byte, err error) {
+	result, err = k.cs.AppsV1().RESTClient().Patch(patchType).
+		Namespace(k.ns).
+		Resource("deployments").
+		Name(name).
+		Body(patches).
+		DoRaw()
+
+	return
+}
+
 // PatchCoreV1ServiceAsRaw patches the K8s Service with the provided patches
 func (k *K8sClient) PatchCoreV1ServiceAsRaw(name string, patchType types.PatchType, patches []byte) (result []byte, err error) {
 	result, err = k.cs.CoreV1().RESTClient().Patch(patchType).
@@ -1188,6 +1212,16 @@ func (k *K8sClient) CreateAppsV1Deployment(d *api_apps_v1.Deployment) (*api_apps
 // DeleteAppsV1B1Deployment deletes the K8s Deployment with the provided name
 func (k *K8sClient) DeleteAppsV1B1Deployment(name string) error {
 	dops := k.appsV1B1DeploymentOps()
+	// ensure all the dependants are deleted
+	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
+	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+		PropagationPolicy: &deletePropagation,
+	})
+}
+
+// DeleteAppsV1Deployment deletes the K8s Deployment with the provided name
+func (k *K8sClient) DeleteAppsV1Deployment(name string) error {
+	dops := k.appsV1DeploymentOps()
 	// ensure all the dependants are deleted
 	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
 	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
