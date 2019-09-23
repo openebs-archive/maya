@@ -629,7 +629,7 @@ func (c *CStorVolumeController) populateVersion(cv *apis.CStorVolume) (
 			Update(cv)
 
 		if err != nil {
-			return nil, pkg_errors.Wrap(err, "failed to update cstorvolume while adding versiondetails")
+			return nil, err
 		}
 		klog.Infof("Version %s added on cstorvolume %s", v, cv.Name)
 		return obj, nil

@@ -574,10 +574,7 @@ func (c *CStorVolumeReplicaController) upgrade(cvr *apis.CStorVolumeReplica) (
 		cvr, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumeReplicas(cvr.Namespace).Update(cvr)
 		if err != nil {
-			return nil, pkg_errors.Wrap(
-				err,
-				"failed to update CVR with versionDetails",
-			)
+			return nil, err
 		}
 		return cvr, nil
 	}
@@ -597,7 +594,7 @@ func (c *CStorVolumeReplicaController) populateVersion(cvr *apis.CStorVolumeRepl
 			Update(cvr)
 
 		if err != nil {
-			return nil, pkg_errors.Wrap(err, "failed to update cvr while adding versiondetails")
+			return nil, err
 		}
 		klog.Infof("Version %s added on cvr %s", v, cvr.Name)
 		return obj, nil
