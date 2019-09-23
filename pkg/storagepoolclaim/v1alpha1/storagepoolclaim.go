@@ -345,7 +345,7 @@ func (l *SPCList) GetPoolUIDs() []string {
 // EstimateSPCVersion returns the csp version if any csp is present for the spc or
 // returns the maya version as the new csp created will be of maya version
 func (spc *SPC) EstimateSPCVersion() (string, error) {
-	var v string
+
 	cspList, err := csp.KubeClient().List(
 		metav1.ListOptions{
 			LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Object.Name,
@@ -353,14 +353,13 @@ func (spc *SPC) EstimateSPCVersion() (string, error) {
 	if err != nil {
 		return "", errors.Wrapf(
 			err,
-			"failed to get csplist for %s to add version details",
+			"failed to get the csp list related to spc : %s",
 			spc.Object.Name,
 		)
 	}
 	if len(cspList.Items) == 0 {
-		v = version.Current()
-	} else {
-		v = cspList.Items[0].Labels[string(apis.OpenEBSVersionKey)]
+		return version.Current(), nil
 	}
-	return v, nil
+	return cspList.Items[0].Labels[string(apis.OpenEBSVersionKey)], nil
+
 }

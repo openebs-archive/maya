@@ -568,7 +568,7 @@ func (c *CStorPoolController) upgrade(csp *apis.CStorPool) (*apis.CStorPool, err
 		csp.VersionDetails.Current = csp.VersionDetails.Desired
 		csp, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(csp)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to update SPC with versionDetails")
+			return nil, errors.Wrap(err, "failed to update csp with versionDetails")
 		}
 		return csp, nil
 	}
@@ -588,9 +588,9 @@ func (c *CStorPoolController) populateVersion(csp *apis.CStorPool) (
 			Update(csp)
 
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to update SPC while adding versiondetails")
+			return nil, errors.Wrap(err, "failed to update csp while adding versiondetails")
 		}
-		klog.Infof("Version %s added on storagepoolclaim %s", v, csp.Name)
+		klog.Infof("Version %s added on csp %s", v, csp.Name)
 		return obj, nil
 	}
 	return csp, nil
