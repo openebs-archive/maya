@@ -7,6 +7,7 @@ import (
 
 
 var (
+	// Logger facilitates logging with alert format
 	Logger = initLogger()
 )
 
