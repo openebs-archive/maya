@@ -26,7 +26,7 @@ type CStorVolumeClaim struct {
 	object *apis.CStorVolumeClaim
 }
 
-// List is a list of cstorvolumeclaim objects
+// CStorVolumeClaimList is a list of cstorvolumeclaim objects
 type CStorVolumeClaimList struct {
 	// list of cstor volume claims
 	items []*CStorVolumeClaim
