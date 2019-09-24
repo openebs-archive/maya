@@ -43,6 +43,9 @@ const (
 	// SuccessSynced is used as part of the Event 'reason' when a
 	// cstorvolumeclaim is synced
 	SuccessSynced = "Synced"
+	// Provisioning is used as part of the Event 'reason' when a
+	// cstorvolumeclaim is in provisioning stage
+	Provisioning = "Provisioning"
 	// ErrResourceExists is used as part of the Event 'reason' when a
 	// cstorvolumeclaim fails to sync due to a cstorvolumeclaim of the same
 	// name already existing.
@@ -55,6 +58,8 @@ const (
 	MessageResourceSynced = "cstorvolumeclaim synced successfully"
 	// MessageResourceCreated msg used for cstor volume provisioning success event
 	MessageResourceCreated = "cstorvolumeclaim created successfully"
+	// MessageCVCPublished msg used for cstor volume provisioning publish events
+	MessageCVCPublished = "cstorvolumeclaim %q must be published/attached on node"
 	// CStorVolumeClaimFinalizer name of finalizer on CStorVolumeClaim that
 	// are bound by CStorVolume
 	CStorVolumeClaimFinalizer = "cvc.openebs.io/finalizer"
@@ -156,13 +161,21 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 		// We choose to absorb the error here as the worker would requeue the
 		// resource otherwise. Instead, the next time the resource is updated
 		// the resource will be queued again.
-		runtime.HandleError(fmt.Errorf("cvc must be publish/attached to Node: %v", cvc))
+		runtime.HandleError(fmt.Errorf("cvc must be publish/attached to Node: %+v", cvc))
+		c.recorder.Event(cvc, corev1.EventTypeWarning,
+			Provisioning,
+			fmt.Sprintf(MessageCVCPublished, cvc.Name),
+		)
 		return nil
 	}
 
 	if cvc.Status.Phase == apis.CStorVolumeClaimPhasePending {
-		klog.Infof("provisioning cstor volume %+v", cvc)
-		cvc, err = c.createVolumeOperation(cvc)
+		klog.V(2).Infof("provisioning cstor volume %+v", cvc)
+		_, err = c.createVolumeOperation(cvc)
+		if err != nil {
+			//Record an event to indicate that any provisioning operation is failed.
+			c.recorder.Eventf(cvc, corev1.EventTypeWarning, Provisioning, err.Error())
+		}
 	}
 	// If an error occurs during Get/Create, we'll requeue the item so we can
 	// attempt processing again later. This could have been caused by a
