@@ -133,7 +133,7 @@ func (l *LeaderElection) WithRetryPeriod(retryPeriod time.Duration) {
 	l.retryPeriod = retryPeriod
 }
 
-// Run ...
+// Run starts the leader loop
 func (l *LeaderElection) Run() error {
 	if l.identity == "" {
 		id, err := defaultLeaderElectionIdentity()
@@ -180,7 +180,8 @@ func (l *LeaderElection) Run() error {
 			},
 		},
 	}
-
+	// RunOrDie starts a client with the provided config or panics if the
+	// leaderconfig fails to validate.
 	leaderelection.RunOrDie(context.TODO(), leaderConfig)
 	return nil // should never reach here
 }

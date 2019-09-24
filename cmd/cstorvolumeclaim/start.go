@@ -39,8 +39,9 @@ import (
 )
 
 var (
-	masterURL              string
-	kubeconfig             string
+	masterURL  string
+	kubeconfig string
+	// lease lock resource name for lease API resource
 	leaderElectionLockName = "cvc-controller-leader"
 )
 
@@ -50,7 +51,7 @@ var (
 	leaderElectionNamespace = flag.String("leader-election-namespace", "", "The namespace where the leader election resource exists. Defaults to the pod namespace if not set.")
 )
 
-// Start starts the cstor-operator.
+// Start starts the cstorvolumeclaim controller.
 func Start(controllerMtx *sync.RWMutex) error {
 	// Get in cluster config
 	cfg, err := getClusterConfig(kubeconfig)
