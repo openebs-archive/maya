@@ -31,6 +31,7 @@ import (
 	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
+	cvc "github.com/openebs/maya/pkg/cstorvolumeclaim/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	kubeclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
@@ -55,7 +56,8 @@ import (
 )
 
 const (
-	maxRetry = 30
+	maxRetry         = 30
+	openebsNamespace = "openebs"
 )
 
 // Options holds the args used for exec'ing into the pod
@@ -80,6 +82,7 @@ type Operations struct {
 	SPCClient      *spc.Kubeclient
 	SVCClient      *svc.Kubeclient
 	CVClient       *cv.Kubeclient
+	CVCClient      *cvc.Kubeclient
 	CSPCClient     *cspc.Kubeclient
 	CVRClient      *cvr.Kubeclient
 	URClient       *result.Kubeclient
@@ -180,6 +183,9 @@ func (ops *Operations) withDefaults() {
 	if ops.CVClient == nil {
 		ops.CVClient = cv.NewKubeclient(cv.WithKubeConfigPath(ops.KubeConfigPath))
 	}
+	if ops.CVCClient == nil {
+		ops.CVCClient = cvc.NewKubeclient(cvc.WithKubeConfigPath(ops.KubeConfigPath))
+	}
 	if ops.CVRClient == nil {
 		ops.CVRClient = cvr.NewKubeclient(cvr.WithKubeConfigPath(ops.KubeConfigPath))
 	}
@@ -279,6 +285,15 @@ func (ops *Operations) GetCstorVolumeReplicaCountEventually(namespace, lselector
 		120, 10).Should(Equal(expectedCVRCount))
 }
 
+// GetCstorVolumeClaimCountEventually gives the count of cstorvolume claim
+func (ops *Operations) GetCstorVolumeClaimCountEventually(namespace, cvcName string, expectedCVCCount int) bool {
+	return Eventually(func() int {
+		cvcCount := ops.GetCstorVolumeClaimCount(namespace, cvcName)
+		return cvcCount
+	},
+		120, 10).Should(Equal(expectedCVCCount))
+}
+
 // GetPodRunningCount gives number of pods running currently
 func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 	pods, err := ops.PodClient.
@@ -316,6 +331,16 @@ func (ops *Operations) GetCstorVolumeReplicaCount(namespace, lselector string) i
 		WithFilter(cvr.IsHealthy()).
 		List().
 		Len()
+}
+
+// GetCstorVolumeClaimCount gives cstorVolumeClaim healthy count currently
+func (ops *Operations) GetCstorVolumeClaimCount(namespace, cvcName string) int {
+	_, err := ops.CVCClient.WithNamespace(openebsNamespace).Get(cvcName, metav1.GetOptions{})
+	if k8serrors.IsNotFound(err) {
+		return 0
+	}
+	Expect(err).ShouldNot(HaveOccurred())
+	return 1
 }
 
 // GetReadyNodes gives cstorvolumereplica healthy count currently based on selecter

@@ -163,7 +163,7 @@ func createAndVerifyPVC() {
 	)
 
 	By("creating above pvc")
-	_, err = ops.PVCClient.WithNamespace(nsObj.Name).Create(pvcObj)
+	pvcObj, err = ops.PVCClient.WithNamespace(nsObj.Name).Create(pvcObj)
 	Expect(err).To(
 		BeNil(),
 		"while creating pvc {%s} in namespace {%s}",
@@ -175,6 +175,14 @@ func createAndVerifyPVC() {
 	status := ops.IsPVCBoundEventually(pvcName)
 	Expect(status).To(Equal(true),
 		"while checking status equal to bound")
+
+	pvcObj, err = ops.PVCClient.WithNamespace(nsObj.Name).Get(pvcObj.Name, metav1.GetOptions{})
+	Expect(err).To(
+		BeNil(),
+		"while retrieving pvc {%s} in namespace {%s}",
+		pvcName,
+		nsObj.Name,
+	)
 }
 
 func createDeployVerifyApp() {
@@ -284,8 +292,13 @@ func verifyTargetPodCount(count int) {
 
 func verifyCstorVolumeReplicaCount(count int) {
 	targetVolumeLabel := pvLabel + pvcObj.Spec.VolumeName
-	cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, targetVolumeLabel, count)
-	Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
+	isReqCVRCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, targetVolumeLabel, count)
+	Expect(isReqCVRCount).To(Equal(true), "while checking cstorvolume replica count")
+}
+
+func verifyCstorVolumeClaimCount(count int) {
+	isReqCVCCount := ops.GetCstorVolumeClaimCountEventually(openebsNamespace, pvcObj.Spec.VolumeName, count)
+	Expect(isReqCVCCount).To(Equal(true), "while checking cstorvolume claim count")
 }
 
 func restartAppPodAndVerifyRunningStatus() {
