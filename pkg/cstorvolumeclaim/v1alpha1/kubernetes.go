@@ -77,8 +77,7 @@ type updateFn func(
 // patching csi volume instance
 type patchFn func(
 	cli *clientset.Clientset,
-	oldCVC *apis.CStorVolumeClaim,
-	newCVC *apis.CStorVolumeClaim,
+	oldCVC, newCVC *apis.CStorVolumeClaim,
 	subresources ...string,
 ) (*apis.CStorVolumeClaim, error)
 
@@ -194,8 +193,7 @@ func defaultCreate(
 // a cstorvolumeclaim instance in kubernetes cluster
 func defaultPatch(
 	cli *clientset.Clientset,
-	oldCVC *apis.CStorVolumeClaim,
-	newCVC *apis.CStorVolumeClaim,
+	oldCVC, newCVC *apis.CStorVolumeClaim,
 	subresources ...string,
 ) (*apis.CStorVolumeClaim, error) {
 	patchBytes, err := getPatchData(oldCVC, newCVC)
@@ -472,8 +470,7 @@ func (k *Kubeclient) Update(
 // Patch patches this cstorvolumeclaim instance
 // against kubernetes cluster
 func (k *Kubeclient) Patch(
-	oldCVC *apis.CStorVolumeClaim,
-	newCVC *apis.CStorVolumeClaim,
+	oldCVC, newCVC *apis.CStorVolumeClaim,
 	subresources ...string,
 ) (*apis.CStorVolumeClaim, error) {
 	if oldCVC == nil || newCVC == nil {
