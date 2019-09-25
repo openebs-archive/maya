@@ -17,13 +17,13 @@ limitations under the License.
 package volumereplica
 
 import (
+	"crypto/md5"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
-	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -517,13 +517,14 @@ func capacityOutputParser(output string) *apis.CStorVolumeCapacityAttr {
 
 // GenerateReplicaID generate new replicaID for given CVR
 func GenerateReplicaID(cvr *apis.CStorVolumeReplica) error {
-	if cvr.Spec.ReplicaID != 0 {
+	if len(cvr.Spec.ReplicaID) != 0 {
 		return errors.Errorf("ReplicaID for cvr(%s) is already generated", cvr.Name)
 	}
 
-	cvr.Spec.ReplicaID = binary.BigEndian.Uint64([]byte(cvr.UID))
+	csum := md5.Sum([]byte(cvr.UID))
+	cvr.Spec.ReplicaID = strings.ToUpper(hex.EncodeToString(csum[:]))
 
-	if cvr.Spec.ReplicaID == 0 {
+	if len(cvr.Spec.ReplicaID) == 0 {
 		return errors.Errorf("ReplicaID for cvr(%s) is zero", cvr.Name)
 	}
 	return nil
@@ -532,7 +533,6 @@ func GenerateReplicaID(cvr *apis.CStorVolumeReplica) error {
 // SetReplicaID set replicaID to volume
 func SetReplicaID(cvr *apis.CStorVolumeReplica) error {
 	var err error
-	var rid uint64
 
 	vol, err := GetVolumeName(cvr)
 	if err != nil {
@@ -551,17 +551,10 @@ func SetReplicaID(cvr *apis.CStorVolumeReplica) error {
 	}
 
 	sid := strings.Split(string(ret), "\n")[0]
-	if sid != "" {
-		rid, err = strconv.ParseUint(sid, 10, 64)
-		if err != nil {
-			return errors.Errorf("Failed to parse replicaID(%s) %s", sid, err)
-		}
-	}
 
-	if rid == 0 {
+	if len(sid) == 0 {
 		lr, err := zfs.NewVolumeSetProperty().
-			WithProperty("io.openebs:zvol_replica_id",
-				fmt.Sprintf("%v", cvr.Spec.ReplicaID)).
+			WithProperty("io.openebs:zvol_replica_id", cvr.Spec.ReplicaID).
 			WithDataset(vol).
 			Execute()
 		if err != nil {
@@ -573,7 +566,7 @@ func SetReplicaID(cvr *apis.CStorVolumeReplica) error {
 
 // UpdateReplicaID update replicaID for CVR and set it to volume
 func UpdateReplicaID(cvr *apis.CStorVolumeReplica) error {
-	if cvr.Spec.ReplicaID == 0 {
+	if len(cvr.Spec.ReplicaID) == 0 {
 		if err := GenerateReplicaID(cvr); err != nil {
 			return errors.Errorf("CVR(%s) replicaID generation error %s",
 				cvr.Name, err)
