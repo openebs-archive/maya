@@ -98,6 +98,14 @@ func (u *UpgradeOptions) InitializeFromUpgradeTaskResource(
 		u.toVersion = upgradeTaskCRObj.Spec.ToVersion
 	}
 
+	if len(strings.TrimSpace(upgradeTaskCRObj.Spec.ImagePrefix)) != 0 {
+		u.imageURLPrefix = upgradeTaskCRObj.Spec.ImagePrefix
+	}
+
+	if len(strings.TrimSpace(upgradeTaskCRObj.Spec.ImageTag)) != 0 {
+		u.toVersionImageTag = upgradeTaskCRObj.Spec.ImageTag
+	}
+
 	switch {
 	case upgradeTaskCRObj.Spec.ResourceSpec.JivaVolume != nil:
 		u.resourceKind = "jivaVolume"
