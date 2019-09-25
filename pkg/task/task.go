@@ -460,8 +460,12 @@ func (m *executor) ExecuteIt() (err error) {
 		err = m.putExtnV1B1Deploy()
 	} else if m.MetaExec.isPutAppsV1B1Deploy() {
 		err = m.putAppsV1B1Deploy()
+	} else if m.MetaExec.isPutAppsV1Deploy() {
+		err = m.putAppsV1Deploy()
 	} else if m.MetaExec.isPatchExtnV1B1Deploy() {
 		err = m.patchExtnV1B1Deploy()
+	} else if m.MetaExec.isPatchAppsV1Deploy() {
+		err = m.patchAppsV1Deploy()
 	} else if m.MetaExec.isPatchAppsV1B1Deploy() {
 		err = m.patchAppsV1B1Deploy()
 	} else if m.MetaExec.isPatchOEV1alpha1SPC() {
@@ -486,6 +490,8 @@ func (m *executor) ExecuteIt() (err error) {
 		err = m.getCoreV1Pod()
 	} else if m.MetaExec.isDeleteAppsV1B1Deploy() {
 		err = m.deleteAppsV1B1Deployment()
+	} else if m.MetaExec.isDeleteAppsV1Deploy() {
+		err = m.deleteAppsV1Deployment()
 	} else if m.MetaExec.isDeleteCoreV1Service() {
 		err = m.deleteCoreV1Service()
 	} else if m.MetaExec.isGetOEV1alpha1BlockDevice() {
@@ -619,6 +625,15 @@ func (m *executor) asAppsV1B1Deploy() (*api_apps_v1beta1.Deployment, error) {
 	return d.AsAppsV1B1Deployment()
 }
 
+func (m *executor) asAppsV1Deploy() (*api_apps_v1.Deployment, error) {
+	d, err := m_k8s.NewDeploymentYml("AppsV1Deploy", m.Runtask.Spec.Task, m.Values)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build deployment")
+	}
+
+	return d.AsAppsV1Deployment()
+}
+
 // asExtnV1B1Deploy generates a K8s Deployment object
 // out of the embedded yaml
 func (m *executor) asExtnV1B1Deploy() (*api_extn_v1beta1.Deployment, error) {
@@ -729,6 +744,23 @@ func (m *executor) putAppsV1B1Deploy() error {
 	}
 
 	deploy, err := m.getK8sClient().CreateAppsV1B1DeploymentAsRaw(d)
+	if err != nil {
+		return errors.Wrap(err, "failed to create deployment")
+	}
+
+	util.SetNestedField(m.Values, deploy, string(v1alpha1.CurrentJSONResultTLP))
+	return nil
+}
+
+// putAppsV1Deploy will create (i.e. apply to a kubernetes cluster) a Deployment
+// object. The Deployment specs is configured in the RunTask.
+func (m *executor) putAppsV1Deploy() error {
+	d, err := m.asAppsV1Deploy()
+	if err != nil {
+		return errors.Wrap(err, "failed to create deployment")
+	}
+
+	deploy, err := m.getK8sClient().CreateAppsV1DeploymentAsRaw(d)
 	if err != nil {
 		return errors.Wrap(err, "failed to create deployment")
 	}
@@ -970,6 +1002,38 @@ func (m *executor) patchCstorPool() (err error) {
 	return
 }
 
+// patchAppsV1B1Deploy will patch a Deployment object where patch specifications
+// are configured in the RunTask
+func (m *executor) patchAppsV1Deploy() error {
+	patch, err := asTaskPatch("AppsV1DeployPatch", m.Runtask.Spec.Task, m.Values)
+	if err != nil {
+		return errors.Wrap(err, "failed to patch deployment")
+	}
+
+	pe, err := newTaskPatchExecutor(patch)
+	if err != nil {
+		return errors.Wrap(err, "failed to patch deployment")
+	}
+
+	raw, err := pe.toJson()
+	if err != nil {
+		return errors.Wrap(err, "failed to patch deployment")
+	}
+
+	// patch the deployment
+	deploy, err := m.getK8sClient().PatchAppsV1DeploymentAsRaw(
+		m.getTaskObjectName(),
+		pe.patchType(),
+		raw,
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to patch deployment")
+	}
+
+	util.SetNestedField(m.Values, deploy, string(v1alpha1.CurrentJSONResultTLP))
+	return nil
+}
+
 // patchAppsV1B1Deploy will patch a Deployment object in a kubernetes cluster.
 // The patch specifications as configured in the RunTask
 func (m *executor) patchAppsV1B1Deploy() (err error) {
@@ -1050,6 +1114,21 @@ func (m *executor) deleteAppsV1B1Deployment() error {
 
 	for _, name := range objectNames {
 		err := m.getK8sClient().DeleteAppsV1B1Deployment(strings.TrimSpace(name))
+		if err != nil {
+			return errors.Wrapf(err, "failed to delete deployment {%s}", name)
+		}
+	}
+
+	return nil
+}
+
+// deleteAppsV1Deployment will delete one or
+// more Deployments as specified in the RunTask
+func (m *executor) deleteAppsV1Deployment() error {
+	objectNames := strings.Split(strings.TrimSpace(m.getTaskObjectName()), ",")
+
+	for _, name := range objectNames {
+		err := m.getK8sClient().DeleteAppsV1Deployment(strings.TrimSpace(name))
 		if err != nil {
 			return errors.Wrapf(err, "failed to delete deployment {%s}", name)
 		}
@@ -1615,6 +1694,8 @@ func (m *executor) listK8sResources() (err error) {
 		op, err = m.listV1alpha1VolumeSnapshot(opts)
 	} else if m.MetaExec.isListAppsV1B1Deploy() {
 		op, err = kc.ListAppsV1B1DeploymentAsRaw(opts)
+	} else if m.MetaExec.isListAppsV1Deploy() {
+		op, err = kc.ListAppsV1DeploymentAsRaw(opts)
 	} else if m.MetaExec.isListCoreV1PVC() {
 		op, err = kc.ListCoreV1PVCAsRaw(opts)
 	} else if m.MetaExec.isListCoreV1PV() {

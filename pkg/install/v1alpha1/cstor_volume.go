@@ -407,7 +407,7 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     runNamespace: {{ .TaskResult.cvolcreateputsvc.derivedNS }}
-    apiVersion: apps/v1beta1
+    apiVersion: apps/v1
     kind: Deployment
     action: put
     id: cvolcreateputctrl
@@ -430,7 +430,7 @@ spec:
     {{- $targetTolerationVal := fromYaml .Config.TargetTolerations.value -}}
     {{- $isQueueDepth := .Config.QueueDepth.value | default "" -}}
     {{- $isLuworkers := .Config.Luworkers.value | default "" -}}
-    apiVersion: apps/v1beta1
+    apiVersion: apps/v1
     Kind: Deployment
     metadata:
       name: {{ .Volume.owner }}-target
@@ -1099,7 +1099,7 @@ spec:
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     runNamespace: {{ .TaskResult.deletelistcsv.derivedNS }}
     id: deletelistctrl
-    apiVersion: apps/v1beta1
+    apiVersion: apps/v1
     kind: Deployment
     action: list
     options: |-
@@ -1157,7 +1157,7 @@ spec:
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     runNamespace: {{ .TaskResult.deletelistcsv.derivedNS }}
     id: deletedeletectrl
-    apiVersion: apps/v1beta1
+    apiVersion: apps/v1
     kind: Deployment
     action: delete
     objectName: {{ .TaskResult.deletelistctrl.names }}
