@@ -61,15 +61,6 @@ func (c *CStorVolumeController) syncHandler(
 	if err != nil {
 		return err
 	}
-	status, err := c.cStorVolumeEventHandler(operation, cStorVolumeGot)
-	if status == common.CVStatusIgnore {
-		return nil
-	}
-	cStorVolumeGot.Status.LastUpdateTime = metav1.Now()
-	if cStorVolumeGot.Status.Phase != apis.CStorVolumePhase(status) {
-		cStorVolumeGot.Status.LastTransitionTime = cStorVolumeGot.Status.LastUpdateTime
-		cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(status)
-	}
 	cStorVolumeObj, err := c.populateVersion(cStorVolumeGot)
 	if err != nil {
 		klog.Errorf("failed to add versionDetails to cstorvolume %s:%s", cStorVolumeGot.Name, err.Error())
@@ -81,6 +72,15 @@ func (c *CStorVolumeController) syncHandler(
 		return err
 	}
 	cStorVolumeGot = cStorVolumeObj
+	status, err := c.cStorVolumeEventHandler(operation, cStorVolumeGot)
+	if status == common.CVStatusIgnore {
+		return nil
+	}
+	cStorVolumeGot.Status.LastUpdateTime = metav1.Now()
+	if cStorVolumeGot.Status.Phase != apis.CStorVolumePhase(status) {
+		cStorVolumeGot.Status.LastTransitionTime = cStorVolumeGot.Status.LastUpdateTime
+		cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(status)
+	}
 	if err != nil {
 		klog.Errorf(err.Error())
 		klog.Infof("cStorVolume:%v, %v; Status: %v", cStorVolumeGot.Name,
