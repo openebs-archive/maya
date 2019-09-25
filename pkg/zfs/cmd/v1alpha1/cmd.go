@@ -20,11 +20,12 @@ import (
 	vclone "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/clone"
 	vcreate "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/create"
 	vdestroy "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/destroy"
-	vproperty "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/property"
+	vget "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/get"
 	vsnapshotrecv "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/receive"
 	vrename "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/rename"
 	vrollback "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/rollback"
 	vsnapshotsend "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/send"
+	vset "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/set"
 	vsnapshot "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/snapshot"
 	padd "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/add"
 	pattach "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zpool/attach"
@@ -120,9 +121,14 @@ func NewPoolCreate() *pcreate.PoolCreate {
 	return &pcreate.PoolCreate{}
 }
 
-// NewVolumeProperty returns new instance of object VolumeProperty
-func NewVolumeProperty() *vproperty.VolumeProperty {
-	return &vproperty.VolumeProperty{}
+// NewVolumeGetProperty returns new instance of object VolumeGetProperty
+func NewVolumeGetProperty() *vget.VolumeGetProperty {
+	return &vget.VolumeGetProperty{}
+}
+
+// NewVolumeSetProperty returns new instance of object VolumeSetProperty
+func NewVolumeSetProperty() *vset.VolumeSetProperty {
+	return &vset.VolumeSetProperty{}
 }
 
 // NewVolumeRollback returns new instance of object VolumeRollback

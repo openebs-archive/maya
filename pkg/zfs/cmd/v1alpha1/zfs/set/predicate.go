@@ -14,42 +14,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vproperty
+package vset
 
 // PredicateFunc defines data-type for validation function
-type PredicateFunc func(*VolumeProperty) bool
+type PredicateFunc func(*VolumeSetProperty) bool
 
-// IsProplistSet method check if the Proplist field of VolumeProperty object is set.
+// IsProplistSet method check if the Proplist field of VolumeSetProperty object is set.
 func IsProplistSet() PredicateFunc {
-	return func(v *VolumeProperty) bool {
+	return func(v *VolumeSetProperty) bool {
 		return len(v.Proplist) != 0
 	}
 }
 
-// IsOpSet method check if the OpSet field of VolumeProperty object is set.
-func IsOpSet() PredicateFunc {
-	return func(v *VolumeProperty) bool {
-		return v.OpSet
-	}
-}
-
-// IsDatasetSet method check if the Dataset field of VolumeProperty object is set.
+// IsDatasetSet method check if the Dataset field of VolumeSetProperty object is set.
 func IsDatasetSet() PredicateFunc {
-	return func(v *VolumeProperty) bool {
+	return func(v *VolumeSetProperty) bool {
 		return len(v.Dataset) != 0
 	}
 }
 
-// IsSnapshotSet method check if the Snapshot field of VolumeProperty object is set.
+// IsSnapshotSet method check if the Snapshot field of VolumeSetProperty object is set.
 func IsSnapshotSet() PredicateFunc {
-	return func(v *VolumeProperty) bool {
+	return func(v *VolumeSetProperty) bool {
 		return len(v.Snapshot) != 0
 	}
 }
 
-// IsCommandSet method check if the Command field of VolumeProperty object is set.
+// IsCommandSet method check if the Command field of VolumeSetProperty object is set.
 func IsCommandSet() PredicateFunc {
-	return func(v *VolumeProperty) bool {
+	return func(v *VolumeSetProperty) bool {
 		return len(v.Command) != 0
 	}
 }
