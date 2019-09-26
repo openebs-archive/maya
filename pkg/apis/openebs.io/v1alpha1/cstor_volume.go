@@ -69,10 +69,13 @@ type CStorVolumeStatus struct {
 	// +optional
 	// +patchMergeKey=type
 	// +patchStrategy=merge
-	Conditions     []CStorVolumeCondition    `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,4,rep,name=conditions"`
+	Conditions []CStorVolumeCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,4,rep,name=conditions"`
+	//ReplicaDetails refers to the trusty replica information
 	ReplicaDetails CStorVolumeReplicaDetails `json:"replicaDetails,omitempty"`
 }
 
+// CStorVolumeReplicaDetails contains trusty replica inform which will be
+// updated by target
 type CStorVolumeReplicaDetails struct {
 	// KnownReplicas represents the replicas that target can trust to read data
 	KnownReplicas map[string]uint64 `json:"knownReplicas,omitempty"`

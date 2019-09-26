@@ -234,6 +234,8 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 	return nil
 }
 
+//ExecuteDesiredReplicationFactorCommand executes istgtcontrol command to update
+//desired replication factor
 func ExecuteDesiredReplicationFactorCommand(cStorVolume *apis.CStorVolume) error {
 	// send desiredReplicationFactor command to istgt and read the response
 	drfCmd := getDRFCommand(cStorVolume)
@@ -258,6 +260,9 @@ func ExecuteDesiredReplicationFactorCommand(cStorVolume *apis.CStorVolume) error
 	return nil
 }
 
+//getResizeCommand will return data required to execute istgtcontrol drf
+//command
+//Ex command: drf <vol_name> <value>
 func getDRFCommand(cstorVolume *apis.CStorVolume) string {
 	return fmt.Sprintf("%s %s %d", util.IstgtDRFCmd,
 		cstorVolume.Name,
