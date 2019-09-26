@@ -41,12 +41,13 @@ var (
 )
 
 // Reader reads the data from wire untill error or endOfLine occurs
+// Reader will break only when client is sending \r\n or EOF occured
 func Reader(r io.Reader) (string, error) {
-	req := []string{}
+	var req []string
+	buf := make([]byte, 1024)
 	//collect bytes into fulllines buffer till the end of line character is reached
 	completeBytes := []byte{}
 	for {
-		buf := make([]byte, 1024)
 		n, err := r.Read(buf[:])
 		if err != nil {
 			if err == io.EOF {
@@ -58,12 +59,16 @@ func Reader(r io.Reader) (string, error) {
 		if n > 0 {
 			completeBytes = append(completeBytes, buf[0:n]...)
 			if strings.HasSuffix(string(completeBytes), endOfLine) {
+				// Since we are ending only when \r\n bytes are present in
+				// completeBytes to extract \r\n need to perform below steps
 				lines := strings.Split(string(completeBytes), endOfLine)
+				// here we are excluding \r\n
 				for _, line := range lines {
 					if len(line) != 0 {
-						req = append(req, line+endOfLine)
+						req = append(req, line)
 					}
 				}
+				req = append(req, string(completeBytes))
 				break
 			}
 		}
@@ -71,8 +76,9 @@ func Reader(r io.Reader) (string, error) {
 	return fmt.Sprintf("%s", req), nil
 }
 
+//TODO: Once tested need to remove commented code
 // GetRequiredData returns error if doesn't have json format
-func GetRequiredData(data string) (string, error) {
+func GetJsonData(data string) (string, error) {
 	jsonBeginIndex := strings.Index(data, "{")
 	jsonEndIndex := strings.LastIndex(data, "}")
 	if jsonBeginIndex >= jsonEndIndex {
@@ -85,7 +91,7 @@ func GetRequiredData(data string) (string, error) {
 func ServeRequest(conn net.Conn, kubeClient *cstorv1alpha1.Kubeclient) {
 	var err error
 	var readData, filteredData string
-	defer func(err error) {
+	defer func() {
 		if err != nil {
 			_, er := conn.Write([]byte(respErr + endOfLine))
 			if er != nil {
@@ -97,13 +103,16 @@ func ServeRequest(conn net.Conn, kubeClient *cstorv1alpha1.Kubeclient) {
 				klog.Errorf("failed to inform to client")
 			}
 		}
-	}(err)
+		// TODO: How can we verify data written on wire is reached to client?
+		defer conn.Close()
+	}()
 	readData, err = Reader(conn)
 	if err != nil {
 		klog.Errorf("failed to read data: {%v}", err)
 		return
 	}
-	filteredData, err = GetRequiredData(readData)
+	//TODO: Not required but need to test below function
+	filteredData, err = GetJsonData(readData)
 	if err != nil {
 		klog.Errorf("failed to get required information: {%v}", err)
 		return
@@ -152,11 +161,12 @@ func StartTargetServer(kubeConfig string) {
 	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
 	go func(ln net.Listener, c chan os.Signal) {
 		sig := <-c
-		klog.Fatalf("Caught signal %s: shutting down", sig)
 		err := ln.Close()
 		if err != nil {
 			klog.Errorf("failed to close the connection error: %v", err)
 		}
+		klog.Errorf("Caught signal %s: shutting down", sig)
+		os.Exit(-1)
 	}(listen, sigc)
 
 	// Since we are reading kubeClient there is no need to taking lock
@@ -167,7 +177,7 @@ func StartTargetServer(kubeConfig string) {
 	for {
 		sockFd, err := listen.Accept()
 		if err != nil {
-			klog.Fatalf("failed to accept error: {%v}", err)
+			klog.Errorf("failed to accept error: {%v}", err)
 		}
 		go ServeRequest(sockFd, kubeClient)
 	}

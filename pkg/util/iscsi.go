@@ -31,6 +31,7 @@ const (
 	WaitTimeForIscsi     = 3 * time.Second
 	// IstgtResizeCmd holds the command to trigger resize
 	IstgtResizeCmd = "RESIZE"
+	IstgtDRFCmd    = "DRF"
 )
 
 func CheckForIscsi(UnixSockVar UnixSock) {

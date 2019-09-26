@@ -90,6 +90,7 @@ var (
   AuthGroup None
   UseDigest Auto
   ReadOnly No
+  DesiredReplicationFactor {{.Spec.DesiredReplicationFactor}}
   ReplicationFactor {{.Spec.ReplicationFactor}}
   ConsistencyFactor {{.Spec.ConsistencyFactor}}
   UnitType Disk
@@ -138,7 +139,6 @@ func CreateVolumeTarget(cStorVolume *apis.CStorVolume) error {
 	}
 	klog.Info("Creating Iscsi Volume Successful")
 	return nil
-
 }
 
 // GetVolumeStatus retrieves an array of replica statuses.
@@ -220,15 +220,49 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 		}
 	}
 	updateStorageVal := fmt.Sprintf("  LUN0 Storage %s 32K", cStorVolume.Spec.Capacity.String())
+	cvapis.ConfFileMutex.Lock()
 	err = FileOperatorVar.Updatefile(util.IstgtConfPath, updateStorageVal, "LUN0 Storage", 0644)
 	if err != nil {
+		cvapis.ConfFileMutex.Unlock()
 		return errors.Wrapf(err,
 			"failed to update %s file with %s details",
 			util.IstgtConfPath,
 			updateStorageVal)
 	}
+	cvapis.ConfFileMutex.Unlock()
 	klog.Infof("Updated '%s' file with capacity '%s'", util.IstgtConfPath, updateStorageVal)
 	return nil
+}
+
+func ExecuteDesiredReplicationFactorCommand(cStorVolume *apis.CStorVolume) error {
+	// send desiredReplicationFactor command to istgt and read the response
+	drfCmd := getDRFCommand(cStorVolume)
+	sockResp, err := UnixSockVar.SendCommand(drfCmd)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to execute istgtcontrol %s command on volume %s",
+			util.IstgtDRFCmd,
+			cStorVolume.Name)
+	}
+	for _, resp := range sockResp {
+		if strings.Contains(resp, "ERR") {
+			return errors.Errorf(
+				"failed to execute istgtcontrol %s command on volume %s resp: %s",
+				util.IstgtDRFCmd,
+				cStorVolume.Name,
+				resp,
+			)
+		}
+	}
+	return nil
+}
+
+func getDRFCommand(cstorVolume *apis.CStorVolume) string {
+	return fmt.Sprintf("%s %s %d", util.IstgtDRFCmd,
+		cstorVolume.Name,
+		cstorVolume.Spec.DesiredReplicationFactor,
+	)
 }
 
 // getResizeCommand returns resize used to resize volumes
@@ -259,15 +293,20 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 	if cStorVolume.Spec.Capacity.IsZero() {
 		return fmt.Errorf("capacity cannot be zero")
 	}
+	if cStorVolume.Spec.DesiredReplicationFactor == 0 {
+		return fmt.Errorf("DesiredReplicationFacto cannot be zero")
+	}
 	if cStorVolume.Spec.ReplicationFactor == 0 {
 		return fmt.Errorf("replicationFactor cannot be zero")
 	}
 	if cStorVolume.Spec.ConsistencyFactor == 0 {
 		return fmt.Errorf("consistencyFactor cannot be zero")
 	}
+	if cStorVolume.Spec.DesiredReplicationFactor < cStorVolume.Spec.ReplicationFactor {
+		return fmt.Errorf("desiredReplicationFactor cannot be less than ReplicationFactor")
+	}
 	if cStorVolume.Spec.ReplicationFactor < cStorVolume.Spec.ConsistencyFactor {
 		return fmt.Errorf("replicationFactor cannot be less than consistencyFactor")
 	}
-
 	return nil
 }
