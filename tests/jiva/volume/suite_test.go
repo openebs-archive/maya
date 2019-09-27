@@ -14,8 +14,7 @@ limitations under the License.
 package volume
 
 import (
-	"strconv"
-
+	"encoding/json"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -24,11 +23,9 @@ import (
 	"github.com/openebs/maya/tests/artifacts"
 	"github.com/openebs/maya/tests/jiva"
 
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	jivaClient "github.com/openebs/maya/pkg/client/jiva"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
-	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	// auth plugins
@@ -37,12 +34,9 @@ import (
 
 var (
 	namespace             = "jiva-volume-ns"
-	scName                = "jiva-volume-sc"
 	openebsCASConfigValue = "- name: ReplicaCount\n  Value: "
 	openebsProvisioner    = "openebs.io/provisioner-iscsi"
 	namespaceObj          *corev1.Namespace
-	scObj                 *storagev1.StorageClass
-	annotations           = map[string]string{}
 	err                   error
 )
 
@@ -60,9 +54,6 @@ var ops *tests.Operations
 var _ = BeforeSuite(func() {
 
 	ops = tests.NewOperations(tests.WithKubeConfigPath(jiva.KubeConfigPath))
-
-	annotations[string(apis.CASTypeKey)] = string(apis.JivaVolume)
-	annotations[string(apis.CASConfigKey)] = openebsCASConfigValue + strconv.Itoa(jiva.ReplicaCount)
 
 	By("waiting for maya-apiserver pod to come into running state")
 	podCount := ops.GetPodRunningCountEventually(
@@ -86,31 +77,44 @@ var _ = BeforeSuite(func() {
 		APIObject()
 	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", namespace)
 
-	By("building a storageclass")
-	scObj, err = sc.NewBuilder().
-		WithGenerateName(scName).
-		WithAnnotations(annotations).
-		WithProvisioner(openebsProvisioner).Build()
-	Expect(err).ShouldNot(HaveOccurred(), "while building storageclass {%s}", scName)
-
 	By("creating a namespace")
 	namespaceObj, err = ops.NSClient.Create(namespaceObj)
 	Expect(err).To(BeNil(), "while creating namespace {%s}", namespaceObj.GenerateName)
 
-	By("creating a storageclass")
-	scObj, err = ops.SCClient.Create(scObj)
-	Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.GenerateName)
-
 })
 
 var _ = AfterSuite(func() {
-
-	By("deleting storageclass")
-	err = ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
-	Expect(err).To(BeNil(), "while deleting storageclass {%s}", scObj.Name)
 
 	By("deleting namespace")
 	err = ops.NSClient.Delete(namespaceObj.Name, &metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "while deleting namespace {%s}", namespaceObj.Name)
 
 })
+
+func areReplicasRegisteredEventually(ctrlPod *corev1.Pod, replicationFactor int) bool {
+	return Eventually(func() int {
+		out, err := ops.PodClient.WithNamespace(ctrlPod.Namespace).
+			Exec(
+				ctrlPod.Name,
+				&corev1.PodExecOptions{
+					Command: []string{
+						"/bin/bash",
+						"-c",
+						"curl http://localhost:9501/v1/volumes",
+					},
+					Container: ctrlPod.Spec.Containers[0].Name,
+					Stdin:     false,
+					Stdout:    true,
+					Stderr:    true,
+				},
+			)
+		Expect(err).ShouldNot(HaveOccurred(), "while exec in application pod")
+
+		volumes := jivaClient.VolumeCollection{}
+		err = json.Unmarshal([]byte(out.Stdout), &volumes)
+		Expect(err).To(BeNil(), "while unmarshalling volumes %s", out.Stdout)
+
+		return volumes.Data[0].ReplicaCount
+	},
+		300, 10).Should(Equal(replicationFactor))
+}

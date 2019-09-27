@@ -18,41 +18,44 @@ package volume
 
 import (
 	"strconv"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
+	"github.com/openebs/maya/tests/artifacts"
 	"github.com/openebs/maya/tests/jiva"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var (
-	accessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	capacity    = "5G"
-	podList     *corev1.PodList
-)
-
-var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
+var _ = Describe("[jiva] TEST VOLUME PROVISIONING IN OPENEBS NAMESPACE", func() {
 
 	var (
-		pvcObj       *corev1.PersistentVolumeClaim
-		scObj        *storagev1.StorageClass
-		scName       = "jiva-volume-sc"
-		pvcName      = "jiva-volume-claim"
-		pvcLabel     = "openebs.io/persistent-volume-claim=" + pvcName
-		ctrlLabel    = jiva.CtrlLabel + "," + pvcLabel
-		replicaLabel = jiva.ReplicaLabel + "," + pvcLabel
-		annotations  = map[string]string{}
+		pvcObj                *corev1.PersistentVolumeClaim
+		scObj                 *storagev1.StorageClass
+		scName                = "jiva-volume-sc-openebs-ns"
+		pvcName               = "jiva-volume-claim-openebs-ns"
+		pvcLabel              = "openebs.io/persistent-volume-claim=" + pvcName
+		ctrlLabel             = jiva.CtrlLabel + "," + pvcLabel
+		replicaLabel          = jiva.ReplicaLabel + "," + pvcLabel
+		annotations           = map[string]string{}
+		openebsCASConfigValue = `
+- name: ReplicaCount
+  value: $count
+- name: DeployInOpenEBSNamespace
+  enabled: true
+`
 	)
 
 	When("jiva pvc with replicacount n is created", func() {
 		It("should create 1 controller pod and n replica pod", func() {
+			CASConfig := strings.Replace(openebsCASConfigValue, "$count", strconv.Itoa(jiva.ReplicaCount), 1)
 			annotations[string(apis.CASTypeKey)] = string(apis.JivaVolume)
-			annotations[string(apis.CASConfigKey)] = openebsCASConfigValue + strconv.Itoa(jiva.ReplicaCount)
+			annotations[string(apis.CASConfigKey)] = CASConfig
 
 			By("building a storageclass")
 			scObj, err = sc.NewBuilder().
@@ -90,7 +93,7 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 
 			By("verifying controller pod count")
 			controllerPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				string(artifacts.OpenebsNamespace),
 				ctrlLabel,
 				1,
 			)
@@ -101,7 +104,7 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 
 			By("verifying replica pod count ")
 			replicaPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				string(artifacts.OpenebsNamespace),
 				replicaLabel,
 				jiva.ReplicaCount,
 			)
@@ -121,24 +124,24 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 		It("should register replica pods successfully", func() {
 
 			By("deleting controller pod")
-			podList, err = ops.PodClient.List(
+			podList, err = ops.PodClient.WithNamespace(string(artifacts.OpenebsNamespace)).List(
 				metav1.ListOptions{LabelSelector: ctrlLabel},
 			)
 			Expect(err).ShouldNot(HaveOccurred(), "while listing controller pod")
-			err = ops.PodClient.WithNamespace(namespaceObj.Name).
+			err = ops.PodClient.WithNamespace(string(artifacts.OpenebsNamespace)).
 				Delete(podList.Items[0].Name, &metav1.DeleteOptions{})
 			Expect(err).ShouldNot(HaveOccurred(), "while deleting controller pod")
 
 			By("verifying deleted pod is terminated")
 			status := ops.IsPodDeletedEventually(
-				namespaceObj.Name,
+				string(artifacts.OpenebsNamespace),
 				podList.Items[0].Name,
 			)
 			Expect(status).To(Equal(true), "while checking for deleted pod")
 
 			By("verifying controller pod count")
 			controllerPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				string(artifacts.OpenebsNamespace),
 				ctrlLabel,
 				1,
 			)
@@ -179,14 +182,14 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 			Expect(err).ShouldNot(HaveOccurred(), "while listing replica pods")
 
 			By("deleting replica pods")
-			err = ops.PodClient.WithNamespace(namespaceObj.Name).
+			err = ops.PodClient.WithNamespace(string(artifacts.OpenebsNamespace)).
 				DeleteCollection(metav1.ListOptions{LabelSelector: replicaLabel},
 					&metav1.DeleteOptions{})
 			Expect(err).ShouldNot(HaveOccurred(), "while deleting replica pods")
 
 			By("verifying deleted pods are terminated")
 			for _, p := range podList.Items {
-				status := ops.IsPodDeletedEventually(namespaceObj.Name, p.Name)
+				status := ops.IsPodDeletedEventually(string(artifacts.OpenebsNamespace), p.Name)
 				Expect(status).To(
 					Equal(true),
 					"while checking for deleted pod {%s}",
@@ -195,7 +198,7 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 			}
 			By("verifying replica pod count")
 			replicaPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				string(artifacts.OpenebsNamespace),
 				replicaLabel,
 				jiva.ReplicaCount,
 			)
@@ -223,12 +226,12 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 				BeNil(),
 				"while deleting pvc {%s} in namespace {%s}",
 				pvcName,
-				namespaceObj.Name,
+				string(artifacts.OpenebsNamespace),
 			)
 
 			By("verifying controller pod count as 0")
 			controllerPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				string(artifacts.OpenebsNamespace),
 				ctrlLabel,
 				0,
 			)
@@ -239,7 +242,7 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 
 			By("verifying replica pod count as 0")
 			replicaPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				string(artifacts.OpenebsNamespace),
 				replicaLabel,
 				0,
 			)
