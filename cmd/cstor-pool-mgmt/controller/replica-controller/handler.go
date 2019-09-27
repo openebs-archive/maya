@@ -280,10 +280,6 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 				"CStorVolumeReplica %v is already imported",
 				string(cVR.ObjectMeta.UID),
 			)
-			if err := volumereplica.UpdateReplicaID(cVR); err != nil {
-				klog.Errorf("Failed to update replicaID for %s..  %s", cVR.Name, err)
-				return string(apis.CVRStatusOffline), err
-			}
 
 			c.recorder.Event(
 				cVR,
@@ -311,11 +307,6 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 			string(common.AlreadyPresent),
 			string(common.MessageResourceAlreadyPresent),
 		)
-		// If user has perform upgrade then replicaID may not be set
-		if err := volumereplica.UpdateReplicaID(cVR); err != nil {
-			klog.Errorf("Failed to update replicaID for %s..  %s", cVR.Name, err)
-			return string(apis.CVRStatusOffline), err
-		}
 		// If the volume already present then return the cvr status as online
 		return string(apis.CVRStatusOnline), nil
 	}
@@ -337,6 +328,9 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 				klog.Errorf("cVR ReplicaID creation failure: %v", err.Error())
 				return string(apis.CVRStatusOffline), err
 			}
+		}
+		if len(cVR.Spec.ReplicaID) == 0 {
+			return string(apis.CVRStatusOffline), merrors.New("ReplicaID is not set")
 		}
 
 		err := volumereplica.CreateVolumeReplica(cVR, fullVolName, quorum)

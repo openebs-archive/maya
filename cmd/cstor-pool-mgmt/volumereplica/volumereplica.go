@@ -17,16 +17,15 @@ limitations under the License.
 package volumereplica
 
 import (
-	"crypto/md5"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	"encoding/hex"
 	"encoding/json"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/hash"
 	"github.com/openebs/maya/pkg/util"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
 	"github.com/pkg/errors"
@@ -521,12 +520,11 @@ func GenerateReplicaID(cvr *apis.CStorVolumeReplica) error {
 		return errors.Errorf("ReplicaID for cvr(%s) is already generated", cvr.Name)
 	}
 
-	csum := md5.Sum([]byte(cvr.UID))
-	cvr.Spec.ReplicaID = strings.ToUpper(hex.EncodeToString(csum[:]))
-
-	if len(cvr.Spec.ReplicaID) == 0 {
-		return errors.Errorf("ReplicaID for cvr(%s) is zero", cvr.Name)
+	csum, err := hash.Hash(cvr.UID)
+	if err != nil {
+		return err
 	}
+	cvr.Spec.ReplicaID = strings.ToUpper(csum)
 	return nil
 }
 
@@ -560,12 +558,15 @@ func SetReplicaID(cvr *apis.CStorVolumeReplica) error {
 		if err != nil {
 			return errors.Errorf("Failed to set replicaID %s %s", err, string(lr))
 		}
+	} else if cvr.Spec.ReplicaID != sid {
+		return errors.Errorf("ReplicaID mismatch.. actual(%s) on-disk(%s)", cvr.Spec.ReplicaID, sid)
 	}
+
 	return nil
 }
 
-// UpdateReplicaID update replicaID for CVR and set it to volume
-func UpdateReplicaID(cvr *apis.CStorVolumeReplica) error {
+// GetAndUpdateReplicaID update replicaID for CVR and set it to volume
+func GetAndUpdateReplicaID(cvr *apis.CStorVolumeReplica) error {
 	if len(cvr.Spec.ReplicaID) == 0 {
 		if err := GenerateReplicaID(cvr); err != nil {
 			return errors.Errorf("CVR(%s) replicaID generation error %s",
