@@ -216,10 +216,12 @@ func (c *CVCController) updateCVCObj(
 
 	_, err := c.clientset.OpenebsV1alpha1().CStorVolumeClaims(cvc.Namespace).Update(cvcCopy)
 
-	c.recorder.Event(cvc, corev1.EventTypeNormal,
-		SuccessSynced,
-		MessageResourceCreated,
-	)
+	if err == nil {
+		c.recorder.Event(cvc, corev1.EventTypeNormal,
+			SuccessSynced,
+			MessageResourceCreated,
+		)
+	}
 	return err
 }
 
