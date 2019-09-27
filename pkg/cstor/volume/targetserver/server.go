@@ -77,6 +77,7 @@ func Reader(r io.Reader) (string, error) {
 }
 
 //TODO: Once tested need to remove commented code
+
 // GetRequiredData returns error if doesn't have json format
 func GetJsonData(data string) (string, error) {
 	jsonBeginIndex := strings.Index(data, "{")
@@ -103,8 +104,7 @@ func ServeRequest(conn net.Conn, kubeClient *cstorv1alpha1.Kubeclient) {
 				klog.Errorf("failed to inform to client")
 			}
 		}
-		// TODO: How can we verify data written on wire is reached to client?
-		defer conn.Close()
+		conn.Close()
 	}()
 	readData, err = Reader(conn)
 	if err != nil {
