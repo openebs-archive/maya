@@ -280,6 +280,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 				"CStorVolumeReplica %v is already imported",
 				string(cVR.ObjectMeta.UID),
 			)
+
 			c.recorder.Event(
 				cVR,
 				corev1.EventTypeNormal,
@@ -321,6 +322,17 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 
 	// IsEmptyStatus is to check if initial status of cVR object is empty.
 	if IsEmptyStatus(cVR) || IsInitStatus(cVR) || IsRecreateStatus(cVR) {
+		// We should generate replicaID for new volume only
+		if IsEmptyStatus(cVR) || IsInitStatus(cVR) {
+			if err := volumereplica.GenerateReplicaID(cVR); err != nil {
+				klog.Errorf("cVR ReplicaID creation failure: %v", err.Error())
+				return string(apis.CVRStatusOffline), err
+			}
+		}
+		if len(cVR.Spec.ReplicaID) == 0 {
+			return string(apis.CVRStatusOffline), merrors.New("ReplicaID is not set")
+		}
+
 		err := volumereplica.CreateVolumeReplica(cVR, fullVolName, quorum)
 		if err != nil {
 			klog.Errorf("cVR creation failure: %v", err.Error())

@@ -25,7 +25,10 @@ import (
 	"encoding/json"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/hash"
 	"github.com/openebs/maya/pkg/util"
+	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
+	"github.com/pkg/errors"
 	"k8s.io/klog"
 )
 
@@ -176,6 +179,7 @@ func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolNam
 	var cmd []string
 	isClone := cStorVolumeReplica.Labels[string(apis.CloneEnableKEY)] == "true"
 	snapName := ""
+
 	if isClone {
 		srcVolume := cStorVolumeReplica.Annotations[string(apis.SourceVolumeKey)]
 		snapName = cStorVolumeReplica.Annotations[string(apis.SnapshotNameKey)]
@@ -212,6 +216,8 @@ func buildVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, fullV
 	openebsTargetIP := "io.openebs:targetip=" + cStorVolumeReplica.Spec.TargetIP
 	// ZvolWorkers represents number of threads that executes client IOs
 	openebsZvolWorkers := "io.openebs:zvol_workers=" + cStorVolumeReplica.Spec.ZvolWorkers
+	// ReplicaId represents unique identification number for volume
+	openebsZvolID := "io.openebs:zvol_replica_id=" + fmt.Sprintf("%v", cStorVolumeReplica.Spec.ReplicaID)
 
 	quorumValue := "quorum=on"
 	if !quorum {
@@ -220,14 +226,25 @@ func buildVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, fullV
 
 	// set volume property
 	createVolCmd = append(createVolCmd, CreateCmd,
-		"-b", "4K", "-s", "-o", "compression=on", "-o", quorumValue, "-o", openebsVolname)
+		"-b",
+		"4K",
+		"-s",
+		"-o", "compression=on",
+		"-o", quorumValue,
+		"-o", openebsZvolID,
+		"-o", openebsVolname,
+	)
 
 	if len(cStorVolumeReplica.Spec.ZvolWorkers) != 0 {
-		createVolCmd = append(createVolCmd, "-o", openebsZvolWorkers)
+		createVolCmd = append(createVolCmd,
+			"-o", openebsZvolWorkers,
+		)
 	}
 
 	if cStorVolumeReplica.Annotations["isRestoreVol"] != "true" {
-		createVolCmd = append(createVolCmd, "-o", openebsTargetIP)
+		createVolCmd = append(createVolCmd,
+			"-o", openebsTargetIP,
+		)
 	}
 
 	// append volume size and volume name
@@ -242,15 +259,26 @@ func buildVolumeCloneCommand(cStorVolumeReplica *apis.CStorVolumeReplica, snapNa
 	openebsTargetIP := "io.openebs:targetip=" + cStorVolumeReplica.Spec.TargetIP
 	// ZvolWorkers represents number of threads that executes client IOs
 	openebsZvolWorkers := "io.openebs:zvol_workers=" + cStorVolumeReplica.Spec.ZvolWorkers
+	// ReplicaId represents unique identification number for volume
+	openebsZvolID := "io.openebs:zvol_replica_id=" + fmt.Sprintf("%v", cStorVolumeReplica.Spec.ReplicaID)
 
 	if len(cStorVolumeReplica.Spec.ZvolWorkers) != 0 {
 		cloneVolCmd = append(cloneVolCmd, CloneCmd,
-			"-o", "compression=on", "-o", openebsTargetIP, "-o", "quorum=on",
-			"-o", openebsZvolWorkers, "-o", openebsVolname, snapName, fullVolName)
+			"-o", "compression=on",
+			"-o", openebsTargetIP,
+			"-o", "quorum=on",
+			"-o", openebsZvolWorkers,
+			"-o", openebsVolname,
+			"-o", openebsZvolID,
+			snapName, fullVolName)
 	} else {
 		cloneVolCmd = append(cloneVolCmd, CloneCmd,
-			"-o", "compression=on", "-o", openebsTargetIP, "-o", "quorum=on",
-			"-o", openebsVolname, snapName, fullVolName)
+			"-o", "compression=on",
+			"-o", openebsTargetIP,
+			"-o", "quorum=on",
+			"-o", openebsZvolID,
+			"-o", openebsVolname,
+			snapName, fullVolName)
 	}
 	return cloneVolCmd
 }
@@ -484,4 +512,70 @@ func capacityOutputParser(output string) *apis.CStorVolumeCapacityAttr {
 		}
 	}
 	return capacity
+}
+
+// GenerateReplicaID generate new replicaID for given CVR
+func GenerateReplicaID(cvr *apis.CStorVolumeReplica) error {
+	if len(cvr.Spec.ReplicaID) != 0 {
+		return errors.Errorf("ReplicaID for cvr(%s) is already generated", cvr.Name)
+	}
+
+	csum, err := hash.Hash(cvr.UID)
+	if err != nil {
+		return err
+	}
+	cvr.Spec.ReplicaID = strings.ToUpper(csum)
+	return nil
+}
+
+// SetReplicaID set replicaID to volume
+func SetReplicaID(cvr *apis.CStorVolumeReplica) error {
+	var err error
+
+	vol, err := GetVolumeName(cvr)
+	if err != nil {
+		return err
+	}
+
+	ret, err := zfs.NewVolumeGetProperty().
+		WithScriptedMode(true).
+		WithParsableMode(true).
+		WithField("value").
+		WithProperty("io.openebs:zvol_replica_id").
+		WithDataset(vol).
+		Execute()
+	if err != nil {
+		return errors.Errorf("Failed to get replicaID %s", err)
+	}
+
+	sid := strings.Split(string(ret), "\n")[0]
+
+	if len(sid) == 0 {
+		lr, err := zfs.NewVolumeSetProperty().
+			WithProperty("io.openebs:zvol_replica_id", cvr.Spec.ReplicaID).
+			WithDataset(vol).
+			Execute()
+		if err != nil {
+			return errors.Errorf("Failed to set replicaID %s %s", err, string(lr))
+		}
+	} else if cvr.Spec.ReplicaID != sid {
+		return errors.Errorf("ReplicaID mismatch.. actual(%s) on-disk(%s)", cvr.Spec.ReplicaID, sid)
+	}
+
+	return nil
+}
+
+// GetAndUpdateReplicaID update replicaID for CVR and set it to volume
+func GetAndUpdateReplicaID(cvr *apis.CStorVolumeReplica) error {
+	if len(cvr.Spec.ReplicaID) == 0 {
+		if err := GenerateReplicaID(cvr); err != nil {
+			return errors.Errorf("CVR(%s) replicaID generation error %s",
+				cvr.Name, err)
+		}
+	}
+
+	if err := SetReplicaID(cvr); err != nil {
+		return errors.Errorf("Failed to set ReplicaID for CVR(%s).. %s", cvr.Name, err)
+	}
+	return nil
 }
