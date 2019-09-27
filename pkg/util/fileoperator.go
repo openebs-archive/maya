@@ -91,6 +91,7 @@ func (r RealFileOperator) UpdateOrAppendMultipleLines(fileName string,
 		return errors.Wrapf(err, "failed to read %s file", fileName)
 	}
 	lines := strings.Split(string(buffer), "\n")
+	var newLineNum int
 
 	// TODO: We can split above read file into key value pairs and later we can
 	// append with \n and update file
@@ -98,11 +99,22 @@ func (r RealFileOperator) UpdateOrAppendMultipleLines(fileName string,
 	// will be doing after current blockers
 	for key, updatedValue := range keyUpdateValue {
 		found := false
+		newLineNum = -1
 		for index, line := range lines {
 			if strings.Contains(line, key) {
 				lines[index] = updatedValue
 				found = true
+				break
 			}
+			if len(line) == 0 {
+				//To skip new line in case of appending the content
+				newLineNum = index
+			}
+		}
+		if newLineNum != -1 {
+			// Replace the NUL in file with updated value
+			lines[newLineNum] = updatedValue
+			continue
 		}
 		if found == false {
 			lines = append(lines, updatedValue)
