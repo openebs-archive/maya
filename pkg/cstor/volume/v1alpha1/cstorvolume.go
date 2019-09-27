@@ -31,7 +31,7 @@ import (
 
 var (
 	// ConfFileMutex is to hold the lock while updating istgt.conf file
-	ConfFileMutex *sync.Mutex
+	ConfFileMutex = &sync.Mutex{}
 	// IstgtConfPath will locate path for istgt configurations
 	IstgtConfPath = "/usr/local/etc/istgt/istgt.conf"
 	//DesiredReplicationFactorKey is plain text in istgt configuration file informs

@@ -299,7 +299,7 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 		return fmt.Errorf("capacity cannot be zero")
 	}
 	if cStorVolume.Spec.DesiredReplicationFactor == 0 {
-		return fmt.Errorf("DesiredReplicationFacto cannot be zero")
+		return fmt.Errorf("DesiredReplicationFactor cannot be zero")
 	}
 	if cStorVolume.Spec.ReplicationFactor == 0 {
 		return fmt.Errorf("replicationFactor cannot be zero")
@@ -308,7 +308,11 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 		return fmt.Errorf("consistencyFactor cannot be zero")
 	}
 	if cStorVolume.Spec.DesiredReplicationFactor < cStorVolume.Spec.ReplicationFactor {
-		return fmt.Errorf("desiredReplicationFactor cannot be less than ReplicationFactor")
+		return fmt.Errorf("DesiredReplicationFactor %d cannot be less "+
+			"than ReplicationFactor %d",
+			cStorVolume.Spec.DesiredReplicationFactor,
+			cStorVolume.Spec.ReplicationFactor,
+		)
 	}
 	if cStorVolume.Spec.ReplicationFactor < cStorVolume.Spec.ConsistencyFactor {
 		return fmt.Errorf("replicationFactor cannot be less than consistencyFactor")

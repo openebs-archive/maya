@@ -116,6 +116,12 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		// CheckValidVolume is to check if volume attributes are correct.
 		err := volume.CheckValidVolume(cStorVolumeGot)
 		if err != nil {
+			c.recorder.Event(
+				cStorVolumeGot, corev1.EventTypeWarning,
+				string(common.FailureCreate),
+				fmt.Sprintf("failed to create cstorvolume validation "+
+					"failed on cstorvolum error: %v", err),
+			)
 			return common.CVStatusInvalid, err
 		}
 
@@ -134,6 +140,12 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		// Make changes here to run zrepl command and update the data
 		err := volume.CheckValidVolume(cStorVolumeGot)
 		if err != nil {
+			c.recorder.Event(
+				cStorVolumeGot, corev1.EventTypeWarning,
+				string(common.FailureCreate),
+				fmt.Sprintf("failed to update cstorvolume validation "+
+					"failed on cstorvolume errors: %v", err),
+			)
 			return common.CVStatusInvalid, err
 		}
 		if customCVObj.IsDRFPending() {
@@ -221,7 +233,9 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 			cStorVolumeGot.Status.LastTransitionTime = cStorVolumeGot.Status.LastUpdateTime
 		}
 
-		cStorVolumeGot.Status.ReplicaStatuses = volStatus.ReplicaStatuses
+		if volStatus != nil {
+			cStorVolumeGot.Status.ReplicaStatuses = volStatus.ReplicaStatuses
+		}
 		updatedCstorVolume, err := c.clientset.OpenebsV1alpha1().
 			CStorVolumes(cStorVolumeGot.Namespace).
 			Update(cStorVolumeGot)

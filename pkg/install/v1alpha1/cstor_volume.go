@@ -392,6 +392,7 @@ spec:
       status: "Init"
       replicationFactor: {{ $replicaCount }}
       consistencyFactor: {{ div $replicaCount 2 | floor | add1 }}
+      desiredReplicationFactor: {{ $replicaCount }}
     versionDetails:
       current: {{ .CAST.version }}
       desired: {{ .CAST.version }}
