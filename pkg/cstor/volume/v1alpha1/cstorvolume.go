@@ -37,8 +37,9 @@ var (
 	//DesiredReplicationFactorKey is plain text in istgt configuration file informs
 	//about desired replication factor used by target
 	DesiredReplicationFactorKey = "  DesiredReplicationFactor"
-	//TargetNamespace holds key of env where target pod is running
-	TargetNamespace = "CSTOR_TARGET_NAMESPACE"
+	//TargetNamespace is namespace where target pod and cstorvolume is present
+	//and this is updated by addEventHandler function
+	TargetNamespace = ""
 )
 
 const (
@@ -306,6 +307,9 @@ func (csr *CVReplicationDetails) UpdateConfig() error {
 	ConfFileMutex.Lock()
 	err := fileOperator.UpdateOrAppendMultipleLines(IstgtConfPath, configData, 0644)
 	ConfFileMutex.Unlock()
+	if err == nil {
+		klog.V(4).Infof("Successfully updated istgt conf file with %v details\n", csr)
+	}
 	return err
 }
 
@@ -335,43 +339,55 @@ func (csr *CVReplicationDetails) Validate() error {
 
 // UpdateCVWithReplicationDetails updates the cstorvolume with known replicas
 // and updated replication details
-func (csc *CStorVolumeConfig) UpdateCVWithReplicationDetails() error {
-	err := csc.Validate()
+func (csr *CVReplicationDetails) UpdateCVWithReplicationDetails(kubeclient *Kubeclient) error {
+	if kubeclient == nil {
+		return errors.Errorf("failed to update replication details error: empty kubeclient")
+	}
+	err := csr.Validate()
 	if err != nil {
 		return errors.Wrapf(err, "validate errors")
 	}
-	cv, err := csc.Get(csc.VolumeName, metav1.GetOptions{})
+	cv, err := kubeclient.Get(csr.VolumeName, metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "failed to get cstorvolume")
 	}
-	if len(cv.Status.ReplicaDetails.KnownReplicas) >= cv.Spec.DesiredReplicationFactor {
+	_, oldReplica := cv.Status.ReplicaDetails.KnownReplicas[csr.ReplicaID]
+	if !oldReplica &&
+		len(cv.Status.ReplicaDetails.KnownReplicas) >= cv.Spec.DesiredReplicationFactor {
 		return errors.Errorf("can not update cstorvolume %s known replica"+
 			" count %d is greater than or equal to desired replication factor %d",
 			cv.Name, len(cv.Status.ReplicaDetails.KnownReplicas),
 			cv.Spec.DesiredReplicationFactor,
 		)
 	}
-	if cv.Spec.ReplicationFactor > csc.ReplicationFactor {
+	if cv.Spec.ReplicationFactor > csr.ReplicationFactor {
 		return errors.Errorf("requested replication factor {%d}"+
 			" can not be smaller than existing replication factor {%d}",
-			csc.ReplicationFactor, cv.Spec.ReplicationFactor,
+			csr.ReplicationFactor, cv.Spec.ReplicationFactor,
 		)
 	}
-	if cv.Spec.ConsistencyFactor > csc.ConsistencyFactor {
+	if cv.Spec.ConsistencyFactor > csr.ConsistencyFactor {
 		return errors.Errorf("requested consistencyFactor factor {%d}"+
 			" can not be smaller than existing consistencyFactor factor {%d}",
-			csc.ReplicationFactor, cv.Spec.ConsistencyFactor,
+			csr.ReplicationFactor, cv.Spec.ConsistencyFactor,
 		)
 	}
-	cv.Spec.ReplicationFactor = csc.ReplicationFactor
-	cv.Spec.ConsistencyFactor = csc.ConsistencyFactor
+	cv.Spec.ReplicationFactor = csr.ReplicationFactor
+	cv.Spec.ConsistencyFactor = csr.ConsistencyFactor
 	if cv.Status.ReplicaDetails.KnownReplicas == nil {
 		cv.Status.ReplicaDetails.KnownReplicas = map[string]uint64{}
 	}
-	cv.Status.ReplicaDetails.KnownReplicas[csc.ReplicaID] = csc.ReplicaGUID
-	_, err = csc.Update(cv)
-	if err != nil {
-		err = csc.UpdateConfig()
+	cv.Status.ReplicaDetails.KnownReplicas[csr.ReplicaID] = csr.ReplicaGUID
+	_, err = kubeclient.Update(cv)
+	if err == nil {
+		klog.Infof("Successfully updated %s volume with following replication "+
+			"information replication fator: from %d to %d, consistencyFactor from "+
+			"%d to %d and known replica list with replicaId %s and GUID %v",
+			cv.Name, cv.Spec.ReplicationFactor, csr.ReplicationFactor,
+			cv.Spec.ConsistencyFactor, csr.ConsistencyFactor, csr.ReplicaID,
+			csr.ReplicaGUID,
+		)
+		err = csr.UpdateConfig()
 	}
 	return err
 }

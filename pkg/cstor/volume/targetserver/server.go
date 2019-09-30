@@ -23,11 +23,11 @@ import (
 	"os"
 	"strings"
 	"syscall"
+	"time"
 
 	"k8s.io/klog"
 
 	cstorv1alpha1 "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
-	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
 )
 
@@ -68,7 +68,6 @@ func Reader(r io.Reader) (string, error) {
 		n, err := r.Read(buf[:])
 		if err != nil {
 			if err == io.EOF {
-				klog.Info("Reached End Of file")
 				break
 			}
 			return "", errors.Wrapf(err, "failed to read data on wire")
@@ -119,14 +118,10 @@ func ServeRequest(conn net.Conn, kubeClient *cstorv1alpha1.Kubeclient) {
 		klog.Errorf("failed to unmarshal replication data {%v}", err)
 		return
 	}
-	csc := &cstorv1alpha1.CStorVolumeConfig{
-		CVReplicationDetails: replicationData,
-		Kubeclient:           kubeClient,
-	}
-	err = csc.UpdateCVWithReplicationDetails()
+	err = replicationData.UpdateCVWithReplicationDetails(kubeClient)
 	if err != nil {
 		klog.Errorf("failed to update cstorvolume {%s} with details {%v}"+
-			" error: {%v}", csc.VolumeName,
+			" error: {%v}", replicationData.VolumeName,
 			replicationData, err)
 		return
 	}
@@ -134,6 +129,19 @@ func ServeRequest(conn net.Conn, kubeClient *cstorv1alpha1.Kubeclient) {
 
 // StartTargetServer starts the UnixDomainServer
 func StartTargetServer(kubeConfig string) {
+
+	var namespace string
+	for {
+		klog.Info("Waiting for namespace to be populated")
+		if cstorv1alpha1.TargetNamespace != "" {
+			namespace = cstorv1alpha1.TargetNamespace
+			break
+		}
+		// Sleep of 5 secs is good enough since target deployment will be created
+		// only when volume is created
+		time.Sleep(time.Second * 5)
+	}
+	klog.Infof("CstorVolume namespace %s", namespace)
 
 	klog.Info("Starting unix domain server")
 	if err := os.RemoveAll(string(volumeMgmtUnixSock)); err != nil {
@@ -145,13 +153,6 @@ func StartTargetServer(kubeConfig string) {
 		klog.Fatalf("listen error: {%v}", err)
 	}
 	defer listen.Close()
-
-	namespace := env.Get(env.ENVKey(cstorv1alpha1.TargetNamespace))
-	if namespace == "" {
-		klog.Fatalf("failed to get volume namespace empty value for env %s",
-			"CVReplicationDetails",
-		)
-	}
 
 	// Since we are reading kubeClient there is no need to taking lock
 	kubeClient := cstorv1alpha1.NewKubeclient(

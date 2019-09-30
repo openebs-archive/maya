@@ -124,6 +124,9 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 			)
 			return common.CVStatusInvalid, err
 		}
+		// Set TargetNamespace which will be used to volume-mgmt UDS to update
+		//replication information
+		cstorvolume_v1alpha1.TargetNamespace = cStorVolumeGot.Namespace
 
 		err = volume.CreateVolumeTarget(cStorVolumeGot)
 		if err != nil {
