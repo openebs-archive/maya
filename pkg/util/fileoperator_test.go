@@ -155,7 +155,7 @@ func TestUpdateOrAppendMultipleLines(t *testing.T) {
 				"  ConsistencyFactor": "  ConsistencyFactor 3",
 				"  Replica 6162":      "  Replica 6162 6162",
 				"  Replica 6163":      "  Replica 6163 6163",
-				"  Replica 6164":      "  Replica 6163 6164",
+				"  Replica 6164":      "  Replica 6164 6164",
 			},
 			searchString: map[int]string{
 				1: "  Replica 6163 6163",

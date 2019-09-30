@@ -86,11 +86,18 @@ func (r RealFileOperator) Updatefile(fileName, updatedVal, searchString string, 
 // given string
 func (r RealFileOperator) UpdateOrAppendMultipleLines(fileName string,
 	keyUpdateValue map[string]string, perm os.FileMode) error {
+	var newLines []string
 	buffer, err := ioutil.ReadFile(filepath.Clean(fileName))
 	if err != nil {
 		return errors.Wrapf(err, "failed to read %s file", fileName)
 	}
 	lines := strings.Split(string(buffer), "\n")
+	// newLines pointing to lines reference
+	newLines = lines
+	if len(lines[len(lines)-1]) == 0 {
+		// For replacing the NUL in the file
+		newLines = lines[:len(lines)-1]
+	}
 
 	// TODO: We can split above read file into key value pairs and later we can
 	// append with \n and update file
@@ -98,24 +105,19 @@ func (r RealFileOperator) UpdateOrAppendMultipleLines(fileName string,
 	// will be doing after current blockers
 	for key, updatedValue := range keyUpdateValue {
 		found := false
-		for index, line := range lines {
+		for index, line := range newLines {
 			if strings.HasPrefix(line, key) {
-				lines[index] = updatedValue
+				newLines[index] = updatedValue
 				found = true
 				break
 			}
 		}
-		// Replace the NUL in file with updated value
-		if found == false && len(lines[len(lines)-1]) == 0 {
-			lines[len(lines)-1] = updatedValue
-			continue
-		}
 		if found == false {
-			lines = append(lines, updatedValue)
+			newLines = append(newLines, updatedValue)
 		}
 	}
-	newbuffer := strings.Join(lines, "\n")
-	klog.V(4).Infof("content in a file %s\n", lines)
+	newbuffer := strings.Join(newLines, "\n")
+	klog.V(4).Infof("content in a file %s\n", newLines)
 	err = r.Write(fileName, []byte(newbuffer), perm)
 	return err
 }
