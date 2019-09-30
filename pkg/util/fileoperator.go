@@ -95,7 +95,7 @@ func (r RealFileOperator) UpdateOrAppendMultipleLines(fileName string,
 
 	// TODO: We can split above read file into key value pairs and later we can
 	// append with \n and update file
-	// TODO: Use regular expresion to replcae key value pairs
+	// TODO: Use regular expresion to replace key value pairs
 	// will be doing after current blockers
 	for key, updatedValue := range keyUpdateValue {
 		found := false
