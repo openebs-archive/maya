@@ -570,8 +570,7 @@ func (c *CStorVolumeReplicaController) upgrade(cvr *apis.CStorVolumeReplica) (
 		if !isDesiredVersionValid(cvr) {
 			return nil, pkg_errors.Errorf("invalid desired version %s", cvr.VersionDetails.Desired)
 		}
-		path := strings.Split(cvr.VersionDetails.Current, "-")[0] + "-" +
-			strings.Split(cvr.VersionDetails.Desired, "-")[0]
+		path := upgradePath(cvr)
 		u := &upgradeParams{
 			cvr:    cvr,
 			client: c.clientset,
@@ -622,6 +621,11 @@ func isDesiredVersionValid(cvr *apis.CStorVolumeReplica) bool {
 	validVersions := []string{"1.3.0"}
 	version := strings.Split(cvr.VersionDetails.Desired, "-")[0]
 	return util.ContainsString(validVersions, version)
+}
+
+func upgradePath(cvr *apis.CStorVolumeReplica) string {
+	return strings.Split(cvr.VersionDetails.Current, "-")[0] + "-" +
+		strings.Split(cvr.VersionDetails.Desired, "-")[0]
 }
 
 func setReplicaID(u *upgradeParams) (*apis.CStorVolumeReplica, error) {

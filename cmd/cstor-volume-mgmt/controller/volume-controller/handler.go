@@ -41,6 +41,13 @@ import (
 	"k8s.io/klog"
 )
 
+type upgradeParams struct {
+	cv     *apis.CStorVolume
+	client clientset.Interface
+}
+
+type upgradeFunc func(u *upgradeParams) (*apis.CStorVolume, error)
+
 var (
 	upgradeMap = map[string]upgradeFunc{
 		"1.0.0-1.3.0": setDesiredRF,
@@ -595,8 +602,7 @@ func (c *CStorVolumeController) upgrade(cv *apis.CStorVolume) (*apis.CStorVolume
 		if !isDesiredVersionValid(cv) {
 			return nil, pkg_errors.Errorf("invalid desired version %s", cv.VersionDetails.Desired)
 		}
-		path := strings.Split(cv.VersionDetails.Current, "-")[0] + "-" +
-			strings.Split(cv.VersionDetails.Desired, "-")[0]
+		path := upgradePath(cv)
 		u := &upgradeParams{
 			cv:     cv,
 			client: c.clientset,
@@ -649,16 +655,14 @@ func isDesiredVersionValid(cv *apis.CStorVolume) bool {
 	return util.ContainsString(validVersions, version)
 }
 
-type upgradeParams struct {
-	cv     *apis.CStorVolume
-	client clientset.Interface
-}
-
-type upgradeFunc func(u *upgradeParams) (*apis.CStorVolume, error)
-
 func setDesiredRF(u *upgradeParams) (*apis.CStorVolume, error) {
 	cv := u.cv
 	// Set new field DesiredReplicationFactor as ReplicationFactor
 	cv.Spec.DesiredReplicationFactor = cv.Spec.ReplicationFactor
 	return cv, nil
+}
+
+func upgradePath(cv *apis.CStorVolume) string {
+	return strings.Split(cv.VersionDetails.Current, "-")[0] + "-" +
+		strings.Split(cv.VersionDetails.Desired, "-")[0]
 }
