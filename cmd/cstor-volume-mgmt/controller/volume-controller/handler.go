@@ -216,9 +216,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		volStatus, err := volume.GetVolumeStatus(cStorVolumeGot)
 		if err != nil {
 			klog.Errorf("Error in getting volume status: %s", err.Error())
-			cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(
-				common.CVStatusError,
-			)
+			return common.CVStatusError, nil
 		} else {
 			cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(volStatus.Status)
 			// if replicas are zero set the status as init
@@ -233,9 +231,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 			cStorVolumeGot.Status.LastTransitionTime = cStorVolumeGot.Status.LastUpdateTime
 		}
 
-		if volStatus != nil {
-			cStorVolumeGot.Status.ReplicaStatuses = volStatus.ReplicaStatuses
-		}
+		cStorVolumeGot.Status.ReplicaStatuses = volStatus.ReplicaStatuses
 		updatedCstorVolume, err := c.clientset.OpenebsV1alpha1().
 			CStorVolumes(cStorVolumeGot.Namespace).
 			Update(cStorVolumeGot)

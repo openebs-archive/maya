@@ -161,7 +161,7 @@ func GetVolumeStatus(cStorVolume *apis.CStorVolume) (*apis.CVStatus, error) {
 	jsonBeginIndex := strings.Index(stringResp, "{")
 	jsonEndIndex := strings.LastIndex(stringResp, "}")
 	if jsonBeginIndex >= jsonEndIndex {
-		return nil, nil
+		return nil, errors.Errorf("invalid data from %v command", util.IstgtReplicaCmd)
 	}
 	return extractReplicaStatusFromJSON(stringResp[jsonBeginIndex : jsonEndIndex+1])
 }
