@@ -20,6 +20,8 @@ import (
 	"strings"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/spf13/cobra"
 )
@@ -74,4 +76,34 @@ func (u *UpgradeOptions) InitializeDefaults(cmd *cobra.Command) error {
 	}
 
 	return nil
+}
+
+// get the path for the version
+func (u *UpgradeOptions) getUpgradePath() (string, error) {
+	podClient := pod.NewKubeClient()
+	from := strings.Split(u.fromVersion, "-")[0]
+	to := strings.Split(u.toVersion, "-")[0]
+	mayaLabels := "name=maya-apiserver"
+	mayaPods, err := podClient.WithNamespace(u.openebsNamespace).
+		List(
+			metav1.ListOptions{
+				LabelSelector: mayaLabels,
+			},
+		)
+	if err != nil {
+		return "", err
+	}
+	if len(mayaPods.Items) != 1 {
+		return "", errors.Errorf("Expecting 1 maya pod got %d", len(mayaPods.Items))
+	}
+	v := strings.Split(mayaPods.Items[0].Labels["openebs.io/version"], "-")[0]
+
+	if from == v && to == v {
+		from = strings.Split(u.fromVersion, "-")[1]
+		to = ""
+		if len(strings.Split(u.toVersion, "-")) == 2 {
+			to = strings.Split(u.toVersion, "-")[1]
+		}
+	}
+	return from + "-" + to, nil
 }
