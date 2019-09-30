@@ -18,11 +18,9 @@ package targetserver
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net"
 	"os"
-	"os/signal"
 	"strings"
 	"syscall"
 
@@ -34,16 +32,35 @@ import (
 )
 
 var (
-	endOfLine          = "\r\n"
+	endOfData          = "\r\n"
 	respOk             = "Ok"
 	respErr            = "Err"
 	volumeMgmtUnixSock = "/var/run/volume_mgmt_sock"
 )
 
-// Reader reads the data from wire untill error or endOfLine occurs
+// IsSafeToRetry will retrun true if error type is EINTR, EAGAIN or EWOULDBLOCK
+func IsSafeToRetry(err error) bool {
+	// For more information https://golang.org/pkg/syscall/#Errno
+	if err == syscall.EINTR ||
+		err == syscall.EAGAIN ||
+		err == syscall.EWOULDBLOCK {
+		return true
+	}
+	return false
+}
+
+/* Client will send below data to process
+ * Ex JSON data:
+ * {"replicaId":"6061","replicaZvolGuid":"6061",
+ * "volumeName":"vol1","replicationFactor":3,"consistencyFactor":2}
+ * and server will process it and returns Ok in case of not having error else it
+ * returns Err
+ * Response will be either "Ok" or "Err"
+ */
+
+// Reader reads the data from wire untill error or endOfData occurs
 // Reader will break only when client is sending \r\n or EOF occured
 func Reader(r io.Reader) (string, error) {
-	var req []string
 	buf := make([]byte, 1024)
 	//collect bytes into fulllines buffer till the end of line character is reached
 	completeBytes := []byte{}
@@ -58,74 +75,53 @@ func Reader(r io.Reader) (string, error) {
 		}
 		if n > 0 {
 			completeBytes = append(completeBytes, buf[0:n]...)
-			if strings.HasSuffix(string(completeBytes), endOfLine) {
+			if strings.HasSuffix(string(completeBytes), endOfData) {
 				// Since we are ending only when \r\n bytes are present in
 				// completeBytes to extract \r\n need to perform below steps
-				lines := strings.Split(string(completeBytes), endOfLine)
-				// here we are excluding \r\n
-				for _, line := range lines {
-					if len(line) != 0 {
-						req = append(req, line)
-					}
-				}
-				req = append(req, string(completeBytes))
-				break
+				lines := strings.Split(string(completeBytes), endOfData)
+				return lines[0], nil
 			}
 		}
 	}
-	return fmt.Sprintf("%s", req), nil
-}
-
-//TODO: Once tested need to remove commented code
-
-// GetRequiredData returns error if doesn't have json format
-func GetJsonData(data string) (string, error) {
-	jsonBeginIndex := strings.Index(data, "{")
-	jsonEndIndex := strings.LastIndex(data, "}")
-	if jsonBeginIndex >= jsonEndIndex {
-		return "", errors.Errorf("failed to parse the data got: %s", data)
-	}
-	return data[jsonBeginIndex : jsonEndIndex+1], nil
+	// Code will reach here only when EOF happens
+	return "", errors.Errorf("failed to read data connection closed")
 }
 
 //ServeRequest process the request from the client
 func ServeRequest(conn net.Conn, kubeClient *cstorv1alpha1.Kubeclient) {
 	var err error
-	var readData, filteredData string
+	var readData string
 	defer func() {
 		if err != nil {
-			_, er := conn.Write([]byte(respErr + endOfLine))
+			_, er := conn.Write([]byte(respErr + endOfData))
 			if er != nil {
 				klog.Errorf("failed to inform to client")
 			}
 		} else {
-			_, er := conn.Write([]byte(respOk + endOfLine))
+			_, er := conn.Write([]byte(respOk + endOfData))
 			if er != nil {
 				klog.Errorf("failed to inform to client")
 			}
 		}
 		conn.Close()
 	}()
+	//example readData:
+	// {"replicaId":"6061","replicaZvolGuid":"6061","volumeName":"vol1",
+	// "replicationFactor":3,"consistencyFactor":2}
 	readData, err = Reader(conn)
 	if err != nil {
 		klog.Errorf("failed to read data: {%v}", err)
 		return
 	}
-	//TODO: Not required but need to test below function
-	filteredData, err = GetJsonData(readData)
-	if err != nil {
-		klog.Errorf("failed to get required information: {%v}", err)
-		return
-	}
-	replicationData := &cstorv1alpha1.CStorVolumeReplication{}
-	err = json.Unmarshal([]byte(filteredData), replicationData)
+	replicationData := &cstorv1alpha1.CVReplicationDetails{}
+	err = json.Unmarshal([]byte(readData), replicationData)
 	if err != nil {
 		klog.Errorf("failed to unmarshal replication data {%v}", err)
 		return
 	}
 	csc := &cstorv1alpha1.CStorVolumeConfig{
-		CStorVolumeReplication: replicationData,
-		Kubeclient:             kubeClient,
+		CVReplicationDetails: replicationData,
+		Kubeclient:           kubeClient,
 	}
 	err = csc.UpdateCVWithReplicationDetails()
 	if err != nil {
@@ -148,26 +144,14 @@ func StartTargetServer(kubeConfig string) {
 	if err != nil {
 		klog.Fatalf("listen error: {%v}", err)
 	}
+	defer listen.Close()
 
-	//TODO: Remove hard coded ENV
-	namespace := env.Get("CSTOR_TARGET_NAMESPACE")
+	namespace := env.Get(env.ENVKey(cstorv1alpha1.TargetNamespace))
 	if namespace == "" {
 		klog.Fatalf("failed to get volume namespace empty value for env %s",
-			"CStorVolumeReplication",
+			"CVReplicationDetails",
 		)
 	}
-
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
-	go func(ln net.Listener, c chan os.Signal) {
-		sig := <-c
-		err := ln.Close()
-		if err != nil {
-			klog.Errorf("failed to close the connection error: %v", err)
-		}
-		klog.Errorf("Caught signal %s: shutting down", sig)
-		os.Exit(-1)
-	}(listen, sigc)
 
 	// Since we are reading kubeClient there is no need to taking lock
 	kubeClient := cstorv1alpha1.NewKubeclient(
@@ -176,8 +160,13 @@ func StartTargetServer(kubeConfig string) {
 
 	for {
 		sockFd, err := listen.Accept()
+		if IsSafeToRetry(err) {
+			klog.Errorf("failed to accept error: {%v} will continue...", err)
+			continue
+		}
+		// If it is unknown error exit the process
 		if err != nil {
-			klog.Errorf("failed to accept error: {%v}", err)
+			klog.Fatalf("failed to accept error: {%v}", err)
 		}
 		go ServeRequest(sockFd, kubeClient)
 	}

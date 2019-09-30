@@ -37,6 +37,8 @@ var (
 	//DesiredReplicationFactorKey is plain text in istgt configuration file informs
 	//about desired replication factor used by target
 	DesiredReplicationFactorKey = "  DesiredReplicationFactor"
+	//TargetNamespace holds key of env where target pod is running
+	TargetNamespace = "CSTOR_TARGET_NAMESPACE"
 )
 
 const (
@@ -65,20 +67,20 @@ type ListBuilder struct {
 	filters PredicateList
 }
 
-//CStorVolumeReplication enables to update RF,CF and
+//CVReplicationDetails enables to update RF,CF and
 //known replicas into etcd
-type CStorVolumeReplication struct {
+type CVReplicationDetails struct {
 	VolumeName        string `json:"volumeName"`
 	ReplicationFactor int    `json:"replicationFactor"`
 	ConsistencyFactor int    `json:"consistencyFactor"`
-	ReplicaKey        string `json:"replicaId"`
-	ReplicaValue      uint64 `json:"replicaZvolGuid,string"`
+	ReplicaID         string `json:"replicaId"`
+	ReplicaGUID       uint64 `json:"replicaZvolGuid,string"`
 }
 
-//CStorVolumeConfig embed CStorVolumeReplication and Kubeclient of
+//CStorVolumeConfig embed CVReplicationDetails and Kubeclient of
 //corresponding namespace
 type CStorVolumeConfig struct {
-	*CStorVolumeReplication
+	*CVReplicationDetails
 	*Kubeclient
 }
 
@@ -277,8 +279,8 @@ func (c Conditions) UpdateCondition(cond apis.CStorVolumeCondition) []apis.CStor
 	return c
 }
 
-// BuildConfigData builds data based on the CStorVolumeReplication
-func (csr *CStorVolumeReplication) BuildConfigData() map[string]string {
+// BuildConfigData builds data based on the CVReplicationDetails
+func (csr *CVReplicationDetails) BuildConfigData() map[string]string {
 	data := map[string]string{}
 	// Since we know what to update in istgt.conf file so constructing
 	// key and value pairs
@@ -291,14 +293,14 @@ func (csr *CStorVolumeReplication) BuildConfigData() map[string]string {
 	key = fmt.Sprintf("  ConsistencyFactor")
 	value = fmt.Sprintf("  ConsistencyFactor %d", csr.ConsistencyFactor)
 	data[key] = value
-	key = fmt.Sprintf("  Replica %s", csr.ReplicaKey)
-	value = fmt.Sprintf("  Replica %s %d", csr.ReplicaKey, csr.ReplicaValue)
+	key = fmt.Sprintf("  Replica %s", csr.ReplicaID)
+	value = fmt.Sprintf("  Replica %s %d", csr.ReplicaID, csr.ReplicaGUID)
 	data[key] = value
 	return data
 }
 
 // UpdateConfig updates target configuration file by building data
-func (csr *CStorVolumeReplication) UpdateConfig() error {
+func (csr *CVReplicationDetails) UpdateConfig() error {
 	configData := csr.BuildConfigData()
 	fileOperator := util.RealFileOperator{}
 	ConfFileMutex.Lock()
@@ -308,15 +310,15 @@ func (csr *CStorVolumeReplication) UpdateConfig() error {
 }
 
 // Validate verifies whether CStorReplication data read on wire is valid or not
-func (csr *CStorVolumeReplication) Validate() error {
+func (csr *CVReplicationDetails) Validate() error {
 	if csr.VolumeName == "" {
 		return errors.Errorf("volume name can not be empty")
 	}
-	if csr.ReplicaKey == "" {
+	if csr.ReplicaID == "" {
 		return errors.Errorf("replicaKey can not be empty to perform "+
 			"volume %s update", csr.VolumeName)
 	}
-	if csr.ReplicaValue == 0 {
+	if csr.ReplicaGUID == 0 {
 		return errors.Errorf("replicaKey can not be empty to perform "+
 			"volume %s update", csr.VolumeName)
 	}
@@ -366,7 +368,7 @@ func (csc *CStorVolumeConfig) UpdateCVWithReplicationDetails() error {
 	if cv.Status.ReplicaDetails.KnownReplicas == nil {
 		cv.Status.ReplicaDetails.KnownReplicas = map[string]uint64{}
 	}
-	cv.Status.ReplicaDetails.KnownReplicas[csc.ReplicaKey] = csc.ReplicaValue
+	cv.Status.ReplicaDetails.KnownReplicas[csc.ReplicaID] = csc.ReplicaGUID
 	_, err = csc.Update(cv)
 	if err != nil {
 		err = csc.UpdateConfig()
