@@ -30,14 +30,14 @@ func TestBuilderWithName(t *testing.T) {
 	}{
 		"Test Builder with name": {
 			name: "PVC1",
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: false,
 		},
 		"Test Builder without name": {
 			name: "",
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: true,
@@ -65,14 +65,14 @@ func TestBuilderWithGenerateName(t *testing.T) {
 	}{
 		"Test Builder with generatename": {
 			generatename: "PVC1",
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: false,
 		},
 		"Test Builder without generatename": {
 			generatename: "",
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: true,
@@ -100,14 +100,14 @@ func TestBuilderWithNamespace(t *testing.T) {
 	}{
 		"Test Builder with namespace": {
 			namespace: "PVC1",
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: false,
 		},
 		"Test Builder without namespace": {
 			namespace: "",
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: true,
@@ -136,14 +136,14 @@ func TestBuildWithAnnotations(t *testing.T) {
 		"Test Builderwith annotations": {
 			annotations: map[string]string{"persistent-volume": "PV",
 				"application": "percona"},
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout annotations": {
 			annotations: map[string]string{},
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: true,
@@ -172,14 +172,14 @@ func TestBuildWithAnnotationsNew(t *testing.T) {
 		"Test Builderwith annotations": {
 			annotations: map[string]string{"persistent-volume": "PV",
 				"application": "percona"},
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout annotations": {
 			annotations: map[string]string{},
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: true,
@@ -208,14 +208,14 @@ func TestBuildWithLabels(t *testing.T) {
 		"Test Builderwith labels": {
 			labels: map[string]string{"persistent-volume": "PV",
 				"application": "percona"},
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout labels": {
 			labels: map[string]string{},
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: true,
@@ -244,14 +244,14 @@ func TestBuildWithLabelsNew(t *testing.T) {
 		"Test Builderwith labels": {
 			labels: map[string]string{"persistent-volume": "PV",
 				"application": "percona"},
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout labels": {
 			labels: map[string]string{},
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: true,
@@ -279,14 +279,14 @@ func TestBuilderWithTargetIP(t *testing.T) {
 	}{
 		"Test Builder with targetip": {
 			targetip: "10.8.02.13",
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: false,
 		},
 		"Test Builder without targetip": {
 			targetip: "",
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: true,
@@ -314,14 +314,14 @@ func TestBuilderWithCapacity(t *testing.T) {
 	}{
 		"Test Builder with capacity": {
 			capacity: "10G",
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: false,
 		},
 		"Test Builder without capacity": {
 			capacity: "",
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: true,
@@ -351,14 +351,14 @@ func TestBuilderWithFinalizers(t *testing.T) {
 			finalizers: []string{
 				"cstorvolumereplica.openebs.io/finalizer",
 			},
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: false,
 		},
 		"Test Builder without finalizers": {
 			finalizers: []string{},
-			builder: &Builder{Cvr: &CVR{
+			builder: &Builder{cvr: &CVR{
 				object: &apis.CStorVolumeReplica{},
 			}},
 			expectErr: true,

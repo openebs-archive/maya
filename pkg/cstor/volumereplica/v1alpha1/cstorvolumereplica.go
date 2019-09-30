@@ -15,10 +15,7 @@
 package v1alpha1
 
 import (
-	hash "github.com/openebs/maya/pkg/hash/v1alpha1"
-
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/pkg/errors"
 )
 
 type labelKey string
@@ -173,28 +170,4 @@ func (l PredicateList) all(p *CVR) bool {
 func (b *ListBuilder) WithFilter(pred ...Predicate) *ListBuilder {
 	b.filters = append(b.filters, pred...)
 	return b
-}
-
-// BuilderForAPIObject returns an instance of the Builder object based on cvr api object.
-func BuilderForAPIObject(cvr *apis.CStorVolumeReplica) *Builder {
-	return &Builder{
-		Cvr: &CVR{cvr},
-	}
-}
-
-// GetReplicaID returns the replicaID of CVR if its present
-// or it creates a new replicaID and returns it.
-func (p *CVR) GetReplicaID() (string, error) {
-	if p.object.Spec.ReplicaID == "" {
-		replicaID, err := hash.Hash(p.object.UID)
-		if err != nil {
-			return "", errors.Wrapf(
-				err,
-				"failed to generate ReplicaID for cvr %s",
-				p.object.Name,
-			)
-		}
-		return replicaID, nil
-	}
-	return p.object.Spec.ReplicaID, nil
 }

@@ -43,6 +43,11 @@ const (
 	v130 = "1.3.0"
 )
 
+type upgradeParams struct {
+	cvr    *apis.CStorVolumeReplica
+	client clientset.Interface
+}
+
 type upgradeFunc func(u *upgradeParams) (*apis.CStorVolumeReplica, error)
 
 var (
@@ -617,11 +622,6 @@ func isDesiredVersionValid(cvr *apis.CStorVolumeReplica) bool {
 	validVersions := []string{"1.3.0"}
 	version := strings.Split(cvr.VersionDetails.Desired, "-")[0]
 	return util.ContainsString(validVersions, version)
-}
-
-type upgradeParams struct {
-	cvr    *apis.CStorVolumeReplica
-	client clientset.Interface
 }
 
 func setReplicaID(u *upgradeParams) (*apis.CStorVolumeReplica, error) {
