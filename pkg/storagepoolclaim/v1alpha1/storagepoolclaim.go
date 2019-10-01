@@ -21,10 +21,12 @@ import (
 	"time"
 
 	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
+	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -338,4 +340,26 @@ func (l *SPCList) GetPoolUIDs() []string {
 		uids = append(uids, string(pool.GetUID()))
 	}
 	return uids
+}
+
+// EstimateSPCVersion returns the csp version if any csp is present for the spc or
+// returns the maya version as the new csp created will be of maya version
+func (spc *SPC) EstimateSPCVersion() (string, error) {
+
+	cspList, err := csp.KubeClient().List(
+		metav1.ListOptions{
+			LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Object.Name,
+		})
+	if err != nil {
+		return "", errors.Wrapf(
+			err,
+			"failed to get the csp list related to spc : %s",
+			spc.Object.Name,
+		)
+	}
+	if len(cspList.Items) == 0 {
+		return version.Current(), nil
+	}
+	return cspList.Items[0].Labels[string(apis.OpenEBSVersionKey)], nil
+
 }

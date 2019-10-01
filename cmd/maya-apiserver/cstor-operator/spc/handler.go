@@ -23,10 +23,12 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -43,6 +45,11 @@ var (
 		apis.PoolTypeMirroredCPV: true,
 		apis.PoolTypeRaidzCPV:    true,
 		apis.PoolTypeRaidz2CPV:   true,
+	}
+	upgradeMap = map[string]upgradeFunc{
+		"1.0.0-1.3.0": nothing,
+		"1.1.0-1.3.0": nothing,
+		"1.2.0-1.3.0": nothing,
 	}
 )
 
@@ -116,12 +123,22 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 	}
 
 	gotSPC, err := spcv1alpha1.BuilderForAPIObject(spc).Spc.AddFinalizer(spcv1alpha1.SPCFinalizer)
-
 	if err != nil {
 		klog.Errorf("Failed to add finalizer on SPC %s:%s", spc.Name, err.Error())
 		return nil
 	}
 
+	spcObj, err := c.populateVersion(gotSPC)
+	if err != nil {
+		klog.Errorf("failed to add versionDetails to SPC %s:%s", spc.Name, err.Error())
+		return err
+	}
+	spcObj, err = c.upgrade(spcObj)
+	if err != nil {
+		klog.Errorf("failed to upgrade SPC %s:%s", spc.Name, err.Error())
+		return err
+	}
+	gotSPC = spcObj
 	// assinging the latest spc object
 	spc = gotSPC
 
@@ -478,4 +495,88 @@ func isAutoProvisioning(spc *apis.StoragePoolClaim) bool {
 // isManualProvisioning returns true if the spc is auto provisioning type.
 func isManualProvisioning(spc *apis.StoragePoolClaim) bool {
 	return spc.Spec.BlockDevices.BlockDeviceList != nil
+}
+
+func (c *Controller) upgrade(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
+	var err error
+	if spc.VersionDetails.Current != spc.VersionDetails.Desired {
+		if !isCurrentVersionValid(spc) {
+			return nil, errors.Errorf("invalid current version %s", spc.VersionDetails.Current)
+		}
+		if !isDesiredVersionValid(spc) {
+			return nil, errors.Errorf("invalid desired version %s", spc.VersionDetails.Desired)
+		}
+		// As no other steps are required just change current version to
+		// desired version
+		path := strings.Split(spc.VersionDetails.Current, "-")[0] + "-" +
+			strings.Split(spc.VersionDetails.Desired, "-")[0]
+		u := &upgradeParams{
+			spc:    spc,
+			client: c.clientset,
+		}
+		spc, err = upgradeMap[path](u)
+		if err != nil {
+			return spc, err
+		}
+		spc.VersionDetails.Current = spc.VersionDetails.Desired
+		spc, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spc)
+		if err != nil {
+			return spc, errors.Wrap(err, "failed to update storagepoolclaim")
+		}
+		return spc, nil
+	}
+	return spc, nil
+}
+
+// populateVersion assigns VersionDetails for old spc object and newly created spc
+func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
+	if spc.VersionDetails.Current == "" {
+		var err error
+		var v string
+		var obj *apis.StoragePoolClaim
+		v, err = spcv1alpha1.BuilderForAPIObject(spc).Spc.EstimateSPCVersion()
+		if err != nil {
+			return nil, err
+		}
+		spc.VersionDetails.Current = v
+		// For newly created spc Desired field will also be empty.
+		spc.VersionDetails.Desired = v
+		obj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().
+			Update(spc)
+
+		if err != nil {
+			return nil, errors.Wrapf(
+				err,
+				"failed to update spc %s while adding versiondetails",
+				spc.Name,
+			)
+		}
+		klog.Infof("Version %s added on spc %s", v, spc.Name)
+		return obj, nil
+	}
+	return spc, nil
+}
+
+func isCurrentVersionValid(spc *apis.StoragePoolClaim) bool {
+	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
+	version := strings.Split(spc.VersionDetails.Current, "-")[0]
+	return util.ContainsString(validVersions, version)
+}
+
+func isDesiredVersionValid(spc *apis.StoragePoolClaim) bool {
+	validVersions := []string{"1.3.0"}
+	version := strings.Split(spc.VersionDetails.Desired, "-")[0]
+	return util.ContainsString(validVersions, version)
+}
+
+type upgradeParams struct {
+	spc    *apis.StoragePoolClaim
+	client clientset.Interface
+}
+
+type upgradeFunc func(u *upgradeParams) (*apis.StoragePoolClaim, error)
+
+func nothing(u *upgradeParams) (*apis.StoragePoolClaim, error) {
+	// No upgrade steps for 1.3.0
+	return u.spc, nil
 }
