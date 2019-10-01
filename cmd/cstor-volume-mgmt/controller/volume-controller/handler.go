@@ -49,6 +49,7 @@ type upgradeParams struct {
 type upgradeFunc func(u *upgradeParams) (*apis.CStorVolume, error)
 
 var (
+	v130       = "1.3.0"
 	upgradeMap = map[string]upgradeFunc{
 		"1.0.0-1.3.0": setDesiredRF,
 		"1.1.0-1.3.0": setDesiredRF,
@@ -628,7 +629,7 @@ func (c *CStorVolumeController) populateVersion(cv *apis.CStorVolume) (
 ) {
 	v := cv.Labels[string(apis.OpenEBSVersionKey)]
 	// 1.3.0 onwards new CV will have the field populated during creation
-	if v < "1.3.0" && cv.VersionDetails.Current == "" {
+	if v < v130 && cv.VersionDetails.Current == "" {
 		cv.VersionDetails.Current = v
 		cv.VersionDetails.Desired = v
 		obj, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cv.Namespace).
