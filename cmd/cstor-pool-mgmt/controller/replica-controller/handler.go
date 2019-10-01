@@ -630,16 +630,12 @@ func upgradePath(cvr *apis.CStorVolumeReplica) string {
 
 func setReplicaID(u *upgradeParams) (*apis.CStorVolumeReplica, error) {
 	cvr := u.cvr
-	err := volumereplica.GenerateReplicaID(cvr)
+	err := volumereplica.GetAndUpdateReplicaID(cvr)
 	if err != nil {
 		return nil, err
 	}
 	cvr, err = u.client.OpenebsV1alpha1().
 		CStorVolumeReplicas(cvr.Namespace).Update(cvr)
-	if err != nil {
-		return nil, err
-	}
-	err = volumereplica.SetReplicaID(cvr)
 	if err != nil {
 		return nil, err
 	}
