@@ -344,7 +344,7 @@ func getPoolLivenessProbe() *corev1.Probe {
 	probe := &corev1.Probe{
 		Handler: corev1.Handler{
 			Exec: &corev1.ExecAction{
-				Command: []string{"/bin/sh", "-c", "zfs set io.openebs:livenesstimestap='$(date)' cstor-$OPENEBS_IO_POOL_NAME"},
+				Command: []string{"/bin/sh", "-c", "zfs set io.openebs:livenesstimestamp=\"$(date)\" cstor-$OPENEBS_IO_POOL_NAME"},
 			},
 		},
 		FailureThreshold:    3,
