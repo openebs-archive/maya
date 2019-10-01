@@ -99,10 +99,25 @@ func (c *CStorVolumeReplicaController) syncHandler(
 	}
 	cvrObj, err := c.populateVersion(cvrGot)
 	if err != nil {
+		c.recorder.Event(
+			cvrGot,
+			corev1.EventTypeWarning,
+			string("FailedPopulate"),
+			fmt.Sprintf("Failed to add current version: %s", err.Error()),
+		)
 		return err
 	}
 	cvrObj, err = c.upgrade(cvrObj)
 	if err != nil {
+		c.recorder.Event(
+			cvrGot,
+			corev1.EventTypeWarning,
+			string("FailedUpgrade"),
+			fmt.Sprintf("Failed to upgrade cvr to %s version: %s",
+				cvrGot.VersionDetails.Desired,
+				err.Error(),
+			),
+		)
 		return err
 	}
 	cvrGot = cvrObj
@@ -595,7 +610,7 @@ func (c *CStorVolumeReplicaController) populateVersion(cvr *apis.CStorVolumeRepl
 	*apis.CStorVolumeReplica, error,
 ) {
 	v := cvr.Labels[string(apis.OpenEBSVersionKey)]
-	// 1.3.0 onwards new CSP will have the field populated during creation
+	// 1.3.0 onwards new CVR will have the field populated during creation
 	if v < v130 && cvr.VersionDetails.Current == "" {
 		cvr.VersionDetails.Current = v
 		cvr.VersionDetails.Desired = v

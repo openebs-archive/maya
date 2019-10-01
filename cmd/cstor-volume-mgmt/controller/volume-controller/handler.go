@@ -71,12 +71,25 @@ func (c *CStorVolumeController) syncHandler(
 	}
 	cStorVolumeObj, err := c.populateVersion(cStorVolumeGot)
 	if err != nil {
-		klog.Errorf("failed to add versionDetails to cstorvolume %s:%s", cStorVolumeGot.Name, err.Error())
+		c.recorder.Event(
+			cStorVolumeGot,
+			corev1.EventTypeWarning,
+			string("FailedPopulate"),
+			fmt.Sprintf("Failed to add current version: %s", err.Error()),
+		)
 		return err
 	}
 	cStorVolumeObj, err = c.upgrade(cStorVolumeObj)
 	if err != nil {
-		klog.Errorf("failed to upgrade cstorvolume %s:%s", cStorVolumeGot.Name, err.Error())
+		c.recorder.Event(
+			cStorVolumeGot,
+			corev1.EventTypeWarning,
+			string("FailedUpgrade"),
+			fmt.Sprintf("Failed to upgrade cvr to %s version: %s",
+				cStorVolumeGot.VersionDetails.Desired,
+				err.Error(),
+			),
+		)
 		return err
 	}
 	cStorVolumeGot = cStorVolumeObj
