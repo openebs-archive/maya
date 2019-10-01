@@ -137,9 +137,9 @@ func StartTargetServer(kubeConfig string) {
 			namespace = cstorv1alpha1.TargetNamespace
 			break
 		}
-		// Sleep of 5 secs is good enough since target deployment will be created
+		// Sleep of 3 secs is good enough since target deployment will be created
 		// only when volume is created
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 3)
 	}
 	klog.Infof("CstorVolume namespace %s", namespace)
 

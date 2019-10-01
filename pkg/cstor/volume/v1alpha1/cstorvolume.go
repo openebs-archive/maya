@@ -16,10 +16,8 @@ package v1alpha1
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
-	"unicode"
 
 	"k8s.io/klog"
 
@@ -190,17 +188,10 @@ func (c *CStorVolume) IsDRFPending() bool {
 		)
 		return false
 	}
+	drfStringValue := fmt.Sprintf("%d", c.object.Spec.DesiredReplicationFactor)
 	// gotConfig will have "  DesiredReplicationFactor  3" and we will extract
 	// numeric character from output
-	valueStr := strings.TrimFunc(gotConfig, func(r rune) bool {
-		return !unicode.IsDigit(r)
-	})
-	value, err := strconv.Atoi(valueStr)
-	if err != nil {
-		klog.Infof("failed to parse %s error: %v", valueStr, err)
-		return false
-	}
-	return value == c.object.Spec.DesiredReplicationFactor
+	return !strings.HasSuffix(gotConfig, drfStringValue)
 }
 
 // GetCVCondition returns corresponding cstorvolume condition based argument passed
