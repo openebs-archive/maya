@@ -262,6 +262,7 @@ func getOrCreateCStorVolumeResource(
 
 	// get the replicaCount from cstorvolume claim
 	rfactor := claim.Spec.ReplicaCount
+	desiredRF := claim.Spec.ReplicaCount
 	cfactor := rfactor/2 + 1
 
 	cvObj, err := cv.NewKubeclient(cv.WithNamespace(getNamespace())).
@@ -285,6 +286,7 @@ func getOrCreateCStorVolumeResource(
 			WithTargetPortal(service.Spec.ClusterIP + ":" + cv.TargetPort).
 			WithTargetPort(cv.TargetPort).
 			WithReplicationFactor(rfactor).
+			WithDesiredReplicationFactor(desiredRF).
 			WithConsistencyFactor(cfactor).
 			Build()
 		if err != nil {
