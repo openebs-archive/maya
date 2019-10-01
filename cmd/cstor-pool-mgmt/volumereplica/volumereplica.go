@@ -89,7 +89,7 @@ type Stats struct {
 	// RebuildStatus of the zfs volume.
 	RebuildStatus             string `json:"rebuildStatus"`
 	IsIOAckSenderCreated      int    `json:"isIOAckSenderCreated"`
-	isIOReceiverCreated       int    `json:"isIOReceiverCreated"`
+	IsIOReceiverCreated       int    `json:"isIOReceiverCreated"`
 	RunningIONum              int    `json:"runningIONum"`
 	CheckpointedIONum         int    `json:"checkpointedIONum"`
 	DegradedCheckpointedIONum int    `json:"degradedCheckpointedIONum"`
@@ -495,8 +495,8 @@ func capacityOutputParser(output string) *apis.CStorVolumeCapacityAttr {
 	// 'TotalAllocated' value(on cvr) is filled from the value of 'used' property in 'zfs get' output.
 	// 'Used' value(on cvr) is filled from the value of 'logicalused' property in 'zfs get' output.
 	capacity := &apis.CStorVolumeCapacityAttr{
-		"",
-		"",
+		TotalAllocated: "",
+		Used:           "",
 	}
 	if strings.TrimSpace(string(output)) != "" {
 		outputStr = strings.Split(string(output), "\n")
@@ -550,7 +550,7 @@ func SetReplicaID(cvr *apis.CStorVolumeReplica) error {
 
 	sid := strings.Split(string(ret), "\n")[0]
 
-	if len(sid) == 0 {
+	if sid == "-" {
 		lr, err := zfs.NewVolumeSetProperty().
 			WithProperty("io.openebs:zvol_replica_id", cvr.Spec.ReplicaID).
 			WithDataset(vol).
@@ -562,20 +562,5 @@ func SetReplicaID(cvr *apis.CStorVolumeReplica) error {
 		return errors.Errorf("ReplicaID mismatch.. actual(%s) on-disk(%s)", cvr.Spec.ReplicaID, sid)
 	}
 
-	return nil
-}
-
-// GetAndUpdateReplicaID update replicaID for CVR and set it to volume
-func GetAndUpdateReplicaID(cvr *apis.CStorVolumeReplica) error {
-	if len(cvr.Spec.ReplicaID) == 0 {
-		if err := GenerateReplicaID(cvr); err != nil {
-			return errors.Errorf("CVR(%s) replicaID generation error %s",
-				cvr.Name, err)
-		}
-	}
-
-	if err := SetReplicaID(cvr); err != nil {
-		return errors.Errorf("Failed to set ReplicaID for CVR(%s).. %s", cvr.Name, err)
-	}
 	return nil
 }
