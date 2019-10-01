@@ -301,6 +301,23 @@ func (b *Builder) WithReplicationFactor(replicationfactor int) *Builder {
 	return b
 }
 
+// WithDesiredReplicationFactor sets the DesiredReplicationFactor field of
+// CStorVolume with provided arguments
+func (b *Builder) WithDesiredReplicationFactor(desiredRF int) *Builder {
+	if desiredRF <= 0 {
+		b.errs = append(
+			b.errs,
+			errors.Errorf(
+				"failed to build cstorvolume object: invalid desiredreplicationfactor {%d}",
+				desiredRF,
+			),
+		)
+		return b
+	}
+	b.cstorvolume.object.Spec.DesiredReplicationFactor = desiredRF
+	return b
+}
+
 // WithConsistencyFactor sets the ConsistencyFactor field of
 // CStorVolume with provided arguments
 func (b *Builder) WithConsistencyFactor(consistencyfactor int) *Builder {
