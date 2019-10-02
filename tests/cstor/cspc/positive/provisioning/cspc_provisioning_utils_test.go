@@ -21,32 +21,33 @@ import (
 	cspcrg_v1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/raidgroups"
 )
 
-func createCSPCObjectForStripe()  {
-	createCSPCObject(1,"stripe")
+func createCSPCObjectForStripe() {
+	createCSPCObject(1, "stripe")
 }
 
-func createCSPCObjectForMirror()  {
-	createCSPCObject(2,"mirror")
+func createCSPCObjectForMirror() {
+	createCSPCObject(2, "mirror")
 }
 
-func createCSPCObjectForRaidz()  {
-	createCSPCObject(3,"raidz")
+func createCSPCObjectForRaidz() {
+	createCSPCObject(3, "raidz")
 }
 
-func createCSPCObjectForRaidz2()  {
-	createCSPCObject(6,"raidz2")
+func createCSPCObjectForRaidz2() {
+	createCSPCObject(6, "raidz2")
 }
 
-func createCSPCObject(blockDeviceCount int,poolType string)  {
+func createCSPCObject(blockDeviceCount int, poolType string) {
 	var err error
-	cspcObj,err = cspc_v1alpha1.NewBuilder().
+	cspcObj, err = cspc_v1alpha1.NewBuilder().
 		WithGenerateName(cspcName).
 		WithNamespace(ops.NameSpace).
 		WithPoolSpecBuilder(cspcspecs_v1alpha1.NewBuilder().
 			WithNodeSelector(NodeList.Items[0].Labels).
 			WithRaidGroupBuilder(
 				cspcrg_v1alpha1.NewBuilder().
-					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(NodeList.Items[0].Name,blockDeviceCount)).
+					// TODO : PAss the entire label -- kubernetes.io/hostname
+					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(NodeList.Items[0].Name, blockDeviceCount)).
 					WithType(poolType),
 			),
 		).
@@ -54,7 +55,7 @@ func createCSPCObject(blockDeviceCount int,poolType string)  {
 			WithNodeSelector(NodeList.Items[1].Labels).
 			WithRaidGroupBuilder(
 				cspcrg_v1alpha1.NewBuilder().
-					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(NodeList.Items[1].Name,blockDeviceCount)).
+					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(NodeList.Items[1].Name, blockDeviceCount)).
 					WithType(poolType),
 			),
 		).
@@ -62,20 +63,20 @@ func createCSPCObject(blockDeviceCount int,poolType string)  {
 			WithNodeSelector(NodeList.Items[2].Labels).
 			WithRaidGroupBuilder(
 				cspcrg_v1alpha1.NewBuilder().
-					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(NodeList.Items[2].Name,blockDeviceCount)).
+					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(NodeList.Items[2].Name, blockDeviceCount)).
 					WithType(poolType),
 			),
 		).
 		GetObj()
 	Expect(err).ShouldNot(HaveOccurred())
-	cspcObj,err = ops.CSPCClient.WithNamespace(ops.NameSpace).Create(cspcObj)
+	cspcObj, err = ops.CSPCClient.WithNamespace(ops.NameSpace).Create(cspcObj)
 	Expect(err).To(BeNil())
 
-	Cspc,err = cspc_v1alpha1.BuilderForAPIObject(cspcObj).Build()
+	Cspc, err = cspc_v1alpha1.BuilderForAPIObject(cspcObj).Build()
 	Expect(err).To(BeNil())
 }
 
-func verifyDesiredCSPICount()  {
+func verifyDesiredCSPICount() {
 	cspiCount := ops.GetHealthyCSPICount(cspcObj.Name, 3)
 	Expect(cspiCount).To(Equal(3))
 

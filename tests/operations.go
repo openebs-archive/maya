@@ -91,7 +91,7 @@ type Operations struct {
 	BDClient       *bd.Kubeclient
 	BDCClient      *bdc.Kubeclient
 	KubeConfigPath string
-	NameSpace string
+	NameSpace      string
 }
 
 // OperationsOptions abstracts creating an
@@ -693,7 +693,7 @@ func (ops *Operations) GetHealthyCSPICount(cspcName string, expectedCSPICount in
 		cspiCount = cspi.
 			ListBuilderFromAPIList(cspiAPIList).
 			List().
-			Filter(cspi.HasLabel(string(apis.CStorPoolClusterCPK), cspcName),cspi.IsStatus("ONLINE")).
+			Filter(cspi.HasLabel(string(apis.CStorPoolClusterCPK), cspcName), cspi.IsStatus("ONLINE")).
 			Len()
 		if cspiCount == expectedCSPICount {
 			return cspiCount
@@ -763,7 +763,6 @@ func (ops *Operations) IsCSPCFinalizerExistsOnCSPC(cspcName, cspcFinalizer strin
 		gotCSPC, err := ops.CSPCClient.WithNamespace(ops.NameSpace).Get(cspcName, metav1.GetOptions{})
 		Expect(err).To(BeNil())
 		for _, finalizer := range gotCSPC.Finalizers {
-
 
 			if finalizer == cspcFinalizer {
 				return true
@@ -949,18 +948,18 @@ func (ops *Operations) GetBDCCount(lSelector, namespace string) int {
 }
 
 // GetCSPCBDListForNode returns unclaimed block devices that can be used.
-func (ops *Operations)GetCSPCBDListForNode(nodeName string, blockDeviceCount int) []*apis.CStorPoolClusterBlockDevice {
-	bdList,err:=ops.BDClient.WithNamespace(ops.NameSpace).List(metav1.ListOptions{LabelSelector:"kubernetes.io/hostname="+nodeName})
+func (ops *Operations) GetCSPCBDListForNode(nodeName string, blockDeviceCount int) []*apis.CStorPoolClusterBlockDevice {
+	bdList, err := ops.BDClient.WithNamespace(ops.NameSpace).List(metav1.ListOptions{LabelSelector: "kubernetes.io/hostname=" + nodeName})
 	Expect(err).To(BeNil())
-	Expect(len(bdList.Items)).Should(BeNumerically(">=",blockDeviceCount))
+	Expect(len(bdList.Items)).Should(BeNumerically(">=", blockDeviceCount))
 	// TODO : Filter Unclaimed BDs
 	//bd.ListBuilderFromAPIList(bdList)
 
 	var cspcBDs []*apis.CStorPoolClusterBlockDevice
-	for i:=0;i<blockDeviceCount;i++{
-		cspcBD :=&apis.CStorPoolClusterBlockDevice{}
-		cspcBD.BlockDeviceName=bdList.Items[i].Name
-		cspcBDs=append(cspcBDs,cspcBD)
+	for i := 0; i < blockDeviceCount; i++ {
+		cspcBD := &apis.CStorPoolClusterBlockDevice{}
+		cspcBD.BlockDeviceName = bdList.Items[i].Name
+		cspcBDs = append(cspcBDs, cspcBD)
 	}
 
 	return cspcBDs

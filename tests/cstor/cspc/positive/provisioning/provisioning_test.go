@@ -18,8 +18,8 @@ import (
 	. "github.com/onsi/gomega"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cspc_v1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
-	"github.com/openebs/maya/tests/artifacts"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strconv"
 )
 
 var _ = Describe("[CSPC] CSTOR STRIPE POOL PROVISIONING AND RECONCILIATION ", func() {
@@ -35,7 +35,7 @@ var _ = Describe("[CSPC] CSTOR RAIDZ2 POOL PROVISIONING AND RECONCILIATION ", fu
 	provisioningAndReconciliationTest(createCSPCObjectForRaidz2)
 })
 
-func provisioningAndReconciliationTest(createCSPCObject func())  {
+func provisioningAndReconciliationTest(createCSPCObject func()) {
 	When("A CSPC Is Created", func() {
 		It("cStor Pools Should be Provisioned ", func() {
 
@@ -53,33 +53,17 @@ func provisioningAndReconciliationTest(createCSPCObject func())  {
 		})
 	})
 	// TODO : Add test case for pool import
-	When("1 CSPI Is Deleted", func() {
-		It("A New CSPI Should Come Up Again", func() {
-			ops.DeleteCSPI(cspcObj.Name, 1)
-			// We expect 3 cstorPool objects.
-			cspCount := ops.GetHealthyCSPICount(cspcObj.Name, 3)
-			Expect(cspCount).To(Equal(3))
-		})
-	})
 
-	When("2 CSPIs Is Deleted", func() {
-		It("2 New CSPIs Should Come Up Again", func() {
-			ops.DeleteCSPI(cspcObj.Name, 2)
-			// We expect 3 cstorPool objects.
-			cspCount := ops.GetHealthyCSPICount(cspcObj.Name, 3)
-			Expect(cspCount).To(Equal(3))
+	for i := 1; i <= 3; i++ {
+		When(strconv.Itoa(i)+" CSPI Is Deleted", func() {
+			It(strconv.Itoa(i)+" New CSPI Should Come Up Again", func() {
+				ops.DeleteCSPI(cspcObj.Name, i)
+				// We expect 3 cstorPool objects.
+				cspCount := ops.GetHealthyCSPICount(cspcObj.Name, 3)
+				Expect(cspCount).To(Equal(3))
+			})
 		})
-	})
-
-	////Test Case #2 : Dependent on above test case #1 . | TestType : Reconciliation
-	When("3 CSPIs Is Deleted", func() {
-		It("3 New CSPIs Should Come Up Again", func() {
-			ops.DeleteCSPI(cspcObj.Name, 1)
-			// We expect 3 cstorPool objects.
-			cspCount := ops.GetHealthyCSPICount(cspcObj.Name, 3)
-			Expect(cspCount).To(Equal(3))
-		})
-	})
+	}
 
 	// TODO : Improve this cleanup BDD
 	When("Cleaning up cspc", func() {
@@ -89,9 +73,9 @@ func provisioningAndReconciliationTest(createCSPCObject func())  {
 			bdcCount := ops.GetBDCCountEventually(
 				metav1.ListOptions{
 					LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + cspcObj.Name},
-				0, string(artifacts.OpenebsNamespace))
+				0, string(ops.NameSpace))
 			Expect(bdcCount).To(BeZero())
-			Expect(ops.IsSPCNotExists(cspcObj.Name)).To(BeTrue())
+			Expect(ops.IsCSPCNotExists(cspcObj.Name)).To(BeTrue())
 		})
 	})
 }
