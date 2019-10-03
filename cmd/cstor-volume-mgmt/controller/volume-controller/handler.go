@@ -79,7 +79,7 @@ func (c *CStorVolumeController) syncHandler(
 		)
 		return err
 	}
-	cStorVolumeObj, err = c.upgrade(cStorVolumeObj)
+	cStorVolumeObj, err = c.reconcileVersion(cStorVolumeObj)
 	if err != nil {
 		c.recorder.Event(
 			cStorVolumeGot,
@@ -163,6 +163,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 				fmt.Sprintf("failed to create cstorvolume validation "+
 					"failed on cstorvolum error: %v", err),
 			)
+			klog.Fatalf("Failed to validate volume config: %s", err.Error())
 			return common.CVStatusInvalid, err
 		}
 		// Set TargetNamespace which will be used to volume-mgmt UDS to update
@@ -607,7 +608,7 @@ func IsOnlyStatusChange(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
 	return false
 }
 
-func (c *CStorVolumeController) upgrade(cv *apis.CStorVolume) (*apis.CStorVolume, error) {
+func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CStorVolume, error) {
 	var err error
 	if cv.VersionDetails.Current != cv.VersionDetails.Desired {
 		if !isCurrentVersionValid(cv) {

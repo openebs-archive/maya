@@ -107,7 +107,7 @@ func (c *CStorVolumeReplicaController) syncHandler(
 		)
 		return err
 	}
-	cvrObj, err = c.upgrade(cvrObj)
+	cvrObj, err = c.reconcileVersion(cvrObj)
 	if err != nil {
 		c.recorder.Event(
 			cvrGot,
@@ -574,7 +574,7 @@ func (c *CStorVolumeReplicaController) syncCvr(cvr *apis.CStorVolumeReplica) {
 	}
 }
 
-func (c *CStorVolumeReplicaController) upgrade(cvr *apis.CStorVolumeReplica) (
+func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeReplica) (
 	*apis.CStorVolumeReplica, error,
 ) {
 	var err error
