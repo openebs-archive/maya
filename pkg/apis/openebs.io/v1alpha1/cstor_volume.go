@@ -78,7 +78,7 @@ type CStorVolumeStatus struct {
 // updated by target
 type CStorVolumeReplicaDetails struct {
 	// KnownReplicas represents the replicas that target can trust to read data
-	KnownReplicas map[string]uint64 `json:"knownReplicas,omitempty"`
+	KnownReplicas map[string]string `json:"knownReplicas,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
