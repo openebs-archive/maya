@@ -43,7 +43,7 @@ import (
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
-	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
+	"github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/tests/artifacts"
@@ -948,12 +948,12 @@ func (ops *Operations) GetBDCCount(lSelector, namespace string) int {
 }
 
 // GetCSPCBDListForNode returns unclaimed block devices that can be used.
-func (ops *Operations) GetCSPCBDListForNode(nodeName string, blockDeviceCount int) []*apis.CStorPoolClusterBlockDevice {
-	bdList, err := ops.BDClient.WithNamespace(ops.NameSpace).List(metav1.ListOptions{LabelSelector: "kubernetes.io/hostname=" + nodeName})
+func (ops *Operations) GetCSPCBDListForNode(node *corev1.Node, blockDeviceCount int) []*apis.CStorPoolClusterBlockDevice {
+	bdList, err := ops.BDClient.WithNamespace(ops.NameSpace).List(metav1.ListOptions{LabelSelector: string(apis.HostNameCPK) + "=" + node.GetLabels()[string(apis.HostNameCPK)]})
 	Expect(err).To(BeNil())
 	Expect(len(bdList.Items)).Should(BeNumerically(">=", blockDeviceCount))
 	// TODO : Filter Unclaimed BDs
-	//bd.ListBuilderFromAPIList(bdList)
+	bdList = bd.ListBuilderFromAPIList(bdList).BDL.Filter(bd.IsUnclaimed()).ObjectList
 
 	var cspcBDs []*apis.CStorPoolClusterBlockDevice
 	for i := 0; i < blockDeviceCount; i++ {

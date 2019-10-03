@@ -47,7 +47,7 @@ func createCSPCObject(blockDeviceCount int, poolType string) {
 			WithRaidGroupBuilder(
 				cspcrg_v1alpha1.NewBuilder().
 					// TODO : PAss the entire label -- kubernetes.io/hostname
-					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(NodeList.Items[0].Name, blockDeviceCount)).
+					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(&NodeList.Items[0], blockDeviceCount)).
 					WithType(poolType),
 			),
 		).
@@ -55,7 +55,7 @@ func createCSPCObject(blockDeviceCount int, poolType string) {
 			WithNodeSelector(NodeList.Items[1].Labels).
 			WithRaidGroupBuilder(
 				cspcrg_v1alpha1.NewBuilder().
-					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(NodeList.Items[1].Name, blockDeviceCount)).
+					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(&NodeList.Items[1], blockDeviceCount)).
 					WithType(poolType),
 			),
 		).
@@ -63,7 +63,7 @@ func createCSPCObject(blockDeviceCount int, poolType string) {
 			WithNodeSelector(NodeList.Items[2].Labels).
 			WithRaidGroupBuilder(
 				cspcrg_v1alpha1.NewBuilder().
-					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(NodeList.Items[2].Name, blockDeviceCount)).
+					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(&NodeList.Items[2], blockDeviceCount)).
 					WithType(poolType),
 			),
 		).

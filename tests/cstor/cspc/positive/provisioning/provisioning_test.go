@@ -53,9 +53,11 @@ func provisioningAndReconciliationTest(createCSPCObject func()) {
 		})
 	})
 	// TODO : Add test case for pool import
-
+	// TODO : Remove hardcoded expected count and pass via flag to enable test to run on single node also.
 	for i := 1; i <= 3; i++ {
 		When(strconv.Itoa(i)+" CSPI Is Deleted", func() {
+			// pin it
+			i := i
 			It(strconv.Itoa(i)+" New CSPI Should Come Up Again", func() {
 				ops.DeleteCSPI(cspcObj.Name, i)
 				// We expect 3 cstorPool objects.

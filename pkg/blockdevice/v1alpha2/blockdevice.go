@@ -114,6 +114,18 @@ func (bd *BlockDevice) IsActive() bool {
 	return bd.Object.Status.State == string(BlockDeviceStateActive)
 }
 
+// IsUnclaimed filters the block device based on unclaimed status
+func IsUnclaimed() Predicate {
+	return func(bd *BlockDevice) bool {
+		return bd.IsUnclaimed()
+	}
+}
+
+// IsUnclaimed returns true if the block device is unclaimed
+func (bd *BlockDevice) IsUnclaimed() bool {
+	return bd.Object.Status.ClaimState == ndm.BlockDeviceUnclaimed
+}
+
 // IsClaimed filters the block deive based on claimed status
 func IsClaimed() Predicate {
 	return func(bd *BlockDevice) bool {
