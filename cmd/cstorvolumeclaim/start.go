@@ -17,6 +17,10 @@ limitations under the License.
 package cstorvolumeclaim
 
 import (
+	"context"
+	"flag"
+	"os"
+	"os/signal"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -27,7 +31,7 @@ import (
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
-	"github.com/openebs/maya/pkg/signals"
+	leader "github.com/openebs/maya/pkg/kubernetes/leaderelection"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -37,13 +41,18 @@ import (
 var (
 	masterURL  string
 	kubeconfig string
+	// lease lock resource name for lease API resource
+	leaderElectionLockName = "cvc-controller-leader"
 )
 
-// Start starts the cstor-operator.
-func Start(controllerMtx *sync.RWMutex) error {
-	// set up signals so we handle the first shutdown signal gracefully
-	stopCh := signals.SetupSignalHandler()
+// Command line flags
+var (
+	leaderElection          = flag.Bool("leader-election", true, "Enables leader election.")
+	leaderElectionNamespace = flag.String("leader-election-namespace", "", "The namespace where the leader election resource exists. Defaults to the pod namespace if not set.")
+)
 
+// Start starts the cstorvolumeclaim controller.
+func Start(controllerMtx *sync.RWMutex) error {
 	// Get in cluster config
 	cfg, err := getClusterConfig(kubeconfig)
 	if err != nil {
@@ -70,13 +79,13 @@ func Start(controllerMtx *sync.RWMutex) error {
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
 	cvcInformerFactory := informers.NewSharedInformerFactory(openebsClient, time.Second*30)
+
 	// Build() fn of all controllers calls AddToScheme to adds all types of this
 	// clientset into the given scheme.
 	// If multiple controllers happen to call this AddToScheme same time,
 	// it causes panic with error saying concurrent map access.
 	// This lock is used to serialize the AddToScheme call of all controllers.
 	controllerMtx.Lock()
-
 	controller, err := NewCVCControllerBuilder().
 		withKubeClient(kubeClient).
 		withOpenEBSClient(openebsClient).
@@ -93,16 +102,37 @@ func Start(controllerMtx *sync.RWMutex) error {
 
 	// blocking call, can't use defer to release the lock
 	controllerMtx.Unlock()
-
 	if err != nil {
 		return errors.Wrapf(err, "error building controller instance")
 	}
 
-	go kubeInformerFactory.Start(stopCh)
-	go cvcInformerFactory.Start(stopCh)
-
 	// Threadiness defines the number of workers to be launched in Run function
-	return controller.Run(2, stopCh)
+	run := func(context.Context) {
+		// run...
+		stopCh := make(chan struct{})
+		kubeInformerFactory.Start(stopCh)
+		cvcInformerFactory.Start(stopCh)
+		go controller.Run(2, stopCh)
+
+		// ...until SIGINT
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+		<-c
+		close(stopCh)
+	}
+
+	if !*leaderElection {
+		run(context.TODO())
+	} else {
+		le := leader.NewLeaderElection(kubeClient, leaderElectionLockName, run)
+		if *leaderElectionNamespace != "" {
+			le.WithNamespace(*leaderElectionNamespace)
+		}
+		if err := le.Run(); err != nil {
+			klog.Fatalf("failed to initialize leader election: %v", err)
+		}
+	}
+	return nil
 }
 
 // GetClusterConfig return the config for k8s.

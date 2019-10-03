@@ -242,7 +242,7 @@ func (c *CVCController) deleteCVC(obj interface{}) {
 // as syncing informer caches and starting workers. It will block until stopCh
 // is closed, at which point it will shutdown the workqueue and wait for
 // workers to finish processing their current work items.
-func (c *CVCController) Run(threadiness int, stopCh <-chan struct{}) error {
+func (c *CVCController) Run(threadiness int, stopCh <-chan struct{}) {
 	defer runtime.HandleCrash()
 	defer c.workqueue.ShutDown()
 
@@ -252,7 +252,8 @@ func (c *CVCController) Run(threadiness int, stopCh <-chan struct{}) error {
 	// Wait for the k8s caches to be synced before starting workers
 	klog.Info("Waiting for informer caches to sync")
 	if ok := cache.WaitForCacheSync(stopCh, c.cvcSynced); !ok {
-		return fmt.Errorf("failed to wait for caches to sync")
+		klog.Errorf("failed to sync cvc caches")
+		return
 	}
 	klog.Info("Starting CVC workers")
 	// Launch worker to process CVC resources
@@ -264,8 +265,6 @@ func (c *CVCController) Run(threadiness int, stopCh <-chan struct{}) error {
 	klog.Info("Started CVC workers")
 	<-stopCh
 	klog.Info("Shutting down CVC workers")
-
-	return nil
 }
 
 // runWorker is a long-running function that will continually call the

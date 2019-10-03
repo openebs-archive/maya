@@ -1123,6 +1123,8 @@
     "k8s.io/client-go/third_party/forked/golang/template",
     "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/tools/clientcmd",
+    "k8s.io/client-go/tools/leaderelection",
+    "k8s.io/client-go/tools/leaderelection/resourcelock",
     "k8s.io/client-go/tools/record",
     "k8s.io/client-go/tools/reference",
     "k8s.io/client-go/tools/remotecommand",
