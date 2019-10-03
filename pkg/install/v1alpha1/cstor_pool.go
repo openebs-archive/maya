@@ -259,7 +259,7 @@ spec:
                 command:
                 - /bin/sh
                 - -c
-                - zfs set io.openebs:livenesstimestap='$(date)' cstor-$OPENEBS_IO_CSTOR_ID
+                - zfs set io.openebs:livenesstimestamp="$(date)" cstor-$OPENEBS_IO_CSTOR_ID
               failureThreshold: 3
               initialDelaySeconds: 300
               periodSeconds: 10
