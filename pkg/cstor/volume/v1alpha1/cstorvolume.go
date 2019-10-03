@@ -73,7 +73,7 @@ type CVReplicationDetails struct {
 	ReplicationFactor int    `json:"replicationFactor"`
 	ConsistencyFactor int    `json:"consistencyFactor"`
 	ReplicaID         string `json:"replicaId"`
-	ReplicaGUID       uint64 `json:"replicaZvolGuid,string"`
+	ReplicaGUID       string `json:"replicaZvolGuid"`
 }
 
 //CStorVolumeConfig embed CVReplicationDetails and Kubeclient of
@@ -286,7 +286,7 @@ func (csr *CVReplicationDetails) BuildConfigData() map[string]string {
 	value = fmt.Sprintf("  ConsistencyFactor %d", csr.ConsistencyFactor)
 	data[key] = value
 	key = fmt.Sprintf("  Replica %s", csr.ReplicaID)
-	value = fmt.Sprintf("  Replica %s %d", csr.ReplicaID, csr.ReplicaGUID)
+	value = fmt.Sprintf("  Replica %s %s", csr.ReplicaID, csr.ReplicaGUID)
 	data[key] = value
 	return data
 }
@@ -313,7 +313,7 @@ func (csr *CVReplicationDetails) Validate() error {
 		return errors.Errorf("replicaKey can not be empty to perform "+
 			"volume %s update", csr.VolumeName)
 	}
-	if csr.ReplicaGUID == 0 {
+	if csr.ReplicaGUID == "" {
 		return errors.Errorf("replicaKey can not be empty to perform "+
 			"volume %s update", csr.VolumeName)
 	}
@@ -366,7 +366,7 @@ func (csr *CVReplicationDetails) UpdateCVWithReplicationDetails(kubeclient *Kube
 	cv.Spec.ReplicationFactor = csr.ReplicationFactor
 	cv.Spec.ConsistencyFactor = csr.ConsistencyFactor
 	if cv.Status.ReplicaDetails.KnownReplicas == nil {
-		cv.Status.ReplicaDetails.KnownReplicas = map[string]uint64{}
+		cv.Status.ReplicaDetails.KnownReplicas = map[string]string{}
 	}
 	cv.Status.ReplicaDetails.KnownReplicas[csr.ReplicaID] = csr.ReplicaGUID
 	_, err = kubeclient.Update(cv)

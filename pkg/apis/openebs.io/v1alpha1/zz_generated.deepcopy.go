@@ -1125,7 +1125,7 @@ func (in *CStorVolumeReplicaDetails) DeepCopyInto(out *CStorVolumeReplicaDetails
 	*out = *in
 	if in.KnownReplicas != nil {
 		in, out := &in.KnownReplicas, &out.KnownReplicas
-		*out = make(map[string]uint64, len(*in))
+		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
