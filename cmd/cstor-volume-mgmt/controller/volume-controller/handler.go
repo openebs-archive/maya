@@ -29,6 +29,7 @@ import (
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/common"
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/volume"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	"github.com/openebs/maya/pkg/client/k8s"
 	cstorvolume_v1alpha1 "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -38,6 +39,22 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+)
+
+type upgradeParams struct {
+	cv     *apis.CStorVolume
+	client clientset.Interface
+}
+
+type upgradeFunc func(u *upgradeParams) (*apis.CStorVolume, error)
+
+var (
+	v130       = "1.3.0"
+	upgradeMap = map[string]upgradeFunc{
+		"1.0.0-1.3.0": setDesiredRF,
+		"1.1.0-1.3.0": setDesiredRF,
+		"1.2.0-1.3.0": setDesiredRF,
+	}
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -52,6 +69,30 @@ func (c *CStorVolumeController) syncHandler(
 	if err != nil {
 		return err
 	}
+	cStorVolumeObj, err := c.populateVersion(cStorVolumeGot)
+	if err != nil {
+		c.recorder.Event(
+			cStorVolumeGot,
+			corev1.EventTypeWarning,
+			string("FailedPopulate"),
+			fmt.Sprintf("Failed to add current version: %s", err.Error()),
+		)
+		return err
+	}
+	cStorVolumeObj, err = c.upgrade(cStorVolumeObj)
+	if err != nil {
+		c.recorder.Event(
+			cStorVolumeGot,
+			corev1.EventTypeWarning,
+			string("FailedUpgrade"),
+			fmt.Sprintf("Failed to upgrade cvr to %s version: %s",
+				cStorVolumeGot.VersionDetails.Desired,
+				err.Error(),
+			),
+		)
+		return err
+	}
+	cStorVolumeGot = cStorVolumeObj
 	status, err := c.cStorVolumeEventHandler(operation, cStorVolumeGot)
 	if status == common.CVStatusIgnore {
 		return nil
@@ -564,4 +605,78 @@ func IsOnlyStatusChange(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
 	}
 	klog.Infof("No status changed for cstor volume : %s", newCStorVolume.Name)
 	return false
+}
+
+func (c *CStorVolumeController) upgrade(cv *apis.CStorVolume) (*apis.CStorVolume, error) {
+	var err error
+	if cv.VersionDetails.Current != cv.VersionDetails.Desired {
+		if !isCurrentVersionValid(cv) {
+			return nil, pkg_errors.Errorf("invalid current version %s", cv.VersionDetails.Current)
+		}
+		if !isDesiredVersionValid(cv) {
+			return nil, pkg_errors.Errorf("invalid desired version %s", cv.VersionDetails.Desired)
+		}
+		path := upgradePath(cv)
+		u := &upgradeParams{
+			cv:     cv,
+			client: c.clientset,
+		}
+		cv, err = upgradeMap[path](u)
+		if err != nil {
+			return nil, err
+		}
+		cv.VersionDetails.Current = cv.VersionDetails.Desired
+		cv, err = u.client.OpenebsV1alpha1().
+			CStorVolumes(cv.Namespace).Update(cv)
+		if err != nil {
+			return nil, err
+		}
+		return cv, nil
+	}
+	return cv, nil
+}
+
+// populateVersion assigns VersionDetails for old cv object
+func (c *CStorVolumeController) populateVersion(cv *apis.CStorVolume) (
+	*apis.CStorVolume, error,
+) {
+	v := cv.Labels[string(apis.OpenEBSVersionKey)]
+	// 1.3.0 onwards new CV will have the field populated during creation
+	if v < v130 && cv.VersionDetails.Current == "" {
+		cv.VersionDetails.Current = v
+		cv.VersionDetails.Desired = v
+		obj, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cv.Namespace).
+			Update(cv)
+
+		if err != nil {
+			return nil, err
+		}
+		klog.Infof("Version %s added on cstorvolume %s", v, cv.Name)
+		return obj, nil
+	}
+	return cv, nil
+}
+
+func isCurrentVersionValid(cv *apis.CStorVolume) bool {
+	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
+	version := strings.Split(cv.VersionDetails.Current, "-")[0]
+	return util.ContainsString(validVersions, version)
+}
+
+func isDesiredVersionValid(cv *apis.CStorVolume) bool {
+	validVersions := []string{"1.3.0"}
+	version := strings.Split(cv.VersionDetails.Desired, "-")[0]
+	return util.ContainsString(validVersions, version)
+}
+
+func setDesiredRF(u *upgradeParams) (*apis.CStorVolume, error) {
+	cv := u.cv
+	// Set new field DesiredReplicationFactor as ReplicationFactor
+	cv.Spec.DesiredReplicationFactor = cv.Spec.ReplicationFactor
+	return cv, nil
+}
+
+func upgradePath(cv *apis.CStorVolume) string {
+	return strings.Split(cv.VersionDetails.Current, "-")[0] + "-" +
+		strings.Split(cv.VersionDetails.Desired, "-")[0]
 }

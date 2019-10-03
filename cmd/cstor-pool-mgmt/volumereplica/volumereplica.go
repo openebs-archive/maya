@@ -89,7 +89,7 @@ type Stats struct {
 	// RebuildStatus of the zfs volume.
 	RebuildStatus             string `json:"rebuildStatus"`
 	IsIOAckSenderCreated      int    `json:"isIOAckSenderCreated"`
-	isIOReceiverCreated       int    `json:"isIOReceiverCreated"`
+	IsIOReceiverCreated       int    `json:"isIOReceiverCreated"`
 	RunningIONum              int    `json:"runningIONum"`
 	CheckpointedIONum         int    `json:"checkpointedIONum"`
 	DegradedCheckpointedIONum int    `json:"degradedCheckpointedIONum"`
@@ -495,8 +495,8 @@ func capacityOutputParser(output string) *apis.CStorVolumeCapacityAttr {
 	// 'TotalAllocated' value(on cvr) is filled from the value of 'used' property in 'zfs get' output.
 	// 'Used' value(on cvr) is filled from the value of 'logicalused' property in 'zfs get' output.
 	capacity := &apis.CStorVolumeCapacityAttr{
-		"",
-		"",
+		TotalAllocated: "",
+		Used:           "",
 	}
 	if strings.TrimSpace(string(output)) != "" {
 		outputStr = strings.Split(string(output), "\n")
