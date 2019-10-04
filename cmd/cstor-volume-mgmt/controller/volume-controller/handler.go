@@ -163,6 +163,8 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 				fmt.Sprintf("failed to create cstorvolume validation "+
 					"failed on cstorvolum error: %v", err),
 			)
+			// If the config for the volume is invalid, panic here to
+			// restart the container.
 			klog.Fatalf("Failed to validate volume config: %s", err.Error())
 			return common.CVStatusInvalid, err
 		}
