@@ -44,6 +44,7 @@ func createStorageClass() {
 	var (
 		err error
 	)
+
 	parameters := map[string]string{
 		"replicaCount":     strconv.Itoa(cstor.ReplicaCount),
 		"cstorPoolCluster": cspcName,
@@ -172,6 +173,7 @@ func createAndVerifyPVC() {
 	)
 
 	By("verifying pvc status as bound")
+
 	status := ops.IsPVCBoundEventually(pvcName)
 	Expect(status).To(Equal(true),
 		"while checking status equal to bound")

@@ -43,7 +43,7 @@ import (
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
-	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
+	"github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/tests/artifacts"
@@ -91,6 +91,7 @@ type Operations struct {
 	BDClient       *bd.Kubeclient
 	BDCClient      *bdc.Kubeclient
 	KubeConfigPath string
+	NameSpace      string
 }
 
 // OperationsOptions abstracts creating an
@@ -614,6 +615,23 @@ func isNotFound(err error) bool {
 	}
 }
 
+// DeleteCSPI deletes  ...
+func (ops *Operations) DeleteCSPI(cspcName string, deleteCount int) {
+	cspiAPIList, err := ops.CSPIClient.WithNamespace(ops.NameSpace).List(metav1.ListOptions{})
+	Expect(err).To(BeNil())
+	cspiList := cspi.
+		ListBuilderFromAPIList(cspiAPIList).
+		List().
+		Filter(cspi.HasLabel(string(apis.CStorPoolClusterCPK), cspcName), cspi.IsStatus("ONLINE"))
+	cspiCount := cspiList.Len()
+	Expect(deleteCount).Should(BeNumerically("<=", cspiCount))
+
+	for i := 0; i < deleteCount; i++ {
+		err := ops.CSPIClient.WithNamespace(ops.NameSpace).Delete(cspiList.ObjectList.Items[i].Name, &metav1.DeleteOptions{})
+		Expect(err).To(BeNil())
+	}
+}
+
 // DeleteCSP ...
 func (ops *Operations) DeleteCSP(spcName string, deleteCount int) {
 	cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{})
@@ -639,6 +657,13 @@ func (ops *Operations) GetCSPCount(labelSelector string) int {
 	return len(cspAPIList.Items)
 }
 
+// GetCSPICount gets cspi count based on cspc name at that time
+func (ops *Operations) GetCSPICount(labelSelector string) int {
+	cspiAPIList, err := ops.CSPIClient.WithNamespace(ops.NameSpace).List(metav1.ListOptions{LabelSelector: labelSelector})
+	Expect(err).To(BeNil())
+	return len(cspiAPIList.Items)
+}
+
 // GetHealthyCSPCount gets healthy csp based on spcName
 func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) int {
 	var cspCount int
@@ -662,14 +687,14 @@ func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) 
 func (ops *Operations) GetHealthyCSPICount(cspcName string, expectedCSPICount int) int {
 	var cspiCount int
 	for i := 0; i < maxRetry; i++ {
-		cspiAPIList, err := ops.CSPIClient.List(metav1.ListOptions{})
+		cspiAPIList, err := ops.CSPIClient.WithNamespace(ops.NameSpace).List(metav1.ListOptions{})
+		time.Sleep(5 * time.Second)
 		Expect(err).To(BeNil())
 		cspiCount = cspi.
 			ListBuilderFromAPIList(cspiAPIList).
 			List().
 			Filter(cspi.HasLabel(string(apis.CStorPoolClusterCPK), cspcName), cspi.IsStatus("ONLINE")).
 			Len()
-
 		if cspiCount == expectedCSPICount {
 			return cspiCount
 		}
@@ -691,6 +716,18 @@ func (ops *Operations) GetBDCCountEventually(listOptions metav1.ListOptions, exp
 		time.Sleep(5 * time.Second)
 	}
 	return bdcCount
+}
+
+// IsCSPCNotExists returns true if the cspc with provided name does not exists.
+func (ops *Operations) IsCSPCNotExists(cspcName string) bool {
+	for i := 0; i < maxRetry; i++ {
+		_, err := ops.CSPCClient.WithNamespace(ops.NameSpace).Get(cspcName, metav1.GetOptions{})
+		if k8serrors.IsNotFound(err) {
+			return true
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return false
 }
 
 // IsSPCNotExists returns true if the spc with provided name does not exists.
@@ -720,6 +757,22 @@ func (ops *Operations) IsFinalizerExistsOnBDC(bdcName, finalizer string) bool {
 	return false
 }
 
+// IsCSPCFinalizerExistsOnCSPC returns true if the cspc with provided name contains the cspc finalizer.
+func (ops *Operations) IsCSPCFinalizerExistsOnCSPC(cspcName, cspcFinalizer string) bool {
+	for i := 0; i < maxRetry; i++ {
+		gotCSPC, err := ops.CSPCClient.WithNamespace(ops.NameSpace).Get(cspcName, metav1.GetOptions{})
+		Expect(err).To(BeNil())
+		for _, finalizer := range gotCSPC.Finalizers {
+
+			if finalizer == cspcFinalizer {
+				return true
+			}
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return false
+}
+
 // IsSPCFinalizerExistsOnSPC returns true if the spc with provided name contains the spc finalizer.
 func (ops *Operations) IsSPCFinalizerExistsOnSPC(spcName, spcFinalizer string) bool {
 	for i := 0; i < maxRetry; i++ {
@@ -731,6 +784,29 @@ func (ops *Operations) IsSPCFinalizerExistsOnSPC(spcName, spcFinalizer string) b
 			}
 		}
 		time.Sleep(5 * time.Second)
+	}
+	return false
+}
+
+// IsCSPCFinalizerExistsOnBDCs returns true if the all the BDCs( selected by provided list options)
+// has cspc finalizer on it.
+func (ops *Operations) IsCSPCFinalizerExistsOnBDCs(listOptions metav1.ListOptions, cspcFinalizer string) bool {
+	for i := 0; i < maxRetry; i++ {
+		cspcFinalizerPresent := true
+		gotBDCList, err := ops.BDCClient.WithNamespace(ops.NameSpace).List(listOptions)
+		Expect(err).To(BeNil())
+		for _, BDCObj := range gotBDCList.Items {
+			BDCObj := BDCObj
+			if !bdc.BuilderForAPIObject(&BDCObj).BDC.HasFinalizer(cspcFinalizer) {
+				cspcFinalizerPresent = false
+			}
+		}
+		if !cspcFinalizerPresent {
+			time.Sleep(5 * time.Second)
+		} else {
+			return true
+		}
+
 	}
 	return false
 }
@@ -869,4 +945,22 @@ func (ops *Operations) GetBDCCount(lSelector, namespace string) int {
 		List(metav1.ListOptions{LabelSelector: lSelector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return len(bdcList.Items)
+}
+
+// GetCSPCBDListForNode returns unclaimed block devices that can be used.
+func (ops *Operations) GetCSPCBDListForNode(node *corev1.Node, blockDeviceCount int) []*apis.CStorPoolClusterBlockDevice {
+	bdList, err := ops.BDClient.WithNamespace(ops.NameSpace).List(metav1.ListOptions{LabelSelector: string(apis.HostNameCPK) + "=" + node.GetLabels()[string(apis.HostNameCPK)]})
+	Expect(err).To(BeNil())
+	Expect(len(bdList.Items)).Should(BeNumerically(">=", blockDeviceCount))
+	// TODO : Filter Unclaimed BDs
+	bdList = bd.ListBuilderFromAPIList(bdList).BDL.Filter(bd.IsUnclaimed()).ObjectList
+
+	var cspcBDs []*apis.CStorPoolClusterBlockDevice
+	for i := 0; i < blockDeviceCount; i++ {
+		cspcBD := &apis.CStorPoolClusterBlockDevice{}
+		cspcBD.BlockDeviceName = bdList.Items[i].Name
+		cspcBDs = append(cspcBDs, cspcBD)
+	}
+
+	return cspcBDs
 }
