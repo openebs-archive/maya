@@ -24,7 +24,7 @@ import (
 	"k8s.io/klog"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
-	upgrade100to120 "github.com/openebs/maya/pkg/upgrade/1.0.0-1.1.0/v1alpha1"
+	upgrader "github.com/openebs/maya/pkg/upgrade/upgrader"
 )
 
 // CStorSPCOptions stores information required for cstor SPC upgrade
@@ -85,7 +85,7 @@ func (u *UpgradeOptions) RunCStorSPCUpgrade(cmd *cobra.Command) error {
 	case "1.0.0-1.3.0", "1.1.0-1.3.0", "1.2.0-1.3.0":
 		// RC1-RC2 for RC1 to RC2, RC1- for RC1 to GA, RC2- for RC2 to GA
 		klog.Infof("Upgrading to %s", u.toVersion)
-		err := upgrade100to120.Exec(u.fromVersion, u.toVersion,
+		err := upgrader.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
 			u.cstorSPC.spcName,
 			u.openebsNamespace,

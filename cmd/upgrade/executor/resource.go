@@ -25,7 +25,7 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 
-	upgrade100to120 "github.com/openebs/maya/pkg/upgrade/1.0.0-1.1.0/v1alpha1"
+	upgrader "github.com/openebs/maya/pkg/upgrade/upgrader"
 	utask "github.com/openebs/maya/pkg/upgrade/v1alpha2"
 	errors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -147,7 +147,7 @@ func (u *UpgradeOptions) RunResourceUpgrade(cmd *cobra.Command) error {
 	case "1.0.0-1.3.0", "1.1.0-1.3.0", "1.2.0-1.3.0":
 		// RC1-RC2 for RC1 to RC2, RC1- for RC1 to GA, RC2- for RC2 to GA
 		klog.Infof("Upgrading to %s", u.toVersion)
-		err := upgrade100to120.Exec(u.fromVersion, u.toVersion,
+		err := upgrader.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
 			u.resource.name,
 			u.openebsNamespace,
