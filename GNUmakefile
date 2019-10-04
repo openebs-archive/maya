@@ -77,7 +77,6 @@ CSPI_MGMT_REPO_NAME?=cspi-mgmt
 CSTOR_VOLUME_MGMT_REPO_NAME?=cstor-volume-mgmt
 M_EXPORTER_REPO_NAME?=m-exporter
 ADMISSION_SERVER_REPO_NAME?=admission-server
-M_APISERVER_REPO_NAME?=m-apiserver
 M_UPGRADE_REPO_NAME?=m-upgrade
 CSPC_OPERATOR_REPO_NAME?=cspc-operator
 
@@ -97,8 +96,6 @@ endif
 CSTOR_BASE_IMAGE= openebs/cstor-base:${BASE_TAG}
 
 # Specify the name for the binaries
-MAYACTL=mayactl
-APISERVER=maya-apiserver
 WEBHOOK=admission-server
 POOL_MGMT=cstor-pool-mgmt
 CSPI_MGMT=cspi-mgmt
@@ -110,71 +107,78 @@ CSPC_OPERATOR=cspc-operator
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
+include ./buildscripts/mayactl/Makefile.mk
+include ./buildscripts/apiserver/Makefile.mk
 include ./buildscripts/provisioner-localpv/Makefile.mk
 include ./buildscripts/upgrade/Makefile.mk
 include ./buildscripts/upgrade-082090/Makefile.mk
 
+.PHONY: all
 all: compile-tests mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image cspc-operator-image cspi-mgmt-image upgrade-image provisioner-localpv-image
 
-mayactl:
-	@echo "----------------------------"
-	@echo "--> mayactl                    "
-	@echo "----------------------------"
-	@PNAME="maya" CTLNAME=${MAYACTL} sh -c "'$(PWD)/buildscripts/build.sh'"
-
+.PHONY: initialize
 initialize: bootstrap
 
+.PHONY: deps
 deps:
 	dep ensure
 
+.PHONY: clean
 clean: cleanup-upgrade
 	go clean -testcache
 	rm -rf bin
-	rm -rf ${GOPATH}/bin/${MAYACTL}
-	rm -rf ${GOPATH}/bin/${APISERVER}
-	rm -rf ${GOPATH}/bin/${POOL_MGMT}
-	rm -rf ${GOPATH}/bin/${VOLUME_MGMT}
 	rm -rf ${GOPATH}/pkg/*
 
+.PHONY: release
 release:
 	@$(MAKE) bin
 
 # Run the bootstrap target once before trying cov
+.PHONY: cov
 cov:
 	gocov test ./... | gocov-html > /tmp/coverage.html
 	@cat /tmp/coverage.html
 
 # Verifies compilation issues if any in integration test code
+.PHONY: compile-tests
 compile-tests:
 	@echo "--> Running go vet on tests"
 	@for test in  $(PACKAGES_IT) ; do \
 		go vet $$test; \
 	done
 
+.PHONY: test
 test: format
 	@echo "--> Running go test" ;
 	@go test $(PACKAGES)
 
+.PHONY: testv
 testv: format
 	@echo "--> Running go test verbose" ;
 	@go test -v $(PACKAGES)
 
+.PHONY: cover
 cover:
 	go list ./... | grep -v vendor | xargs -n1 go test --cover
 
+.PHONY: format
 format:
 	@echo "--> Running go fmt"
 	@go fmt $(PACKAGES) $(PACKAGES_IT)
 
 # Target to run gometalinter in Travis (deadcode, golint, errcheck, unconvert, goconst)
+.PHONY: golint-travis
 golint-travis:
 	@gometalinter.v1 --install
 	-gometalinter.v1 --config=metalinter.config ./...
 
 # Run the bootstrap target once before trying gometalinter in Develop environment
+.PHONY: golint
 golint:
 	@gometalinter.v1 --install
 	@gometalinter.v1 --vendor --deadline=600s ./...
+
+.PHONY: vet
 vet:
 	@go tool vet 2>/dev/null ; if [ $$? -eq 3 ]; then \
 		go get golang.org/x/tools/cmd/vet; \
@@ -191,6 +195,7 @@ vet:
 	fi
 
 # Bootstrap the build by downloading additional tools
+.PHONY: bootstrap
 bootstrap:
 	@for tool in  $(EXTERNAL_TOOLS) ; do \
 		echo "+ Installing $$tool" ; \
@@ -198,16 +203,20 @@ bootstrap:
 	done
 
 # code generation for custom resources
+.PHONY: kubegen2
 kubegen2: deepcopy2 clientset2 lister2 informer2
 
 # code generation for custom resources
+.PHONY: kubegen1
 kubegen1:
 	./buildscripts/code-gen.sh ${GENS} ${OUTPUT_PKG} ${APIS_PKG} ${GROUPS_WITH_VERSIONS} --go-header-file ${BOILERPLATE_TEXT_PATH}
 
 # code generation for custom resources
+.PHONY: kubegen
 kubegen: kubegendelete kubegen1 kubegen2
 
 # deletes generated code by codegen
+.PHONY: kubegendelete
 kubegendelete:
 	@rm -rf pkg/client/generated/clientset
 	@rm -rf pkg/client/generated/listers
@@ -215,9 +224,11 @@ kubegendelete:
 	@rm -rf pkg/client/generated/openebs.io
 
 # code generation for custom resources and protobuf
+.PHONY: generated_files
 generated_files: kubegen protobuf
 
 # builds vendored version of deepcopy-gen tool
+.PHONY: deepcopy2
 deepcopy2:
 	@go install ./vendor/k8s.io/code-generator/cmd/deepcopy-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
@@ -229,6 +240,7 @@ deepcopy2:
 	done
 
 # builds vendored version of client-gen tool
+.PHONY: clientset2
 clientset2:
 	@go install ./vendor/k8s.io/code-generator/cmd/client-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
@@ -242,6 +254,7 @@ clientset2:
 	done
 
 # builds vendored version of lister-gen tool
+.PHONY: lister2
 lister2:
 	@go install ./vendor/k8s.io/code-generator/cmd/lister-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
@@ -253,6 +266,7 @@ lister2:
 	done
 
 # builds vendored version of informer-gen tool
+.PHONY: informer2
 informer2:
 	@go install ./vendor/k8s.io/code-generator/cmd/informer-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
@@ -266,16 +280,19 @@ informer2:
 	done
 
 # You might need to use sudo
+.PHONY: install
 install: bin/maya/${MAYACTL}
 	install -o root -g root -m 0755 ./bin/maya/${MAYACTL} /usr/local/bin/${MAYACTL}
 
 #Use this to build cstor-pool-mgmt
+.PHONY: cstor-pool-mgmt
 cstor-pool-mgmt:
 	@echo "----------------------------"
 	@echo "--> cstor-pool-mgmt           "
 	@echo "----------------------------"
 	@PNAME="cstor-pool-mgmt" CTLNAME=${POOL_MGMT} sh -c "'$(PWD)/buildscripts/build.sh'"
 
+.PHONY: pool-mgmt-image
 pool-mgmt-image: cstor-pool-mgmt
 	@echo "----------------------------"
 	@echo -n "--> cstor-pool-mgmt image "
@@ -286,12 +303,14 @@ pool-mgmt-image: cstor-pool-mgmt
 	@rm buildscripts/cstor-pool-mgmt/${POOL_MGMT}
 
 #Use this to build cspi-mgmt
+.PHONY: cspi-mgmt
 cspi-mgmt:
 	@echo "----------------------------"
 	@echo "--> cspi-mgmt           "
 	@echo "----------------------------"
 	@PNAME="cspi-mgmt" CTLNAME=${CSPI_MGMT} sh -c "'$(PWD)/buildscripts/build.sh'"
 
+.PHONY: cspi-mgmt-image
 cspi-mgmt-image: cspi-mgmt
 	@echo "----------------------------"
 	@echo -n "--> cspi-mgmt image "
@@ -302,12 +321,14 @@ cspi-mgmt-image: cspi-mgmt
 	@rm buildscripts/cspi-mgmt/${CSPI_MGMT}
 
 #Use this to build cstor-volume-mgmt
+.PHONY: cstor-volume-mgmt
 cstor-volume-mgmt:
 	@echo "----------------------------"
 	@echo "--> cstor-volume-mgmt           "
 	@echo "----------------------------"
 	@PNAME="cstor-volume-mgmt" CTLNAME=${VOLUME_MGMT} sh -c "'$(PWD)/buildscripts/build.sh'"
 
+.PHONY: protobuf
 protobuf:
 	@echo "----------------------------"
 	@echo "--> protobuf           "
@@ -317,6 +338,7 @@ protobuf:
     --go_out=plugins=grpc:$(PWD)/pkg/client/generated/cstor-volume-mgmt/v1alpha1 \
     $(PWD)/pkg/apis/openebs.io/v1alpha1/cstorvolume.proto
 
+.PHONY: volume-mgmt-image
 volume-mgmt-image: cstor-volume-mgmt
 	@echo "----------------------------"
 	@echo -n "--> cstor-volume-mgmt image "
@@ -327,6 +349,7 @@ volume-mgmt-image: cstor-volume-mgmt
 	@rm buildscripts/cstor-volume-mgmt/${VOLUME_MGMT}
 
 # Use this to build only the maya-exporter.
+.PHONY: exporter
 exporter:
 	@echo "----------------------------"
 	@echo "--> maya-exporter              "
@@ -334,6 +357,7 @@ exporter:
 	@PNAME="exporter" CTLNAME=${EXPORTER} sh -c "'$(PWD)/buildscripts/build.sh'"
 
 # m-exporter image. This is going to be decoupled soon.
+.PHONY: exporter-image
 exporter-image: exporter
 	@echo "----------------------------"
 	@echo -n "--> m-exporter image "
@@ -343,6 +367,7 @@ exporter-image: exporter
 	@cd buildscripts/exporter && sudo docker build -t ${HUB_USER}/${M_EXPORTER_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} .
 	@rm buildscripts/exporter/${EXPORTER}
 
+.PHONY: admission-server-image
 admission-server-image:
 	@echo "----------------------------"
 	@echo -n "--> admission-server image "
@@ -353,6 +378,7 @@ admission-server-image:
 	@cd buildscripts/${WEBHOOK} && sudo docker build -t ${HUB_USER}/${ADMISSION_SERVER_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/${WEBHOOK}/${WEBHOOK}
 
+.PHONY: cspc-operator-image
 cspc-operator-image:
 	@echo "----------------------------"
 	@echo -n "--> cspc-operator image "
@@ -363,38 +389,8 @@ cspc-operator-image:
 	@cd buildscripts/${CSPC_OPERATOR} && sudo docker build -t ${HUB_USER}/${CSPC_OPERATOR_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/${CSPC_OPERATOR}/${CSPC_OPERATOR}
 
-# Use this to build only the maya apiserver.
-apiserver:
-	@echo "----------------------------"
-	@echo "--> maya-apiserver               "
-	@echo "----------------------------"
-	@PNAME="apiserver" CTLNAME=${APISERVER} sh -c "'$(PWD)/buildscripts/build.sh'"
-
-# Currently both mayactl & apiserver binaries are pushed into
-# m-apiserver image. This is going to be decoupled soon.
-apiserver-image: mayactl apiserver
-	@echo "----------------------------"
-	@echo -n "--> apiserver image "
-	@echo "${HUB_USER}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG}"
-	@echo "----------------------------"
-	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
-	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
-	@cd buildscripts/apiserver && sudo docker build -t ${HUB_USER}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
-	@rm buildscripts/apiserver/${APISERVER}
-	@rm buildscripts/apiserver/${MAYACTL}
-
-rhel-apiserver-image: mayactl apiserver
-	@echo "----------------------------"
-	@echo -n "--> rhel based apiserver image "
-	@echo "${HUB_USER}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG}"
-	@echo "----------------------------"
-	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
-	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
-	@cd buildscripts/apiserver && sudo docker build -t ${HUB_USER}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG} -f Dockerfile.rhel --build-arg VERSION=${VERSION} .
-	@rm buildscripts/apiserver/${APISERVER}
-	@rm buildscripts/apiserver/${MAYACTL}
-
 # Push images
+.PHONY: deploy-images
 deploy-images:
 	@DIMAGE="openebs/m-apiserver" ./buildscripts/push
 	@DIMAGE="openebs/m-exporter" ./buildscripts/push
@@ -405,5 +401,3 @@ deploy-images:
 	@DIMAGE="openebs/cspc-operator" ./buildscripts/push
 	@DIMAGE="${HUB_USER}/${M_UPGRADE_REPO_NAME}" ./buildscripts/push
 	@DIMAGE="openebs/provisioner-localpv" ./buildscripts/push
-
-.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image cspc-operator-image cspi-mgmt-image testv
