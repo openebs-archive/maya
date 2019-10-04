@@ -81,7 +81,16 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		return err
 	}
 	klog.V(4).Infof("Lease acquired successfully on csp %s ", cspObject.Name)
-
+	cspGot, err := c.populateVersion(cspObject)
+	if err != nil {
+		klog.Errorf("failed to add versionDetails to cstorpool %s:%s", cspObject.Name, err.Error())
+		return err
+	}
+	cspGot, err = c.reconcileVersion(cspGot)
+	if err != nil {
+		klog.Errorf("failed to upgrade CSP %s:%s", cspObject.Name, err.Error())
+		return err
+	}
 	status, err := c.cStorPoolEventHandler(operation, cspObject)
 	if status == "" {
 		klog.Warning("Empty status recieved for csp status in sync handler")
@@ -101,16 +110,6 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		}
 		klog.Infof("cStorPool:%v, %v; Status: %v", cspObject.Name,
 			string(cspObject.GetUID()), cspObject.Status.Phase)
-		return err
-	}
-	cspGot, err := c.populateVersion(cspObject)
-	if err != nil {
-		klog.Errorf("failed to add versionDetails to cstorpool %s:%s", cspObject.Name, err.Error())
-		return err
-	}
-	cspGot, err = c.reconcileVersion(cspGot)
-	if err != nil {
-		klog.Errorf("failed to upgrade CSP %s:%s", cspObject.Name, err.Error())
 		return err
 	}
 	cspObject = cspGot
