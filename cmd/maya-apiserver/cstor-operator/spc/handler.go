@@ -38,6 +38,13 @@ import (
 	"k8s.io/klog"
 )
 
+type upgradeParams struct {
+	spc    *apis.StoragePoolClaim
+	client clientset.Interface
+}
+
+type upgradeFunc func(u *upgradeParams) (*apis.StoragePoolClaim, error)
+
 var (
 	// supportedPool is a map holding the supported raid configurations.
 	supportedPool = map[apis.CasPoolValString]bool{
@@ -133,7 +140,7 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 		klog.Errorf("failed to add versionDetails to SPC %s:%s", spc.Name, err.Error())
 		return err
 	}
-	spcObj, err = c.upgrade(spcObj)
+	spcObj, err = c.reconcileVersion(spcObj)
 	if err != nil {
 		klog.Errorf("failed to upgrade SPC %s:%s", spc.Name, err.Error())
 		return err
@@ -497,7 +504,7 @@ func isManualProvisioning(spc *apis.StoragePoolClaim) bool {
 	return spc.Spec.BlockDevices.BlockDeviceList != nil
 }
 
-func (c *Controller) upgrade(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
+func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
 	var err error
 	if spc.VersionDetails.Current != spc.VersionDetails.Desired {
 		if !isCurrentVersionValid(spc) {
@@ -508,8 +515,7 @@ func (c *Controller) upgrade(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim
 		}
 		// As no other steps are required just change current version to
 		// desired version
-		path := strings.Split(spc.VersionDetails.Current, "-")[0] + "-" +
-			strings.Split(spc.VersionDetails.Desired, "-")[0]
+		path := upgradePath(spc)
 		u := &upgradeParams{
 			spc:    spc,
 			client: c.clientset,
@@ -569,12 +575,10 @@ func isDesiredVersionValid(spc *apis.StoragePoolClaim) bool {
 	return util.ContainsString(validVersions, version)
 }
 
-type upgradeParams struct {
-	spc    *apis.StoragePoolClaim
-	client clientset.Interface
+func upgradePath(spc *apis.StoragePoolClaim) string {
+	return strings.Split(spc.VersionDetails.Current, "-")[0] + "-" +
+		strings.Split(spc.VersionDetails.Desired, "-")[0]
 }
-
-type upgradeFunc func(u *upgradeParams) (*apis.StoragePoolClaim, error)
 
 func nothing(u *upgradeParams) (*apis.StoragePoolClaim, error) {
 	// No upgrade steps for 1.3.0

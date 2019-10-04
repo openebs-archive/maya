@@ -41,6 +41,13 @@ import (
 	"k8s.io/klog"
 )
 
+type upgradeParams struct {
+	csp    *apis.CStorPool
+	client clientset.Interface
+}
+
+type upgradeFunc func(u *upgradeParams) (*apis.CStorPool, error)
+
 var (
 	upgradeMap = map[string]upgradeFunc{
 		"1.0.0-1.3.0": nothing,
@@ -74,7 +81,17 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		return err
 	}
 	klog.V(4).Infof("Lease acquired successfully on csp %s ", cspObject.Name)
-
+	cspGot, err := c.populateVersion(cspObject)
+	if err != nil {
+		klog.Errorf("failed to add versionDetails to cstorpool %s:%s", cspObject.Name, err.Error())
+		return err
+	}
+	cspGot, err = c.reconcileVersion(cspGot)
+	if err != nil {
+		klog.Errorf("failed to upgrade CSP %s:%s", cspObject.Name, err.Error())
+		return err
+	}
+	cspObject = cspGot
 	status, err := c.cStorPoolEventHandler(operation, cspObject)
 	if status == "" {
 		klog.Warning("Empty status recieved for csp status in sync handler")
@@ -96,17 +113,6 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 			string(cspObject.GetUID()), cspObject.Status.Phase)
 		return err
 	}
-	cspGot, err := c.populateVersion(cspObject)
-	if err != nil {
-		klog.Errorf("failed to add versionDetails to cstorpool %s:%s", cspObject.Name, err.Error())
-		return err
-	}
-	cspGot, err = c.upgrade(cspGot)
-	if err != nil {
-		klog.Errorf("failed to upgrade CSP %s:%s", cspObject.Name, err.Error())
-		return err
-	}
-	cspObject = cspGot
 	// Synchronize cstor pool used and free capacity fields on CSP object.
 	// Any kind of sync activity should be done from here.
 	// ToDo: Move status sync (of csp) here from cStorPoolEventHandler function.
@@ -546,7 +552,7 @@ func (c *CStorPoolController) getDeviceIDs(csp *apis.CStorPool) ([]string, error
 	return pool.GetDeviceIDs(csp)
 }
 
-func (c *CStorPoolController) upgrade(csp *apis.CStorPool) (*apis.CStorPool, error) {
+func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStorPool, error) {
 	var err error
 	if csp.VersionDetails.Current != csp.VersionDetails.Desired {
 		if !isCurrentVersionValid(csp) {
@@ -555,8 +561,7 @@ func (c *CStorPoolController) upgrade(csp *apis.CStorPool) (*apis.CStorPool, err
 		if !isDesiredVersionValid(csp) {
 			return nil, errors.Errorf("invalid desired version %s", csp.VersionDetails.Desired)
 		}
-		path := strings.Split(csp.VersionDetails.Current, "-")[0] + "-" +
-			strings.Split(csp.VersionDetails.Desired, "-")[0]
+		path := upgradePath(csp)
 		u := &upgradeParams{
 			csp:    csp,
 			client: c.clientset,
@@ -608,12 +613,10 @@ func isDesiredVersionValid(csp *apis.CStorPool) bool {
 	return util.ContainsString(validVersions, version)
 }
 
-type upgradeParams struct {
-	csp    *apis.CStorPool
-	client clientset.Interface
+func upgradePath(csp *apis.CStorPool) string {
+	return strings.Split(csp.VersionDetails.Current, "-")[0] + "-" +
+		strings.Split(csp.VersionDetails.Desired, "-")[0]
 }
-
-type upgradeFunc func(u *upgradeParams) (*apis.CStorPool, error)
 
 func nothing(u *upgradeParams) (*apis.CStorPool, error) {
 	// No upgrade steps for 1.3.0
