@@ -91,6 +91,7 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		klog.Errorf("failed to upgrade CSP %s:%s", cspObject.Name, err.Error())
 		return err
 	}
+	cspObject = cspGot
 	status, err := c.cStorPoolEventHandler(operation, cspObject)
 	if status == "" {
 		klog.Warning("Empty status recieved for csp status in sync handler")
@@ -112,7 +113,6 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 			string(cspObject.GetUID()), cspObject.Status.Phase)
 		return err
 	}
-	cspObject = cspGot
 	// Synchronize cstor pool used and free capacity fields on CSP object.
 	// Any kind of sync activity should be done from here.
 	// ToDo: Move status sync (of csp) here from cStorPoolEventHandler function.
