@@ -263,11 +263,12 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 		return nil, err
 	}
 
-	// update the cstorvolume reference, phase as "Bound" and desired
-	// capacity
-	cvc.Spec.CStorVolumeRef = volumeRef
-	cvc.Status.Phase = apis.CStorVolumeClaimPhaseBound
-	cvc.Status.Capacity = cvc.Spec.Capacity
+	// update the cstorvolume reference, phase as "Bound", desired
+	// capacity and version details
+	cvc, err = CVCWithVersionDetails(cvc, volumeRef)
+	if err != nil {
+		return nil, err
+	}
 
 	err = c.updateCVCObj(cvc, cvObj)
 	if err != nil {

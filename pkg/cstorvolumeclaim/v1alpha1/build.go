@@ -21,7 +21,7 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
-	metav1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -303,12 +303,24 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 	return b.WithCapacityQty(resCapacity)
 }
 
-// WithCapacityQty sets Capacity of CStorVOlumeClaim
+// WithCapacityQty sets Capacity of CStorVolumeClaim
 func (b *Builder) WithCapacityQty(resCapacity resource.Quantity) *Builder {
-	resourceList := metav1.ResourceList{
-		metav1.ResourceName(metav1.ResourceStorage): resCapacity,
+	resourceList := corev1.ResourceList{
+		corev1.ResourceName(corev1.ResourceStorage): resCapacity,
 	}
 	b.cvc.object.Spec.Capacity = resourceList
+	return b
+}
+
+// WithStatusCapacity sets status capacity of CStorVolumeClaim
+func (b *Builder) WithStatusCapacity(resCapacity corev1.ResourceList) *Builder {
+	b.cvc.object.Status.Capacity = resCapacity
+	return b
+}
+
+// WithClaimRef sets cstorvolumeReference of CStorVolumeClaim
+func (b *Builder) WithClaimRef(claimRef *corev1.ObjectReference) *Builder {
+	b.cvc.object.Spec.CStorVolumeRef = claimRef
 	return b
 }
 
@@ -343,6 +355,29 @@ func (b *Builder) WithNodeID(nodeID string) *Builder {
 		return b
 	}
 	b.cvc.object.Publish.NodeID = nodeID
+	return b
+}
+
+// WithNewVersion sets the current and desired version field of
+// CStorVolume with provided arguments
+func (b *Builder) WithNewVersion(version string) *Builder {
+	if version == "" {
+		b.errs = append(
+			b.errs,
+			errors.New(
+				"failed to build cstorvolume object: version can't be empty",
+			),
+		)
+		return b
+	}
+	b.cvc.object.VersionDetails.Current = version
+	b.cvc.object.VersionDetails.Desired = version
+	return b
+}
+
+// WithDependentsUpgraded sets the field to true for new volume
+func (b *Builder) WithDependentsUpgraded() *Builder {
+	b.cvc.object.VersionDetails.DependentsUpgraded = true
 	return b
 }
 

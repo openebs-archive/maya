@@ -27,6 +27,7 @@ import (
 	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
+	cvc "github.com/openebs/maya/pkg/cstorvolumeclaim/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -288,11 +289,13 @@ func getOrCreateCStorVolumeResource(
 			WithReplicationFactor(rfactor).
 			WithDesiredReplicationFactor(desiredRF).
 			WithConsistencyFactor(cfactor).
+			WithNewVersion(version.GetVersion()).
+			WithDependentsUpgraded().
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(
 				err,
-				"failed to get cstorvolume {%v}",
+				"failed to build cstorvolume {%v}",
 				cvObj,
 			)
 		}
@@ -367,6 +370,8 @@ func createCVR(
 			WithFinalizers(getCVRFinalizer()).
 			WithTargetIP(service.Spec.ClusterIP).
 			WithCapacity(volume.Spec.Capacity.String()).
+			WithNewVersion(version.GetVersion()).
+			WithDependentsUpgraded().
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(
@@ -436,4 +441,28 @@ func randomizePoolList(list *apis.CStorPoolInstanceList) *apis.CStorPoolInstance
 	}
 
 	return res
+}
+
+// CVCWithVersionDetails build cvc resource with required version
+// details and volume references
+func CVCWithVersionDetails(
+	claim *apis.CStorVolumeClaim,
+	volumeRef *corev1.ObjectReference,
+) (*apis.CStorVolumeClaim, error) {
+
+	cvcObj, err := cvc.BuildFrom(claim).
+		WithClaimRef(volumeRef).
+		WithStatusCapacity(claim.Spec.Capacity).
+		WithStatusPhase(apis.CStorVolumeClaimPhaseBound).
+		WithNewVersion(version.GetVersion()).
+		WithDependentsUpgraded().
+		Build()
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to build cstorvolume with version details {%v}",
+			cvcObj,
+		)
+	}
+	return cvcObj, nil
 }
