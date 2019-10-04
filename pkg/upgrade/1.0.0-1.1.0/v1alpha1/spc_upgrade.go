@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"time"
+
 	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
@@ -51,6 +53,10 @@ func spcUpgrade(spcName, openebsNamespace string) (*utask.UpgradeTask, error) {
 	if len(cspList.Items) == 0 {
 		return nil, errors.Errorf("no csp found for spc %s: no csp found", spcName)
 	}
+	err = waitForSPCCurrentVersion(spcName)
+	if err != nil {
+		return nil, err
+	}
 	err = verifyCSPNodeName(cspList)
 	if err != nil {
 		return nil, err
@@ -73,7 +79,11 @@ func spcUpgrade(spcName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			}
 		}
 	}
-	err = updateSPC(spcName)
+	err = updateSPCVersion(spcName)
+	if err != nil {
+		return nil, err
+	}
+	err = verifySPCVersionReconcile(spcName)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +91,7 @@ func spcUpgrade(spcName, openebsNamespace string) (*utask.UpgradeTask, error) {
 	return nil, nil
 }
 
-func updateSPC(name string) error {
+func updateSPCVersion(name string) error {
 	client := spc.NewKubeClient()
 	spcObj, err := client.Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -91,6 +101,40 @@ func updateSPC(name string) error {
 	_, err = client.Update(spcObj)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func waitForSPCCurrentVersion(name string) error {
+	client := spc.NewKubeClient()
+	spcObj, err := client.Get(name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	for spcObj.VersionDetails.Current == "" {
+		spcObj, err = client.Get(name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		// Sleep equal to the default sync time
+		time.Sleep(30 * time.Second)
+	}
+	return nil
+}
+
+func verifySPCVersionReconcile(name string) error {
+	client := spc.NewKubeClient()
+	spcObj, err := client.Get(name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	for spcObj.VersionDetails.Current != spcObj.VersionDetails.Desired {
+		spcObj, err = client.Get(name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		// Sleep equal to the default sync time
+		time.Sleep(30 * time.Second)
 	}
 	return nil
 }

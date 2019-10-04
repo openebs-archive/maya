@@ -254,6 +254,7 @@ type cstorVolumeOptions struct {
 	ns              string
 	targetDeployObj *appsv1.Deployment
 	cvrList         *apis.CStorVolumeReplicaList
+	cv              *apis.CStorVolume
 }
 
 func (c *cstorVolumeOptions) preUpgrade(pvName, openebsNamespace string) error {
@@ -319,25 +320,46 @@ func (c *cstorVolumeOptions) preUpgrade(pvName, openebsNamespace string) error {
 	return nil
 }
 
-func waitForCVCurrentVersion(pvLabel, namespace string) error {
+func getCV(pvLabel, namespace string) (*apis.CStorVolume, error) {
 	cvList, err := cvClient.WithNamespace(namespace).List(
 		metav1.ListOptions{
 			LabelSelector: pvLabel,
 		},
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(cvList.Items) == 0 {
-		return errors.Errorf("cstorvolume not found")
+		return nil, errors.Errorf("cstorvolume not found")
 	}
-	cvObject := cvList.Items[0]
-	for cvObject.VersionDetails.Current == "" {
-		obj, err := cvClient.Get(cvObject.Name, metav1.GetOptions{})
+	return &cvList.Items[0], nil
+}
+
+func (c *cstorVolumeOptions) verifyCVVersionReconcile() error {
+	for c.cv.VersionDetails.Current != c.cv.VersionDetails.Desired {
+		obj, err := cvClient.Get(c.cv.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
-		cvObject = *obj
+		c.cv = obj
+		// Sleep equal to the default sync time
+		time.Sleep(30 * time.Second)
+	}
+	return nil
+}
+
+func (c *cstorVolumeOptions) waitForCVCurrentVersion(pvLabel, namespace string) error {
+	var err error
+	c.cv, err = getCV(pvLabel, namespace)
+	if err != nil {
+		return err
+	}
+	for c.cv.VersionDetails.Current == "" {
+		obj, err := cvClient.Get(c.cv.Name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		c.cv = obj
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 	}
@@ -380,7 +402,7 @@ func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) erro
 		return err
 	}
 
-	err = waitForCVCurrentVersion(pvLabel, c.ns)
+	err = c.waitForCVCurrentVersion(pvLabel, c.ns)
 	if err != nil {
 		statusObj.Message = "failed to verify version details for cstor volume"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
@@ -401,6 +423,10 @@ func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) erro
 		}
 		return err
 	}
+	err = c.verifyCVVersionReconcile()
+	if err != nil {
+		return err
+	}
 
 	statusObj.Phase = utask.StepCompleted
 	statusObj.Message = "Target upgrade was successful"
@@ -408,6 +434,42 @@ func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) erro
 	c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
 	if uerr != nil && isENVPresent {
 		return uerr
+	}
+	return nil
+}
+
+func waitForCVRCurrentVersion(name, openebsNamespace string) error {
+	cvrObj, err := cvrClient.WithNamespace(openebsNamespace).
+		Get(name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	for cvrObj.VersionDetails.Current == "" {
+		cvrObj, err = cvrClient.WithNamespace(openebsNamespace).
+			Get(name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		// Sleep equal to the default sync time
+		time.Sleep(30 * time.Second)
+	}
+	return nil
+}
+
+func verifyCVRVersionReconcile(name, openebsNamespace string) error {
+	cvrObj, err := cvrClient.WithNamespace(openebsNamespace).
+		Get(name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	for cvrObj.VersionDetails.Current != cvrObj.VersionDetails.Desired {
+		cvrObj, err = cvrClient.WithNamespace(openebsNamespace).
+			Get(name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		// Sleep equal to the default sync time
+		time.Sleep(30 * time.Second)
 	}
 	return nil
 }
@@ -423,7 +485,11 @@ func (c *cstorVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 
 	statusObj.Phase = utask.StepErrored
 	for _, cvrObj := range c.cvrList.Items {
-		err = patchCVR(cvrObj.Name, openebsNamespace)
+		err = waitForCVRCurrentVersion(cvrObj.Name, cvrObj.Namespace)
+		if err != nil {
+			return err
+		}
+		err = patchCVR(cvrObj.Name, cvrObj.Namespace)
 		if err != nil {
 			statusObj.Message = "failed to patch cstor volume replica"
 			statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
@@ -431,6 +497,10 @@ func (c *cstorVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 			if uerr != nil && isENVPresent {
 				return uerr
 			}
+			return err
+		}
+		err = verifyCVRVersionReconcile(cvrObj.Name, cvrObj.Namespace)
+		if err != nil {
 			return err
 		}
 	}

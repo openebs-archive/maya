@@ -232,7 +232,7 @@ func (c *cstorCSPOptions) preUpgrade(cspName, openebsNamespace string) error {
 	return nil
 }
 
-func (c *cstorCSPOptions) waitForCurrentVersion() error {
+func (c *cstorCSPOptions) waitForCSPCurrentVersion() error {
 	for c.cspObj.VersionDetails.Current == "" {
 		obj, err := cspClient.Get(c.cspObj.Name, metav1.GetOptions{})
 		if err != nil {
@@ -245,7 +245,20 @@ func (c *cstorCSPOptions) waitForCurrentVersion() error {
 	return nil
 }
 
-func (c *cstorCSPOptions) poolInstanceUpgarde(openebsNamespace string) error {
+func (c *cstorCSPOptions) verifyCSPVersionReconcile() error {
+	for c.cspObj.VersionDetails.Current != c.cspObj.VersionDetails.Desired {
+		obj, err := cspClient.Get(c.cspObj.Name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		c.cspObj = obj
+		// Sleep equal to the default sync time
+		time.Sleep(30 * time.Second)
+	}
+	return nil
+}
+
+func (c *cstorCSPOptions) poolInstanceUpgrade(openebsNamespace string) error {
 	var err, uerr error
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.PoolInstanceUpgrade}
 	statusObj.Phase = utask.StepWaiting
@@ -266,7 +279,7 @@ func (c *cstorCSPOptions) poolInstanceUpgarde(openebsNamespace string) error {
 		return err
 	}
 
-	err = c.waitForCurrentVersion()
+	err = c.waitForCSPCurrentVersion()
 	if err != nil {
 		statusObj.Message = "failed to verify versiondetails for cstor pool"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
@@ -285,6 +298,11 @@ func (c *cstorCSPOptions) poolInstanceUpgarde(openebsNamespace string) error {
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
+		return err
+	}
+
+	err = c.verifyCSPVersionReconcile()
+	if err != nil {
 		return err
 	}
 
@@ -308,7 +326,7 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		return options.utaskObj, err
 	}
 
-	err = options.poolInstanceUpgarde(openebsNamespace)
+	err = options.poolInstanceUpgrade(openebsNamespace)
 	if err != nil {
 		return options.utaskObj, err
 	}

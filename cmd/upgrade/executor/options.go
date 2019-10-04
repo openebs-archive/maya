@@ -78,7 +78,7 @@ func (u *UpgradeOptions) InitializeDefaults(cmd *cobra.Command) error {
 	return nil
 }
 
-// get the path for the version
+// getUpgradePath gives the path for the upgrade
 func (u *UpgradeOptions) getUpgradePath() (string, error) {
 	podClient := pod.NewKubeClient()
 	from := strings.Split(u.fromVersion, "-")[0]
@@ -96,14 +96,22 @@ func (u *UpgradeOptions) getUpgradePath() (string, error) {
 	if len(mayaPods.Items) != 1 {
 		return "", errors.Errorf("Expecting 1 maya pod got %d", len(mayaPods.Items))
 	}
-	v := strings.Split(mayaPods.Items[0].Labels["openebs.io/version"], "-")[0]
+	// mayaVersion is the version of the control plane
+	mayaVersion := strings.Split(mayaPods.Items[0].Labels["openebs.io/version"], "-")[0]
 
-	if from == v && to == v {
-		from = strings.Split(u.fromVersion, "-")[1]
+	// if the from version and to version have equal prefix to control plane
+	// version for example 1.3.0-RC1, 1.3.0-RC2, 1.3.0, then this will require
+	// a RC upgrade path like RC1-RC2, RC2-, RC1-.
+	if from == mayaVersion && to == mayaVersion {
+		from = ""
+		if len(strings.Split(u.fromVersion, "-")) == 2 {
+			from = strings.Split(u.fromVersion, "-")[1]
+		}
 		to = ""
 		if len(strings.Split(u.toVersion, "-")) == 2 {
 			to = strings.Split(u.toVersion, "-")[1]
 		}
 	}
+	// if from and to version don't have same prefix, return the normal path
 	return from + "-" + to, nil
 }
