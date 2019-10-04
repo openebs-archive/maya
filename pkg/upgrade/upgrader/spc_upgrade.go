@@ -106,35 +106,39 @@ func updateSPCVersion(name string) error {
 }
 
 func waitForSPCCurrentVersion(name string) error {
+	klog.Infof("Waiting for spc current version to get populated.")
 	client := spc.NewKubeClient()
 	spcObj, err := client.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
+	// waiting for old objects to get populated with new fields
 	for spcObj.VersionDetails.Current == "" {
+		// Sleep equal to the default sync time
+		time.Sleep(30 * time.Second)
 		spcObj, err = client.Get(name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
-		// Sleep equal to the default sync time
-		time.Sleep(30 * time.Second)
 	}
 	return nil
 }
 
 func verifySPCVersionReconcile(name string) error {
+	klog.Infof("Verifying the reconciliation of version.")
 	client := spc.NewKubeClient()
 	spcObj, err := client.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
+	// waiting for the current version to be equal to desired version
 	for spcObj.VersionDetails.Current != spcObj.VersionDetails.Desired {
+		// Sleep equal to the default sync time
+		time.Sleep(30 * time.Second)
 		spcObj, err = client.Get(name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
-		// Sleep equal to the default sync time
-		time.Sleep(30 * time.Second)
 	}
 	return nil
 }
