@@ -98,6 +98,7 @@ type DeploymentYml struct {
 	YmlInBytes []byte
 }
 
+// NewDeploymentYml returns a DeploymentYml instance.
 func NewDeploymentYml(context, yml string, values map[string]interface{}) (*DeploymentYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
