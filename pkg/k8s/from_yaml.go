@@ -304,6 +304,7 @@ type CStorVolumeReplicaYml struct {
 	YmlInBytes []byte
 }
 
+// NewCStorVolumeReplicaYml returns a CStorVolumeReplicaYml instance.
 func NewCStorVolumeReplicaYml(context, yml string, values map[string]interface{}) (*CStorVolumeReplicaYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
