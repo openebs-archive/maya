@@ -227,6 +227,7 @@ func NewCStorPoolYml(context, yml string, values map[string]interface{}) (*CStor
 	}, nil
 }
 
+// NewStoragePoolYml returns a StoragePoolYml instance.
 func NewStoragePoolYml(context, yml string, values map[string]interface{}) (*StoragePoolYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
