@@ -215,6 +215,7 @@ type StoragePoolYml struct {
 	YmlInBytes []byte
 }
 
+// NewCStorPoolYml returns a CStorPoolYml instance.
 func NewCStorPoolYml(context, yml string, values map[string]interface{}) (*CStorPoolYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
