@@ -327,7 +327,7 @@ func TestPrepareFinalConfig(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			e := &volumeEngine{
+			e := &Engine{
 				defaultConfig: mock.configDefault,
 				casConfigSC:   mock.configSC,
 				casConfigPVC:  mock.configPVC,

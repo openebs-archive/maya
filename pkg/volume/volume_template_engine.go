@@ -25,9 +25,9 @@ import (
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 )
 
-// volumeEngine is capable of executing CAS volume
+// Engine is capable of executing CAS volume
 // related operation via CAS template
-type volumeEngine struct {
+type Engine struct {
 	// engine can execute a CAS template
 	engine cast.Interface
 
@@ -90,7 +90,7 @@ func NewVolumeEngine(
 		return
 	}
 
-	e = &volumeEngine{
+	e = &Engine{
 		engine:        cEngine,
 		defaultConfig: castObj.Spec.Defaults,
 		casConfigSC:   casConfSC,
