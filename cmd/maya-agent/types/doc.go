@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Common types in the maya-agent
+// Package types contains common types in the maya-agent.
 package types
