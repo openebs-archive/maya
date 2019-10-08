@@ -202,6 +202,13 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 	return b
 }
 
+// WithStatusPhase sets the Status Phase of CStorVolumeReplica with provided
+//arguments
+func (b *Builder) WithStatusPhase(phase string) *Builder {
+	b.cvr.object.Status.Phase = apis.CStorVolumeReplicaPhase(phase)
+	return b
+}
+
 // WithFinalizers merges the existing finalizers if any
 // with the ones provided arguments
 func (b *Builder) WithFinalizers(finalizers []string) *Builder {
