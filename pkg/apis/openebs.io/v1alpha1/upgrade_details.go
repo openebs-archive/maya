@@ -28,7 +28,7 @@ type VersionDetails struct {
 	Desired string `json:"desired"`
 	// Status gives the status of reconciliation triggered
 	// when the desired and current version are not same
-	Status VersionStatus
+	Status VersionStatus `json:"status"`
 }
 
 // VersionStatus is the status of the reconciliation of versions
@@ -38,21 +38,21 @@ type VersionStatus struct {
 	DependentsUpgraded bool `json:"dependentsUpgraded"`
 	// Current is the version of resource
 	Current string `json:"current"`
-	// Phase is the phase of reconciliation
-	Phase VersionPhase `json:"phase"`
+	// State is the state of reconciliation
+	State VersionState `json:"state"`
 	// Message is a human readable message if some error occurs
-	Message string `json:"message"`
-	// Reason is the actual reason for the error phase
-	Reason string `json:"reason"`
+	Message string `json:"message,omitempty"`
+	// Reason is the actual reason for the error state
+	Reason string `json:"reason,omitempty"`
 	// LastUpdateTime is the time the status was last  updated
-	LastUpdateTime metav1.Time
+	LastUpdateTime metav1.Time `json:"lastUpdateTime"`
 }
 
-// VersionPhase is the phase of reconciliation
-type VersionPhase string
+// VersionState is the state of reconciliation
+type VersionState string
 
 const (
-	ReconcileComplete   VersionPhase = "SUCCESS"
-	ReconcileInProgress VersionPhase = "STARTED"
-	ReconcileError      VersionPhase = "ERROR"
+	ReconcileComplete   VersionState = "RECONCILED"
+	ReconcileInProgress VersionState = "RECONCILING"
+	ReconcileError      VersionState = "ERROR"
 )
