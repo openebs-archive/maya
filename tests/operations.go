@@ -43,7 +43,7 @@ import (
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
-	"github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
+	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/tests/artifacts"
@@ -387,7 +387,7 @@ func (ops *Operations) VerifyCapacity(pvcName, capacity string) bool {
 		desiredCapacity, _ := resource.ParseQuantity(capacity)
 		return (desiredCapacity.Cmp(actualCapacity) == 0)
 	},
-		120, 10).
+		180, 10).
 		Should(BeTrue())
 }
 
