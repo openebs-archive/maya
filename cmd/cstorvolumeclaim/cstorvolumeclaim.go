@@ -443,9 +443,9 @@ func randomizePoolList(list *apis.CStorPoolInstanceList) *apis.CStorPoolInstance
 	return res
 }
 
-// CVCWithVersionDetails build cvc resource with required version
-// details and volume references
-func CVCWithVersionDetails(
+// CVCWithVersionAndRefernceDetails build cvc resource with required version
+// details, volume references and status capacity
+func CVCWithVersionAndRefernceDetails(
 	claim *apis.CStorVolumeClaim,
 	volumeRef *corev1.ObjectReference,
 ) (*apis.CStorVolumeClaim, error) {

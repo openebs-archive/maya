@@ -265,7 +265,7 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 
 	// update the cstorvolume reference, phase as "Bound", desired
 	// capacity and version details
-	cvc, err = CVCWithVersionDetails(cvc, volumeRef)
+	cvc, err = CVCWithVersionAndRefernceDetails(cvc, volumeRef)
 	if err != nil {
 		return nil, err
 	}

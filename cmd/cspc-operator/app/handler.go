@@ -122,7 +122,7 @@ func (c *Controller) syncCSPC(cspcGot *apis.CStorPoolCluster) error {
 		return nil
 	}
 
-	_, err := c.populateVersion(cspcGot)
+	cspcGot, err := c.populateVersion(cspcGot)
 	if err != nil {
 		klog.Errorf("failed to add versionDetails to CSPC %s:%s", cspcGot.Name, err.Error())
 		return err
