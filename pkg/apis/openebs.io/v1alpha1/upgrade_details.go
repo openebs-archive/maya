@@ -45,7 +45,7 @@ type VersionStatus struct {
 	// Reason is the actual reason for the error state
 	Reason string `json:"reason,omitempty"`
 	// LastUpdateTime is the time the status was last  updated
-	LastUpdateTime metav1.Time `json:"lastUpdateTime"`
+	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
 }
 
 // VersionState is the state of reconciliation
