@@ -113,7 +113,7 @@ func waitForSPCCurrentVersion(name string) error {
 		return err
 	}
 	// waiting for old objects to get populated with new fields
-	for spcObj.VersionDetails.Current == "" {
+	for spcObj.VersionDetails.Status.Current == "" {
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 		spcObj, err = client.Get(name, metav1.GetOptions{})
@@ -132,7 +132,7 @@ func verifySPCVersionReconcile(name string) error {
 		return err
 	}
 	// waiting for the current version to be equal to desired version
-	for spcObj.VersionDetails.Current != spcObj.VersionDetails.Desired {
+	for spcObj.VersionDetails.Status.Current != spcObj.VersionDetails.Desired {
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 		spcObj, err = client.Get(name, metav1.GetOptions{})

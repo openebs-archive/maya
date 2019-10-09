@@ -338,7 +338,7 @@ func getCV(pvLabel, namespace string) (*apis.CStorVolume, error) {
 func (c *cstorVolumeOptions) verifyCVVersionReconcile() error {
 	klog.Infof("Verifying the reconciliation of version.")
 	// waiting for the current version to be equal to desired version
-	for c.cv.VersionDetails.Current != c.cv.VersionDetails.Desired {
+	for c.cv.VersionDetails.Status.Current != c.cv.VersionDetails.Desired {
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 		obj, err := cvClient.Get(c.cv.Name, metav1.GetOptions{})
@@ -358,7 +358,7 @@ func (c *cstorVolumeOptions) waitForCVCurrentVersion(pvLabel, namespace string) 
 		return err
 	}
 	// waiting for old objects to get populated with new fields
-	for c.cv.VersionDetails.Current == "" {
+	for c.cv.VersionDetails.Status.Current == "" {
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 		obj, err := cvClient.Get(c.cv.Name, metav1.GetOptions{})
@@ -450,7 +450,7 @@ func waitForCVRCurrentVersion(name, openebsNamespace string) error {
 		return err
 	}
 	// waiting for old objects to get populated with new fields
-	for cvrObj.VersionDetails.Current == "" {
+	for cvrObj.VersionDetails.Status.Current == "" {
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 		cvrObj, err = cvrClient.WithNamespace(openebsNamespace).
@@ -470,7 +470,7 @@ func verifyCVRVersionReconcile(name, openebsNamespace string) error {
 		return err
 	}
 	// waiting for the current version to be equal to desired version
-	for cvrObj.VersionDetails.Current != cvrObj.VersionDetails.Desired {
+	for cvrObj.VersionDetails.Status.Current != cvrObj.VersionDetails.Desired {
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 		cvrObj, err = cvrClient.WithNamespace(openebsNamespace).

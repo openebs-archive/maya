@@ -547,7 +547,7 @@ func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StorageP
 		spc.VersionDetails.Status.Current = v
 		// For newly created spc Desired field will also be empty.
 		spc.VersionDetails.Desired = v
-		spc.VersionDetails.DependentsUpgraded = true
+		spc.VersionDetails.Status.DependentsUpgraded = true
 
 		obj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().
 			Update(spc)

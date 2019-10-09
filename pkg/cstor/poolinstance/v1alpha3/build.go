@@ -298,13 +298,13 @@ func (b *Builder) WithNewVersion(version string) *Builder {
 		)
 		return b
 	}
-	b.CSPI.Object.VersionDetails.Current = version
+	b.CSPI.Object.VersionDetails.Status.Current = version
 	b.CSPI.Object.VersionDetails.Desired = version
 	return b
 }
 
 // WithDependentsUpgraded sets the field to true for new CSPI
 func (b *Builder) WithDependentsUpgraded() *Builder {
-	b.CSPI.Object.VersionDetails.DependentsUpgraded = true
+	b.CSPI.Object.VersionDetails.Status.DependentsUpgraded = true
 	return b
 }
