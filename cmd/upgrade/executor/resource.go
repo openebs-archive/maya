@@ -25,7 +25,7 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 
-	upgrade100to120 "github.com/openebs/maya/pkg/upgrade/1.0.0-1.1.0/v1alpha1"
+	upgrader "github.com/openebs/maya/pkg/upgrade/upgrader"
 	utask "github.com/openebs/maya/pkg/upgrade/v1alpha2"
 	errors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -98,6 +98,14 @@ func (u *UpgradeOptions) InitializeFromUpgradeTaskResource(
 		u.toVersion = upgradeTaskCRObj.Spec.ToVersion
 	}
 
+	if len(strings.TrimSpace(upgradeTaskCRObj.Spec.ImagePrefix)) != 0 {
+		u.imageURLPrefix = upgradeTaskCRObj.Spec.ImagePrefix
+	}
+
+	if len(strings.TrimSpace(upgradeTaskCRObj.Spec.ImageTag)) != 0 {
+		u.toVersionImageTag = upgradeTaskCRObj.Spec.ImageTag
+	}
+
 	switch {
 	case upgradeTaskCRObj.Spec.ResourceSpec.JivaVolume != nil:
 		u.resourceKind = "jivaVolume"
@@ -131,13 +139,15 @@ func (u *UpgradeOptions) RunResourceUpgradeChecks(cmd *cobra.Command) error {
 // RunResourceUpgrade upgrades the given upgradeTask
 func (u *UpgradeOptions) RunResourceUpgrade(cmd *cobra.Command) error {
 
-	from := strings.Split(u.fromVersion, "-")[0]
-	to := strings.Split(u.toVersion, "-")[0]
-
-	switch from + "-" + to {
-	case "1.0.0-1.1.0", "1.0.0-1.2.0", "1.1.0-1.2.0":
+	path, err := u.getUpgradePath()
+	if err != nil {
+		return err
+	}
+	switch path {
+	case "1.0.0-1.3.0", "1.1.0-1.3.0", "1.2.0-1.3.0":
+		// RC1-RC2 for RC1 to RC2, RC1- for RC1 to GA, RC2- for RC2 to GA
 		klog.Infof("Upgrading to %s", u.toVersion)
-		err := upgrade100to120.Exec(u.fromVersion, u.toVersion,
+		err := upgrader.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
 			u.resource.name,
 			u.openebsNamespace,
