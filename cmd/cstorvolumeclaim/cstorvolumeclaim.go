@@ -27,7 +27,6 @@ import (
 	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
-	cvc "github.com/openebs/maya/pkg/cstorvolumeclaim/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -441,28 +440,4 @@ func randomizePoolList(list *apis.CStorPoolInstanceList) *apis.CStorPoolInstance
 	}
 
 	return res
-}
-
-// CVCWithVersionAndRefernceDetails build cvc resource with required version
-// details, volume references and status capacity
-func CVCWithVersionAndRefernceDetails(
-	claim *apis.CStorVolumeClaim,
-	volumeRef *corev1.ObjectReference,
-) (*apis.CStorVolumeClaim, error) {
-
-	cvcObj, err := cvc.BuildFrom(claim).
-		WithClaimRef(volumeRef).
-		WithStatusCapacity(claim.Spec.Capacity).
-		WithStatusPhase(apis.CStorVolumeClaimPhaseBound).
-		WithNewVersion(version.GetVersion()).
-		WithDependentsUpgraded().
-		Build()
-	if err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"failed to build cstorvolume with version details {%v}",
-			cvcObj,
-		)
-	}
-	return cvcObj, nil
 }
