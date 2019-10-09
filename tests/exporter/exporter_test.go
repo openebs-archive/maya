@@ -166,7 +166,7 @@ var _ = Describe("Test maya-exporter [single-pool-pod]", func() {
 
 			By("deleting spc")
 			for _, spc := range spcList.Items {
-				_, err = ops.SPCClient.Delete(spc.Name, &metav1.DeleteOptions{})
+				err = ops.SPCClient.Delete(spc.Name, &metav1.DeleteOptions{})
 				Expect(err).To(BeNil(), "while deleting the spc's", spc)
 			}
 		})

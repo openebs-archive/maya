@@ -43,11 +43,13 @@ import (
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
-	"github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
+	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+	"github.com/openebs/maya/pkg/version"
 	"github.com/openebs/maya/tests/artifacts"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -92,7 +94,48 @@ type Operations struct {
 	BDCClient      *bdc.Kubeclient
 	KubeConfigPath string
 	NameSpace      string
+	Config         interface{}
 }
+
+// SPCConfig provides config to create cstor pools
+type SPCConfig struct {
+	Name               string
+	DiskType           string
+	PoolType           string
+	PoolCount          int
+	IsOverProvisioning bool
+}
+
+// SCConfig provides config to create storage class
+type SCConfig struct {
+	Name        string
+	Annotations map[string]string
+	Provisioner string
+}
+
+// PVCConfig provides config to create PersistentVolumeClaim
+type PVCConfig struct {
+	Name        string
+	Namespace   string
+	SCName      string
+	Capacity    string
+	AccessModes []corev1.PersistentVolumeAccessMode
+}
+
+// CVRConfig provides config to create CStorVolumeReplica
+type CVRConfig struct {
+	PoolObj    *apis.CStorPool
+	VolumeName string
+	Namespace  string
+	Capacity   string
+	Phase      string
+	TargetIP   string
+}
+
+var (
+	pvLabel   = "openebs.io/persistent-volume="
+	poolLabel = "openebs.io/storagepoolclaim="
+)
 
 // OperationsOptions abstracts creating an
 // instance of operations
@@ -311,6 +354,7 @@ func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 // GetCVCount gives cstorvolume healthy count currently based on selecter
 func (ops *Operations) GetCVCount(namespace, lselector string) int {
 	cvs, err := ops.CVClient.
+		WithNamespace(namespace).
 		List(metav1.ListOptions{LabelSelector: lselector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return cv.
@@ -324,6 +368,7 @@ func (ops *Operations) GetCVCount(namespace, lselector string) int {
 // GetCstorVolumeReplicaCount gives cstorvolumereplica healthy count currently based on selecter
 func (ops *Operations) GetCstorVolumeReplicaCount(namespace, lselector string) int {
 	cvrs, err := ops.CVRClient.
+		WithNamespace(namespace).
 		List(metav1.ListOptions{LabelSelector: lselector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return cvr.
@@ -336,7 +381,7 @@ func (ops *Operations) GetCstorVolumeReplicaCount(namespace, lselector string) i
 
 // GetCstorVolumeClaimCount gives cstorVolumeClaim healthy count currently
 func (ops *Operations) GetCstorVolumeClaimCount(namespace, cvcName string) int {
-	_, err := ops.CVCClient.WithNamespace(openebsNamespace).Get(cvcName, metav1.GetOptions{})
+	_, err := ops.CVCClient.WithNamespace(namespace).Get(cvcName, metav1.GetOptions{})
 	if k8serrors.IsNotFound(err) {
 		return 0
 	}
@@ -648,6 +693,22 @@ func (ops *Operations) DeleteCSP(spcName string, deleteCount int) {
 		Expect(err).To(BeNil())
 
 	}
+}
+
+// GetCSPCountEventually get csp count based on the labelSelector and
+// wait til csp count matches to provided argument count
+func (ops *Operations) GetCSPCountEventually(labelSelector string, count int) bool {
+	return Eventually(func() int {
+		cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{LabelSelector: labelSelector})
+		Expect(err).To(BeNil())
+		count := csp.
+			ListBuilderForAPIObject(cspAPIList).
+			List().
+			Len()
+		return count
+	},
+		120, 10).
+		Should(Equal(count))
 }
 
 // GetCSPCount gets csp count based on spcName at that time
@@ -963,4 +1024,132 @@ func (ops *Operations) GetCSPCBDListForNode(node *corev1.Node, blockDeviceCount 
 	}
 
 	return cspcBDs
+}
+
+// BuildAndCreateSPC builds and creates StoragePoolClaim in cluster
+func (ops *Operations) BuildAndCreateSPC() *apis.StoragePoolClaim {
+	spcConfig := ops.Config.(*SPCConfig)
+	spcObj := spc.NewBuilder().
+		WithGenerateName(spcConfig.Name).
+		WithDiskType(spcConfig.DiskType).
+		WithMaxPool(spcConfig.PoolCount).
+		WithOverProvisioning(spcConfig.IsOverProvisioning).
+		WithPoolType(spcConfig.PoolType).
+		Build().Object
+	newSPCObj, err := ops.SPCClient.Create(spcObj)
+	Expect(err).To(BeNil())
+	return newSPCObj
+}
+
+// CreateStorageClass builds and creates storageclass in cluster
+func (ops *Operations) CreateStorageClass() *storagev1.StorageClass {
+	scConfig := ops.Config.(*SCConfig)
+	scObj, err := sc.NewBuilder().
+		WithGenerateName(scConfig.Name).
+		WithAnnotations(scConfig.Annotations).
+		WithProvisioner(scConfig.Provisioner).Build()
+	Expect(err).ShouldNot(
+		HaveOccurred(),
+		"while building storageclass {%s}", scConfig.Name,
+	)
+	scObj, err = ops.SCClient.Create(scObj)
+	Expect(err).To(BeNil(), "while creating storageclass {%s}", scConfig.Name)
+	return scObj
+}
+
+// BuildAndCreatePVC builds and creates PersistentVolumeClaim in cluster
+func (ops *Operations) BuildAndCreatePVC() *corev1.PersistentVolumeClaim {
+	pvcConfig := ops.Config.(*PVCConfig)
+	pvcObj, err := pvc.NewBuilder().
+		WithName(pvcConfig.Name).
+		WithNamespace(pvcConfig.Namespace).
+		WithStorageClass(pvcConfig.SCName).
+		WithAccessModes(pvcConfig.AccessModes).
+		WithCapacity(pvcConfig.Capacity).Build()
+	Expect(err).ShouldNot(
+		HaveOccurred(),
+		"while building pvc {%s} in namespace {%s}",
+		pvcConfig.Name,
+		pvcConfig.Namespace,
+	)
+	pvcObj, err = ops.PVCClient.WithNamespace(pvcConfig.Namespace).Create(pvcObj)
+	Expect(err).To(
+		BeNil(),
+		"while creating pvc {%s} in namespace {%s}",
+		pvcConfig.Name,
+		pvcConfig.Namespace,
+	)
+	return pvcObj
+}
+
+// BuildAndCreateCVR builds and creates CVR in cluster
+func (ops *Operations) BuildAndCreateCVR() *apis.CStorVolumeReplica {
+	cvrConfig := ops.Config.(*CVRConfig)
+	cvrObj, err := cvr.NewBuilder().
+		WithName(cvrConfig.VolumeName + "-" + cvrConfig.PoolObj.Name).
+		WithNamespace(cvrConfig.Namespace).
+		WithLabelsNew(getCVRLabels(cvrConfig.PoolObj, cvrConfig.VolumeName)).
+		WithAnnotationsNew(getCVRAnnotations(cvrConfig.PoolObj)).
+		WithFinalizers([]string{cvr.CStorVolumeReplicaFinalizer}).
+		WithCapacity(cvrConfig.Capacity).
+		WithTargetIP(cvrConfig.TargetIP).
+		WithStatusPhase(cvrConfig.Phase).
+		Build()
+	Expect(err).To(BeNil())
+	cvrObj, err = ops.CVRClient.
+		WithNamespace(cvrConfig.Namespace).
+		Create(cvrObj)
+	Expect(err).To(BeNil())
+	return cvrObj
+}
+
+// DeletePersistentVolumeClaim deletes PVC from cluster based on provided
+// argument
+func (ops *Operations) DeletePersistentVolumeClaim(name, namespace string) {
+	err := ops.PVCClient.WithNamespace(namespace).Delete(name, &metav1.DeleteOptions{})
+	Expect(err).To(BeNil())
+}
+
+// VerifyVolumeResources verifies whether volume resource exist or not
+func (ops *Operations) VerifyVolumeResources(pvName, namespace string) {
+	volumeLabel := pvLabel + pvName
+	targetPodCount := ops.GetPodRunningCountEventually(namespace, volumeLabel, 0)
+	Expect(targetPodCount).To(Equal(0), "when pvc is deleted target pod should be deleted")
+
+	cvCount := ops.GetCstorVolumeCount(openebsNamespace, volumeLabel, 0)
+	Expect(cvCount).To(Equal(0), "when pvc is deleted cstorvolume should be deleted")
+
+	IsCVRDeleted := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, volumeLabel, 0)
+	Expect(IsCVRDeleted).To(Equal(true), "when pvc is deleted cstorvolumereplica should be deleted")
+}
+
+// DeleteStoragePoolClaim deletes StoragePoolClaim based on pool name
+func (ops *Operations) DeleteStoragePoolClaim(spcName string) {
+	err := ops.SPCClient.Delete(spcName, &metav1.DeleteOptions{})
+	Expect(err).To(BeNil())
+}
+
+// VerifyPoolResources verifies whether pool resource exist or not
+func (ops *Operations) VerifyPoolResources(spcName string) {
+	labelSelector := poolLabel + spcName
+	isCSPDeleted := ops.GetCSPCountEventually(labelSelector, 0)
+	Expect(isCSPDeleted).To(Equal(true))
+}
+
+// getCVRAnnotations get the annotations for cstorvolumereplica
+func getCVRAnnotations(pool *apis.CStorPool) map[string]string {
+	return map[string]string{
+		"cstorpool.openebs.io/hostname": pool.Labels["kubernetes.io/hostname"],
+	}
+}
+
+// getCVRLabels get the labels for cstorvolumereplica
+func getCVRLabels(pool *apis.CStorPool, volumeName string) map[string]string {
+	return map[string]string{
+		"cstorpool.openebs.io/name":    pool.Name,
+		"cstorpool.openebs.io/uid":     string(pool.UID),
+		"cstorvolume.openebs.io/name":  volumeName,
+		"openebs.io/persistent-volume": volumeName,
+		"openebs.io/version":           version.GetVersion(),
+	}
 }

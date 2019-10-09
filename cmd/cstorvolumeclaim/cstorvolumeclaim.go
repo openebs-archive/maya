@@ -42,8 +42,6 @@ const (
 	cstorpoolNameLabel = "cstorpool.openebs.io/name"
 	// ReplicaCount represents replica count value
 	ReplicaCount = "replicaCount"
-	// CStorVolumeReplicaFinalizer is the name of finalizer on CStorVolumeClaim
-	CStorVolumeReplicaFinalizer = "cstorvolumereplica.openebs.io/finalizer"
 	// pvSelector is the selector key for cstorvolumereplica belongs to a cstor
 	// volume
 	pvSelector = "openebs.io/persistent-volume"
@@ -135,7 +133,7 @@ func getCVRAnnotations(pool *apis.CStorPoolInstance) map[string]string {
 // getCVRFinalizer get the finalizer for cstorvolumereplica
 func getCVRFinalizer() []string {
 	return []string{
-		CStorVolumeReplicaFinalizer,
+		cvr.CStorVolumeReplicaFinalizer,
 	}
 }
 

@@ -17,9 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"sync"
+
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sync"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
@@ -41,7 +42,9 @@ type getFn func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (
 
 type createFn func(cli *clientset.Clientset, spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error)
 
-type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.StoragePoolClaim, error)
+// deleteFn is a typed function that abstracts
+// delete of storagepoolclaim
+type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) error
 
 type updateFn func(cli *clientset.Clientset, spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error)
 
@@ -133,8 +136,8 @@ func (k *Kubeclient) withDefaults() {
 	}
 
 	if k.del == nil {
-		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.StoragePoolClaim, error) {
-			return nil, cli.OpenebsV1alpha1().StoragePoolClaims().Delete(name, opts)
+		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) error {
+			return cli.OpenebsV1alpha1().StoragePoolClaims().Delete(name, opts)
 		}
 	}
 }
@@ -225,10 +228,10 @@ func (k *Kubeclient) Update(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim,
 }
 
 // Delete deletes a spc object
-func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) (*apis.StoragePoolClaim, error) {
+func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
 	cli, err := k.getClientOrCached()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	return k.del(cli, name, opts)
 }
