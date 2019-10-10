@@ -600,6 +600,8 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 			return nil, err
 		}
 		cvr.VersionDetails.Status.Current = cvr.VersionDetails.Desired
+		cvr.VersionDetails.Status.Message = ""
+		cvr.VersionDetails.Status.Reason = ""
 		cvr, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumeReplicas(cvr.Namespace).Update(cvr)
 		if err != nil {

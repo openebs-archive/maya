@@ -542,6 +542,8 @@ func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.Storage
 			return spc, err
 		}
 		spc.VersionDetails.Status.Current = spc.VersionDetails.Desired
+		spc.VersionDetails.Status.Message = ""
+		spc.VersionDetails.Status.Reason = ""
 		spc, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spc)
 		if err != nil {
 			return spc, errors.Wrap(err, "failed to update storagepoolclaim")

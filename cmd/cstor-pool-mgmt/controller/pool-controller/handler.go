@@ -588,6 +588,8 @@ func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStor
 			return csp, err
 		}
 		csp.VersionDetails.Status.Current = csp.VersionDetails.Desired
+		csp.VersionDetails.Status.Message = ""
+		csp.VersionDetails.Status.Reason = ""
 		csp, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(csp)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to update csp with versionDetails")
