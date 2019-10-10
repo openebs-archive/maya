@@ -235,6 +235,7 @@ func (c *cstorCSPOptions) preUpgrade(cspName, openebsNamespace string) error {
 func (c *cstorCSPOptions) waitForCSPCurrentVersion() error {
 	// waiting for old objects to get populated with new fields
 	for c.cspObj.VersionDetails.Status.Current == "" {
+		klog.Infof("Waiting for csp current version to get populated.")
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 		obj, err := cspClient.Get(c.cspObj.Name, metav1.GetOptions{})
@@ -252,6 +253,7 @@ func (c *cstorCSPOptions) verifyCSPVersionReconcile(openebsNamespace string) err
 	statusObj.Phase = utask.StepErrored
 	// waiting for the current version to be equal to desired version
 	for c.cspObj.VersionDetails.Status.Current != c.cspObj.VersionDetails.Desired {
+		klog.Infof("Verifying the reconciliation of version for %s", c.cspObj.Name)
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 		obj, err := cspClient.Get(c.cspObj.Name, metav1.GetOptions{})

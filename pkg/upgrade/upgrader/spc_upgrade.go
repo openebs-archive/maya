@@ -106,7 +106,6 @@ func updateSPCVersion(name string) error {
 }
 
 func waitForSPCCurrentVersion(name string) error {
-	klog.Infof("Waiting for spc current version to get populated.")
 	client := spc.NewKubeClient()
 	spcObj, err := client.Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -114,6 +113,7 @@ func waitForSPCCurrentVersion(name string) error {
 	}
 	// waiting for old objects to get populated with new fields
 	for spcObj.VersionDetails.Status.Current == "" {
+		klog.Infof("Waiting for spc current version to get populated.")
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 		spcObj, err = client.Get(name, metav1.GetOptions{})
@@ -125,7 +125,6 @@ func waitForSPCCurrentVersion(name string) error {
 }
 
 func verifySPCVersionReconcile(name string) error {
-	klog.Infof("Verifying the reconciliation of version.")
 	client := spc.NewKubeClient()
 	spcObj, err := client.Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -133,6 +132,7 @@ func verifySPCVersionReconcile(name string) error {
 	}
 	// waiting for the current version to be equal to desired version
 	for spcObj.VersionDetails.Status.Current != spcObj.VersionDetails.Desired {
+		klog.Infof("Verifying the reconciliation of version for %s", spcObj.Name)
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 		spcObj, err = client.Get(name, metav1.GetOptions{})

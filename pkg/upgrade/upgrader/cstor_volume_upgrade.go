@@ -336,12 +336,12 @@ func getCV(pvLabel, namespace string) (*apis.CStorVolume, error) {
 }
 
 func (c *cstorVolumeOptions) verifyCVVersionReconcile(openebsNamespace string) error {
-	klog.Infof("Verifying the reconciliation of version.")
 	var uerr error
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.TargetUpgrade}
 	statusObj.Phase = utask.StepErrored
 	// waiting for the current version to be equal to desired version
 	for c.cv.VersionDetails.Status.Current != c.cv.VersionDetails.Desired {
+		klog.Infof("Verifying the reconciliation of version for %s", c.cv.Name)
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 		obj, err := cvClient.Get(c.cv.Name, metav1.GetOptions{})
@@ -369,7 +369,6 @@ func (c *cstorVolumeOptions) verifyCVVersionReconcile(openebsNamespace string) e
 }
 
 func (c *cstorVolumeOptions) waitForCVCurrentVersion(pvLabel, namespace string) error {
-	klog.Infof("Waiting for cv current version to get populated.")
 	var err error
 	c.cv, err = getCV(pvLabel, namespace)
 	if err != nil {
@@ -378,6 +377,7 @@ func (c *cstorVolumeOptions) waitForCVCurrentVersion(pvLabel, namespace string) 
 	// waiting for old objects to get populated with new fields
 	for c.cv.VersionDetails.Status.Current == "" {
 		// Sleep equal to the default sync time
+		klog.Infof("Waiting for cv current version to get populated.")
 		time.Sleep(30 * time.Second)
 		obj, err := cvClient.Get(c.cv.Name, metav1.GetOptions{})
 		if err != nil {
@@ -461,7 +461,6 @@ func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) erro
 }
 
 func waitForCVRCurrentVersion(name, openebsNamespace string) error {
-	klog.Infof("Waiting for cvr current version to get populated.")
 	cvrObj, err := cvrClient.WithNamespace(openebsNamespace).
 		Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -469,6 +468,7 @@ func waitForCVRCurrentVersion(name, openebsNamespace string) error {
 	}
 	// waiting for old objects to get populated with new fields
 	for cvrObj.VersionDetails.Status.Current == "" {
+		klog.Infof("Waiting for cvr current version to get populated.")
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 		cvrObj, err = cvrClient.WithNamespace(openebsNamespace).
@@ -481,7 +481,6 @@ func waitForCVRCurrentVersion(name, openebsNamespace string) error {
 }
 
 func (c *cstorVolumeOptions) verifyCVRVersionReconcile(name, openebsNamespace string) error {
-	klog.Infof("Verifying the reconciliation of version.")
 	var uerr error
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.ReplicaUpgrade}
 	statusObj.Phase = utask.StepWaiting
@@ -498,6 +497,7 @@ func (c *cstorVolumeOptions) verifyCVRVersionReconcile(name, openebsNamespace st
 	}
 	// waiting for the current version to be equal to desired version
 	for cvrObj.VersionDetails.Status.Current != cvrObj.VersionDetails.Desired {
+		klog.Infof("Verifying the reconciliation of version for %s", cvrObj.Name)
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 		cvrObj, err = cvrClient.WithNamespace(openebsNamespace).
