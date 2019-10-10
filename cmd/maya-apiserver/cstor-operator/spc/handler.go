@@ -166,9 +166,8 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 		klog.Errorf("failed to update versionDetails status for spc %s:%s", gotSPC.Name, err.Error())
 		return nil
 	}
-	gotSPC = spcObj
 	// assinging the latest spc object
-	spc = gotSPC
+	spc = spcObj
 
 	err = validate(spc)
 	if err != nil {
