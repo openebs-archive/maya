@@ -273,7 +273,7 @@ var _ = Describe("[cstor] TEST BULK VOLUME PROVISIONING", func() {
 		It("should delete resources created during this test", func() {
 
 			By("deleting spc")
-			_, err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
+			err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil(), "while deleting spc {%s}", spcObj.Name)
 
 			By("deleting storageclass")

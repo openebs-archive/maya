@@ -54,6 +54,8 @@ func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 		WithCSPCOwnerReference(ac.CSPC).
 		WithLabelsNew(csplabels).
 		WithFinalizer(apicspsc.CSPCFinalizer).
+		WithNewVersion(version.GetVersion()).
+		WithDependentsUpgraded().
 		Build()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to build CSP object for node selector {%v}", poolSpec.NodeSelector)

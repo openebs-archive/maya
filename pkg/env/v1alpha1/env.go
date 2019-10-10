@@ -199,9 +199,9 @@ func GetOrDefault(e ENVKey, defaultValue string) (value string) {
 	if len(envValue) == 0 {
 		// ENV not defined or set to ""
 		return defaultValue
-	} else {
-		return envValue
 	}
+
+	return envValue
 }
 
 // Lookup looks up an environment variable

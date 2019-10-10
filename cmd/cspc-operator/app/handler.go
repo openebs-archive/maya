@@ -18,12 +18,15 @@ package app
 
 import (
 	"fmt"
+
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	apiscspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	"github.com/openebs/maya/pkg/version"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	"time"
+
+	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -116,6 +119,12 @@ func (c *Controller) syncCSPC(cspcGot *apis.CStorPoolCluster) error {
 		message := fmt.Sprint("Could not sync CSPC: got empty namespace for openebs from env variable")
 		c.recorder.Event(cspcGot, corev1.EventTypeWarning, "Getting Namespace", message)
 		klog.Errorf("Could not sync CSPC {%s}: got empty namespace for openebs from env variable", cspcGot.Name)
+		return nil
+	}
+
+	cspcGot, err := c.populateVersion(cspcGot)
+	if err != nil {
+		klog.Errorf("failed to add versionDetails to CSPC %s:%s", cspcGot.Name, err.Error())
 		return nil
 	}
 
@@ -354,4 +363,59 @@ func (pc *PoolConfig) removeSPCFinalizerOnAssociatedBDC() error {
 	}
 
 	return nil
+}
+
+// populateVersion assigns VersionDetails for old cspc object and newly created
+// cspc
+func (c *Controller) populateVersion(cspc *apis.CStorPoolCluster) (*apis.CStorPoolCluster, error) {
+	if cspc.VersionDetails.Current == "" {
+		var err error
+		var v string
+		var obj *apis.CStorPoolCluster
+		v, err = c.EstimateCSPCVersion(cspc)
+		if err != nil {
+			return nil, err
+		}
+		cspc.VersionDetails.Current = v
+		// For newly created spc Desired field will also be empty.
+		cspc.VersionDetails.Desired = v
+		cspc.VersionDetails.DependentsUpgraded = true
+		obj, err = c.clientset.OpenebsV1alpha1().
+			CStorPoolClusters(env.Get(env.OpenEBSNamespace)).
+			Update(cspc)
+
+		if err != nil {
+			return nil, errors.Wrapf(
+				err,
+				"failed to update spc %s while adding versiondetails",
+				cspc.Name,
+			)
+		}
+		klog.Infof("Version %s added on spc %s", v, cspc.Name)
+		return obj, nil
+	}
+	return cspc, nil
+}
+
+// EstimateCSPCVersion returns the cspi version if any cspi is present for the cspc or
+// returns the maya version as the new cspi created will be of maya version
+func (c *Controller) EstimateCSPCVersion(cspc *apis.CStorPoolCluster) (string, error) {
+
+	cspiList, err := c.clientset.OpenebsV1alpha1().
+		CStorPoolInstances(env.Get(env.OpenEBSNamespace)).
+		List(
+			metav1.ListOptions{
+				LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + cspc.Name,
+			})
+	if err != nil {
+		return "", errors.Wrapf(
+			err,
+			"failed to get the cstorpool instance list related to cspc : %s",
+			cspc.Name,
+		)
+	}
+	if len(cspiList.Items) == 0 {
+		return version.Current(), nil
+	}
+	return cspiList.Items[0].Labels[string(apis.OpenEBSVersionKey)], nil
 }

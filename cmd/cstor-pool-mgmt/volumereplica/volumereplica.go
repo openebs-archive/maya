@@ -18,6 +18,7 @@ package volumereplica
 
 import (
 	"fmt"
+	"github.com/openebs/maya/pkg/alertlog"
 	"os"
 	"strings"
 	"time"
@@ -199,12 +200,37 @@ func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolNam
 	if err != nil {
 		if isClone {
 			klog.Errorf("Unable to create clone volume: %s for snapshot %s. error : %v", fullVolName, snapName, string(stdoutStderr))
+			alertlog.Logger.Errorw("",
+				"eventcode", "cstor.volume.replica.clone.create.failure",
+				"msg", "Failed to create CStor volume replica clone",
+				"rname", fullVolName,
+			)
 		} else {
 			klog.Errorf("Unable to create volume %s. error : %v", fullVolName, string(stdoutStderr))
+			alertlog.Logger.Errorw("",
+				"eventcode", "cstor.volume.replica.create.failure",
+				"msg", "Failed to create CStor volume replica",
+				"rname", fullVolName,
+			)
 		}
 
 		return err
 	}
+
+	if isClone {
+		alertlog.Logger.Infow("",
+			"eventcode", "cstor.volume.replica.clone.create.success",
+			"msg", "Successfully created CStor volume replica clone",
+			"rname", fullVolName,
+		)
+	} else {
+		alertlog.Logger.Infow("",
+			"eventcode", "cstor.volume.replica.create.success",
+			"msg", "Successfully created CStor volume replica",
+			"rname", fullVolName,
+		)
+	}
+
 	return nil
 }
 
@@ -305,6 +331,19 @@ func CreateVolumeBackup(bkp *apis.CStorBackup) error {
 		}
 		break
 	}
+	if err != nil {
+		alertlog.Logger.Errorw("",
+			"eventcode", "cstor.volume.backup.create.failure",
+			"msg", "Failed to create backup CStor volume",
+			"rname", bkp.Spec.VolumeName,
+		)
+	} else {
+		alertlog.Logger.Infow("",
+			"eventcode", "cstor.volume.backup.create.success",
+			"msg", "Successfully created backup CStor volume",
+			"rname", bkp.Spec.VolumeName,
+		)
+	}
 	return err
 }
 
@@ -342,6 +381,19 @@ func CreateVolumeRestore(rst *apis.CStorRestore) error {
 			continue
 		}
 		break
+	}
+	if err != nil {
+		alertlog.Logger.Errorw("",
+			"eventcode", "cstor.volume.restore.failure",
+			"msg", "Failed to restore CStor volume",
+			"rname", rst.Spec.VolumeName,
+		)
+	} else {
+		alertlog.Logger.Errorw("",
+			"eventcode", "cstor.volume.restore.success",
+			"msg", "Successfully restored CStor volume",
+			"rname", rst.Spec.VolumeName,
+		)
 	}
 	return err
 }
@@ -386,8 +438,18 @@ func DeleteVolume(fullVolName string) error {
 			return nil
 		}
 		klog.Errorf("Unable to delete volume : %v", string(stdoutStderr))
+		alertlog.Logger.Errorw("",
+			"eventcode", "cstor.volume.delete.failure",
+			"msg", "Failed to delete CStor volume",
+			"rname", fullVolName,
+		)
 		return err
 	}
+	alertlog.Logger.Infow("",
+		"eventcode", "cstor.volume.delete.success",
+		"msg", "Successfully deleted CStor volume",
+		"rname", fullVolName,
+	)
 	return nil
 }
 

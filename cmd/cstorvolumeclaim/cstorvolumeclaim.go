@@ -286,11 +286,13 @@ func getOrCreateCStorVolumeResource(
 			WithReplicationFactor(rfactor).
 			WithDesiredReplicationFactor(desiredRF).
 			WithConsistencyFactor(cfactor).
+			WithNewVersion(version.GetVersion()).
+			WithDependentsUpgraded().
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(
 				err,
-				"failed to get cstorvolume {%v}",
+				"failed to build cstorvolume {%v}",
 				cvObj,
 			)
 		}
@@ -365,6 +367,8 @@ func createCVR(
 			WithFinalizers(getCVRFinalizer()).
 			WithTargetIP(service.Spec.ClusterIP).
 			WithCapacity(volume.Spec.Capacity.String()).
+			WithNewVersion(version.GetVersion()).
+			WithDependentsUpgraded().
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(

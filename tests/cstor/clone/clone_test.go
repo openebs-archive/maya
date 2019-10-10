@@ -88,7 +88,7 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 	AfterEach(func() {
 		By("deleting resources created for cstor volume snapshot provisioning", func() {
 			By("deleting storagepoolclaim")
-			_, err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
+			err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil(), "while deleting the spc {%s}", spcObj.Name)
 
 			By("deleting storageclass")

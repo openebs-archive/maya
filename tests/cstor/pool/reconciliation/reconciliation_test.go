@@ -187,7 +187,7 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 
 	When("Cleaning up spc", func() {
 		It("should delete the spc", func() {
-			_, err := ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
+			err := ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil())
 			bdcCount := ops.GetBDCCountEventually(
 				metav1.ListOptions{
@@ -260,7 +260,7 @@ var _ = Describe("MIRRORED SPARSE SPC", func() {
 
 	When("Cleaning up spc", func() {
 		It("should delete the spc", func() {
-			_, err := ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
+			err := ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil())
 		})
 	})
@@ -329,7 +329,7 @@ var _ = Describe("RAIDZ SPARSE SPC", func() {
 
 	When("Cleaning up spc", func() {
 		It("should delete the spc", func() {
-			_, err := ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
+			err := ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil())
 		})
 	})
@@ -410,7 +410,7 @@ var _ = Describe("RAIDZ2 SPARSE SPC", func() {
 
 	When("Cleaning up spc", func() {
 		It("should delete the spc", func() {
-			_, err := ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
+			err := ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil())
 		})
 	})

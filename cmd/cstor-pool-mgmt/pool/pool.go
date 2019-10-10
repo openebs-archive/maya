@@ -18,6 +18,7 @@ package pool
 
 import (
 	"fmt"
+	"github.com/openebs/maya/pkg/alertlog"
 	"strings"
 	"time"
 
@@ -87,6 +88,11 @@ func ImportPool(cStorPool *apis.CStorPool, importOptions *ImportOptions) (string
 		klog.Errorf("Unable to import pool: %v, %v devpath: %v cacheflag: %v importAttr: %v",
 			err2.Error(), string(stdoutStderr), importOptions.DevPath,
 			importOptions.CachefileFlag, importAttr)
+		alertlog.Logger.Errorw("",
+			"eventcode", "cstor.pool.import.failure",
+			"msg", "Failed to import CStor pool",
+			"rname", cStorPool.Name,
+		)
 		return string(stdoutStderr), err2
 	}
 
@@ -102,6 +108,11 @@ func ImportPool(cStorPool *apis.CStorPool, importOptions *ImportOptions) (string
 		return "", err1
 	}
 	klog.Infof("pool status: %v", string(stdoutStderr1))
+	alertlog.Logger.Infow("",
+		"eventcode", "cstor.pool.import.success",
+		"msg", "CStor pool imported successfully",
+		"rname", cStorPool.Name,
+	)
 	return string(stdoutStderr), nil
 }
 
@@ -233,8 +244,18 @@ func CreatePool(cStorPool *apis.CStorPool, blockDeviceList []string) error {
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, createAttr...)
 	if err != nil {
 		klog.Errorf("Unable to create pool: %v", string(stdoutStderr))
+		alertlog.Logger.Errorw("",
+			"eventcode", "cstor.pool.create.failure",
+			"msg", "Failed to create CStor pool",
+			"rname", cStorPool.Name,
+		)
 		return err
 	}
+	alertlog.Logger.Infow("",
+		"eventcode", "cstor.pool.create.success",
+		"msg", "CStor pool created successfully",
+		"rname", cStorPool.Name,
+	)
 	return nil
 }
 
@@ -324,8 +345,18 @@ func DeletePool(poolName string) error {
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, deletePoolStr...)
 	if err != nil {
 		klog.Errorf("Unable to delete pool: %v", string(stdoutStderr))
+		alertlog.Logger.Errorw("",
+			"eventcode", "cstor.pool.delete.failure",
+			"msg", "Failed to delete CStor pool",
+			"rname", poolName,
+		)
 		return err
 	}
+	alertlog.Logger.Infow("",
+		"eventcode", "cstor.pool.delete.success",
+		"msg", "CStor pool deleted successfully",
+		"rname", poolName,
+	)
 	return nil
 }
 

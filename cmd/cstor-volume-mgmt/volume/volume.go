@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/openebs/maya/pkg/alertlog"
 	"text/template"
 
 	"strings"
@@ -127,6 +128,11 @@ func CreateVolumeTarget(cStorVolume *apis.CStorVolume) error {
 	// create conf file
 	data, err := CreateIstgtConf(cStorVolume)
 	if err != nil {
+		alertlog.Logger.Errorw("",
+			"eventcode", "cstor.volume.target.create.failure",
+			"msg", "Failed to create CStor volume target",
+			"rname", cStorVolume.Name,
+		)
 		return errors.Wrapf(err, "failed to create istgtconf file data")
 	}
 	err = FileOperatorVar.Write(util.IstgtConfPath, data, 0644)
@@ -141,6 +147,11 @@ func CreateVolumeTarget(cStorVolume *apis.CStorVolume) error {
 		klog.Info("Failed to refresh iscsi service with new configuration.")
 	}
 	klog.Info("Creating Iscsi Volume Successful")
+	alertlog.Logger.Infow("",
+		"eventcode", "cstor.volume.target.create.success",
+		"msg", "Successfully created CStor volume target",
+		"rname", cStorVolume.Name,
+	)
 	return nil
 }
 
@@ -206,6 +217,13 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 	resizeCmd := getResizeCommand(cStorVolume)
 	sockResp, err := UnixSockVar.SendCommand(resizeCmd)
 	if err != nil {
+		alertlog.Logger.Errorw("",
+			"eventcode", "cstor.volume.target.resize.failure",
+			"msg", "Failed to resize CStor volume target",
+			"rname", cStorVolume.Name,
+			"capacity", cStorVolume.Spec.Capacity,
+		)
+
 		return errors.Wrapf(
 			err,
 			"failed to execute istgt %s command on volume %s",
@@ -214,6 +232,12 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 	}
 	for _, resp := range sockResp {
 		if strings.Contains(resp, "ERR") {
+			alertlog.Logger.Errorw("",
+				"eventcode", "cstor.volume.target.resize.failure",
+				"msg", "Failed to resize CStor volume target",
+				"rname", cStorVolume.Name,
+				"capacity", cStorVolume.Spec.Capacity,
+			)
 			return errors.Errorf(
 				"failed to execute istgt %s command on volume %s resp: %s",
 				util.IstgtResizeCmd,
@@ -227,6 +251,12 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 	err = FileOperatorVar.Updatefile(util.IstgtConfPath, updateStorageVal, "LUN0 Storage", 0644)
 	if err != nil {
 		cvapis.ConfFileMutex.Unlock()
+		alertlog.Logger.Errorw("",
+			"eventcode", "cstor.volume.target.resize.failure",
+			"msg", "Failed to resize CStor volume target",
+			"rname", cStorVolume.Name,
+			"capacity", cStorVolume.Spec.Capacity,
+		)
 		return errors.Wrapf(err,
 			"failed to update %s file with %s details",
 			util.IstgtConfPath,
@@ -234,6 +264,12 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 	}
 	cvapis.ConfFileMutex.Unlock()
 	klog.Infof("Updated '%s' file with capacity '%s'", util.IstgtConfPath, updateStorageVal)
+	alertlog.Logger.Infow("",
+		"eventcode", "cstor.volume.target.resize.success",
+		"msg", "Successfully resized CStor volume target",
+		"rname", cStorVolume.Name,
+		"capacity", cStorVolume.Spec.Capacity,
+	)
 	return nil
 }
 
