@@ -397,7 +397,6 @@ spec:
       status:
         current: {{ .CAST.version }}
         dependentsUpgraded: true
-        state: RECONCILED
       desired: {{ .CAST.version }}
       autoUpgrade: false
 ---
@@ -754,7 +753,6 @@ spec:
       status:
         current: {{ .CAST.version }}
         dependentsUpgraded: true
-        state: RECONCILED
       desired: {{ .CAST.version }}
       autoUpgrade: false
   post: |

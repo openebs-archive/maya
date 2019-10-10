@@ -246,14 +246,32 @@ func (c *cstorCSPOptions) waitForCSPCurrentVersion() error {
 	return nil
 }
 
-func (c *cstorCSPOptions) verifyCSPVersionReconcile() error {
+func (c *cstorCSPOptions) verifyCSPVersionReconcile(openebsNamespace string) error {
+	var uerr error
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.PoolInstanceUpgrade}
+	statusObj.Phase = utask.StepErrored
 	// waiting for the current version to be equal to desired version
 	for c.cspObj.VersionDetails.Status.Current != c.cspObj.VersionDetails.Desired {
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 		obj, err := cspClient.Get(c.cspObj.Name, metav1.GetOptions{})
 		if err != nil {
+			statusObj.Message = "failed to get cstor pool"
+			statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+			c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
+			if uerr != nil && isENVPresent {
+				return uerr
+			}
 			return err
+		}
+		if obj.VersionDetails.Status.Message != "" {
+			statusObj.Message = obj.VersionDetails.Status.Message
+			statusObj.Reason = obj.VersionDetails.Status.Reason
+			c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
+			if uerr != nil && isENVPresent {
+				return uerr
+			}
+			return errors.Errorf("failed to reconcile version : %s", obj.VersionDetails.Status.Reason)
 		}
 		c.cspObj = obj
 	}
@@ -303,7 +321,7 @@ func (c *cstorCSPOptions) poolInstanceUpgrade(openebsNamespace string) error {
 		return err
 	}
 
-	err = c.verifyCSPVersionReconcile()
+	err = c.verifyCSPVersionReconcile(openebsNamespace)
 	if err != nil {
 		return err
 	}

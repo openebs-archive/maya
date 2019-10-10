@@ -137,12 +137,29 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 
 	spcObj, err := c.populateVersion(gotSPC)
 	if err != nil {
-		klog.Errorf("failed to add versionDetails to SPC %s:%s", spc.Name, err.Error())
+		c.recorder.Event(
+			gotSPC,
+			corev1.EventTypeWarning,
+			"FailedPopulate",
+			fmt.Sprintf("Failed to add current version: %s", err.Error()),
+		)
 		return err
 	}
+	gotSPC = spcObj
 	spcObj, err = c.reconcileVersion(spcObj)
 	if err != nil {
-		klog.Errorf("failed to upgrade SPC %s:%s", spc.Name, err.Error())
+		c.recorder.Event(
+			gotSPC,
+			corev1.EventTypeWarning,
+			"FailedUpgrade",
+			fmt.Sprintf("Failed to upgrade spc to %s version: %s",
+				gotSPC.VersionDetails.Desired,
+				err.Error(),
+			),
+		)
+		gotSPC.VersionDetails.Status.Message = "Failed to reconcile spc version"
+		gotSPC.VersionDetails.Status.Reason = err.Error()
+		spcObj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(gotSPC)
 		return err
 	}
 	gotSPC = spcObj

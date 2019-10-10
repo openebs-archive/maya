@@ -83,12 +83,29 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	klog.V(4).Infof("Lease acquired successfully on csp %s ", cspObject.Name)
 	cspGot, err := c.populateVersion(cspObject)
 	if err != nil {
-		klog.Errorf("failed to add versionDetails to cstorpool %s:%s", cspObject.Name, err.Error())
+		c.recorder.Event(
+			cspObject,
+			corev1.EventTypeWarning,
+			"FailedPopulate",
+			fmt.Sprintf("Failed to add current version: %s", err.Error()),
+		)
 		return err
 	}
+	cspObject = cspGot
 	cspGot, err = c.reconcileVersion(cspGot)
 	if err != nil {
-		klog.Errorf("failed to upgrade CSP %s:%s", cspObject.Name, err.Error())
+		c.recorder.Event(
+			cspObject,
+			corev1.EventTypeWarning,
+			"FailedUpgrade",
+			fmt.Sprintf("Failed to upgrade csp to %s version: %s",
+				cspObject.VersionDetails.Desired,
+				err.Error(),
+			),
+		)
+		cspObject.VersionDetails.Status.Message = "Failed to reconcile csp version"
+		cspObject.VersionDetails.Status.Reason = err.Error()
+		cspGot, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObject)
 		return err
 	}
 	cspObject = cspGot

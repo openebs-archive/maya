@@ -102,22 +102,27 @@ func (c *CStorVolumeReplicaController) syncHandler(
 		c.recorder.Event(
 			cvrGot,
 			corev1.EventTypeWarning,
-			string("FailedPopulate"),
+			"FailedPopulate",
 			fmt.Sprintf("Failed to add current version: %s", err.Error()),
 		)
 		return err
 	}
+	cvrGot = cvrObj
 	cvrObj, err = c.reconcileVersion(cvrObj)
 	if err != nil {
 		c.recorder.Event(
 			cvrGot,
 			corev1.EventTypeWarning,
-			string("FailedUpgrade"),
+			"FailedUpgrade",
 			fmt.Sprintf("Failed to upgrade cvr to %s version: %s",
 				cvrGot.VersionDetails.Desired,
 				err.Error(),
 			),
 		)
+		cvrGot.VersionDetails.Status.Message = "Failed to reconcile cvr version"
+		cvrGot.VersionDetails.Status.Reason = err.Error()
+		cvrObj, err = c.clientset.OpenebsV1alpha1().
+			CStorVolumeReplicas(cvrGot.Namespace).Update(cvrGot)
 		return err
 	}
 	cvrGot = cvrObj

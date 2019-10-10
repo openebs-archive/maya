@@ -335,15 +335,33 @@ func getCV(pvLabel, namespace string) (*apis.CStorVolume, error) {
 	return &cvList.Items[0], nil
 }
 
-func (c *cstorVolumeOptions) verifyCVVersionReconcile() error {
+func (c *cstorVolumeOptions) verifyCVVersionReconcile(openebsNamespace string) error {
 	klog.Infof("Verifying the reconciliation of version.")
+	var uerr error
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.TargetUpgrade}
+	statusObj.Phase = utask.StepErrored
 	// waiting for the current version to be equal to desired version
 	for c.cv.VersionDetails.Status.Current != c.cv.VersionDetails.Desired {
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
 		obj, err := cvClient.Get(c.cv.Name, metav1.GetOptions{})
 		if err != nil {
+			statusObj.Message = "failed to get cstor volume"
+			statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+			c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
+			if uerr != nil && isENVPresent {
+				return uerr
+			}
 			return err
+		}
+		if obj.VersionDetails.Status.Message != "" {
+			statusObj.Message = obj.VersionDetails.Status.Message
+			statusObj.Reason = obj.VersionDetails.Status.Reason
+			c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
+			if uerr != nil && isENVPresent {
+				return uerr
+			}
+			return errors.Errorf("failed to reconcile version : %s", obj.VersionDetails.Status.Reason)
 		}
 		c.cv = obj
 	}
@@ -427,7 +445,7 @@ func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) erro
 		}
 		return err
 	}
-	err = c.verifyCVVersionReconcile()
+	err = c.verifyCVVersionReconcile(openebsNamespace)
 	if err != nil {
 		return err
 	}
@@ -462,11 +480,20 @@ func waitForCVRCurrentVersion(name, openebsNamespace string) error {
 	return nil
 }
 
-func verifyCVRVersionReconcile(name, openebsNamespace string) error {
+func (c *cstorVolumeOptions) verifyCVRVersionReconcile(name, openebsNamespace string) error {
 	klog.Infof("Verifying the reconciliation of version.")
+	var uerr error
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.ReplicaUpgrade}
+	statusObj.Phase = utask.StepWaiting
 	cvrObj, err := cvrClient.WithNamespace(openebsNamespace).
 		Get(name, metav1.GetOptions{})
 	if err != nil {
+		statusObj.Message = "failed to get cstor volume replica"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
 		return err
 	}
 	// waiting for the current version to be equal to desired version
@@ -476,7 +503,22 @@ func verifyCVRVersionReconcile(name, openebsNamespace string) error {
 		cvrObj, err = cvrClient.WithNamespace(openebsNamespace).
 			Get(name, metav1.GetOptions{})
 		if err != nil {
+			statusObj.Message = "failed to get cstor volume replica"
+			statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+			c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
+			if uerr != nil && isENVPresent {
+				return uerr
+			}
 			return err
+		}
+		if cvrObj.VersionDetails.Status.Message != "" {
+			statusObj.Message = cvrObj.VersionDetails.Status.Message
+			statusObj.Reason = cvrObj.VersionDetails.Status.Reason
+			c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
+			if uerr != nil && isENVPresent {
+				return uerr
+			}
+			return errors.Errorf("failed to reconcile version : %s", cvrObj.VersionDetails.Status.Reason)
 		}
 	}
 	return nil
@@ -507,7 +549,7 @@ func (c *cstorVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 			}
 			return err
 		}
-		err = verifyCVRVersionReconcile(cvrObj.Name, cvrObj.Namespace)
+		err = c.verifyCVRVersionReconcile(cvrObj.Name, cvrObj.Namespace)
 		if err != nil {
 			return err
 		}

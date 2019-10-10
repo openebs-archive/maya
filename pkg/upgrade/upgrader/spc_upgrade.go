@@ -139,6 +139,9 @@ func verifySPCVersionReconcile(name string) error {
 		if err != nil {
 			return err
 		}
+		if spcObj.VersionDetails.Status.Message != "" {
+			return errors.Errorf("failed to reconcile: %s", spcObj.VersionDetails.Status.Reason)
+		}
 	}
 	return nil
 }
