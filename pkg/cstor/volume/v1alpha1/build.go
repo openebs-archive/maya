@@ -301,6 +301,23 @@ func (b *Builder) WithReplicationFactor(replicationfactor int) *Builder {
 	return b
 }
 
+// WithDesiredReplicationFactor sets the DesiredReplicationFactor field of
+// CStorVolume with provided arguments
+func (b *Builder) WithDesiredReplicationFactor(desiredRF int) *Builder {
+	if desiredRF <= 0 {
+		b.errs = append(
+			b.errs,
+			errors.Errorf(
+				"failed to build cstorvolume object: invalid desiredreplicationfactor {%d}",
+				desiredRF,
+			),
+		)
+		return b
+	}
+	b.cstorvolume.object.Spec.DesiredReplicationFactor = desiredRF
+	return b
+}
+
 // WithConsistencyFactor sets the ConsistencyFactor field of
 // CStorVolume with provided arguments
 func (b *Builder) WithConsistencyFactor(consistencyfactor int) *Builder {
@@ -315,6 +332,29 @@ func (b *Builder) WithConsistencyFactor(consistencyfactor int) *Builder {
 		return b
 	}
 	b.cstorvolume.object.Spec.ConsistencyFactor = consistencyfactor
+	return b
+}
+
+// WithNewVersion sets the current and desired version field of
+// CStorVolume with provided arguments
+func (b *Builder) WithNewVersion(version string) *Builder {
+	if version == "" {
+		b.errs = append(
+			b.errs,
+			errors.New(
+				"failed to build cstorvolume object: version can't be empty",
+			),
+		)
+		return b
+	}
+	b.cstorvolume.object.VersionDetails.Current = version
+	b.cstorvolume.object.VersionDetails.Desired = version
+	return b
+}
+
+// WithDependentsUpgraded sets the field to true for new volume
+func (b *Builder) WithDependentsUpgraded() *Builder {
+	b.cstorvolume.object.VersionDetails.DependentsUpgraded = true
 	return b
 }
 

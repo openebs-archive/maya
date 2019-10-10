@@ -28,8 +28,9 @@ import (
 //FileOperator operates on files
 type FileOperator interface {
 	Write(filename string, data []byte, perm os.FileMode) error
-	Updatefile(fileName, updateStorageVal, searchString string, perm os.FileMode) error
+	Updatefile(fileName, updateVal, searchString string, perm os.FileMode) error
 	GetLineDetails(filename, searchString string) (int, string, error)
+	UpdateOrAppendMultipleLines(fileName string, keyUpdateValue map[string]string, perm os.FileMode) error
 }
 
 //RealFileOperator is used for writing the actual files without mocking
@@ -81,6 +82,46 @@ func (r RealFileOperator) Updatefile(fileName, updatedVal, searchString string, 
 	return errors.Errorf("failed to find %s in file %s", searchString, fileName)
 }
 
+// UpdateOrAppendMultipleLines will update or append multiple lines based on the
+// given string
+func (r RealFileOperator) UpdateOrAppendMultipleLines(fileName string,
+	keyUpdateValue map[string]string, perm os.FileMode) error {
+	var newLines []string
+	buffer, err := ioutil.ReadFile(filepath.Clean(fileName))
+	if err != nil {
+		return errors.Wrapf(err, "failed to read %s file", fileName)
+	}
+	lines := strings.Split(string(buffer), "\n")
+	// newLines pointing to lines reference
+	newLines = lines
+	if len(lines[len(lines)-1]) == 0 {
+		// For replacing the NUL in the file
+		newLines = lines[:len(lines)-1]
+	}
+
+	// TODO: We can split above read file into key value pairs and later we can
+	// append with \n and update file
+	// TODO: Use regular expresion to replace key value pairs
+	// will be doing after current blockers
+	for key, updatedValue := range keyUpdateValue {
+		found := false
+		for index, line := range newLines {
+			if strings.HasPrefix(line, key) {
+				newLines[index] = updatedValue
+				found = true
+				break
+			}
+		}
+		if found == false {
+			newLines = append(newLines, updatedValue)
+		}
+	}
+	newbuffer := strings.Join(newLines, "\n")
+	klog.V(4).Infof("content in a file %s\n", newLines)
+	err = r.Write(fileName, []byte(newbuffer), perm)
+	return err
+}
+
 //TestFileOperator is used as a dummy FileOperator
 type TestFileOperator struct{}
 
@@ -97,4 +138,12 @@ func (r TestFileOperator) Updatefile(fileName, updateStorageVal, searchString st
 //GetLineDetails is to mock operation for FileOperator interface
 func (r TestFileOperator) GetLineDetails(filename, searchString string) (int, string, error) {
 	return -1, "", nil
+}
+
+// UpdateOrAppendMultipleLines is to mock operation for FileOperator interface
+func (r TestFileOperator) UpdateOrAppendMultipleLines(
+	fileName string,
+	keyUpdateValue map[string]string,
+	perm os.FileMode) error {
+	return nil
 }

@@ -530,8 +530,8 @@ func TestVolumeCapacity(t *testing.T) {
 		"#1 VolumeCapacity": {
 			volumeName: "cstor-530c9c4f-e0df-11e8-94a8-42010a80013b",
 			expectedCapacity: &apis.CStorVolumeCapacityAttr{
-				"10K",
-				"6K",
+				TotalAllocated: "10K",
+				Used:           "6K",
 			},
 		},
 	}

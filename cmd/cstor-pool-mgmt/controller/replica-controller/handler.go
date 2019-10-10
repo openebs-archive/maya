@@ -26,7 +26,10 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
+	pkg_errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,6 +37,25 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+)
+
+const (
+	v130 = "1.3.0"
+)
+
+type upgradeParams struct {
+	cvr    *apis.CStorVolumeReplica
+	client clientset.Interface
+}
+
+type upgradeFunc func(u *upgradeParams) (*apis.CStorVolumeReplica, error)
+
+var (
+	upgradeMap = map[string]upgradeFunc{
+		"1.0.0-1.3.0": setReplicaID,
+		"1.1.0-1.3.0": setReplicaID,
+		"1.2.0-1.3.0": setReplicaID,
+	}
 )
 
 // CVRPatch struct represent the struct used to patch
@@ -75,7 +97,30 @@ func (c *CStorVolumeReplicaController) syncHandler(
 			key,
 		)
 	}
-
+	cvrObj, err := c.populateVersion(cvrGot)
+	if err != nil {
+		c.recorder.Event(
+			cvrGot,
+			corev1.EventTypeWarning,
+			string("FailedPopulate"),
+			fmt.Sprintf("Failed to add current version: %s", err.Error()),
+		)
+		return err
+	}
+	cvrObj, err = c.reconcileVersion(cvrObj)
+	if err != nil {
+		c.recorder.Event(
+			cvrGot,
+			corev1.EventTypeWarning,
+			string("FailedUpgrade"),
+			fmt.Sprintf("Failed to upgrade cvr to %s version: %s",
+				cvrGot.VersionDetails.Desired,
+				err.Error(),
+			),
+		)
+		return err
+	}
+	cvrGot = cvrObj
 	status, err := c.cVREventHandler(operation, cvrGot)
 	if status == "" {
 		// TODO
@@ -280,6 +325,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 				"CStorVolumeReplica %v is already imported",
 				string(cVR.ObjectMeta.UID),
 			)
+
 			c.recorder.Event(
 				cVR,
 				corev1.EventTypeNormal,
@@ -321,6 +367,17 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 
 	// IsEmptyStatus is to check if initial status of cVR object is empty.
 	if IsEmptyStatus(cVR) || IsInitStatus(cVR) || IsRecreateStatus(cVR) {
+		// We should generate replicaID for new volume only
+		if IsEmptyStatus(cVR) || IsInitStatus(cVR) {
+			if err := volumereplica.GenerateReplicaID(cVR); err != nil {
+				klog.Errorf("cVR ReplicaID creation failure: %v", err.Error())
+				return string(apis.CVRStatusOffline), err
+			}
+		}
+		if len(cVR.Spec.ReplicaID) == 0 {
+			return string(apis.CVRStatusOffline), merrors.New("ReplicaID is not set")
+		}
+
 		err := volumereplica.CreateVolumeReplica(cVR, fullVolName, quorum)
 		if err != nil {
 			klog.Errorf("cVR creation failure: %v", err.Error())
@@ -515,4 +572,87 @@ func (c *CStorVolumeReplicaController) syncCvr(cvr *apis.CStorVolumeReplica) {
 	} else {
 		cvr.Status.Capacity = *capacity
 	}
+}
+
+func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeReplica) (
+	*apis.CStorVolumeReplica, error,
+) {
+	var err error
+	if cvr.VersionDetails.Current != cvr.VersionDetails.Desired {
+		if !isCurrentVersionValid(cvr) {
+			return nil, pkg_errors.Errorf("invalid current version %s", cvr.VersionDetails.Current)
+		}
+		if !isDesiredVersionValid(cvr) {
+			return nil, pkg_errors.Errorf("invalid desired version %s", cvr.VersionDetails.Desired)
+		}
+		path := upgradePath(cvr)
+		u := &upgradeParams{
+			cvr:    cvr,
+			client: c.clientset,
+		}
+		cvr, err = upgradeMap[path](u)
+		if err != nil {
+			return nil, err
+		}
+		cvr.VersionDetails.Current = cvr.VersionDetails.Desired
+		cvr, err = c.clientset.OpenebsV1alpha1().
+			CStorVolumeReplicas(cvr.Namespace).Update(cvr)
+		if err != nil {
+			return nil, err
+		}
+		return cvr, nil
+	}
+	return cvr, nil
+}
+
+// populateVersion assigns VersionDetails for old cvr object
+func (c *CStorVolumeReplicaController) populateVersion(cvr *apis.CStorVolumeReplica) (
+	*apis.CStorVolumeReplica, error,
+) {
+	v := cvr.Labels[string(apis.OpenEBSVersionKey)]
+	// 1.3.0 onwards new CVR will have the field populated during creation
+	if v < v130 && cvr.VersionDetails.Current == "" {
+		cvr.VersionDetails.Current = v
+		cvr.VersionDetails.Desired = v
+		obj, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cvr.Namespace).
+			Update(cvr)
+
+		if err != nil {
+			return nil, err
+		}
+		klog.Infof("Version %s added on cvr %s", v, cvr.Name)
+		return obj, nil
+	}
+	return cvr, nil
+}
+
+func isCurrentVersionValid(cvr *apis.CStorVolumeReplica) bool {
+	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
+	version := strings.Split(cvr.VersionDetails.Current, "-")[0]
+	return util.ContainsString(validVersions, version)
+}
+
+func isDesiredVersionValid(cvr *apis.CStorVolumeReplica) bool {
+	validVersions := []string{"1.3.0"}
+	version := strings.Split(cvr.VersionDetails.Desired, "-")[0]
+	return util.ContainsString(validVersions, version)
+}
+
+func upgradePath(cvr *apis.CStorVolumeReplica) string {
+	return strings.Split(cvr.VersionDetails.Current, "-")[0] + "-" +
+		strings.Split(cvr.VersionDetails.Desired, "-")[0]
+}
+
+func setReplicaID(u *upgradeParams) (*apis.CStorVolumeReplica, error) {
+	cvr := u.cvr
+	err := volumereplica.GetAndUpdateReplicaID(cvr)
+	if err != nil {
+		return nil, err
+	}
+	cvr, err = u.client.OpenebsV1alpha1().
+		CStorVolumeReplicas(cvr.Namespace).Update(cvr)
+	if err != nil {
+		return nil, err
+	}
+	return cvr, nil
 }

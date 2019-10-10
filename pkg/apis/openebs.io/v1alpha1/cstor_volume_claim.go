@@ -41,7 +41,8 @@ type CStorVolumeClaim struct {
 
 	// Status represents the current information/status for the cstor volume
 	// claim, populated by the controller.
-	Status CStorVolumeClaimStatus `json:"status"`
+	Status         CStorVolumeClaimStatus `json:"status"`
+	VersionDetails VersionDetails         `json:"versionDetails"`
 }
 
 // CStorVolumeClaimSpec is the spec for a CStorVolumeClaim resource

@@ -30,6 +30,7 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	lease "github.com/openebs/maya/pkg/lease/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -38,6 +39,21 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+)
+
+type upgradeParams struct {
+	csp    *apis.CStorPool
+	client clientset.Interface
+}
+
+type upgradeFunc func(u *upgradeParams) (*apis.CStorPool, error)
+
+var (
+	upgradeMap = map[string]upgradeFunc{
+		"1.0.0-1.3.0": nothing,
+		"1.1.0-1.3.0": nothing,
+		"1.2.0-1.3.0": nothing,
+	}
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -65,7 +81,17 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		return err
 	}
 	klog.V(4).Infof("Lease acquired successfully on csp %s ", cspObject.Name)
-
+	cspGot, err := c.populateVersion(cspObject)
+	if err != nil {
+		klog.Errorf("failed to add versionDetails to cstorpool %s:%s", cspObject.Name, err.Error())
+		return err
+	}
+	cspGot, err = c.reconcileVersion(cspGot)
+	if err != nil {
+		klog.Errorf("failed to upgrade CSP %s:%s", cspObject.Name, err.Error())
+		return err
+	}
+	cspObject = cspGot
 	status, err := c.cStorPoolEventHandler(operation, cspObject)
 	if status == "" {
 		klog.Warning("Empty status recieved for csp status in sync handler")
@@ -524,4 +550,75 @@ func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
 func (c *CStorPoolController) getDeviceIDs(csp *apis.CStorPool) ([]string, error) {
 	// TODO: Add error handling
 	return pool.GetDeviceIDs(csp)
+}
+
+func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStorPool, error) {
+	var err error
+	if csp.VersionDetails.Current != csp.VersionDetails.Desired {
+		if !isCurrentVersionValid(csp) {
+			return nil, errors.Errorf("invalid current version %s", csp.VersionDetails.Current)
+		}
+		if !isDesiredVersionValid(csp) {
+			return nil, errors.Errorf("invalid desired version %s", csp.VersionDetails.Desired)
+		}
+		path := upgradePath(csp)
+		u := &upgradeParams{
+			csp:    csp,
+			client: c.clientset,
+		}
+		csp, err = upgradeMap[path](u)
+		if err != nil {
+			return csp, err
+		}
+		csp.VersionDetails.Current = csp.VersionDetails.Desired
+		csp, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(csp)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to update csp with versionDetails")
+		}
+		return csp, nil
+	}
+	return csp, nil
+}
+
+// populateVersion assigns VersionDetails for old csp object
+func (c *CStorPoolController) populateVersion(csp *apis.CStorPool) (
+	*apis.CStorPool, error,
+) {
+	v := csp.Labels[string(apis.OpenEBSVersionKey)]
+	// 1.3.0 onwards new CSP will have the field populated during creation
+	if v < "1.3.0" && csp.VersionDetails.Current == "" {
+		csp.VersionDetails.Current = v
+		csp.VersionDetails.Desired = v
+		obj, err := c.clientset.OpenebsV1alpha1().CStorPools().
+			Update(csp)
+
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to update csp while adding versiondetails")
+		}
+		klog.Infof("Version %s added on csp %s", v, csp.Name)
+		return obj, nil
+	}
+	return csp, nil
+}
+
+func isCurrentVersionValid(csp *apis.CStorPool) bool {
+	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
+	version := strings.Split(csp.VersionDetails.Current, "-")[0]
+	return util.ContainsString(validVersions, version)
+}
+
+func isDesiredVersionValid(csp *apis.CStorPool) bool {
+	validVersions := []string{"1.3.0"}
+	version := strings.Split(csp.VersionDetails.Desired, "-")[0]
+	return util.ContainsString(validVersions, version)
+}
+
+func upgradePath(csp *apis.CStorPool) string {
+	return strings.Split(csp.VersionDetails.Current, "-")[0] + "-" +
+		strings.Split(csp.VersionDetails.Desired, "-")[0]
+}
+
+func nothing(u *upgradeParams) (*apis.CStorPool, error) {
+	// No upgrade steps for 1.3.0
+	return u.csp, nil
 }

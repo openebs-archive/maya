@@ -20,9 +20,10 @@ import (
 	goflag "flag"
 	"sync"
 
-	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/start-controller"
+	startcontroller "github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/start-controller"
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/volume"
 	serverclient "github.com/openebs/maya/pkg/cstor/volume/serverclient/v1alpha1"
+	targetserver "github.com/openebs/maya/pkg/cstor/volume/targetserver"
 	"github.com/spf13/cobra"
 )
 
@@ -42,6 +43,11 @@ func NewCmdStart() *cobra.Command {
 		the watcher would be watching for add, updat, delete events`,
 		Run: func(cmd *cobra.Command, args []string) {
 			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				targetserver.StartTargetServer(options.kubeconfig)
+				wg.Done()
+			}()
 			wg.Add(1)
 			go func() {
 				serverclient.StartServer(volume.UnixSockVar, options.port)

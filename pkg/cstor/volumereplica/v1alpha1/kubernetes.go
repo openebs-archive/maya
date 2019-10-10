@@ -76,6 +76,14 @@ type createFn func(
 	volr *apis.CStorVolumeReplica,
 ) (*apis.CStorVolumeReplica, error)
 
+// updateFn is a typed function that abstracts update of
+// cstorvolume replica instances
+type updateFn func(
+	cli *clientset.Clientset,
+	namespace string,
+	volr *apis.CStorVolumeReplica,
+) (*apis.CStorVolumeReplica, error)
+
 // Kubeclient enables kubernetes API operations
 // on cstor volume replica instance
 type Kubeclient struct {
@@ -97,6 +105,7 @@ type Kubeclient struct {
 	del                 delFn
 	create              createFn
 	patch               patchFn
+	update              updateFn
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -197,6 +206,18 @@ func defaultCreate(
 		Create(volr)
 }
 
+// defaultUpdate is the default implementation to update a
+// cstorvolume replica instance in kubernetes cluster
+func defaultUpdate(
+	cli *clientset.Clientset,
+	namespace string,
+	volr *apis.CStorVolumeReplica,
+) (*apis.CStorVolumeReplica, error) {
+	return cli.OpenebsV1alpha1().
+		CStorVolumeReplicas(namespace).
+		Update(volr)
+}
+
 // withDefaults sets the default options
 // of kubeclient instance
 func (k *Kubeclient) withDefaults() {
@@ -227,6 +248,10 @@ func (k *Kubeclient) withDefaults() {
 
 	if k.patch == nil {
 		k.patch = defaultPatch
+	}
+
+	if k.update == nil {
+		k.update = defaultUpdate
 	}
 
 }
@@ -358,4 +383,19 @@ func (k *Kubeclient) Create(
 		return nil, err
 	}
 	return k.create(cli, k.namespace, volr)
+}
+
+// Update updates cstorvolumereplica resource for given object
+func (k *Kubeclient) Update(
+	volr *apis.CStorVolumeReplica,
+) (*apis.CStorVolumeReplica, error) {
+	if volr == nil {
+		return nil,
+			errors.New("failed to create cvr: nil cvr object")
+	}
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	return k.update(cli, k.namespace, volr)
 }

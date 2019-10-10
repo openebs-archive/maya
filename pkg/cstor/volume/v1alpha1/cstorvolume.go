@@ -15,8 +15,29 @@
 package v1alpha1
 
 import (
+	"fmt"
+	"strings"
+	"sync"
+
+	"k8s.io/klog"
+
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+var (
+	// ConfFileMutex is to hold the lock while updating istgt.conf file
+	ConfFileMutex = &sync.Mutex{}
+	// IstgtConfPath will locate path for istgt configurations
+	IstgtConfPath = "/usr/local/etc/istgt/istgt.conf"
+	//DesiredReplicationFactorKey is plain text in istgt configuration file informs
+	//about desired replication factor used by target
+	DesiredReplicationFactorKey = "  DesiredReplicationFactor"
+	//TargetNamespace is namespace where target pod and cstorvolume is present
+	//and this is updated by addEventHandler function
+	TargetNamespace = ""
 )
 
 const (
@@ -43,6 +64,23 @@ type CStorVolumeList struct {
 type ListBuilder struct {
 	list    *CStorVolumeList
 	filters PredicateList
+}
+
+//CVReplicationDetails enables to update RF,CF and
+//known replicas into etcd
+type CVReplicationDetails struct {
+	VolumeName        string `json:"volumeName"`
+	ReplicationFactor int    `json:"replicationFactor"`
+	ConsistencyFactor int    `json:"consistencyFactor"`
+	ReplicaID         string `json:"replicaId"`
+	ReplicaGUID       string `json:"replicaZvolGuid"`
+}
+
+//CStorVolumeConfig embed CVReplicationDetails and Kubeclient of
+//corresponding namespace
+type CStorVolumeConfig struct {
+	*CVReplicationDetails
+	*Kubeclient
 }
 
 // Conditions enables building CRUD operations on cstorvolume conditions
@@ -133,6 +171,29 @@ func (c *CStorVolume) IsResizePending() bool {
 	return curCapacity.Cmp(desiredCapacity) == -1
 }
 
+// IsDRFPending return true if drf update is required else false
+// Steps to verify whether drf is required
+// 1. Read DesiredReplicationFactor configurations from istgt conf file
+// 2. Compare the value with spec.DesiredReplicationFactor and return result
+func (c *CStorVolume) IsDRFPending() bool {
+	fileOperator := util.RealFileOperator{}
+	ConfFileMutex.Lock()
+	//If it has proper config then we will get --> "  DesiredReplicationFactor 3"
+	i, gotConfig, err := fileOperator.GetLineDetails(IstgtConfPath, DesiredReplicationFactorKey)
+	ConfFileMutex.Unlock()
+	if err != nil || i == -1 {
+		klog.Infof("failed to get %s config details error: %v",
+			DesiredReplicationFactorKey,
+			err,
+		)
+		return false
+	}
+	drfStringValue := fmt.Sprintf("%d", c.object.Spec.DesiredReplicationFactor)
+	// gotConfig will have "  DesiredReplicationFactor  3" and we will extract
+	// numeric character from output
+	return !strings.HasSuffix(gotConfig, drfStringValue)
+}
+
 // GetCVCondition returns corresponding cstorvolume condition based argument passed
 func (c *CStorVolume) GetCVCondition(
 	condType apis.CStorVolumeConditionType) apis.CStorVolumeCondition {
@@ -208,4 +269,116 @@ func (c Conditions) UpdateCondition(cond apis.CStorVolumeCondition) []apis.CStor
 		}
 	}
 	return c
+}
+
+// BuildConfigData builds data based on the CVReplicationDetails
+func (csr *CVReplicationDetails) BuildConfigData() map[string]string {
+	data := map[string]string{}
+	// Since we know what to update in istgt.conf file so constructing
+	// key and value pairs
+	// key represents what kind of configurations
+	// value represents corresponding value for that key
+	// TODO: Improve below code by exploring different options
+	key := fmt.Sprintf("  ReplicationFactor")
+	value := fmt.Sprintf("  ReplicationFactor %d", csr.ReplicationFactor)
+	data[key] = value
+	key = fmt.Sprintf("  ConsistencyFactor")
+	value = fmt.Sprintf("  ConsistencyFactor %d", csr.ConsistencyFactor)
+	data[key] = value
+	key = fmt.Sprintf("  Replica %s", csr.ReplicaID)
+	value = fmt.Sprintf("  Replica %s %s", csr.ReplicaID, csr.ReplicaGUID)
+	data[key] = value
+	return data
+}
+
+// UpdateConfig updates target configuration file by building data
+func (csr *CVReplicationDetails) UpdateConfig() error {
+	configData := csr.BuildConfigData()
+	fileOperator := util.RealFileOperator{}
+	ConfFileMutex.Lock()
+	err := fileOperator.UpdateOrAppendMultipleLines(IstgtConfPath, configData, 0644)
+	ConfFileMutex.Unlock()
+	if err == nil {
+		klog.V(4).Infof("Successfully updated istgt conf file with %v details\n", csr)
+	}
+	return err
+}
+
+// Validate verifies whether CStorReplication data read on wire is valid or not
+func (csr *CVReplicationDetails) Validate() error {
+	if csr.VolumeName == "" {
+		return errors.Errorf("volume name can not be empty")
+	}
+	if csr.ReplicaID == "" {
+		return errors.Errorf("replicaKey can not be empty to perform "+
+			"volume %s update", csr.VolumeName)
+	}
+	if csr.ReplicaGUID == "" {
+		return errors.Errorf("replicaKey can not be empty to perform "+
+			"volume %s update", csr.VolumeName)
+	}
+	if csr.ReplicationFactor == 0 {
+		return errors.Errorf("replication factor can't be %d",
+			csr.ReplicationFactor)
+	}
+	if csr.ConsistencyFactor == 0 {
+		return errors.Errorf("consistencyFactor factor can't be %d",
+			csr.ReplicationFactor)
+	}
+	return nil
+}
+
+// UpdateCVWithReplicationDetails updates the cstorvolume with known replicas
+// and updated replication details
+func (csr *CVReplicationDetails) UpdateCVWithReplicationDetails(kubeclient *Kubeclient) error {
+	if kubeclient == nil {
+		return errors.Errorf("failed to update replication details error: empty kubeclient")
+	}
+	err := csr.Validate()
+	if err != nil {
+		return errors.Wrapf(err, "validate errors")
+	}
+	cv, err := kubeclient.Get(csr.VolumeName, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to get cstorvolume")
+	}
+	_, oldReplica := cv.Status.ReplicaDetails.KnownReplicas[csr.ReplicaID]
+	if !oldReplica &&
+		len(cv.Status.ReplicaDetails.KnownReplicas) >= cv.Spec.DesiredReplicationFactor {
+		return errors.Errorf("can not update cstorvolume %s known replica"+
+			" count %d is greater than or equal to desired replication factor %d",
+			cv.Name, len(cv.Status.ReplicaDetails.KnownReplicas),
+			cv.Spec.DesiredReplicationFactor,
+		)
+	}
+	if cv.Spec.ReplicationFactor > csr.ReplicationFactor {
+		return errors.Errorf("requested replication factor {%d}"+
+			" can not be smaller than existing replication factor {%d}",
+			csr.ReplicationFactor, cv.Spec.ReplicationFactor,
+		)
+	}
+	if cv.Spec.ConsistencyFactor > csr.ConsistencyFactor {
+		return errors.Errorf("requested consistencyFactor factor {%d}"+
+			" can not be smaller than existing consistencyFactor factor {%d}",
+			csr.ReplicationFactor, cv.Spec.ConsistencyFactor,
+		)
+	}
+	cv.Spec.ReplicationFactor = csr.ReplicationFactor
+	cv.Spec.ConsistencyFactor = csr.ConsistencyFactor
+	if cv.Status.ReplicaDetails.KnownReplicas == nil {
+		cv.Status.ReplicaDetails.KnownReplicas = map[string]string{}
+	}
+	cv.Status.ReplicaDetails.KnownReplicas[csr.ReplicaID] = csr.ReplicaGUID
+	_, err = kubeclient.Update(cv)
+	if err == nil {
+		klog.Infof("Successfully updated %s volume with following replication "+
+			"information replication fator: from %d to %d, consistencyFactor from "+
+			"%d to %d and known replica list with replicaId %s and GUID %v",
+			cv.Name, cv.Spec.ReplicationFactor, csr.ReplicationFactor,
+			cv.Spec.ConsistencyFactor, csr.ConsistencyFactor, csr.ReplicaID,
+			csr.ReplicaGUID,
+		)
+		err = csr.UpdateConfig()
+	}
+	return err
 }

@@ -29,14 +29,32 @@ import (
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/common"
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/volume"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	"github.com/openebs/maya/pkg/client/k8s"
-	cstorvolume "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
+	cstorvolume_v1alpha1 "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+)
+
+type upgradeParams struct {
+	cv     *apis.CStorVolume
+	client clientset.Interface
+}
+
+type upgradeFunc func(u *upgradeParams) (*apis.CStorVolume, error)
+
+var (
+	v130       = "1.3.0"
+	upgradeMap = map[string]upgradeFunc{
+		"1.0.0-1.3.0": setDesiredRF,
+		"1.1.0-1.3.0": setDesiredRF,
+		"1.2.0-1.3.0": setDesiredRF,
+	}
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -51,6 +69,30 @@ func (c *CStorVolumeController) syncHandler(
 	if err != nil {
 		return err
 	}
+	cStorVolumeObj, err := c.populateVersion(cStorVolumeGot)
+	if err != nil {
+		c.recorder.Event(
+			cStorVolumeGot,
+			corev1.EventTypeWarning,
+			string("FailedPopulate"),
+			fmt.Sprintf("Failed to add current version: %s", err.Error()),
+		)
+		return err
+	}
+	cStorVolumeObj, err = c.reconcileVersion(cStorVolumeObj)
+	if err != nil {
+		c.recorder.Event(
+			cStorVolumeGot,
+			corev1.EventTypeWarning,
+			string("FailedUpgrade"),
+			fmt.Sprintf("Failed to upgrade cvr to %s version: %s",
+				cStorVolumeGot.VersionDetails.Desired,
+				err.Error(),
+			),
+		)
+		return err
+	}
+	cStorVolumeGot = cStorVolumeObj
 	status, err := c.cStorVolumeEventHandler(operation, cStorVolumeGot)
 	if status == common.CVStatusIgnore {
 		return nil
@@ -104,7 +146,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 ) (common.CStorVolumeStatus, error) {
 	var eventMessage string
 	var updatedCV *apis.CStorVolume
-	customCVObj := cstorvolume.NewForAPIObject(cStorVolumeGot)
+	customCVObj := cstorvolume_v1alpha1.NewForAPIObject(cStorVolumeGot)
 	klog.V(4).Infof(
 		"%v event received for volume : %v ",
 		operation,
@@ -115,8 +157,20 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		// CheckValidVolume is to check if volume attributes are correct.
 		err := volume.CheckValidVolume(cStorVolumeGot)
 		if err != nil {
+			c.recorder.Event(
+				cStorVolumeGot, corev1.EventTypeWarning,
+				string(common.FailureCreate),
+				fmt.Sprintf("failed to create cstorvolume validation "+
+					"failed on cstorvolum error: %v", err),
+			)
+			// If the config for the volume is invalid, panic here to
+			// restart the container.
+			klog.Fatalf("Failed to validate volume config: %s", err.Error())
 			return common.CVStatusInvalid, err
 		}
+		// Set TargetNamespace which will be used to volume-mgmt UDS to update
+		//replication information
+		cstorvolume_v1alpha1.TargetNamespace = cStorVolumeGot.Namespace
 
 		err = volume.CreateVolumeTarget(cStorVolumeGot)
 		if err != nil {
@@ -133,7 +187,16 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		// Make changes here to run zrepl command and update the data
 		err := volume.CheckValidVolume(cStorVolumeGot)
 		if err != nil {
+			c.recorder.Event(
+				cStorVolumeGot, corev1.EventTypeWarning,
+				string(common.FailureCreate),
+				fmt.Sprintf("failed to update cstorvolume validation "+
+					"failed on cstorvolume errors: %v", err),
+			)
 			return common.CVStatusInvalid, err
+		}
+		if customCVObj.IsDRFPending() {
+			c.updateCStorVolumeDRF(cStorVolumeGot)
 		}
 		// blocking call for doing resize operation
 		if customCVObj.IsResizePending() {
@@ -168,6 +231,9 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 	case common.QOpPeriodicSync:
 		var err error
 		lastKnownPhase := cStorVolumeGot.Status.Phase
+		if customCVObj.IsDRFPending() {
+			c.updateCStorVolumeDRF(cStorVolumeGot)
+		}
 		// blocking call for doing resize operation
 		if customCVObj.IsResizePending() {
 			if !customCVObj.IsConditionPresent(apis.CStorVolumeResizing) {
@@ -197,9 +263,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 		volStatus, err := volume.GetVolumeStatus(cStorVolumeGot)
 		if err != nil {
 			klog.Errorf("Error in getting volume status: %s", err.Error())
-			cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(
-				common.CVStatusError,
-			)
+			return common.CVStatusError, nil
 		} else {
 			cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(volStatus.Status)
 			// if replicas are zero set the status as init
@@ -377,9 +441,9 @@ func (c *CStorVolumeController) getVolumeResource(
 // addResizeConditions will add resize condition to cstorvolume
 func (c *CStorVolumeController) addResizeConditions(
 	cvObj *apis.CStorVolume) (*apis.CStorVolume, error) {
-	resizeConditions := cstorvolume.GetResizeCondition()
+	resizeConditions := cstorvolume_v1alpha1.GetResizeCondition()
 	var eventMessage string
-	cvObj.Status.Conditions = cstorvolume.
+	cvObj.Status.Conditions = cstorvolume_v1alpha1.
 		Conditions(cvObj.Status.Conditions).
 		AddCondition(resizeConditions)
 	updatedCVObj, err := c.clientset.
@@ -409,6 +473,48 @@ func (c *CStorVolumeController) addResizeConditions(
 	return updatedCVObj, nil
 }
 
+// updateCStorVolumeDRF updates desiredReplicationFactor in memory istgt
+// configuration on success updates istgt.conf file
+func (c *CStorVolumeController) updateCStorVolumeDRF(
+	cStorVolume *apis.CStorVolume) {
+	err := volume.ExecuteDesiredReplicationFactorCommand(cStorVolume)
+	if err != nil {
+		c.recorder.Event(cStorVolume,
+			corev1.EventTypeWarning,
+			string(common.FailureUpdate),
+			fmt.Sprintf("failed to update desired replication factor to %d"+
+				" Error: %v", cStorVolume.Spec.DesiredReplicationFactor, err,
+			),
+		)
+	}
+	fileOperator := util.RealFileOperator{}
+	updatedConfig := fmt.Sprintf("%s %d",
+		cstorvolume_v1alpha1.DesiredReplicationFactorKey,
+		cStorVolume.Spec.DesiredReplicationFactor)
+	cstorvolume_v1alpha1.ConfFileMutex.Lock()
+	err = fileOperator.Updatefile(cstorvolume_v1alpha1.IstgtConfPath,
+		updatedConfig,
+		cstorvolume_v1alpha1.DesiredReplicationFactorKey,
+		0644,
+	)
+	cstorvolume_v1alpha1.ConfFileMutex.Unlock()
+	if err != nil {
+		c.recorder.Event(cStorVolume,
+			corev1.EventTypeWarning,
+			string(common.FailureUpdate),
+			fmt.Sprintf("failed to update confile with desired replication factor %d"+
+				" Error: %v", cStorVolume.Spec.DesiredReplicationFactor, err,
+			),
+		)
+	}
+	c.recorder.Event(cStorVolume,
+		corev1.EventTypeNormal,
+		string(common.SuccessUpdated),
+		fmt.Sprintf("Successfully updated the desiredReplicationFactor to %d",
+			cStorVolume.Spec.DesiredReplicationFactor),
+	)
+}
+
 // resizeCStorVolume resize the cstorvolume and if any error occurs updates the
 // resize conditions of cstorvolume either with success or failure message
 func (c *CStorVolumeController) resizeCStorVolume(
@@ -417,7 +523,7 @@ func (c *CStorVolumeController) resizeCStorVolume(
 	var err error
 	isResizeSuccess := false
 	copyCV := cStorVolume.DeepCopy()
-	customCVObj := cstorvolume.NewForAPIObject(copyCV)
+	customCVObj := cstorvolume_v1alpha1.NewForAPIObject(copyCV)
 	// NOTE: We are processing resize process only after updating CV resize conditions
 	// so in below call there is no chance of geting new CVCondition instance
 	conditionStatus := customCVObj.GetCVCondition(apis.CStorVolumeResizing)
@@ -433,12 +539,12 @@ func (c *CStorVolumeController) resizeCStorVolume(
 		)
 		c.recorder.Event(copyCV, corev1.EventTypeWarning, string(common.FailureUpdate), eventMessage)
 		conditionStatus.Message = eventMessage
-		copyCV.Status.Conditions = cstorvolume.
+		copyCV.Status.Conditions = cstorvolume_v1alpha1.
 			Conditions(copyCV.Status.Conditions).
 			UpdateCondition(conditionStatus)
 	} else {
 		// In success case remove resize condition
-		copyCV.Status.Conditions = cstorvolume.
+		copyCV.Status.Conditions = cstorvolume_v1alpha1.
 			Conditions(copyCV.Status.Conditions).
 			DeleteCondition(conditionStatus)
 		copyCV.Status.Capacity = copyCV.Spec.Capacity
@@ -502,4 +608,78 @@ func IsOnlyStatusChange(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
 	}
 	klog.Infof("No status changed for cstor volume : %s", newCStorVolume.Name)
 	return false
+}
+
+func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CStorVolume, error) {
+	var err error
+	if cv.VersionDetails.Current != cv.VersionDetails.Desired {
+		if !isCurrentVersionValid(cv) {
+			return nil, pkg_errors.Errorf("invalid current version %s", cv.VersionDetails.Current)
+		}
+		if !isDesiredVersionValid(cv) {
+			return nil, pkg_errors.Errorf("invalid desired version %s", cv.VersionDetails.Desired)
+		}
+		path := upgradePath(cv)
+		u := &upgradeParams{
+			cv:     cv,
+			client: c.clientset,
+		}
+		cv, err = upgradeMap[path](u)
+		if err != nil {
+			return nil, err
+		}
+		cv.VersionDetails.Current = cv.VersionDetails.Desired
+		cv, err = u.client.OpenebsV1alpha1().
+			CStorVolumes(cv.Namespace).Update(cv)
+		if err != nil {
+			return nil, err
+		}
+		return cv, nil
+	}
+	return cv, nil
+}
+
+// populateVersion assigns VersionDetails for old cv object
+func (c *CStorVolumeController) populateVersion(cv *apis.CStorVolume) (
+	*apis.CStorVolume, error,
+) {
+	v := cv.Labels[string(apis.OpenEBSVersionKey)]
+	// 1.3.0 onwards new CV will have the field populated during creation
+	if v < v130 && cv.VersionDetails.Current == "" {
+		cv.VersionDetails.Current = v
+		cv.VersionDetails.Desired = v
+		obj, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cv.Namespace).
+			Update(cv)
+
+		if err != nil {
+			return nil, err
+		}
+		klog.Infof("Version %s added on cstorvolume %s", v, cv.Name)
+		return obj, nil
+	}
+	return cv, nil
+}
+
+func isCurrentVersionValid(cv *apis.CStorVolume) bool {
+	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
+	version := strings.Split(cv.VersionDetails.Current, "-")[0]
+	return util.ContainsString(validVersions, version)
+}
+
+func isDesiredVersionValid(cv *apis.CStorVolume) bool {
+	validVersions := []string{"1.3.0"}
+	version := strings.Split(cv.VersionDetails.Desired, "-")[0]
+	return util.ContainsString(validVersions, version)
+}
+
+func setDesiredRF(u *upgradeParams) (*apis.CStorVolume, error) {
+	cv := u.cv
+	// Set new field DesiredReplicationFactor as ReplicationFactor
+	cv.Spec.DesiredReplicationFactor = cv.Spec.ReplicationFactor
+	return cv, nil
+}
+
+func upgradePath(cv *apis.CStorVolume) string {
+	return strings.Split(cv.VersionDetails.Current, "-")[0] + "-" +
+		strings.Split(cv.VersionDetails.Desired, "-")[0]
 }

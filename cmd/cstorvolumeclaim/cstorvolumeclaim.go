@@ -42,8 +42,6 @@ const (
 	cstorpoolNameLabel = "cstorpool.openebs.io/name"
 	// ReplicaCount represents replica count value
 	ReplicaCount = "replicaCount"
-	// CStorVolumeReplicaFinalizer is the name of finalizer on CStorVolumeClaim
-	CStorVolumeReplicaFinalizer = "cstorvolumereplica.openebs.io/finalizer"
 	// pvSelector is the selector key for cstorvolumereplica belongs to a cstor
 	// volume
 	pvSelector = "openebs.io/persistent-volume"
@@ -135,7 +133,7 @@ func getCVRAnnotations(pool *apis.CStorPoolInstance) map[string]string {
 // getCVRFinalizer get the finalizer for cstorvolumereplica
 func getCVRFinalizer() []string {
 	return []string{
-		CStorVolumeReplicaFinalizer,
+		cvr.CStorVolumeReplicaFinalizer,
 	}
 }
 
@@ -262,6 +260,7 @@ func getOrCreateCStorVolumeResource(
 
 	// get the replicaCount from cstorvolume claim
 	rfactor := claim.Spec.ReplicaCount
+	desiredRF := claim.Spec.ReplicaCount
 	cfactor := rfactor/2 + 1
 
 	cvObj, err := cv.NewKubeclient(cv.WithNamespace(getNamespace())).
@@ -285,12 +284,15 @@ func getOrCreateCStorVolumeResource(
 			WithTargetPortal(service.Spec.ClusterIP + ":" + cv.TargetPort).
 			WithTargetPort(cv.TargetPort).
 			WithReplicationFactor(rfactor).
+			WithDesiredReplicationFactor(desiredRF).
 			WithConsistencyFactor(cfactor).
+			WithNewVersion(version.GetVersion()).
+			WithDependentsUpgraded().
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(
 				err,
-				"failed to get cstorvolume {%v}",
+				"failed to build cstorvolume {%v}",
 				cvObj,
 			)
 		}
@@ -365,6 +367,8 @@ func createCVR(
 			WithFinalizers(getCVRFinalizer()).
 			WithTargetIP(service.Spec.ClusterIP).
 			WithCapacity(volume.Spec.Capacity.String()).
+			WithNewVersion(version.GetVersion()).
+			WithDependentsUpgraded().
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(

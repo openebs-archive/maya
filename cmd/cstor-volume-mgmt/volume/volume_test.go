@@ -15,7 +15,6 @@
 package volume
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -110,11 +109,11 @@ func TestCreateIstgtConf(t *testing.T) {
 // TestCheckValidVolume tests volume related operations.
 func TestCheckValidVolume(t *testing.T) {
 	testVolumeResource := map[string]struct {
-		expectedError error
+		expectedError bool
 		test          *apis.CStorVolume
 	}{
 		"Invalid-volumeResource": {
-			expectedError: fmt.Errorf("Invalid volume resource"),
+			expectedError: true,
 			test: &apis.CStorVolume{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -131,7 +130,7 @@ func TestCheckValidVolume(t *testing.T) {
 			},
 		},
 		"Invalid-cstorControllerIPEmpty": {
-			expectedError: fmt.Errorf("targetIP cannot be empty"),
+			expectedError: true,
 			test: &apis.CStorVolume{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -149,7 +148,7 @@ func TestCheckValidVolume(t *testing.T) {
 		},
 
 		"Invalid-volumeNameEmpty": {
-			expectedError: fmt.Errorf("volumeName cannot be empty"),
+			expectedError: true,
 			test: &apis.CStorVolume{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -166,7 +165,7 @@ func TestCheckValidVolume(t *testing.T) {
 			},
 		},
 		"Invalid-volumeCapacityEmpty": {
-			expectedError: fmt.Errorf("capacity cannot be zero"),
+			expectedError: true,
 			test: &apis.CStorVolume{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -183,7 +182,7 @@ func TestCheckValidVolume(t *testing.T) {
 			},
 		},
 		"Invalid-volumeCapacity": {
-			expectedError: fmt.Errorf("capacity cannot be zero"),
+			expectedError: true,
 			test: &apis.CStorVolume{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -200,7 +199,7 @@ func TestCheckValidVolume(t *testing.T) {
 			},
 		},
 		"Invalid-ReplicationFactorEmpty": {
-			expectedError: fmt.Errorf("replicationFactor cannot be zero"),
+			expectedError: true,
 			test: &apis.CStorVolume{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -217,7 +216,7 @@ func TestCheckValidVolume(t *testing.T) {
 			},
 		},
 		"Invalid-ConsistencyFactorEmpty": {
-			expectedError: fmt.Errorf("consistencyFactor cannot be zero"),
+			expectedError: true,
 			test: &apis.CStorVolume{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -234,7 +233,7 @@ func TestCheckValidVolume(t *testing.T) {
 			},
 		},
 		"Invalid-ReplicationFactorLessThanConsistencyFactor": {
-			expectedError: fmt.Errorf("replicationFactor cannot be less than consistencyFactor"),
+			expectedError: true,
 			test: &apis.CStorVolume{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -250,16 +249,74 @@ func TestCheckValidVolume(t *testing.T) {
 				},
 			},
 		},
+		"invalid desired replication factor": {
+			expectedError: true,
+			test: &apis.CStorVolume{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "testvol1",
+					UID:  types.UID("123456"),
+				},
+				Spec: apis.CStorVolumeSpec{
+					TargetIP:                 "0.0.0.0",
+					Capacity:                 fakeStrToQuantity("5G"),
+					Status:                   "init",
+					ReplicationFactor:        3,
+					ConsistencyFactor:        2,
+					DesiredReplicationFactor: 0,
+				},
+			},
+		},
+		"invalid desiredreplicationfactor/replicationfactor": {
+			expectedError: true,
+			test: &apis.CStorVolume{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "testvol1",
+					UID:  types.UID("123456"),
+				},
+				Spec: apis.CStorVolumeSpec{
+					TargetIP:                 "0.0.0.0",
+					Capacity:                 fakeStrToQuantity("5G"),
+					Status:                   "init",
+					ReplicationFactor:        4,
+					ConsistencyFactor:        2,
+					DesiredReplicationFactor: 3,
+				},
+			},
+		},
+		"valid resource": {
+			expectedError: false,
+			test: &apis.CStorVolume{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "testvol1",
+					UID:  types.UID("123456"),
+				},
+				Spec: apis.CStorVolumeSpec{
+					TargetIP:                 "0.0.0.0",
+					Capacity:                 fakeStrToQuantity("5G"),
+					Status:                   "init",
+					ReplicationFactor:        3,
+					ConsistencyFactor:        2,
+					DesiredReplicationFactor: 3,
+				},
+			},
+		},
 	}
 
-	for desc, ut := range testVolumeResource {
-		Obtainederr := CheckValidVolume(ut.test)
-		if Obtainederr != nil {
-			if Obtainederr.Error() != ut.expectedError.Error() {
-				t.Fatalf("Desc : %v, Expected error: %v, Got : %v",
-					desc, ut.expectedError, Obtainederr)
+	for name, mock := range testVolumeResource {
+		name := name
+		mock := mock
+		t.Run(name, func(t *testing.T) {
+			err := CheckValidVolume(mock.test)
+			if mock.expectedError && err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil but got :%v",
+					name,
+					err,
+				)
 			}
-		}
+			if !mock.expectedError && err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
 	}
 }
 

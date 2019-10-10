@@ -91,6 +91,7 @@ var (
   AuthGroup None
   UseDigest Auto
   ReadOnly No
+  DesiredReplicationFactor {{.Spec.DesiredReplicationFactor}}
   ReplicationFactor {{.Spec.ReplicationFactor}}
   ConsistencyFactor {{.Spec.ConsistencyFactor}}
   UnitType Disk
@@ -105,6 +106,9 @@ var (
   LUN0 Option WZero Disable
   LUN0 Option ATS Disable
   LUN0 Option XCOPY Disable
+  {{- range $k, $v := .Status.ReplicaDetails.KnownReplicas }}
+  Replica {{$k}} {{$v}}
+  {{- end }}
 `
 )
 
@@ -143,13 +147,11 @@ func CreateVolumeTarget(cStorVolume *apis.CStorVolume) error {
 		klog.Info("Failed to refresh iscsi service with new configuration.")
 	}
 	klog.Info("Creating Iscsi Volume Successful")
-
 	alertlog.Logger.Infow("",
 		"eventcode", "cstor.volume.target.create.success",
 		"msg", "Successfully created CStor volume target",
 		"rname", cStorVolume.Name,
 	)
-
 	return nil
 }
 
@@ -170,7 +172,7 @@ func GetVolumeStatus(cStorVolume *apis.CStorVolume) (*apis.CVStatus, error) {
 	jsonBeginIndex := strings.Index(stringResp, "{")
 	jsonEndIndex := strings.LastIndex(stringResp, "}")
 	if jsonBeginIndex >= jsonEndIndex {
-		return nil, nil
+		return nil, errors.Errorf("invalid data from %v command", util.IstgtReplicaCmd)
 	}
 	return extractReplicaStatusFromJSON(stringResp[jsonBeginIndex : jsonEndIndex+1])
 }
@@ -245,8 +247,10 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 		}
 	}
 	updateStorageVal := fmt.Sprintf("  LUN0 Storage %s 32K", cStorVolume.Spec.Capacity.String())
+	cvapis.ConfFileMutex.Lock()
 	err = FileOperatorVar.Updatefile(util.IstgtConfPath, updateStorageVal, "LUN0 Storage", 0644)
 	if err != nil {
+		cvapis.ConfFileMutex.Unlock()
 		alertlog.Logger.Errorw("",
 			"eventcode", "cstor.volume.target.resize.failure",
 			"msg", "Failed to resize CStor volume target",
@@ -258,6 +262,7 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 			util.IstgtConfPath,
 			updateStorageVal)
 	}
+	cvapis.ConfFileMutex.Unlock()
 	klog.Infof("Updated '%s' file with capacity '%s'", util.IstgtConfPath, updateStorageVal)
 	alertlog.Logger.Infow("",
 		"eventcode", "cstor.volume.target.resize.success",
@@ -266,6 +271,42 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 		"capacity", cStorVolume.Spec.Capacity,
 	)
 	return nil
+}
+
+//ExecuteDesiredReplicationFactorCommand executes istgtcontrol command to update
+//desired replication factor
+func ExecuteDesiredReplicationFactorCommand(cStorVolume *apis.CStorVolume) error {
+	// send desiredReplicationFactor command to istgt and read the response
+	drfCmd := getDRFCommand(cStorVolume)
+	sockResp, err := UnixSockVar.SendCommand(drfCmd)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"failed to execute istgtcontrol %s command on volume %s",
+			util.IstgtDRFCmd,
+			cStorVolume.Name)
+	}
+	for _, resp := range sockResp {
+		if strings.Contains(resp, "ERR") {
+			return errors.Errorf(
+				"failed to execute istgtcontrol %s command on volume %s resp: %s",
+				util.IstgtDRFCmd,
+				cStorVolume.Name,
+				resp,
+			)
+		}
+	}
+	return nil
+}
+
+//getResizeCommand will return data required to execute istgtcontrol drf
+//command
+//Ex command: drf <vol_name> <value>
+func getDRFCommand(cstorVolume *apis.CStorVolume) string {
+	return fmt.Sprintf("%s %s %d", util.IstgtDRFCmd,
+		cstorVolume.Name,
+		cstorVolume.Spec.DesiredReplicationFactor,
+	)
 }
 
 // getResizeCommand returns resize used to resize volumes
@@ -296,15 +337,24 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 	if cStorVolume.Spec.Capacity.IsZero() {
 		return fmt.Errorf("capacity cannot be zero")
 	}
+	if cStorVolume.Spec.DesiredReplicationFactor == 0 {
+		return fmt.Errorf("DesiredReplicationFactor cannot be zero")
+	}
 	if cStorVolume.Spec.ReplicationFactor == 0 {
 		return fmt.Errorf("replicationFactor cannot be zero")
 	}
 	if cStorVolume.Spec.ConsistencyFactor == 0 {
 		return fmt.Errorf("consistencyFactor cannot be zero")
 	}
+	if cStorVolume.Spec.DesiredReplicationFactor < cStorVolume.Spec.ReplicationFactor {
+		return fmt.Errorf("DesiredReplicationFactor %d cannot be less "+
+			"than ReplicationFactor %d",
+			cStorVolume.Spec.DesiredReplicationFactor,
+			cStorVolume.Spec.ReplicationFactor,
+		)
+	}
 	if cStorVolume.Spec.ReplicationFactor < cStorVolume.Spec.ConsistencyFactor {
 		return fmt.Errorf("replicationFactor cannot be less than consistencyFactor")
 	}
-
 	return nil
 }

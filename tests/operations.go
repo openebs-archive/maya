@@ -31,6 +31,7 @@ import (
 	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
+	cvc "github.com/openebs/maya/pkg/cstorvolumeclaim/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	kubeclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
@@ -45,8 +46,10 @@ import (
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+	"github.com/openebs/maya/pkg/version"
 	"github.com/openebs/maya/tests/artifacts"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,7 +58,8 @@ import (
 )
 
 const (
-	maxRetry = 30
+	maxRetry         = 30
+	openebsNamespace = "openebs"
 )
 
 // Options holds the args used for exec'ing into the pod
@@ -80,6 +84,7 @@ type Operations struct {
 	SPCClient      *spc.Kubeclient
 	SVCClient      *svc.Kubeclient
 	CVClient       *cv.Kubeclient
+	CVCClient      *cvc.Kubeclient
 	CSPCClient     *cspc.Kubeclient
 	CVRClient      *cvr.Kubeclient
 	URClient       *result.Kubeclient
@@ -88,7 +93,49 @@ type Operations struct {
 	BDClient       *bd.Kubeclient
 	BDCClient      *bdc.Kubeclient
 	KubeConfigPath string
+	NameSpace      string
+	Config         interface{}
 }
+
+// SPCConfig provides config to create cstor pools
+type SPCConfig struct {
+	Name               string
+	DiskType           string
+	PoolType           string
+	PoolCount          int
+	IsOverProvisioning bool
+}
+
+// SCConfig provides config to create storage class
+type SCConfig struct {
+	Name        string
+	Annotations map[string]string
+	Provisioner string
+}
+
+// PVCConfig provides config to create PersistentVolumeClaim
+type PVCConfig struct {
+	Name        string
+	Namespace   string
+	SCName      string
+	Capacity    string
+	AccessModes []corev1.PersistentVolumeAccessMode
+}
+
+// CVRConfig provides config to create CStorVolumeReplica
+type CVRConfig struct {
+	PoolObj    *apis.CStorPool
+	VolumeName string
+	Namespace  string
+	Capacity   string
+	Phase      string
+	TargetIP   string
+}
+
+var (
+	pvLabel   = "openebs.io/persistent-volume="
+	poolLabel = "openebs.io/storagepoolclaim="
+)
 
 // OperationsOptions abstracts creating an
 // instance of operations
@@ -179,6 +226,9 @@ func (ops *Operations) withDefaults() {
 	}
 	if ops.CVClient == nil {
 		ops.CVClient = cv.NewKubeclient(cv.WithKubeConfigPath(ops.KubeConfigPath))
+	}
+	if ops.CVCClient == nil {
+		ops.CVCClient = cvc.NewKubeclient(cvc.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.CVRClient == nil {
 		ops.CVRClient = cvr.NewKubeclient(cvr.WithKubeConfigPath(ops.KubeConfigPath))
@@ -279,6 +329,15 @@ func (ops *Operations) GetCstorVolumeReplicaCountEventually(namespace, lselector
 		120, 10).Should(Equal(expectedCVRCount))
 }
 
+// GetCstorVolumeClaimCountEventually gives the count of cstorvolume claim
+func (ops *Operations) GetCstorVolumeClaimCountEventually(namespace, cvcName string, expectedCVCCount int) bool {
+	return Eventually(func() int {
+		cvcCount := ops.GetCstorVolumeClaimCount(namespace, cvcName)
+		return cvcCount
+	},
+		120, 10).Should(Equal(expectedCVCCount))
+}
+
 // GetPodRunningCount gives number of pods running currently
 func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 	pods, err := ops.PodClient.
@@ -295,6 +354,7 @@ func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 // GetCVCount gives cstorvolume healthy count currently based on selecter
 func (ops *Operations) GetCVCount(namespace, lselector string) int {
 	cvs, err := ops.CVClient.
+		WithNamespace(namespace).
 		List(metav1.ListOptions{LabelSelector: lselector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return cv.
@@ -308,6 +368,7 @@ func (ops *Operations) GetCVCount(namespace, lselector string) int {
 // GetCstorVolumeReplicaCount gives cstorvolumereplica healthy count currently based on selecter
 func (ops *Operations) GetCstorVolumeReplicaCount(namespace, lselector string) int {
 	cvrs, err := ops.CVRClient.
+		WithNamespace(namespace).
 		List(metav1.ListOptions{LabelSelector: lselector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return cvr.
@@ -316,6 +377,16 @@ func (ops *Operations) GetCstorVolumeReplicaCount(namespace, lselector string) i
 		WithFilter(cvr.IsHealthy()).
 		List().
 		Len()
+}
+
+// GetCstorVolumeClaimCount gives cstorVolumeClaim healthy count currently
+func (ops *Operations) GetCstorVolumeClaimCount(namespace, cvcName string) int {
+	_, err := ops.CVCClient.WithNamespace(namespace).Get(cvcName, metav1.GetOptions{})
+	if k8serrors.IsNotFound(err) {
+		return 0
+	}
+	Expect(err).ShouldNot(HaveOccurred())
+	return 1
 }
 
 // GetReadyNodes gives cstorvolumereplica healthy count currently based on selecter
@@ -589,6 +660,23 @@ func isNotFound(err error) bool {
 	}
 }
 
+// DeleteCSPI deletes  ...
+func (ops *Operations) DeleteCSPI(cspcName string, deleteCount int) {
+	cspiAPIList, err := ops.CSPIClient.WithNamespace(ops.NameSpace).List(metav1.ListOptions{})
+	Expect(err).To(BeNil())
+	cspiList := cspi.
+		ListBuilderFromAPIList(cspiAPIList).
+		List().
+		Filter(cspi.HasLabel(string(apis.CStorPoolClusterCPK), cspcName), cspi.IsStatus("ONLINE"))
+	cspiCount := cspiList.Len()
+	Expect(deleteCount).Should(BeNumerically("<=", cspiCount))
+
+	for i := 0; i < deleteCount; i++ {
+		err := ops.CSPIClient.WithNamespace(ops.NameSpace).Delete(cspiList.ObjectList.Items[i].Name, &metav1.DeleteOptions{})
+		Expect(err).To(BeNil())
+	}
+}
+
 // DeleteCSP ...
 func (ops *Operations) DeleteCSP(spcName string, deleteCount int) {
 	cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{})
@@ -607,11 +695,34 @@ func (ops *Operations) DeleteCSP(spcName string, deleteCount int) {
 	}
 }
 
+// GetCSPCountEventually get csp count based on the labelSelector and
+// wait til csp count matches to provided argument count
+func (ops *Operations) GetCSPCountEventually(labelSelector string, count int) bool {
+	return Eventually(func() int {
+		cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{LabelSelector: labelSelector})
+		Expect(err).To(BeNil())
+		count := csp.
+			ListBuilderForAPIObject(cspAPIList).
+			List().
+			Len()
+		return count
+	},
+		120, 10).
+		Should(Equal(count))
+}
+
 // GetCSPCount gets csp count based on spcName at that time
 func (ops *Operations) GetCSPCount(labelSelector string) int {
 	cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{LabelSelector: labelSelector})
 	Expect(err).To(BeNil())
 	return len(cspAPIList.Items)
+}
+
+// GetCSPICount gets cspi count based on cspc name at that time
+func (ops *Operations) GetCSPICount(labelSelector string) int {
+	cspiAPIList, err := ops.CSPIClient.WithNamespace(ops.NameSpace).List(metav1.ListOptions{LabelSelector: labelSelector})
+	Expect(err).To(BeNil())
+	return len(cspiAPIList.Items)
 }
 
 // GetHealthyCSPCount gets healthy csp based on spcName
@@ -637,14 +748,14 @@ func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) 
 func (ops *Operations) GetHealthyCSPICount(cspcName string, expectedCSPICount int) int {
 	var cspiCount int
 	for i := 0; i < maxRetry; i++ {
-		cspiAPIList, err := ops.CSPIClient.List(metav1.ListOptions{})
+		cspiAPIList, err := ops.CSPIClient.WithNamespace(ops.NameSpace).List(metav1.ListOptions{})
+		time.Sleep(5 * time.Second)
 		Expect(err).To(BeNil())
 		cspiCount = cspi.
 			ListBuilderFromAPIList(cspiAPIList).
 			List().
 			Filter(cspi.HasLabel(string(apis.CStorPoolClusterCPK), cspcName), cspi.IsStatus("ONLINE")).
 			Len()
-
 		if cspiCount == expectedCSPICount {
 			return cspiCount
 		}
@@ -666,6 +777,18 @@ func (ops *Operations) GetBDCCountEventually(listOptions metav1.ListOptions, exp
 		time.Sleep(5 * time.Second)
 	}
 	return bdcCount
+}
+
+// IsCSPCNotExists returns true if the cspc with provided name does not exists.
+func (ops *Operations) IsCSPCNotExists(cspcName string) bool {
+	for i := 0; i < maxRetry; i++ {
+		_, err := ops.CSPCClient.WithNamespace(ops.NameSpace).Get(cspcName, metav1.GetOptions{})
+		if k8serrors.IsNotFound(err) {
+			return true
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return false
 }
 
 // IsSPCNotExists returns true if the spc with provided name does not exists.
@@ -695,6 +818,22 @@ func (ops *Operations) IsFinalizerExistsOnBDC(bdcName, finalizer string) bool {
 	return false
 }
 
+// IsCSPCFinalizerExistsOnCSPC returns true if the cspc with provided name contains the cspc finalizer.
+func (ops *Operations) IsCSPCFinalizerExistsOnCSPC(cspcName, cspcFinalizer string) bool {
+	for i := 0; i < maxRetry; i++ {
+		gotCSPC, err := ops.CSPCClient.WithNamespace(ops.NameSpace).Get(cspcName, metav1.GetOptions{})
+		Expect(err).To(BeNil())
+		for _, finalizer := range gotCSPC.Finalizers {
+
+			if finalizer == cspcFinalizer {
+				return true
+			}
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return false
+}
+
 // IsSPCFinalizerExistsOnSPC returns true if the spc with provided name contains the spc finalizer.
 func (ops *Operations) IsSPCFinalizerExistsOnSPC(spcName, spcFinalizer string) bool {
 	for i := 0; i < maxRetry; i++ {
@@ -706,6 +845,29 @@ func (ops *Operations) IsSPCFinalizerExistsOnSPC(spcName, spcFinalizer string) b
 			}
 		}
 		time.Sleep(5 * time.Second)
+	}
+	return false
+}
+
+// IsCSPCFinalizerExistsOnBDCs returns true if the all the BDCs( selected by provided list options)
+// has cspc finalizer on it.
+func (ops *Operations) IsCSPCFinalizerExistsOnBDCs(listOptions metav1.ListOptions, cspcFinalizer string) bool {
+	for i := 0; i < maxRetry; i++ {
+		cspcFinalizerPresent := true
+		gotBDCList, err := ops.BDCClient.WithNamespace(ops.NameSpace).List(listOptions)
+		Expect(err).To(BeNil())
+		for _, BDCObj := range gotBDCList.Items {
+			BDCObj := BDCObj
+			if !bdc.BuilderForAPIObject(&BDCObj).BDC.HasFinalizer(cspcFinalizer) {
+				cspcFinalizerPresent = false
+			}
+		}
+		if !cspcFinalizerPresent {
+			time.Sleep(5 * time.Second)
+		} else {
+			return true
+		}
+
 	}
 	return false
 }
@@ -844,4 +1006,150 @@ func (ops *Operations) GetBDCCount(lSelector, namespace string) int {
 		List(metav1.ListOptions{LabelSelector: lSelector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return len(bdcList.Items)
+}
+
+// GetCSPCBDListForNode returns unclaimed block devices that can be used.
+func (ops *Operations) GetCSPCBDListForNode(node *corev1.Node, blockDeviceCount int) []*apis.CStorPoolClusterBlockDevice {
+	bdList, err := ops.BDClient.WithNamespace(ops.NameSpace).List(metav1.ListOptions{LabelSelector: string(apis.HostNameCPK) + "=" + node.GetLabels()[string(apis.HostNameCPK)]})
+	Expect(err).To(BeNil())
+	Expect(len(bdList.Items)).Should(BeNumerically(">=", blockDeviceCount))
+	// TODO : Filter Unclaimed BDs
+	bdList = bd.ListBuilderFromAPIList(bdList).BDL.Filter(bd.IsUnclaimed()).ObjectList
+
+	var cspcBDs []*apis.CStorPoolClusterBlockDevice
+	for i := 0; i < blockDeviceCount; i++ {
+		cspcBD := &apis.CStorPoolClusterBlockDevice{}
+		cspcBD.BlockDeviceName = bdList.Items[i].Name
+		cspcBDs = append(cspcBDs, cspcBD)
+	}
+
+	return cspcBDs
+}
+
+// BuildAndCreateSPC builds and creates StoragePoolClaim in cluster
+func (ops *Operations) BuildAndCreateSPC() *apis.StoragePoolClaim {
+	spcConfig := ops.Config.(*SPCConfig)
+	spcObj := spc.NewBuilder().
+		WithGenerateName(spcConfig.Name).
+		WithDiskType(spcConfig.DiskType).
+		WithMaxPool(spcConfig.PoolCount).
+		WithOverProvisioning(spcConfig.IsOverProvisioning).
+		WithPoolType(spcConfig.PoolType).
+		Build().Object
+	newSPCObj, err := ops.SPCClient.Create(spcObj)
+	Expect(err).To(BeNil())
+	return newSPCObj
+}
+
+// CreateStorageClass builds and creates storageclass in cluster
+func (ops *Operations) CreateStorageClass() *storagev1.StorageClass {
+	scConfig := ops.Config.(*SCConfig)
+	scObj, err := sc.NewBuilder().
+		WithGenerateName(scConfig.Name).
+		WithAnnotations(scConfig.Annotations).
+		WithProvisioner(scConfig.Provisioner).Build()
+	Expect(err).ShouldNot(
+		HaveOccurred(),
+		"while building storageclass {%s}", scConfig.Name,
+	)
+	scObj, err = ops.SCClient.Create(scObj)
+	Expect(err).To(BeNil(), "while creating storageclass {%s}", scConfig.Name)
+	return scObj
+}
+
+// BuildAndCreatePVC builds and creates PersistentVolumeClaim in cluster
+func (ops *Operations) BuildAndCreatePVC() *corev1.PersistentVolumeClaim {
+	pvcConfig := ops.Config.(*PVCConfig)
+	pvcObj, err := pvc.NewBuilder().
+		WithName(pvcConfig.Name).
+		WithNamespace(pvcConfig.Namespace).
+		WithStorageClass(pvcConfig.SCName).
+		WithAccessModes(pvcConfig.AccessModes).
+		WithCapacity(pvcConfig.Capacity).Build()
+	Expect(err).ShouldNot(
+		HaveOccurred(),
+		"while building pvc {%s} in namespace {%s}",
+		pvcConfig.Name,
+		pvcConfig.Namespace,
+	)
+	pvcObj, err = ops.PVCClient.WithNamespace(pvcConfig.Namespace).Create(pvcObj)
+	Expect(err).To(
+		BeNil(),
+		"while creating pvc {%s} in namespace {%s}",
+		pvcConfig.Name,
+		pvcConfig.Namespace,
+	)
+	return pvcObj
+}
+
+// BuildAndCreateCVR builds and creates CVR in cluster
+func (ops *Operations) BuildAndCreateCVR() *apis.CStorVolumeReplica {
+	cvrConfig := ops.Config.(*CVRConfig)
+	cvrObj, err := cvr.NewBuilder().
+		WithName(cvrConfig.VolumeName + "-" + cvrConfig.PoolObj.Name).
+		WithNamespace(cvrConfig.Namespace).
+		WithLabelsNew(getCVRLabels(cvrConfig.PoolObj, cvrConfig.VolumeName)).
+		WithAnnotationsNew(getCVRAnnotations(cvrConfig.PoolObj)).
+		WithFinalizers([]string{cvr.CStorVolumeReplicaFinalizer}).
+		WithCapacity(cvrConfig.Capacity).
+		WithTargetIP(cvrConfig.TargetIP).
+		WithStatusPhase(cvrConfig.Phase).
+		Build()
+	Expect(err).To(BeNil())
+	cvrObj, err = ops.CVRClient.
+		WithNamespace(cvrConfig.Namespace).
+		Create(cvrObj)
+	Expect(err).To(BeNil())
+	return cvrObj
+}
+
+// DeletePersistentVolumeClaim deletes PVC from cluster based on provided
+// argument
+func (ops *Operations) DeletePersistentVolumeClaim(name, namespace string) {
+	err := ops.PVCClient.WithNamespace(namespace).Delete(name, &metav1.DeleteOptions{})
+	Expect(err).To(BeNil())
+}
+
+// VerifyVolumeResources verifies whether volume resource exist or not
+func (ops *Operations) VerifyVolumeResources(pvName, namespace string) {
+	volumeLabel := pvLabel + pvName
+	targetPodCount := ops.GetPodRunningCountEventually(namespace, volumeLabel, 0)
+	Expect(targetPodCount).To(Equal(0), "when pvc is deleted target pod should be deleted")
+
+	cvCount := ops.GetCstorVolumeCount(openebsNamespace, volumeLabel, 0)
+	Expect(cvCount).To(Equal(0), "when pvc is deleted cstorvolume should be deleted")
+
+	IsCVRDeleted := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, volumeLabel, 0)
+	Expect(IsCVRDeleted).To(Equal(true), "when pvc is deleted cstorvolumereplica should be deleted")
+}
+
+// DeleteStoragePoolClaim deletes StoragePoolClaim based on pool name
+func (ops *Operations) DeleteStoragePoolClaim(spcName string) {
+	err := ops.SPCClient.Delete(spcName, &metav1.DeleteOptions{})
+	Expect(err).To(BeNil())
+}
+
+// VerifyPoolResources verifies whether pool resource exist or not
+func (ops *Operations) VerifyPoolResources(spcName string) {
+	labelSelector := poolLabel + spcName
+	isCSPDeleted := ops.GetCSPCountEventually(labelSelector, 0)
+	Expect(isCSPDeleted).To(Equal(true))
+}
+
+// getCVRAnnotations get the annotations for cstorvolumereplica
+func getCVRAnnotations(pool *apis.CStorPool) map[string]string {
+	return map[string]string{
+		"cstorpool.openebs.io/hostname": pool.Labels["kubernetes.io/hostname"],
+	}
+}
+
+// getCVRLabels get the labels for cstorvolumereplica
+func getCVRLabels(pool *apis.CStorPool, volumeName string) map[string]string {
+	return map[string]string{
+		"cstorpool.openebs.io/name":    pool.Name,
+		"cstorpool.openebs.io/uid":     string(pool.UID),
+		"cstorvolume.openebs.io/name":  volumeName,
+		"openebs.io/persistent-volume": volumeName,
+		"openebs.io/version":           version.GetVersion(),
+	}
 }

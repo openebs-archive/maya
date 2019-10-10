@@ -23,6 +23,8 @@ type labelKey string
 const (
 	cstorPoolUIDLabel  labelKey = "cstorpool.openebs.io/uid"
 	cstorpoolNameLabel labelKey = "cstorpool.openebs.io/name"
+	// CStorVolumeReplicaFinalizer is the name of finalizer on CStorVolumeClaim
+	CStorVolumeReplicaFinalizer = "cstorvolumereplica.openebs.io/finalizer"
 )
 
 // CVR is a wrapper for cstorvolume replica object

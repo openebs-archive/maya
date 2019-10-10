@@ -17,9 +17,12 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"time"
+
 	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 )
@@ -50,6 +53,10 @@ func spcUpgrade(spcName, openebsNamespace string) (*utask.UpgradeTask, error) {
 	if len(cspList.Items) == 0 {
 		return nil, errors.Errorf("no csp found for spc %s: no csp found", spcName)
 	}
+	err = waitForSPCCurrentVersion(spcName)
+	if err != nil {
+		return nil, err
+	}
 	err = verifyCSPNodeName(cspList)
 	if err != nil {
 		return nil, err
@@ -72,6 +79,66 @@ func spcUpgrade(spcName, openebsNamespace string) (*utask.UpgradeTask, error) {
 			}
 		}
 	}
+	err = updateSPCVersion(spcName)
+	if err != nil {
+		return nil, err
+	}
+	err = verifySPCVersionReconcile(spcName)
+	if err != nil {
+		return nil, err
+	}
 	klog.Infof("Upgrade Successful for spc %s", spcName)
 	return nil, nil
+}
+
+func updateSPCVersion(name string) error {
+	client := spc.NewKubeClient()
+	spcObj, err := client.Get(name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	spcObj.VersionDetails.Desired = upgradeVersion
+	_, err = client.Update(spcObj)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func waitForSPCCurrentVersion(name string) error {
+	klog.Infof("Waiting for spc current version to get populated.")
+	client := spc.NewKubeClient()
+	spcObj, err := client.Get(name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	// waiting for old objects to get populated with new fields
+	for spcObj.VersionDetails.Current == "" {
+		// Sleep equal to the default sync time
+		time.Sleep(30 * time.Second)
+		spcObj, err = client.Get(name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func verifySPCVersionReconcile(name string) error {
+	klog.Infof("Verifying the reconciliation of version.")
+	client := spc.NewKubeClient()
+	spcObj, err := client.Get(name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	// waiting for the current version to be equal to desired version
+	for spcObj.VersionDetails.Current != spcObj.VersionDetails.Desired {
+		// Sleep equal to the default sync time
+		time.Sleep(30 * time.Second)
+		spcObj, err = client.Get(name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

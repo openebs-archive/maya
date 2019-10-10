@@ -171,7 +171,7 @@ metadata:
 spec:
   meta: |
     runNamespace: {{.Config.RunNamespace.value}}
-    apiVersion: extensions/v1beta1
+    apiVersion: apps/v1
     kind: Deployment
     action: put
     id: putcstorpooldeployment
@@ -189,7 +189,7 @@ spec:
     {{- $auxResourceRequestsVal := fromYaml .Config.AuxResourceRequests.value -}}
     {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
     {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
-    apiVersion: apps/v1beta1
+    apiVersion: apps/v1
     kind: Deployment
     metadata:
       name: {{.TaskResult.putcstorpoolcr.objectName}}
@@ -259,7 +259,7 @@ spec:
                 command:
                 - /bin/sh
                 - -c
-                - zfs set io.openebs:livenesstimestap='$(date)' cstor-$OPENEBS_IO_CSTOR_ID
+                - zfs set io.openebs:livenesstimestamp="$(date)" cstor-$OPENEBS_IO_CSTOR_ID
               failureThreshold: 3
               initialDelaySeconds: 300
               periodSeconds: 10

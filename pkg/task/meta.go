@@ -346,6 +346,10 @@ func (m *MetaExecutor) isPutAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isPut()
 }
 
+func (m *MetaExecutor) isPutAppsV1Deploy() bool {
+	return m.identifier.isAppsV1Deploy() && m.isPut()
+}
+
 func (m *MetaExecutor) isPatchOEV1alpha1SPC() bool {
 	return m.identifier.isStoragePoolClaim() && m.isPatch()
 }
@@ -356,6 +360,10 @@ func (m *MetaExecutor) isPatchOEV1alpha1CSPC() bool {
 
 func (m *MetaExecutor) isPatchAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isPatch()
+}
+
+func (m *MetaExecutor) isPatchAppsV1Deploy() bool {
+	return m.identifier.isAppsV1Deploy() && m.isPatch()
 }
 
 func (m *MetaExecutor) isPutCoreV1Service() bool {
@@ -382,6 +390,9 @@ func (m *MetaExecutor) isDeleteAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isDelete()
 }
 
+func (m *MetaExecutor) isDeleteAppsV1Deploy() bool {
+	return m.identifier.isAppsV1Deploy() && m.isDelete()
+}
 func (m *MetaExecutor) isDeleteCoreV1Service() bool {
 	return m.identifier.isCoreV1Service() && m.isDelete()
 }
@@ -420,6 +431,10 @@ func (m *MetaExecutor) isListV1alpha1VolumeSnapshot() bool {
 
 func (m *MetaExecutor) isListAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isList()
+}
+
+func (m *MetaExecutor) isListAppsV1Deploy() bool {
+	return m.identifier.isAppsV1Deploy() && m.isList()
 }
 
 func (m *MetaExecutor) isGetStorageV1SC() bool {

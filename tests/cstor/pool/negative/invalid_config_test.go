@@ -36,7 +36,7 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGEPOOLCLAIM", func() {
 	AfterEach(func() {
 
 		By("deleting storagepoolclaim")
-		_, err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
+		err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
 		Expect(err).To(BeNil(), "while deleting the storagepoolclaim {%s}", spcObj.Name)
 
 		time.Sleep(5 * time.Second)

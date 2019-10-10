@@ -202,6 +202,13 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 	return b
 }
 
+// WithStatusPhase sets the Status Phase of CStorVolumeReplica with provided
+//arguments
+func (b *Builder) WithStatusPhase(phase string) *Builder {
+	b.cvr.object.Status.Phase = apis.CStorVolumeReplicaPhase(phase)
+	return b
+}
+
 // WithFinalizers merges the existing finalizers if any
 // with the ones provided arguments
 func (b *Builder) WithFinalizers(finalizers []string) *Builder {
@@ -244,6 +251,29 @@ func (b *Builder) WithFinalizersNew(finalizers []string) *Builder {
 
 	// override
 	b.cvr.object.Finalizers = newfinalizers
+	return b
+}
+
+// WithNewVersion sets the current and desired version field of
+// CStorVolumeReplica with provided arguments
+func (b *Builder) WithNewVersion(version string) *Builder {
+	if version == "" {
+		b.errs = append(
+			b.errs,
+			errors.New(
+				"failed to build cvr object: version can't be empty",
+			),
+		)
+		return b
+	}
+	b.cvr.object.VersionDetails.Current = version
+	b.cvr.object.VersionDetails.Desired = version
+	return b
+}
+
+// WithDependentsUpgraded sets the field to true for new volume
+func (b *Builder) WithDependentsUpgraded() *Builder {
+	b.cvr.object.VersionDetails.DependentsUpgraded = true
 	return b
 }
 

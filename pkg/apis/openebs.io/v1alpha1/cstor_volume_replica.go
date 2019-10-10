@@ -55,6 +55,8 @@ type CStorVolumeReplicaSpec struct {
 	Capacity string `json:"capacity"`
 	// ZvolWorkers represents number of threads that executes client IOs
 	ZvolWorkers string `json:"zvolWorkers"`
+	// ReplicaID is unique number to identify the replica
+	ReplicaID string `json:"replicaid"`
 }
 
 // CStorVolumeReplicaPhase is to hold result of action.
