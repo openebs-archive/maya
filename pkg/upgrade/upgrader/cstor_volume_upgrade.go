@@ -340,7 +340,7 @@ func (c *cstorVolumeOptions) verifyCVVersionReconcile(openebsNamespace string) e
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.TargetUpgrade}
 	statusObj.Phase = utask.StepErrored
 	// waiting for the current version to be equal to desired version
-	for c.cv.VersionDetails.Status.Current != c.cv.VersionDetails.Desired {
+	for c.cv.VersionDetails.Status.Current != upgradeVersion {
 		klog.Infof("Verifying the reconciliation of version for %s", c.cv.Name)
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
@@ -361,7 +361,7 @@ func (c *cstorVolumeOptions) verifyCVVersionReconcile(openebsNamespace string) e
 			if uerr != nil && isENVPresent {
 				return uerr
 			}
-			return errors.Errorf("failed to reconcile version : %s", obj.VersionDetails.Status.Reason)
+			klog.Errorf("failed to reconcile version : %s", obj.VersionDetails.Status.Reason)
 		}
 		c.cv = obj
 	}
@@ -483,7 +483,7 @@ func waitForCVRCurrentVersion(name, openebsNamespace string) error {
 func (c *cstorVolumeOptions) verifyCVRVersionReconcile(name, openebsNamespace string) error {
 	var uerr error
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.ReplicaUpgrade}
-	statusObj.Phase = utask.StepWaiting
+	statusObj.Phase = utask.StepErrored
 	cvrObj, err := cvrClient.WithNamespace(openebsNamespace).
 		Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -496,7 +496,7 @@ func (c *cstorVolumeOptions) verifyCVRVersionReconcile(name, openebsNamespace st
 		return err
 	}
 	// waiting for the current version to be equal to desired version
-	for cvrObj.VersionDetails.Status.Current != cvrObj.VersionDetails.Desired {
+	for cvrObj.VersionDetails.Status.Current != upgradeVersion {
 		klog.Infof("Verifying the reconciliation of version for %s", cvrObj.Name)
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
@@ -518,7 +518,7 @@ func (c *cstorVolumeOptions) verifyCVRVersionReconcile(name, openebsNamespace st
 			if uerr != nil && isENVPresent {
 				return uerr
 			}
-			return errors.Errorf("failed to reconcile version : %s", cvrObj.VersionDetails.Status.Reason)
+			klog.Errorf("failed to reconcile version : %s", cvrObj.VersionDetails.Status.Reason)
 		}
 	}
 	return nil

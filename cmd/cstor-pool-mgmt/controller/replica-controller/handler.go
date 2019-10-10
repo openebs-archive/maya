@@ -99,17 +99,19 @@ func (c *CStorVolumeReplicaController) syncHandler(
 	}
 	cvrObj, err := c.populateVersion(cvrGot)
 	if err != nil {
+		klog.Errorf("failed to add versionDetails to cvr %s:%s", cvrGot.Name, err.Error())
 		c.recorder.Event(
 			cvrGot,
 			corev1.EventTypeWarning,
 			"FailedPopulate",
 			fmt.Sprintf("Failed to add current version: %s", err.Error()),
 		)
-		return err
+		return nil
 	}
 	cvrGot = cvrObj
 	cvrObj, err = c.reconcileVersion(cvrObj)
 	if err != nil {
+		klog.Errorf("failed to upgrade cvr %s:%s", cvrGot.Name, err.Error())
 		c.recorder.Event(
 			cvrGot,
 			corev1.EventTypeWarning,
@@ -121,9 +123,11 @@ func (c *CStorVolumeReplicaController) syncHandler(
 		)
 		cvrGot.VersionDetails.Status.Message = "Failed to reconcile cvr version"
 		cvrGot.VersionDetails.Status.Reason = err.Error()
-		cvrObj, err = c.clientset.OpenebsV1alpha1().
+		cvrGot.VersionDetails.Status.LastUpdateTime = metav1.Now()
+		_, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumeReplicas(cvrGot.Namespace).Update(cvrGot)
-		return err
+		klog.Errorf("failed to update versionDetails status for cvr %s:%s", cvrGot.Name, err.Error())
+		return nil
 	}
 	cvrGot = cvrObj
 	status, err := c.cVREventHandler(operation, cvrGot)
@@ -584,6 +588,16 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 ) {
 	var err error
 	if cvr.VersionDetails.Status.Current != cvr.VersionDetails.Desired {
+		if cvr.VersionDetails.Status.State != apis.ReconcileInProgress {
+			cvr.VersionDetails.Status.State = apis.ReconcileInProgress
+			cvr.VersionDetails.Status.LastUpdateTime = metav1.Now()
+			cvr, err = c.clientset.OpenebsV1alpha1().
+				CStorVolumeReplicas(cvr.Namespace).Update(cvr)
+			if err != nil {
+				return nil, err
+			}
+
+		}
 		if !isCurrentVersionValid(cvr) {
 			return nil, pkg_errors.Errorf("invalid current version %s", cvr.VersionDetails.Status.Current)
 		}
@@ -602,6 +616,8 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 		cvr.VersionDetails.Status.Current = cvr.VersionDetails.Desired
 		cvr.VersionDetails.Status.Message = ""
 		cvr.VersionDetails.Status.Reason = ""
+		cvr.VersionDetails.Status.State = apis.ReconcileComplete
+		cvr.VersionDetails.Status.LastUpdateTime = metav1.Now()
 		cvr, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumeReplicas(cvr.Namespace).Update(cvr)
 		if err != nil {

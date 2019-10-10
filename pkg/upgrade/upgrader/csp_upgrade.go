@@ -252,7 +252,7 @@ func (c *cstorCSPOptions) verifyCSPVersionReconcile(openebsNamespace string) err
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.PoolInstanceUpgrade}
 	statusObj.Phase = utask.StepErrored
 	// waiting for the current version to be equal to desired version
-	for c.cspObj.VersionDetails.Status.Current != c.cspObj.VersionDetails.Desired {
+	for c.cspObj.VersionDetails.Status.Current != upgradeVersion {
 		klog.Infof("Verifying the reconciliation of version for %s", c.cspObj.Name)
 		// Sleep equal to the default sync time
 		time.Sleep(30 * time.Second)
@@ -273,7 +273,7 @@ func (c *cstorCSPOptions) verifyCSPVersionReconcile(openebsNamespace string) err
 			if uerr != nil && isENVPresent {
 				return uerr
 			}
-			return errors.Errorf("failed to reconcile version : %s", obj.VersionDetails.Status.Reason)
+			klog.Errorf("failed to reconcile version : %s", obj.VersionDetails.Status.Reason)
 		}
 		c.cspObj = obj
 	}

@@ -71,17 +71,19 @@ func (c *CStorVolumeController) syncHandler(
 	}
 	cStorVolumeObj, err := c.populateVersion(cStorVolumeGot)
 	if err != nil {
+		klog.Errorf("failed to add versionDetails to cv %s:%s", cStorVolumeGot.Name, err.Error())
 		c.recorder.Event(
 			cStorVolumeGot,
 			corev1.EventTypeWarning,
 			"FailedPopulate",
 			fmt.Sprintf("Failed to add current version: %s", err.Error()),
 		)
-		return err
+		return nil
 	}
 	cStorVolumeGot = cStorVolumeObj
 	cStorVolumeObj, err = c.reconcileVersion(cStorVolumeObj)
 	if err != nil {
+		klog.Errorf("failed to upgrade cv %s:%s", cStorVolumeGot.Name, err.Error())
 		c.recorder.Event(
 			cStorVolumeGot,
 			corev1.EventTypeWarning,
@@ -93,9 +95,11 @@ func (c *CStorVolumeController) syncHandler(
 		)
 		cStorVolumeGot.VersionDetails.Status.Message = "Failed to reconcile cv version"
 		cStorVolumeGot.VersionDetails.Status.Reason = err.Error()
-		cStorVolumeObj, err = c.clientset.OpenebsV1alpha1().
+		cStorVolumeGot.VersionDetails.Status.LastUpdateTime = metav1.Now()
+		_, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
-		return err
+		klog.Errorf("failed to update versionDetails status for cv %s:%s", cStorVolumeGot.Name, err.Error())
+		return nil
 	}
 	cStorVolumeGot = cStorVolumeObj
 	status, err := c.cStorVolumeEventHandler(operation, cStorVolumeGot)
@@ -618,6 +622,15 @@ func IsOnlyStatusChange(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
 func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CStorVolume, error) {
 	var err error
 	if cv.VersionDetails.Status.Current != cv.VersionDetails.Desired {
+		if cv.VersionDetails.Status.State != apis.ReconcileInProgress {
+			cv.VersionDetails.Status.State = apis.ReconcileInProgress
+			cv.VersionDetails.Status.LastUpdateTime = metav1.Now()
+			cv, err = c.clientset.OpenebsV1alpha1().
+				CStorVolumes(cv.Namespace).Update(cv)
+			if err != nil {
+				return nil, err
+			}
+		}
 		if !isCurrentVersionValid(cv) {
 			return nil, pkg_errors.Errorf("invalid current version %s", cv.VersionDetails.Status.Current)
 		}
@@ -636,7 +649,9 @@ func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CS
 		cv.VersionDetails.Status.Current = cv.VersionDetails.Desired
 		cv.VersionDetails.Status.Message = ""
 		cv.VersionDetails.Status.Reason = ""
-		cv, err = u.client.OpenebsV1alpha1().
+		cv.VersionDetails.Status.State = apis.ReconcileComplete
+		cv.VersionDetails.Status.LastUpdateTime = metav1.Now()
+		cv, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumes(cv.Namespace).Update(cv)
 		if err != nil {
 			return nil, err

@@ -137,17 +137,19 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 
 	spcObj, err := c.populateVersion(gotSPC)
 	if err != nil {
+		klog.Errorf("failed to add versionDetails to spc %s:%s", gotSPC.Name, err.Error())
 		c.recorder.Event(
 			gotSPC,
 			corev1.EventTypeWarning,
 			"FailedPopulate",
 			fmt.Sprintf("Failed to add current version: %s", err.Error()),
 		)
-		return err
+		return nil
 	}
 	gotSPC = spcObj
 	spcObj, err = c.reconcileVersion(spcObj)
 	if err != nil {
+		klog.Errorf("failed to upgrade spc %s:%s", gotSPC.Name, err.Error())
 		c.recorder.Event(
 			gotSPC,
 			corev1.EventTypeWarning,
@@ -159,8 +161,10 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 		)
 		gotSPC.VersionDetails.Status.Message = "Failed to reconcile spc version"
 		gotSPC.VersionDetails.Status.Reason = err.Error()
-		spcObj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(gotSPC)
-		return err
+		gotSPC.VersionDetails.Status.LastUpdateTime = metav1.Now()
+		_, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(gotSPC)
+		klog.Errorf("failed to update versionDetails status for spc %s:%s", gotSPC.Name, err.Error())
+		return nil
 	}
 	gotSPC = spcObj
 	// assinging the latest spc object
@@ -524,6 +528,14 @@ func isManualProvisioning(spc *apis.StoragePoolClaim) bool {
 func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
 	var err error
 	if spc.VersionDetails.Status.Current != spc.VersionDetails.Desired {
+		if spc.VersionDetails.Status.State != apis.ReconcileInProgress {
+			spc.VersionDetails.Status.State = apis.ReconcileComplete
+			spc.VersionDetails.Status.LastUpdateTime = metav1.Now()
+			spc, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spc)
+			if err != nil {
+				return nil, err
+			}
+		}
 		if !isCurrentVersionValid(spc) {
 			return nil, errors.Errorf("invalid current version %s", spc.VersionDetails.Status.Current)
 		}
@@ -544,6 +556,8 @@ func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.Storage
 		spc.VersionDetails.Status.Current = spc.VersionDetails.Desired
 		spc.VersionDetails.Status.Message = ""
 		spc.VersionDetails.Status.Reason = ""
+		spc.VersionDetails.Status.State = apis.ReconcileComplete
+		spc.VersionDetails.Status.LastUpdateTime = metav1.Now()
 		spc, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spc)
 		if err != nil {
 			return spc, errors.Wrap(err, "failed to update storagepoolclaim")

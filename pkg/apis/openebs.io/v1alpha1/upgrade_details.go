@@ -52,7 +52,11 @@ type VersionStatus struct {
 type VersionState string
 
 const (
-	ReconcileComplete   VersionState = "RECONCILED"
-	ReconcileInProgress VersionState = "RECONCILING"
-	ReconcileError      VersionState = "ERROR"
+	// ReconcileComplete is the state when desired and current version are equal.
+	ReconcileComplete VersionState = "Reconciled"
+	// ReconcileInProgress is the state when desired and current version are
+	// not same and the reconcile functions is retrying to make them same.
+	ReconcileInProgress VersionState = "ReconcileInProgress"
+	// ReconcilePending is the state the reconciliation is still not started yet
+	ReconcilePending VersionState = "ReconcilePending"
 )
