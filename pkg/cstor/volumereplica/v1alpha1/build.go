@@ -259,14 +259,14 @@ func (b *Builder) WithNewVersion(version string) *Builder {
 		)
 		return b
 	}
-	b.cvr.object.VersionDetails.Current = version
+	b.cvr.object.VersionDetails.Status.Current = version
 	b.cvr.object.VersionDetails.Desired = version
 	return b
 }
 
 // WithDependentsUpgraded sets the field to true for new volume
 func (b *Builder) WithDependentsUpgraded() *Builder {
-	b.cvr.object.VersionDetails.DependentsUpgraded = true
+	b.cvr.object.VersionDetails.Status.DependentsUpgraded = true
 	return b
 }
 

@@ -33,7 +33,10 @@ var (
 	   }
 	},
 	"versionDetails": {
-		"desired": "{{.}}"
+		"desired": "{{.}}",
+		"status": {
+		   "state": "ReconcilePending"
+		}
 	}
  }`
 )

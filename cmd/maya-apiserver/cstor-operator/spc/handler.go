@@ -137,17 +137,37 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 
 	spcObj, err := c.populateVersion(gotSPC)
 	if err != nil {
-		klog.Errorf("failed to add versionDetails to SPC %s:%s", spc.Name, err.Error())
-		return err
-	}
-	spcObj, err = c.reconcileVersion(spcObj)
-	if err != nil {
-		klog.Errorf("failed to upgrade SPC %s:%s", spc.Name, err.Error())
-		return err
+		klog.Errorf("failed to add versionDetails to spc %s:%s", gotSPC.Name, err.Error())
+		c.recorder.Event(
+			gotSPC,
+			corev1.EventTypeWarning,
+			"FailedPopulate",
+			fmt.Sprintf("Failed to add current version: %s", err.Error()),
+		)
+		return nil
 	}
 	gotSPC = spcObj
+	spcObj, err = c.reconcileVersion(spcObj)
+	if err != nil {
+		klog.Errorf("failed to upgrade spc %s:%s", gotSPC.Name, err.Error())
+		c.recorder.Event(
+			gotSPC,
+			corev1.EventTypeWarning,
+			"FailedUpgrade",
+			fmt.Sprintf("Failed to upgrade spc to %s version: %s",
+				gotSPC.VersionDetails.Desired,
+				err.Error(),
+			),
+		)
+		gotSPC.VersionDetails.Status.Message = "Failed to reconcile spc version"
+		gotSPC.VersionDetails.Status.Reason = err.Error()
+		gotSPC.VersionDetails.Status.LastUpdateTime = metav1.Now()
+		_, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(gotSPC)
+		klog.Errorf("failed to update versionDetails status for spc %s:%s", gotSPC.Name, err.Error())
+		return nil
+	}
 	// assinging the latest spc object
-	spc = gotSPC
+	spc = spcObj
 
 	err = validate(spc)
 	if err != nil {
@@ -506,9 +526,17 @@ func isManualProvisioning(spc *apis.StoragePoolClaim) bool {
 
 func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
 	var err error
-	if spc.VersionDetails.Current != spc.VersionDetails.Desired {
+	if spc.VersionDetails.Status.Current != spc.VersionDetails.Desired {
+		if spc.VersionDetails.Status.State != apis.ReconcileInProgress {
+			spc.VersionDetails.Status.State = apis.ReconcileComplete
+			spc.VersionDetails.Status.LastUpdateTime = metav1.Now()
+			spc, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spc)
+			if err != nil {
+				return nil, err
+			}
+		}
 		if !isCurrentVersionValid(spc) {
-			return nil, errors.Errorf("invalid current version %s", spc.VersionDetails.Current)
+			return nil, errors.Errorf("invalid current version %s", spc.VersionDetails.Status.Current)
 		}
 		if !isDesiredVersionValid(spc) {
 			return nil, errors.Errorf("invalid desired version %s", spc.VersionDetails.Desired)
@@ -524,7 +552,11 @@ func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.Storage
 		if err != nil {
 			return spc, err
 		}
-		spc.VersionDetails.Current = spc.VersionDetails.Desired
+		spc.VersionDetails.Status.Current = spc.VersionDetails.Desired
+		spc.VersionDetails.Status.Message = ""
+		spc.VersionDetails.Status.Reason = ""
+		spc.VersionDetails.Status.State = apis.ReconcileComplete
+		spc.VersionDetails.Status.LastUpdateTime = metav1.Now()
 		spc, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spc)
 		if err != nil {
 			return spc, errors.Wrap(err, "failed to update storagepoolclaim")
@@ -536,7 +568,7 @@ func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.Storage
 
 // populateVersion assigns VersionDetails for old spc object and newly created spc
 func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
-	if spc.VersionDetails.Current == "" {
+	if spc.VersionDetails.Status.Current == "" {
 		var err error
 		var v string
 		var obj *apis.StoragePoolClaim
@@ -544,10 +576,10 @@ func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StorageP
 		if err != nil {
 			return nil, err
 		}
-		spc.VersionDetails.Current = v
+		spc.VersionDetails.Status.Current = v
 		// For newly created spc Desired field will also be empty.
 		spc.VersionDetails.Desired = v
-		spc.VersionDetails.DependentsUpgraded = true
+		spc.VersionDetails.Status.DependentsUpgraded = true
 
 		obj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().
 			Update(spc)
@@ -567,7 +599,7 @@ func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StorageP
 
 func isCurrentVersionValid(spc *apis.StoragePoolClaim) bool {
 	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
-	version := strings.Split(spc.VersionDetails.Current, "-")[0]
+	version := strings.Split(spc.VersionDetails.Status.Current, "-")[0]
 	return util.ContainsString(validVersions, version)
 }
 
@@ -578,7 +610,7 @@ func isDesiredVersionValid(spc *apis.StoragePoolClaim) bool {
 }
 
 func upgradePath(spc *apis.StoragePoolClaim) string {
-	return strings.Split(spc.VersionDetails.Current, "-")[0] + "-" +
+	return strings.Split(spc.VersionDetails.Status.Current, "-")[0] + "-" +
 		strings.Split(spc.VersionDetails.Desired, "-")[0]
 }
 
