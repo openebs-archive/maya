@@ -92,7 +92,7 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		)
 		return nil
 	}
-	cspObject = cspGot
+	cspObject = cspGot.DeepCopy()
 	cspGot, err = c.reconcileVersion(cspGot)
 	if err != nil {
 		klog.Errorf("failed to upgrade csp %s:%s", cspObject.Name, err.Error())
@@ -109,7 +109,9 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		cspObject.VersionDetails.Status.Reason = err.Error()
 		cspObject.VersionDetails.Status.LastUpdateTime = metav1.Now()
 		_, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObject)
-		klog.Errorf("failed to update versionDetails status for csp %s:%s", cspObject.Name, err.Error())
+		if err != nil {
+			klog.Errorf("failed to update versionDetails status for csp %s:%s", cspObject.Name, err.Error())
+		}
 		return nil
 	}
 	cspObject = cspGot

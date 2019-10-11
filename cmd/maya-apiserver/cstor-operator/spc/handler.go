@@ -146,7 +146,7 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 		)
 		return nil
 	}
-	gotSPC = spcObj
+	gotSPC = spcObj.DeepCopy()
 	spcObj, err = c.reconcileVersion(spcObj)
 	if err != nil {
 		klog.Errorf("failed to upgrade spc %s:%s", gotSPC.Name, err.Error())
@@ -163,7 +163,9 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 		gotSPC.VersionDetails.Status.Reason = err.Error()
 		gotSPC.VersionDetails.Status.LastUpdateTime = metav1.Now()
 		_, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(gotSPC)
-		klog.Errorf("failed to update versionDetails status for spc %s:%s", gotSPC.Name, err.Error())
+		if err != nil {
+			klog.Errorf("failed to update versionDetails status for spc %s:%s", gotSPC.Name, err.Error())
+		}
 		return nil
 	}
 	// assinging the latest spc object
