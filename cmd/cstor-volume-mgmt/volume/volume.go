@@ -197,6 +197,9 @@ func extractReplicaStatusFromJSON(str string) (*apis.CVStatus, error) {
 func CreateIstgtConf(cStorVolume *apis.CStorVolume) ([]byte, error) {
 	var dataBytes []byte
 	buffer := &bytes.Buffer{}
+	if cStorVolume == nil {
+		return dataBytes, errors.Errorf("nil cstorvolume object")
+	}
 	tmpl, err := template.New("").Funcs(template.FuncMap{
 		"CapacityStr": func(q resource.Quantity) string { return q.String() },
 	}).Parse(istgtConfFile)
