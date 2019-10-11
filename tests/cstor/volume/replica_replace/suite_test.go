@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package replicascaleup
+package replicareplace
 
 import (
 	"testing"
@@ -37,8 +37,8 @@ import (
 var (
 	kubeConfigPath        string
 	openebsNamespace      = "openebs"
-	nsName                = "test-cstor-volume"
-	scName                = "test-cstor-replica-scaleup-sc"
+	nsName                = "test-cstor-replica-replace"
+	scName                = "test-cstor-replica-replace-sc"
 	CstorPoolNameLabel    = "cstorpool.openebs.io/name"
 	openebsCASConfigValue = `
 - name: ReplicaCount
@@ -48,30 +48,38 @@ var (
 `
 	openebsProvisioner = "openebs.io/provisioner-iscsi"
 	spcName            = "test-cstor-sparse-pool-auto"
-	pvcName            = "scaleup-replica-pvc"
+	pvcName            = "replica-replace-pvc"
 	nsObj              *corev1.Namespace
 	scObj              *storagev1.StorageClass
 	spcObj             *apis.StoragePoolClaim
-	cvrObj             *apis.CStorVolumeReplica
-	cvObj              *apis.CStorVolume
-	cspObj             *apis.CStorPool
-	newCVRObj          *apis.CStorVolumeReplica
-	pvcObj             *corev1.PersistentVolumeClaim
-	cvrObjList         *apis.CStorVolumeReplicaList
-	targetLabel        = "openebs.io/target=cstor-target"
-	pvLabel            = "openebs.io/persistent-volume="
-	pvcLabel           = "openebs.io/persistent-volume-claim="
-	cspLabel           = "openebs.io/cstor-pool="
-	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	capacity           = "5G"
-	annotations        = map[string]string{}
-	ReplicaCount       = 1
-	MaxRetry           = 10
+	targetCVRObjList   *apis.CStorVolumeReplicaList
+	poolPodObjList     *corev1.PodList
+	//TODO:Need to remove
+	cvrObj                 *apis.CStorVolumeReplica
+	cvObj                  *apis.CStorVolume
+	cspObj                 *apis.CStorPool
+	newCVRObj              *apis.CStorVolumeReplica
+	pvcObj                 *corev1.PersistentVolumeClaim
+	targetLabel            = "openebs.io/target=cstor-target"
+	pvLabel                = "openebs.io/persistent-volume="
+	pvcLabel               = "openebs.io/persistent-volume-claim="
+	cspLabel               = "openebs.io/cstor-pool="
+	CstorPoolUIDLabel      = "cstorpool.openebs.io/uid"
+	CstorpoolNameLabel     = "cstorpool.openebs.io/name"
+	PoolPrefix             = "cstor-"
+	CstorPoolMgmtContainer = "cstor-pool-mgmt"
+	accessModes            = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+	capacity               = "5G"
+	annotations            = map[string]string{}
+	MaxRetry               = 10
+	ReplicaCount           int
+	FailureReplicaCount    int
+	PoolMgmtProcess        = "/usr/local/bin/cstor-pool-mgmt"
 )
 
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Test cstor volume provisioning")
+	RunSpecs(t, "Test cstor replica replace")
 }
 
 func init() {
@@ -85,13 +93,13 @@ var _ = BeforeSuite(func() {
 	ops = tests.NewOperations(tests.WithKubeConfigPath(cstor.KubeConfigPath)).VerifyOpenebs(1)
 	var err error
 
-	By("building a namespace")
+	By("Building a namespace")
 	nsObj, err = ns.NewBuilder().
 		WithGenerateName(nsName).
 		APIObject()
 	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", nsName)
 
-	By("creating a namespace")
+	By("creating  namespace")
 	nsObj, err = ops.NSClient.Create(nsObj)
 	Expect(err).To(BeNil(), "while creating namespace {%s}", nsName)
 })

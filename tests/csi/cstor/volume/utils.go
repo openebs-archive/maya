@@ -91,6 +91,7 @@ func verifyIncreasedSizeInAppPod() {
 		&appPod.Items[0],
 		"busybox",
 		getSizeCmd,
+		true,
 	)
 	actualSizeInAppPod, _ := resource.ParseQuantity(size)
 	previousSize, _ := resource.ParseQuantity(capacity)

@@ -86,12 +86,11 @@ func verifyVolumeStatus() {
 		Get(pvcObj.Name, metav1.GetOptions{})
 	Expect(err).To(BeNil())
 
-	cvrLabel := pvLabel + pvcObj.Spec.VolumeName
-	cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, ReplicaCount)
+	volumeLabel := pvLabel + pvcObj.Spec.VolumeName
+	cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, volumeLabel, ReplicaCount)
 	Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
 
-	cstorVolumeLabel := pvLabel + pvcObj.Spec.VolumeName
-	cvCount := ops.GetCstorVolumeCount(openebsNamespace, cstorVolumeLabel, 1)
+	cvCount := ops.GetCstorVolumeCount(openebsNamespace, volumeLabel, 1)
 	Expect(cvCount).To(Equal(1), "while checking cstorvolume count")
 }
 

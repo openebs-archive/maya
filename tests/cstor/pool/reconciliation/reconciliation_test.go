@@ -79,6 +79,7 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 	When("We we delete cstor sparse pool pod", func() {
 		It("pool should be imported", func() {
 			namespace := string(artifacts.OpenebsNamespace)
+			expectOutput := true
 
 			cspList, err := ops.CSPClient.List(
 				metav1.ListOptions{
@@ -104,6 +105,7 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 				&poolPodObj,
 				poolPodObj.Spec.Containers[0].Name,
 				zpoolGUIDCmd,
+				expectOutput,
 			)
 
 			By("Restarting cstor pool pod")
@@ -127,6 +129,7 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 				&poolPodObj,
 				poolPodObj.Spec.Containers[0].Name,
 				zpoolGUIDCmd,
+				expectOutput,
 			)
 
 			//Check zpool pool guid before and after restarts

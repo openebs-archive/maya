@@ -466,6 +466,7 @@ func (ops *Operations) ExecuteCMDEventually(
 	podObj *corev1.Pod,
 	containerName,
 	cmd string,
+	expectStdout bool,
 ) string {
 	var err error
 	output := &pod.ExecOutput{}
@@ -487,7 +488,7 @@ func (ops *Operations) ExecuteCMDEventually(
 						"-c",
 						cmd,
 					},
-					Container: podObj.Spec.Containers[0].Name,
+					Container: containerName,
 					Stdin:     false,
 					Stdout:    true,
 					Stderr:    true,
@@ -500,6 +501,10 @@ func (ops *Operations) ExecuteCMDEventually(
 			podName,
 			namespace,
 		)
+		// If caller pass expectStdout as false return from here
+		if !expectStdout {
+			return ""
+		}
 		if output.Stdout != "" {
 			return output.Stdout
 		}

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package replicascaleup
+package replicareplace
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -25,7 +25,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
-var _ = Describe("[REPLICA SCALEUP] CSTOR REPLICA SCALEUP", func() {
+var _ = Describe("[REPLICA REPLACE] CSTOR REPLICA REPLACE", func() {
 	When("SPC is created", func() {
 		It("cStor Pools Should be Provisioned ", func() {
 
@@ -43,7 +43,7 @@ var _ = Describe("[REPLICA SCALEUP] CSTOR REPLICA SCALEUP", func() {
 			By("Creating SPC, Desired Number of CSP Should Be Created", verifyDesiredCSPCount)
 		})
 	})
-	When("Persistent Volume Claim Is Created", func() {
+	When("PersistentVolumeClaim Is Created", func() {
 		It("Volume Should be Created and Provisioned", func() {
 			By("Build And Create StorageClass", buildAndCreateSC)
 			pvcConfig := &tests.PVCConfig{
@@ -58,12 +58,12 @@ var _ = Describe("[REPLICA SCALEUP] CSTOR REPLICA SCALEUP", func() {
 			By("Creating PVC, Desired Number of CVR Should Be Created", verifyVolumeStatus)
 		})
 	})
-	When("CStor Replica ScaledUp", func() {
-		It("Volume Replica Should Become Healthy and CStor Volume Configurations Should Be Updated", func() {
-			By("Update DesiredReplicationFactor", updateDesiredReplicationFactor)
-			By("Build and Create CStorVolumeReplica", buildAndCreateCVR)
-			ReplicaCount = ReplicaCount + 1
-			By("Verify Volume Status after ScaleUp Replica", verifyVolumeStatus)
+	When("More Than Quorum Replicas Replaced In CStor", func() {
+		It("Volume Replica Should Become Healthy and CStor Volume Configurations Should Be Updated Accordingly", func() {
+			By("Destroy Quorum Count of Volume Datasets", deleteZFSDataSets)
+			By("Update CStorVolume Configurations to Start Rebuild", updateCVConfigurationsAndVerifyStatus)
+			By("Restart CStor-Pool-Mgmt Container Pods Doesn't Have Volume DataSets", restartPoolPods)
+			By("Verify Volume Status after Performing Replica Replace", verifyVolumeStatus)
 			By("Verify Volume configurations from cstor volume", verifyVolumeConfigurationEventually)
 		})
 	})
