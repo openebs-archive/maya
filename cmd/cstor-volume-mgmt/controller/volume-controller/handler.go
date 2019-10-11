@@ -71,26 +71,35 @@ func (c *CStorVolumeController) syncHandler(
 	}
 	cStorVolumeObj, err := c.populateVersion(cStorVolumeGot)
 	if err != nil {
+		klog.Errorf("failed to add versionDetails to cv %s:%s", cStorVolumeGot.Name, err.Error())
 		c.recorder.Event(
 			cStorVolumeGot,
 			corev1.EventTypeWarning,
-			string("FailedPopulate"),
+			"FailedPopulate",
 			fmt.Sprintf("Failed to add current version: %s", err.Error()),
 		)
-		return err
+		return nil
 	}
+	cStorVolumeGot = cStorVolumeObj
 	cStorVolumeObj, err = c.reconcileVersion(cStorVolumeObj)
 	if err != nil {
+		klog.Errorf("failed to upgrade cv %s:%s", cStorVolumeGot.Name, err.Error())
 		c.recorder.Event(
 			cStorVolumeGot,
 			corev1.EventTypeWarning,
-			string("FailedUpgrade"),
-			fmt.Sprintf("Failed to upgrade cvr to %s version: %s",
+			"FailedUpgrade",
+			fmt.Sprintf("Failed to upgrade cv to %s version: %s",
 				cStorVolumeGot.VersionDetails.Desired,
 				err.Error(),
 			),
 		)
-		return err
+		cStorVolumeGot.VersionDetails.Status.Message = "Failed to reconcile cv version"
+		cStorVolumeGot.VersionDetails.Status.Reason = err.Error()
+		cStorVolumeGot.VersionDetails.Status.LastUpdateTime = metav1.Now()
+		_, err = c.clientset.OpenebsV1alpha1().
+			CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
+		klog.Errorf("failed to update versionDetails status for cv %s:%s", cStorVolumeGot.Name, err.Error())
+		return nil
 	}
 	cStorVolumeGot = cStorVolumeObj
 	status, err := c.cStorVolumeEventHandler(operation, cStorVolumeGot)
@@ -612,9 +621,18 @@ func IsOnlyStatusChange(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
 
 func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CStorVolume, error) {
 	var err error
-	if cv.VersionDetails.Current != cv.VersionDetails.Desired {
+	if cv.VersionDetails.Status.Current != cv.VersionDetails.Desired {
+		if cv.VersionDetails.Status.State != apis.ReconcileInProgress {
+			cv.VersionDetails.Status.State = apis.ReconcileInProgress
+			cv.VersionDetails.Status.LastUpdateTime = metav1.Now()
+			cv, err = c.clientset.OpenebsV1alpha1().
+				CStorVolumes(cv.Namespace).Update(cv)
+			if err != nil {
+				return nil, err
+			}
+		}
 		if !isCurrentVersionValid(cv) {
-			return nil, pkg_errors.Errorf("invalid current version %s", cv.VersionDetails.Current)
+			return nil, pkg_errors.Errorf("invalid current version %s", cv.VersionDetails.Status.Current)
 		}
 		if !isDesiredVersionValid(cv) {
 			return nil, pkg_errors.Errorf("invalid desired version %s", cv.VersionDetails.Desired)
@@ -628,8 +646,12 @@ func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CS
 		if err != nil {
 			return nil, err
 		}
-		cv.VersionDetails.Current = cv.VersionDetails.Desired
-		cv, err = u.client.OpenebsV1alpha1().
+		cv.VersionDetails.Status.Current = cv.VersionDetails.Desired
+		cv.VersionDetails.Status.Message = ""
+		cv.VersionDetails.Status.Reason = ""
+		cv.VersionDetails.Status.State = apis.ReconcileComplete
+		cv.VersionDetails.Status.LastUpdateTime = metav1.Now()
+		cv, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumes(cv.Namespace).Update(cv)
 		if err != nil {
 			return nil, err
@@ -645,8 +667,8 @@ func (c *CStorVolumeController) populateVersion(cv *apis.CStorVolume) (
 ) {
 	v := cv.Labels[string(apis.OpenEBSVersionKey)]
 	// 1.3.0 onwards new CV will have the field populated during creation
-	if v < v130 && cv.VersionDetails.Current == "" {
-		cv.VersionDetails.Current = v
+	if v < v130 && cv.VersionDetails.Status.Current == "" {
+		cv.VersionDetails.Status.Current = v
 		cv.VersionDetails.Desired = v
 		obj, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cv.Namespace).
 			Update(cv)
@@ -662,7 +684,7 @@ func (c *CStorVolumeController) populateVersion(cv *apis.CStorVolume) (
 
 func isCurrentVersionValid(cv *apis.CStorVolume) bool {
 	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
-	version := strings.Split(cv.VersionDetails.Current, "-")[0]
+	version := strings.Split(cv.VersionDetails.Status.Current, "-")[0]
 	return util.ContainsString(validVersions, version)
 }
 
@@ -680,6 +702,6 @@ func setDesiredRF(u *upgradeParams) (*apis.CStorVolume, error) {
 }
 
 func upgradePath(cv *apis.CStorVolume) string {
-	return strings.Split(cv.VersionDetails.Current, "-")[0] + "-" +
+	return strings.Split(cv.VersionDetails.Status.Current, "-")[0] + "-" +
 		strings.Split(cv.VersionDetails.Desired, "-")[0]
 }

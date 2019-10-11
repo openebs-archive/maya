@@ -368,7 +368,7 @@ func (pc *PoolConfig) removeSPCFinalizerOnAssociatedBDC() error {
 // populateVersion assigns VersionDetails for old cspc object and newly created
 // cspc
 func (c *Controller) populateVersion(cspc *apis.CStorPoolCluster) (*apis.CStorPoolCluster, error) {
-	if cspc.VersionDetails.Current == "" {
+	if cspc.VersionDetails.Status.Current == "" {
 		var err error
 		var v string
 		var obj *apis.CStorPoolCluster
@@ -376,10 +376,10 @@ func (c *Controller) populateVersion(cspc *apis.CStorPoolCluster) (*apis.CStorPo
 		if err != nil {
 			return nil, err
 		}
-		cspc.VersionDetails.Current = v
+		cspc.VersionDetails.Status.Current = v
 		// For newly created spc Desired field will also be empty.
 		cspc.VersionDetails.Desired = v
-		cspc.VersionDetails.DependentsUpgraded = true
+		cspc.VersionDetails.Status.DependentsUpgraded = true
 		obj, err = c.clientset.OpenebsV1alpha1().
 			CStorPoolClusters(env.Get(env.OpenEBSNamespace)).
 			Update(cspc)

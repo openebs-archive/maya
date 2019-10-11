@@ -99,26 +99,35 @@ func (c *CStorVolumeReplicaController) syncHandler(
 	}
 	cvrObj, err := c.populateVersion(cvrGot)
 	if err != nil {
+		klog.Errorf("failed to add versionDetails to cvr %s:%s", cvrGot.Name, err.Error())
 		c.recorder.Event(
 			cvrGot,
 			corev1.EventTypeWarning,
-			string("FailedPopulate"),
+			"FailedPopulate",
 			fmt.Sprintf("Failed to add current version: %s", err.Error()),
 		)
-		return err
+		return nil
 	}
+	cvrGot = cvrObj
 	cvrObj, err = c.reconcileVersion(cvrObj)
 	if err != nil {
+		klog.Errorf("failed to upgrade cvr %s:%s", cvrGot.Name, err.Error())
 		c.recorder.Event(
 			cvrGot,
 			corev1.EventTypeWarning,
-			string("FailedUpgrade"),
+			"FailedUpgrade",
 			fmt.Sprintf("Failed to upgrade cvr to %s version: %s",
 				cvrGot.VersionDetails.Desired,
 				err.Error(),
 			),
 		)
-		return err
+		cvrGot.VersionDetails.Status.Message = "Failed to reconcile cvr version"
+		cvrGot.VersionDetails.Status.Reason = err.Error()
+		cvrGot.VersionDetails.Status.LastUpdateTime = metav1.Now()
+		_, err = c.clientset.OpenebsV1alpha1().
+			CStorVolumeReplicas(cvrGot.Namespace).Update(cvrGot)
+		klog.Errorf("failed to update versionDetails status for cvr %s:%s", cvrGot.Name, err.Error())
+		return nil
 	}
 	cvrGot = cvrObj
 	status, err := c.cVREventHandler(operation, cvrGot)
@@ -578,9 +587,19 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 	*apis.CStorVolumeReplica, error,
 ) {
 	var err error
-	if cvr.VersionDetails.Current != cvr.VersionDetails.Desired {
+	if cvr.VersionDetails.Status.Current != cvr.VersionDetails.Desired {
+		if cvr.VersionDetails.Status.State != apis.ReconcileInProgress {
+			cvr.VersionDetails.Status.State = apis.ReconcileInProgress
+			cvr.VersionDetails.Status.LastUpdateTime = metav1.Now()
+			cvr, err = c.clientset.OpenebsV1alpha1().
+				CStorVolumeReplicas(cvr.Namespace).Update(cvr)
+			if err != nil {
+				return nil, err
+			}
+
+		}
 		if !isCurrentVersionValid(cvr) {
-			return nil, pkg_errors.Errorf("invalid current version %s", cvr.VersionDetails.Current)
+			return nil, pkg_errors.Errorf("invalid current version %s", cvr.VersionDetails.Status.Current)
 		}
 		if !isDesiredVersionValid(cvr) {
 			return nil, pkg_errors.Errorf("invalid desired version %s", cvr.VersionDetails.Desired)
@@ -594,7 +613,11 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 		if err != nil {
 			return nil, err
 		}
-		cvr.VersionDetails.Current = cvr.VersionDetails.Desired
+		cvr.VersionDetails.Status.Current = cvr.VersionDetails.Desired
+		cvr.VersionDetails.Status.Message = ""
+		cvr.VersionDetails.Status.Reason = ""
+		cvr.VersionDetails.Status.State = apis.ReconcileComplete
+		cvr.VersionDetails.Status.LastUpdateTime = metav1.Now()
 		cvr, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumeReplicas(cvr.Namespace).Update(cvr)
 		if err != nil {
@@ -611,8 +634,8 @@ func (c *CStorVolumeReplicaController) populateVersion(cvr *apis.CStorVolumeRepl
 ) {
 	v := cvr.Labels[string(apis.OpenEBSVersionKey)]
 	// 1.3.0 onwards new CVR will have the field populated during creation
-	if v < v130 && cvr.VersionDetails.Current == "" {
-		cvr.VersionDetails.Current = v
+	if v < v130 && cvr.VersionDetails.Status.Current == "" {
+		cvr.VersionDetails.Status.Current = v
 		cvr.VersionDetails.Desired = v
 		obj, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cvr.Namespace).
 			Update(cvr)
@@ -628,7 +651,7 @@ func (c *CStorVolumeReplicaController) populateVersion(cvr *apis.CStorVolumeRepl
 
 func isCurrentVersionValid(cvr *apis.CStorVolumeReplica) bool {
 	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
-	version := strings.Split(cvr.VersionDetails.Current, "-")[0]
+	version := strings.Split(cvr.VersionDetails.Status.Current, "-")[0]
 	return util.ContainsString(validVersions, version)
 }
 
@@ -639,7 +662,7 @@ func isDesiredVersionValid(cvr *apis.CStorVolumeReplica) bool {
 }
 
 func upgradePath(cvr *apis.CStorVolumeReplica) string {
-	return strings.Split(cvr.VersionDetails.Current, "-")[0] + "-" +
+	return strings.Split(cvr.VersionDetails.Status.Current, "-")[0] + "-" +
 		strings.Split(cvr.VersionDetails.Desired, "-")[0]
 }
 

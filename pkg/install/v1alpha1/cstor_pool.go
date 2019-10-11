@@ -159,10 +159,11 @@ spec:
     status:
       phase: Init
     versionDetails:
-      current: {{ .CAST.version }}
+      status:
+        current: {{ .CAST.version }}
+        dependentsUpgraded: true
       desired: {{ .CAST.version }}
       autoUpgrade: false
-      dependentsUpgraded: true
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
