@@ -343,7 +343,7 @@ func (c *cstorVolumeOptions) verifyCVVersionReconcile(openebsNamespace string) e
 	for c.cv.VersionDetails.Status.Current != upgradeVersion {
 		klog.Infof("Verifying the reconciliation of version for %s", c.cv.Name)
 		// Sleep equal to the default sync time
-		time.Sleep(30 * time.Second)
+		time.Sleep(10 * time.Second)
 		obj, err := cvClient.Get(c.cv.Name, metav1.GetOptions{})
 		if err != nil {
 			statusObj.Message = "failed to get cstor volume"
@@ -378,7 +378,7 @@ func (c *cstorVolumeOptions) waitForCVCurrentVersion(pvLabel, namespace string) 
 	for c.cv.VersionDetails.Status.Current == "" {
 		// Sleep equal to the default sync time
 		klog.Infof("Waiting for cv current version to get populated.")
-		time.Sleep(30 * time.Second)
+		time.Sleep(10 * time.Second)
 		obj, err := cvClient.Get(c.cv.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
@@ -470,7 +470,7 @@ func waitForCVRCurrentVersion(name, openebsNamespace string) error {
 	for cvrObj.VersionDetails.Status.Current == "" {
 		klog.Infof("Waiting for cvr current version to get populated.")
 		// Sleep equal to the default sync time
-		time.Sleep(30 * time.Second)
+		time.Sleep(10 * time.Second)
 		cvrObj, err = cvrClient.WithNamespace(openebsNamespace).
 			Get(name, metav1.GetOptions{})
 		if err != nil {
@@ -499,7 +499,7 @@ func (c *cstorVolumeOptions) verifyCVRVersionReconcile(name, openebsNamespace st
 	for cvrObj.VersionDetails.Status.Current != upgradeVersion {
 		klog.Infof("Verifying the reconciliation of version for %s", cvrObj.Name)
 		// Sleep equal to the default sync time
-		time.Sleep(30 * time.Second)
+		time.Sleep(10 * time.Second)
 		cvrObj, err = cvrClient.WithNamespace(openebsNamespace).
 			Get(name, metav1.GetOptions{})
 		if err != nil {
@@ -576,14 +576,14 @@ func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, er
 		return options.utaskObj, err
 	}
 
-	// TargetUpgrade
-	err = options.targetUpgrade(pvName, openebsNamespace)
+	// ReplicaUpgrade
+	err = options.replicaUpgrade(openebsNamespace)
 	if err != nil {
 		return options.utaskObj, err
 	}
 
-	// ReplicaUpgrade
-	err = options.replicaUpgrade(openebsNamespace)
+	// TargetUpgrade
+	err = options.targetUpgrade(pvName, openebsNamespace)
 	if err != nil {
 		return options.utaskObj, err
 	}

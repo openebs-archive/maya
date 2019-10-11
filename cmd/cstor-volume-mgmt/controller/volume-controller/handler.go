@@ -80,7 +80,7 @@ func (c *CStorVolumeController) syncHandler(
 		)
 		return nil
 	}
-	cStorVolumeGot = cStorVolumeObj
+	cStorVolumeGot = cStorVolumeObj.DeepCopy()
 	cStorVolumeObj, err = c.reconcileVersion(cStorVolumeObj)
 	if err != nil {
 		klog.Errorf("failed to upgrade cv %s:%s", cStorVolumeGot.Name, err.Error())
@@ -98,7 +98,9 @@ func (c *CStorVolumeController) syncHandler(
 		cStorVolumeGot.VersionDetails.Status.LastUpdateTime = metav1.Now()
 		_, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
-		klog.Errorf("failed to update versionDetails status for cv %s:%s", cStorVolumeGot.Name, err.Error())
+		if err != nil {
+			klog.Errorf("failed to update versionDetails status for cv %s:%s", cStorVolumeGot.Name, err.Error())
+		}
 		return nil
 	}
 	cStorVolumeGot = cStorVolumeObj
@@ -172,9 +174,6 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(
 				fmt.Sprintf("failed to create cstorvolume validation "+
 					"failed on cstorvolum error: %v", err),
 			)
-			// If the config for the volume is invalid, panic here to
-			// restart the container.
-			klog.Fatalf("Failed to validate volume config: %s", err.Error())
 			return common.CVStatusInvalid, err
 		}
 		// Set TargetNamespace which will be used to volume-mgmt UDS to update
