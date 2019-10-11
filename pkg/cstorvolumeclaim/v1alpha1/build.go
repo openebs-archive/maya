@@ -21,7 +21,7 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
-	metav1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -303,10 +303,10 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 	return b.WithCapacityQty(resCapacity)
 }
 
-// WithCapacityQty sets Capacity of CStorVOlumeClaim
+// WithCapacityQty sets Capacity of CStorVolumeClaim
 func (b *Builder) WithCapacityQty(resCapacity resource.Quantity) *Builder {
-	resourceList := metav1.ResourceList{
-		metav1.ResourceName(metav1.ResourceStorage): resCapacity,
+	resourceList := corev1.ResourceList{
+		corev1.ResourceName(corev1.ResourceStorage): resCapacity,
 	}
 	b.cvc.object.Spec.Capacity = resourceList
 	return b

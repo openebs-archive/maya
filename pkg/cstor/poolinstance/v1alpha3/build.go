@@ -285,3 +285,26 @@ func (b *Builder) WithCSPCOwnerReference(cspic *apis.CStorPoolCluster) *Builder 
 	b.CSPI.Object.OwnerReferences = append(b.CSPI.Object.OwnerReferences, reference)
 	return b
 }
+
+// WithNewVersion sets the current and desired version field of
+// CSPI with provided arguments
+func (b *Builder) WithNewVersion(version string) *Builder {
+	if version == "" {
+		b.errs = append(
+			b.errs,
+			errors.New(
+				"failed to build cspi object: version can't be empty",
+			),
+		)
+		return b
+	}
+	b.CSPI.Object.VersionDetails.Status.Current = version
+	b.CSPI.Object.VersionDetails.Desired = version
+	return b
+}
+
+// WithDependentsUpgraded sets the field to true for new CSPI
+func (b *Builder) WithDependentsUpgraded() *Builder {
+	b.CSPI.Object.VersionDetails.Status.DependentsUpgraded = true
+	return b
+}

@@ -24,8 +24,7 @@ import (
 	"k8s.io/klog"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
-	upgrade090to100 "github.com/openebs/maya/pkg/upgrade/0.9.0-1.0.0/v1alpha1"
-	upgrade100to120 "github.com/openebs/maya/pkg/upgrade/1.0.0-1.1.0/v1alpha1"
+	upgrader "github.com/openebs/maya/pkg/upgrade/upgrader"
 )
 
 // JivaVolumeOptions stores information required for jiva volume upgrade
@@ -77,30 +76,21 @@ func (u *UpgradeOptions) RunJivaVolumeUpgradeChecks(cmd *cobra.Command) error {
 // RunJivaVolumeUpgrade upgrades the given Jiva Volume.
 func (u *UpgradeOptions) RunJivaVolumeUpgrade(cmd *cobra.Command) error {
 
-	from := strings.Split(u.fromVersion, "-")[0]
-	to := strings.Split(u.toVersion, "-")[0]
-
 	klog.V(4).Infof("Started upgrading %s{%s} from %s to %s",
 		u.resourceKind,
 		u.jivaVolume.pvName,
 		u.fromVersion,
 		u.toVersion)
 
-	switch from + "-" + to {
-	case "0.9.0-1.0.0":
-		klog.Infof("Upgrading to 1.0.0")
-		err := upgrade090to100.Exec(u.resourceKind,
-			u.jivaVolume.pvName,
-			u.openebsNamespace)
-		if err != nil {
-			klog.Error(err)
-			return errors.Wrapf(err, "Failed to upgrade %s{%s}",
-				u.resourceKind,
-				u.jivaVolume.pvName)
-		}
-	case "1.0.0-1.1.0", "1.0.0-1.2.0", "1.1.0-1.2.0":
+	path, err := u.getUpgradePath()
+	if err != nil {
+		return err
+	}
+	switch path {
+	case "1.0.0-1.3.0", "1.1.0-1.3.0", "1.2.0-1.3.0":
+		// RC1-RC2 for RC1 to RC2, RC1- for RC1 to GA, RC2- for RC2 to GA
 		klog.Infof("Upgrading to %s", u.toVersion)
-		err := upgrade100to120.Exec(u.fromVersion, u.toVersion,
+		err := upgrader.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
 			u.jivaVolume.pvName,
 			u.openebsNamespace,

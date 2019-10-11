@@ -25,4 +25,18 @@ var (
 	   }
 	}
  }`
+	// VersionDetailsPatch is generic template for version details patch
+	VersionDetailsPatch = `{
+	"metadata": {
+	   "labels": {
+		  "openebs.io/version": "{{.}}"
+	   }
+	},
+	"versionDetails": {
+		"desired": "{{.}}",
+		"status": {
+		   "state": "ReconcilePending"
+		}
+	}
+ }`
 )

@@ -335,6 +335,29 @@ func (b *Builder) WithConsistencyFactor(consistencyfactor int) *Builder {
 	return b
 }
 
+// WithNewVersion sets the current and desired version field of
+// CStorVolume with provided arguments
+func (b *Builder) WithNewVersion(version string) *Builder {
+	if version == "" {
+		b.errs = append(
+			b.errs,
+			errors.New(
+				"failed to build cstorvolume object: version can't be empty",
+			),
+		)
+		return b
+	}
+	b.cstorvolume.object.VersionDetails.Status.Current = version
+	b.cstorvolume.object.VersionDetails.Desired = version
+	return b
+}
+
+// WithDependentsUpgraded sets the field to true for new volume
+func (b *Builder) WithDependentsUpgraded() *Builder {
+	b.cstorvolume.object.VersionDetails.Status.DependentsUpgraded = true
+	return b
+}
+
 // Build returns the CStorVolume API instance
 func (b *Builder) Build() (*apis.CStorVolume, error) {
 	if len(b.errs) > 0 {

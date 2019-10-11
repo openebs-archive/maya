@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"strings"
 	"text/template"
+	"time"
 
 	"k8s.io/klog"
 
@@ -113,7 +114,7 @@ func patchCSP(cspObj *apis.CStorPool) error {
 	cspVersion := cspObj.Labels["openebs.io/version"]
 	if cspVersion == currentVersion {
 		tmpl, err := template.New("cspPatch").
-			Parse(templates.OpenebsVersionPatch)
+			Parse(templates.VersionDetailsPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for csp patch")
 		}
@@ -231,7 +232,55 @@ func (c *cstorCSPOptions) preUpgrade(cspName, openebsNamespace string) error {
 	return nil
 }
 
-func (c *cstorCSPOptions) poolInstanceUpgarde(openebsNamespace string) error {
+func (c *cstorCSPOptions) waitForCSPCurrentVersion() error {
+	// waiting for old objects to get populated with new fields
+	for c.cspObj.VersionDetails.Status.Current == "" {
+		klog.Infof("Waiting for csp current version to get populated.")
+		// Sleep equal to the default sync time
+		time.Sleep(30 * time.Second)
+		obj, err := cspClient.Get(c.cspObj.Name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		c.cspObj = obj
+	}
+	return nil
+}
+
+func (c *cstorCSPOptions) verifyCSPVersionReconcile(openebsNamespace string) error {
+	var uerr error
+	statusObj := utask.UpgradeDetailedStatuses{Step: utask.PoolInstanceUpgrade}
+	statusObj.Phase = utask.StepErrored
+	// waiting for the current version to be equal to desired version
+	for c.cspObj.VersionDetails.Status.Current != upgradeVersion {
+		klog.Infof("Verifying the reconciliation of version for %s", c.cspObj.Name)
+		// Sleep equal to the default sync time
+		time.Sleep(30 * time.Second)
+		obj, err := cspClient.Get(c.cspObj.Name, metav1.GetOptions{})
+		if err != nil {
+			statusObj.Message = "failed to get cstor pool"
+			statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+			c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
+			if uerr != nil && isENVPresent {
+				return uerr
+			}
+			return err
+		}
+		if obj.VersionDetails.Status.Message != "" {
+			statusObj.Message = obj.VersionDetails.Status.Message
+			statusObj.Reason = obj.VersionDetails.Status.Reason
+			c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
+			if uerr != nil && isENVPresent {
+				return uerr
+			}
+			klog.Errorf("failed to reconcile version : %s", obj.VersionDetails.Status.Reason)
+		}
+		c.cspObj = obj
+	}
+	return nil
+}
+
+func (c *cstorCSPOptions) poolInstanceUpgrade(openebsNamespace string) error {
 	var err, uerr error
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.PoolInstanceUpgrade}
 	statusObj.Phase = utask.StepWaiting
@@ -252,6 +301,17 @@ func (c *cstorCSPOptions) poolInstanceUpgarde(openebsNamespace string) error {
 		return err
 	}
 
+	err = c.waitForCSPCurrentVersion()
+	if err != nil {
+		statusObj.Message = "failed to verify versiondetails for cstor pool"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
+		return err
+	}
+
 	err = patchCSP(c.cspObj)
 	if err != nil {
 		statusObj.Message = "failed to patch cstor pool"
@@ -260,6 +320,11 @@ func (c *cstorCSPOptions) poolInstanceUpgarde(openebsNamespace string) error {
 		if uerr != nil && isENVPresent {
 			return uerr
 		}
+		return err
+	}
+
+	err = c.verifyCSPVersionReconcile(openebsNamespace)
+	if err != nil {
 		return err
 	}
 
@@ -283,7 +348,7 @@ func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		return options.utaskObj, err
 	}
 
-	err = options.poolInstanceUpgarde(openebsNamespace)
+	err = options.poolInstanceUpgrade(openebsNamespace)
 	if err != nil {
 		return options.utaskObj, err
 	}
