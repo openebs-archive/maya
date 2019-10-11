@@ -237,7 +237,7 @@ func (c *cstorCSPOptions) waitForCSPCurrentVersion() error {
 	for c.cspObj.VersionDetails.Status.Current == "" {
 		klog.Infof("Waiting for csp current version to get populated.")
 		// Sleep equal to the default sync time
-		time.Sleep(30 * time.Second)
+		time.Sleep(10 * time.Second)
 		obj, err := cspClient.Get(c.cspObj.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
@@ -255,7 +255,7 @@ func (c *cstorCSPOptions) verifyCSPVersionReconcile(openebsNamespace string) err
 	for c.cspObj.VersionDetails.Status.Current != upgradeVersion {
 		klog.Infof("Verifying the reconciliation of version for %s", c.cspObj.Name)
 		// Sleep equal to the default sync time
-		time.Sleep(30 * time.Second)
+		time.Sleep(10 * time.Second)
 		obj, err := cspClient.Get(c.cspObj.Name, metav1.GetOptions{})
 		if err != nil {
 			statusObj.Message = "failed to get cstor pool"

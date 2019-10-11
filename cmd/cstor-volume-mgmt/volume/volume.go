@@ -20,8 +20,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/openebs/maya/pkg/alertlog"
 	"text/template"
+
+	"github.com/openebs/maya/pkg/alertlog"
 
 	"strings"
 
@@ -202,7 +203,11 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) ([]byte, error) {
 	if err != nil {
 		return dataBytes, errors.Wrapf(err, "failed to build istgtconffile from template")
 	}
-	err = tmpl.Execute(buffer, cStorVolume)
+	cvObj := cStorVolume.DeepCopy()
+	if cvObj.Spec.DesiredReplicationFactor == 0 {
+		cvObj.Spec.DesiredReplicationFactor = cvObj.Spec.ReplicationFactor
+	}
+	err = tmpl.Execute(buffer, cvObj)
 	if err != nil {
 		return dataBytes, errors.Wrapf(err, "failed execute istgtconfile template")
 	}
@@ -337,8 +342,17 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 	if cStorVolume.Spec.Capacity.IsZero() {
 		return fmt.Errorf("capacity cannot be zero")
 	}
-	if cStorVolume.Spec.DesiredReplicationFactor == 0 {
-		return fmt.Errorf("DesiredReplicationFactor cannot be zero")
+	if cStorVolume.VersionDetails.Status.Current >= "1.3.0" {
+		if cStorVolume.Spec.DesiredReplicationFactor == 0 {
+			return fmt.Errorf("DesiredReplicationFactor cannot be zero")
+		}
+		if cStorVolume.Spec.DesiredReplicationFactor < cStorVolume.Spec.ReplicationFactor {
+			return fmt.Errorf("DesiredReplicationFactor %d cannot be less "+
+				"than ReplicationFactor %d",
+				cStorVolume.Spec.DesiredReplicationFactor,
+				cStorVolume.Spec.ReplicationFactor,
+			)
+		}
 	}
 	if cStorVolume.Spec.ReplicationFactor == 0 {
 		return fmt.Errorf("replicationFactor cannot be zero")
@@ -346,13 +360,7 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 	if cStorVolume.Spec.ConsistencyFactor == 0 {
 		return fmt.Errorf("consistencyFactor cannot be zero")
 	}
-	if cStorVolume.Spec.DesiredReplicationFactor < cStorVolume.Spec.ReplicationFactor {
-		return fmt.Errorf("DesiredReplicationFactor %d cannot be less "+
-			"than ReplicationFactor %d",
-			cStorVolume.Spec.DesiredReplicationFactor,
-			cStorVolume.Spec.ReplicationFactor,
-		)
-	}
+
 	if cStorVolume.Spec.ReplicationFactor < cStorVolume.Spec.ConsistencyFactor {
 		return fmt.Errorf("replicationFactor cannot be less than consistencyFactor")
 	}
