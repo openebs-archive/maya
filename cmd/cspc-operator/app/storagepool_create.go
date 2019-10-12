@@ -225,10 +225,11 @@ func getPodLabels(csp *apis.CStorPoolInstance) map[string]string {
 
 func getPodAnnotations() map[string]string {
 	return map[string]string{
-		"openebs.io/monitoring": "pool_exporter_prometheus",
-		"prometheus.io/path":    "/metrics",
-		"prometheus.io/port":    "9500",
-		"prometheus.io/scrape":  "true",
+		"openebs.io/monitoring":                          "pool_exporter_prometheus",
+		"prometheus.io/path":                             "/metrics",
+		"prometheus.io/port":                             "9500",
+		"prometheus.io/scrape":                           "true",
+		"cluster-autoscaler.kubernetes.io/safe-to-evict": "false",
 	}
 }
 
