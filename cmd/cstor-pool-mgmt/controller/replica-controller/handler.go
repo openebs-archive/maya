@@ -108,7 +108,7 @@ func (c *CStorVolumeReplicaController) syncHandler(
 		)
 		return nil
 	}
-	cvrGot = cvrObj
+	cvrGot = cvrObj.DeepCopy()
 	cvrObj, err = c.reconcileVersion(cvrObj)
 	if err != nil {
 		klog.Errorf("failed to upgrade cvr %s:%s", cvrGot.Name, err.Error())
@@ -126,7 +126,9 @@ func (c *CStorVolumeReplicaController) syncHandler(
 		cvrGot.VersionDetails.Status.LastUpdateTime = metav1.Now()
 		_, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumeReplicas(cvrGot.Namespace).Update(cvrGot)
-		klog.Errorf("failed to update versionDetails status for cvr %s:%s", cvrGot.Name, err.Error())
+		if err != nil {
+			klog.Errorf("failed to update versionDetails status for cvr %s:%s", cvrGot.Name, err.Error())
+		}
 		return nil
 	}
 	cvrGot = cvrObj

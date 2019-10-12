@@ -264,6 +264,33 @@ func TestCheckValidVolume(t *testing.T) {
 					ConsistencyFactor:        2,
 					DesiredReplicationFactor: 0,
 				},
+				VersionDetails: apis.VersionDetails{
+					Status: apis.VersionStatus{
+						Current: "1.3.0",
+					},
+				},
+			},
+		},
+		"empty desired replication factor for old volume": {
+			expectedError: false,
+			test: &apis.CStorVolume{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "testvol1",
+					UID:  types.UID("123456"),
+				},
+				Spec: apis.CStorVolumeSpec{
+					TargetIP:                 "0.0.0.0",
+					Capacity:                 fakeStrToQuantity("5G"),
+					Status:                   "init",
+					ReplicationFactor:        3,
+					ConsistencyFactor:        2,
+					DesiredReplicationFactor: 0,
+				},
+				VersionDetails: apis.VersionDetails{
+					Status: apis.VersionStatus{
+						Current: "1.2.0",
+					},
+				},
 			},
 		},
 		"invalid desiredreplicationfactor/replicationfactor": {
@@ -280,6 +307,11 @@ func TestCheckValidVolume(t *testing.T) {
 					ReplicationFactor:        4,
 					ConsistencyFactor:        2,
 					DesiredReplicationFactor: 3,
+				},
+				VersionDetails: apis.VersionDetails{
+					Status: apis.VersionStatus{
+						Current: "1.3.0",
+					},
 				},
 			},
 		},

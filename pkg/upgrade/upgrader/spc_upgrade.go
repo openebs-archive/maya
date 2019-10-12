@@ -116,7 +116,7 @@ func waitForSPCCurrentVersion(name string) error {
 	for spcObj.VersionDetails.Status.Current == "" {
 		klog.Infof("Waiting for spc current version to get populated.")
 		// Sleep equal to the default sync time
-		time.Sleep(30 * time.Second)
+		time.Sleep(10 * time.Second)
 		spcObj, err = client.Get(name, metav1.GetOptions{})
 		if err != nil {
 			return err
@@ -135,7 +135,7 @@ func verifySPCVersionReconcile(name string) error {
 	for spcObj.VersionDetails.Status.Current != upgradeVersion {
 		klog.Infof("Verifying the reconciliation of version for %s", spcObj.Name)
 		// Sleep equal to the default sync time
-		time.Sleep(30 * time.Second)
+		time.Sleep(10 * time.Second)
 		spcObj, err = client.Get(name, metav1.GetOptions{})
 		if err != nil {
 			return err
