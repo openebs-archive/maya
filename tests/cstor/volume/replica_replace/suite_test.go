@@ -35,7 +35,6 @@ import (
 )
 
 var (
-	kubeConfigPath        string
 	openebsNamespace      = "openebs"
 	nsName                = "test-cstor-replica-replace"
 	scName                = "test-cstor-replica-replace-sc"
@@ -55,26 +54,18 @@ var (
 	targetCVRObjList   *apis.CStorVolumeReplicaList
 	poolPodObjList     *corev1.PodList
 	//TODO:Need to remove
-	cvrObj                 *apis.CStorVolumeReplica
 	cvObj                  *apis.CStorVolume
-	cspObj                 *apis.CStorPool
-	newCVRObj              *apis.CStorVolumeReplica
 	pvcObj                 *corev1.PersistentVolumeClaim
-	targetLabel            = "openebs.io/target=cstor-target"
 	pvLabel                = "openebs.io/persistent-volume="
-	pvcLabel               = "openebs.io/persistent-volume-claim="
 	cspLabel               = "openebs.io/cstor-pool="
 	CstorPoolUIDLabel      = "cstorpool.openebs.io/uid"
-	CstorpoolNameLabel     = "cstorpool.openebs.io/name"
 	PoolPrefix             = "cstor-"
 	CstorPoolMgmtContainer = "cstor-pool-mgmt"
 	accessModes            = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	capacity               = "5G"
 	annotations            = map[string]string{}
 	MaxRetry               = 10
 	ReplicaCount           int
 	FailureReplicaCount    int
-	PoolMgmtProcess        = "/usr/local/bin/cstor-pool-mgmt"
 )
 
 func TestSource(t *testing.T) {

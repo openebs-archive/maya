@@ -202,6 +202,7 @@ func getAvailableKnownReplicaDetails(cvObj *apis.CStorVolume) apis.CStorVolumeRe
 
 func restartPoolPods() {
 	for _, podObj := range poolPodObjList.Items {
+		podObj := podObj
 		err := ops.RestartPodEventually(&podObj)
 		Expect(err).To(BeNil())
 	}
