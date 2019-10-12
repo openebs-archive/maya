@@ -122,12 +122,14 @@ func (c *Controller) syncCSPC(cspcGot *apis.CStorPoolCluster) error {
 		return nil
 	}
 
-	cspcGot, err := c.populateVersion(cspcGot)
+	cspcObj := cspcGot
+	cspcObj, err := c.populateVersion(cspcObj)
 	if err != nil {
 		klog.Errorf("failed to add versionDetails to CSPC %s:%s", cspcGot.Name, err.Error())
 		return nil
 	}
 
+	cspcGot = cspcObj
 	pc, err := c.NewPoolConfig(cspcGot, openebsNameSpace)
 	if err != nil {
 		message := fmt.Sprintf("Could not sync CSPC : failed to get pool config: {%s}", err.Error())
