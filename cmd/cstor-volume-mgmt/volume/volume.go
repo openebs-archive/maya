@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/openebs/maya/pkg/alertlog"
-
 	"strings"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
