@@ -67,6 +67,7 @@ var (
 	annotations        = map[string]string{}
 	ReplicaCount       = 1
 	MaxRetry           = 10
+	ReplicaID          string
 )
 
 func TestSource(t *testing.T) {

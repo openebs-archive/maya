@@ -107,6 +107,8 @@ func verifyVolumeConfigurationEventually() {
 		time.Sleep(5 * time.Second)
 	}
 	Expect(cvObj.Spec.ConsistencyFactor).To(Equal(consistencyFactor), "mismatch of consistencyFactor")
+	_, isReplicaIDExist := cvObj.Status.ReplicaDetails.KnownReplicas[ReplicaID]
+	Expect(isReplicaIDExist).To(Equal(true), "replicaId should exist in known replicas of cstorvolume")
 	Expect(cvObj.Status.Phase).To(Equal(apis.CStorVolumePhase("Healthy")))
 }
 
@@ -167,8 +169,9 @@ func buildAndCreateCVR() {
 	cvrName := pvcObj.Spec.VolumeName + "-" + cspObj.Name
 	hashUID, err := hash.Hash(newCVRObj.UID)
 	Expect(err).To(BeNil())
+	ReplicaID = strings.ToUpper(hashUID)
 	for i := 0; i < retryUpdate; i++ {
-		newCVRObj.Spec.ReplicaID = hashUID
+		newCVRObj.Spec.ReplicaID = ReplicaID
 		newCVRObj, err = ops.CVRClient.
 			WithNamespace(openebsNamespace).
 			Update(newCVRObj)
