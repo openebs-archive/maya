@@ -21,13 +21,6 @@ M_APISERVER_REPO_NAME?=m-apiserver
 # Specify the name of the docker repo for arm64
 M_APISERVER_REPO_NAME_ARM64?=m-apiserver-arm64
 
-.PHONY: mayactl
-mayactl:
-	@echo "----------------------------"
-	@echo "--> mayactl                    "
-	@echo "----------------------------"
-	@PNAME="maya" CTLNAME=${MAYACTL} sh -c "'$(PWD)/buildscripts/build.sh'"
-
 # Use this to build only the maya apiserver.
 .PHONY: apiserver
 apiserver:
