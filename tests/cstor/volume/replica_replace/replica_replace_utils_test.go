@@ -23,6 +23,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	"github.com/openebs/maya/tests"
 	"github.com/openebs/maya/tests/cstor"
 	corev1 "k8s.io/api/core/v1"
@@ -71,7 +72,7 @@ func verifyVolumeStatus() {
 	Expect(isExpectedCVRCount).To(Equal(true), "while checking cstorvolume replica count")
 }
 
-func verifyVolumeConfigurationEventually() {
+func verifyCVConfigForReplicaReplaceEventually() {
 	var err error
 	consistencyFactor := (ReplicaCount / 2) + 1
 	for i := 0; i < MaxRetry; i++ {
@@ -206,4 +207,95 @@ func restartPoolPods() {
 		err := ops.RestartPodEventually(&podObj)
 		Expect(err).To(BeNil())
 	}
+}
+
+func migrateReplica() {
+	cvObj, err := ops.CVClient.
+		WithNamespace(openebsNamespace).
+		Get(pvcObj.Spec.VolumeName, metav1.GetOptions{})
+	Expect(err).To(BeNil())
+	// Select one CVR to migrate to different pool
+	volumeLabel := pvLabel + pvcObj.Spec.VolumeName
+	cvrList, err := ops.CVRClient.
+		WithNamespace(openebsNamespace).
+		List(metav1.ListOptions{LabelSelector: volumeLabel})
+	Expect(err).To(BeNil())
+	oldCVRObj := &cvrList.Items[0]
+	ZvolGUID = cvObj.Status.ReplicaDetails.KnownReplicas[oldCVRObj.Spec.ReplicaID]
+	Expect(ZvolGUID).NotTo(BeEmpty())
+	poolLabel := string(apis.StoragePoolClaimCPK) + "=" + spcObj.Name
+	migratingCSPObj = ops.GetUnUsedCStorPool(cvrList, poolLabel)
+	cvrObj := buildCVRFromExistingCVR(oldCVRObj, migratingCSPObj)
+	newCVRObj, err = ops.CVRClient.
+		WithNamespace(cvrObj.Namespace).
+		Create(cvrObj)
+	Expect(err).To(BeNil())
+	err = ops.CVRClient.Delete(oldCVRObj.Name)
+}
+
+func buildCVRFromExistingCVR(
+	cvrObj *apis.CStorVolumeReplica,
+	csp *apis.CStorPool) *apis.CStorVolumeReplica {
+	volName := cvrObj.Labels["openebs.io/persistent-volume"]
+	buildCVRObj := cvr.NewBuilder().
+		WithName(volName + "-" + csp.Name).
+		WithNamespace(cvrObj.Namespace).
+		WithAnnotationsNew(getCVRAnnotations(csp)).
+		WithLabelsNew(
+			getCVRLabel(volName, cvrObj.Labels["openebs.io/version"], csp),
+		).
+		WithTargetIP(cvrObj.Spec.TargetIP).
+		WithCapacity(cvrObj.Spec.Capacity).
+		WithReplicaID(cvrObj.Spec.ReplicaID).
+		WithFinalizers([]string{cvr.CStorVolumeReplicaFinalizer}).
+		WithStatusPhase("Recreate")
+	cvrObj, err := buildCVRObj.Build()
+	Expect(err).To(BeNil())
+	return cvrObj
+}
+
+func getCVRAnnotations(csp *apis.CStorPool) map[string]string {
+	return map[string]string{
+		"cstorpool.openebs.io/hostname": csp.Labels["kubernetes.io/hostname"],
+	}
+}
+
+func getCVRLabel(
+	volumeName string,
+	version string,
+	csp *apis.CStorPool) map[string]string {
+	return map[string]string{
+		"cstorpool.openebs.io/name":    csp.Name,
+		"cstorpool.openebs.io/uid":     string(csp.UID),
+		"cstorvolume.openebs.io/name":  volumeName,
+		"openebs.io/persistent-volume": volumeName,
+		"openebs.io/version":           version,
+	}
+}
+
+func verifyCVConfigForReplicaMigrationEventually() {
+	var err error
+	consistencyFactor := (ReplicaCount / 2) + 1
+	for i := 0; i < MaxRetry; i++ {
+		cvObj, err = ops.CVClient.WithNamespace(openebsNamespace).
+			Get(pvcObj.Spec.VolumeName, metav1.GetOptions{})
+		Expect(err).To(BeNil())
+		if cvObj.Status.ReplicaDetails.KnownReplicas[newCVRObj.Spec.ReplicaID] != ZvolGUID {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+	Expect(
+		cvObj.Spec.ReplicationFactor).To(Equal(ReplicaCount),
+		"mismatch of replicationFactor",
+	)
+	Expect(
+		cvObj.Spec.ConsistencyFactor).To(Equal(consistencyFactor),
+		"mismatch of consistencyFactor",
+	)
+	Expect(
+		len(cvObj.Status.ReplicaDetails.KnownReplicas)).To(Equal(ReplicaCount),
+		"mismatch of known replica list",
+	)
+	Expect(cvObj.Status.Phase).To(Equal(apis.CStorVolumePhase("Healthy")))
 }

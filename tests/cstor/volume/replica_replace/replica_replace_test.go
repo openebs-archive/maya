@@ -64,7 +64,15 @@ var _ = Describe("[REPLICA REPLACE] CSTOR REPLICA REPLACE", func() {
 			By("Update CStorVolume Configurations to Start Rebuild", updateCVConfigurationsAndVerifyStatus)
 			By("Restart CStor-Pool-Mgmt Container Pods Doesn't Have Volume DataSets", restartPoolPods)
 			By("Verify Volume Status after Performing Replica Replace", verifyVolumeStatus)
-			By("Verify Volume configurations from cstor volume", verifyVolumeConfigurationEventually)
+			By("Verify Volume configurations from cstor volume", verifyCVConfigForReplicaReplaceEventually)
+		})
+	})
+
+	When("Replica Moved To Different Pool", func() {
+		It("Volume Replica Should Become Healthy and CStor Volume Configurations Should Be Updated Accordingly", func() {
+			By("Build And Create CstorVolumeReplica then Delete Which Has To Migrate Replica", migrateReplica)
+			By("Verify Volume configurations from cstorvolume", verifyCVConfigForReplicaMigrationEventually)
+			By("Verify Volume Status after Performing Replica Movement", verifyVolumeStatus)
 		})
 	})
 

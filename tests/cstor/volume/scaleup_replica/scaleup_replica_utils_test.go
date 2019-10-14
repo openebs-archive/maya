@@ -26,34 +26,11 @@ import (
 	hash "github.com/openebs/maya/pkg/hash"
 	"github.com/openebs/maya/tests"
 	"github.com/openebs/maya/tests/cstor"
-	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	// auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
-
-func getUnusedCStorPool(cvrObjList *apis.CStorVolumeReplicaList) *apis.CStorPool {
-	usedPools := map[string]bool{}
-	for _, cvrObj := range cvrObjList.Items {
-		poolName, ok := cvrObj.GetLabels()[CstorPoolNameLabel]
-		if ok {
-			usedPools[poolName] = true
-		}
-	}
-	cspObjList, err := ops.CSPClient.List(metav1.
-		ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcObj.Name},
-	)
-	Expect(err).To(BeNil())
-	for _, obj := range cspObjList.Items {
-		if !usedPools[obj.Name] {
-			return &obj
-		}
-	}
-	err = errors.Errorf("pools are not available to create volume replica")
-	Expect(err).To(BeNil())
-	return nil
-}
 
 func deleteVolumeResources() {
 	ops.DeletePersistentVolumeClaim(pvcObj.Name, pvcObj.Namespace)
@@ -154,7 +131,8 @@ func buildAndCreateCVR() {
 	Expect(err).To(BeNil())
 
 	cvrObj = &cvrObjList.Items[0]
-	cspObj = getUnusedCStorPool(cvrObjList)
+	poolLabel := string(apis.StoragePoolClaimCPK) + "=" + spcObj.Name
+	cspObj = ops.GetUnUsedCStorPool(cvrObjList, poolLabel)
 	cvrConfig := &tests.CVRConfig{
 		VolumeName: pvcObj.Spec.VolumeName,
 		PoolObj:    cspObj,

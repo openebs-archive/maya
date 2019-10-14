@@ -54,7 +54,9 @@ var (
 	targetCVRObjList   *apis.CStorVolumeReplicaList
 	poolPodObjList     *corev1.PodList
 	//TODO:Need to remove
+	migratingCSPObj        *apis.CStorPool
 	cvObj                  *apis.CStorVolume
+	newCVRObj              *apis.CStorVolumeReplica
 	pvcObj                 *corev1.PersistentVolumeClaim
 	pvLabel                = "openebs.io/persistent-volume="
 	cspLabel               = "openebs.io/cstor-pool="
@@ -66,6 +68,7 @@ var (
 	MaxRetry               = 10
 	ReplicaCount           int
 	FailureReplicaCount    int
+	ZvolGUID               string
 )
 
 func TestSource(t *testing.T) {

@@ -254,6 +254,12 @@ func (b *Builder) WithFinalizersNew(finalizers []string) *Builder {
 	return b
 }
 
+// WithReplicaID sets the replicaID with the provided argumentsu
+func (b *Builder) WithReplicaID(replicaID string) *Builder {
+	b.cvr.object.Spec.ReplicaID = replicaID
+	return b
+}
+
 // WithNewVersion sets the current and desired version field of
 // CStorVolumeReplica with provided arguments
 func (b *Builder) WithNewVersion(version string) *Builder {

@@ -133,8 +133,9 @@ type CVRConfig struct {
 }
 
 var (
-	pvLabel   = "openebs.io/persistent-volume="
-	poolLabel = "openebs.io/storagepoolclaim="
+	pvLabel            = "openebs.io/persistent-volume="
+	poolLabel          = "openebs.io/storagepoolclaim="
+	cstorPoolNameLabel = "cstorpool.openebs.io/name"
 )
 
 // OperationsOptions abstracts creating an
@@ -1139,6 +1140,31 @@ func (ops *Operations) VerifyPoolResources(spcName string) {
 	labelSelector := poolLabel + spcName
 	isCSPDeleted := ops.GetCSPCountEventually(labelSelector, 0)
 	Expect(isCSPDeleted).To(Equal(true))
+}
+
+// GetUnUsedCStorPool returns the csp object where the volume replica doesn't exist
+func (ops *Operations) GetUnUsedCStorPool(
+	cvrList *apis.CStorVolumeReplicaList,
+	poolLabel string) *apis.CStorPool {
+	usedPools := map[string]bool{}
+	for _, cvrObj := range cvrList.Items {
+		poolName, ok := cvrObj.GetLabels()[cstorPoolNameLabel]
+		if ok {
+			usedPools[poolName] = true
+		}
+	}
+	cspList, err := ops.CSPClient.
+		List(metav1.ListOptions{LabelSelector: poolLabel})
+	Expect(err).To(BeNil())
+	for _, obj := range cspList.Items {
+		obj := obj
+		if !usedPools[obj.Name] {
+			return &obj
+		}
+	}
+	err = errors.Errorf("pools are not available to migrate storage replica")
+	Expect(err).To(BeNil())
+	return nil
 }
 
 // getCVRAnnotations get the annotations for cstorvolumereplica

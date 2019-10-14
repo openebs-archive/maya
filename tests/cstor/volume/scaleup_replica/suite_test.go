@@ -39,7 +39,6 @@ var (
 	openebsNamespace      = "openebs"
 	nsName                = "test-cstor-volume"
 	scName                = "test-cstor-replica-scaleup-sc"
-	CstorPoolNameLabel    = "cstorpool.openebs.io/name"
 	openebsCASConfigValue = `
 - name: ReplicaCount
   value: $count
