@@ -3,7 +3,10 @@
 # maya api server's releases.
 #
 
-FROM arm64v8/ubuntu:18.04
+#Make the base image configurable. If BASE IMAGES is not provided
+#docker command will fail
+ARG BASE_IMAGE=arm64v8/ubuntu:18.04
+FROM $BASE_IMAGE
 
 # TODO: The following env variables should be auto detected.
 ENV MAYA_API_SERVER_NETWORK="eth0"

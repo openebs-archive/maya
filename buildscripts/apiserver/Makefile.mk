@@ -62,15 +62,15 @@ rhel-apiserver-image: mayactl apiserver
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
 
-.PHONY: arm64-apiserver-image
-arm64-apiserver-image: mayactl apiserver
+.PHONY: apiserver-image.arm64
+apiserver-image.arm64: mayactl apiserver
 	@echo "----------------------------"
 	@echo -n "--> apiserver image "
 	@echo "${HUB_USER}/${M_APISERVER_REPO_NAME_ARM64}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
 	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
-	@cd buildscripts/apiserver && sudo docker build -t ${HUB_USER}/${M_APISERVER_REPO_NAME_ARM64}:${IMAGE_TAG} -f Dockerfile.arm64 --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/apiserver && sudo docker build -t ${HUB_USER}/${M_APISERVER_REPO_NAME_ARM64}:${IMAGE_TAG} -f Dockerfile.arm64 --build-arg BUILD_DATE=${BUILD_DATE} --build-arg BASE_IMAGE=${BASE_DOCKER_IMAGEARM64} .
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
 

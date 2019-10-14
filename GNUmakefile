@@ -95,6 +95,11 @@ endif
 
 CSTOR_BASE_IMAGE= openebs/cstor-base:${BASE_TAG}
 
+ifeq (${BASE_DOCKER_IMAGEARM64}, )
+  BASE_DOCKER_IMAGEARM64 = "arm64v8/ubuntu:18.04"
+  export BASE_DOCKER_IMAGEARM64
+endif
+
 # Specify the name for the binaries
 WEBHOOK=admission-server
 POOL_MGMT=cstor-pool-mgmt
@@ -114,7 +119,10 @@ include ./buildscripts/upgrade/Makefile.mk
 include ./buildscripts/upgrade-082090/Makefile.mk
 
 .PHONY: all
-all: compile-tests mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image cspc-operator-image cspi-mgmt-image upgrade-image provisioner-localpv-image
+all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image cspc-operator-image cspi-mgmt-image upgrade-image provisioner-localpv-image
+
+.PHONY: all.arm64
+all.arm64: apiserver-image.arm64 provisioner-localpv-image.arm64
 
 .PHONY: initialize
 initialize: bootstrap
