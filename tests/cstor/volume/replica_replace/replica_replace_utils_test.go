@@ -56,11 +56,6 @@ func verifyCVConfigForReplicaReplaceEventually() {
 	Expect(cvObj.Status.Phase).To(Equal(apis.CStorVolumePhase("Healthy")))
 }
 
-// This function is local to this package
-func getLabelSelector(spc *apis.StoragePoolClaim) string {
-	return string(apis.StoragePoolClaimCPK) + "=" + spc.Name
-}
-
 func buildAndCreateSC() {
 	ReplicaCount = cstor.ReplicaCount
 	FailureReplicaCount = (cstor.ReplicaCount / 2) + 1
