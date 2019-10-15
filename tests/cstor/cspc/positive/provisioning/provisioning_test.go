@@ -14,17 +14,19 @@ limitations under the License.
 package provisioning
 
 import (
+	"strconv"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cspc_v1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strconv"
 )
 
 var _ = Describe("[CSPC] CSTOR STRIPE POOL PROVISIONING AND RECONCILIATION ", func() {
 	provisioningAndReconciliationTest(createCSPCObjectForStripe)
 })
+
 var _ = Describe("[CSPC] CSTOR MIRROR POOL PROVISIONING AND RECONCILIATION ", func() {
 	provisioningAndReconciliationTest(createCSPCObjectForMirror)
 })
@@ -33,6 +35,9 @@ var _ = Describe("[CSPC] CSTOR RAIDZ POOL PROVISIONING AND RECONCILIATION ", fun
 })
 var _ = Describe("[CSPC] CSTOR RAIDZ2 POOL PROVISIONING AND RECONCILIATION ", func() {
 	provisioningAndReconciliationTest(createCSPCObjectForRaidz2)
+})
+var _ = Describe("[CSPC] CSTOR STRIPE POOL PROVISIONING AND RECONCILIATION WITH RESOURCES ", func() {
+	provisioningAndReconciliationTest(createCSPCObjectWithResources)
 })
 
 func provisioningAndReconciliationTest(createCSPCObject func()) {

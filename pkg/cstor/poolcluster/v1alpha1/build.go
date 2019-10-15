@@ -21,6 +21,7 @@ import (
 	poolspec "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // Builder is the builder object for CSPC
@@ -79,6 +80,18 @@ func (b *Builder) WithPoolSpecBuilder(poolSpecBuilder *poolspec.Builder) *Builde
 		b.cspc.object.Spec.Pools,
 		*poolspecObj.ToAPI(),
 	)
+	return b
+}
+
+// WithAuxResourceRequirement sets the AuxResources field of CSPC with the provided argument.
+func (b *Builder) WithAuxResourceRequirement(resource corev1.ResourceRequirements) *Builder {
+	b.cspc.object.Spec.AuxResources = resource
+	return b
+}
+
+// WithDefaultResourceRequirement sets the DefaultResources field of CSPC with the provided argument.
+func (b *Builder) WithDefaultResourceRequirement(resource *corev1.ResourceRequirements) *Builder {
+	b.cspc.object.Spec.DefaultResources = resource
 	return b
 }
 
