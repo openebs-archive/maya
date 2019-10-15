@@ -724,6 +724,22 @@ func (ops *Operations) GetCSPCount(labelSelector string) int {
 	return len(cspAPIList.Items)
 }
 
+// VerifyDesiredCSPCount verifies whether count of CSP belongs to SPC in cluster
+// matched with provided argument count
+func (ops *Operations) VerifyDesiredCSPCount(spcObj *apis.StoragePoolClaim, poolCount int) {
+	cspCount := ops.GetHealthyCSPCount(spcObj.Name, poolCount)
+	Expect(cspCount).To(Equal(poolCount))
+
+	// Check are there any extra csps
+	cspCount = ops.GetCSPCount(getLabelSelector(spcObj))
+	Expect(cspCount).To(Equal(poolCount), "Mismatch Of CSP Count")
+}
+
+// This function is local to this package
+func getLabelSelector(spc *apis.StoragePoolClaim) string {
+	return string(apis.StoragePoolClaimCPK) + "=" + spc.Name
+}
+
 // GetCSPICount gets cspi count based on cspc name at that time
 func (ops *Operations) GetCSPICount(labelSelector string) int {
 	cspiAPIList, err := ops.CSPIClient.WithNamespace(ops.NameSpace).List(metav1.ListOptions{LabelSelector: labelSelector})
@@ -1140,6 +1156,39 @@ func (ops *Operations) VerifyPoolResources(spcName string) {
 	labelSelector := poolLabel + spcName
 	isCSPDeleted := ops.GetCSPCountEventually(labelSelector, 0)
 	Expect(isCSPDeleted).To(Equal(true))
+}
+
+// VerifyVolumeStatus checks multiple resources related to volume
+// 1. Verifies whether PVC is bound to pv or not
+// 2. Verifies whether CStorVolume is in Healthy or not
+// 3. Verifies whether specified number of CVR's are healthy or not
+func (ops *Operations) VerifyVolumeStatus(
+	pvcObj *corev1.PersistentVolumeClaim, replicaCount int) {
+	status := ops.IsPVCBoundEventually(pvcObj.Name)
+	Expect(status).To(Equal(true), "while checking status equal to bound")
+
+	// GetLatest PVC object
+	updatedPVCObj, err := ops.PVCClient.
+		WithNamespace(pvcObj.Namespace).
+		Get(pvcObj.Name, metav1.GetOptions{})
+	Expect(err).To(BeNil())
+
+	volumeLabel := pvLabel + updatedPVCObj.Spec.VolumeName
+	cvCount := ops.GetCstorVolumeCount(openebsNamespace, volumeLabel, 1)
+	Expect(cvCount).To(Equal(1), "while checking cstorvolume count")
+
+	cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, volumeLabel, replicaCount)
+	Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
+}
+
+// DeleteVolumeResources deletes pvc and storageclass from cluster
+func (ops *Operations) DeleteVolumeResources(
+	pvcObj *corev1.PersistentVolumeClaim,
+	scObj *storagev1.StorageClass) {
+	ops.DeletePersistentVolumeClaim(pvcObj.Name, pvcObj.Namespace)
+	ops.VerifyVolumeResources(pvcObj.Spec.VolumeName, openebsNamespace)
+	err := ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
+	Expect(err).To(BeNil())
 }
 
 // GetUnUsedCStorPool returns the csp object where the volume replica doesn't exist

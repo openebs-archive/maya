@@ -25,51 +25,11 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	hash "github.com/openebs/maya/pkg/hash"
 	"github.com/openebs/maya/tests"
-	"github.com/openebs/maya/tests/cstor"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	// auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
-
-func deleteVolumeResources() {
-	ops.DeletePersistentVolumeClaim(pvcObj.Name, pvcObj.Namespace)
-	ops.VerifyVolumeResources(pvcObj.Spec.VolumeName, openebsNamespace)
-	err := ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
-	Expect(err).To(BeNil())
-}
-
-func deletePoolResources() {
-	ops.DeleteStoragePoolClaim(spcObj.Name)
-}
-
-func verifyDesiredCSPCount() {
-	cspCount := ops.GetHealthyCSPCount(spcObj.Name, cstor.PoolCount)
-	Expect(cspCount).To(Equal(cstor.PoolCount))
-
-	// Check are there any extra csps
-	cspCount = ops.GetCSPCount(getLabelSelector(spcObj))
-	Expect(cspCount).To(Equal(cstor.PoolCount), "Mismatch Of CSP Count")
-}
-
-func verifyVolumeStatus() {
-	var err error
-	status := ops.IsPVCBoundEventually(pvcObj.Name)
-	Expect(status).To(Equal(true), "while checking status equal to bound")
-
-	// GetLatest PVC object
-	pvcObj, err = ops.PVCClient.
-		WithNamespace(nsObj.Name).
-		Get(pvcObj.Name, metav1.GetOptions{})
-	Expect(err).To(BeNil())
-
-	volumeLabel := pvLabel + pvcObj.Spec.VolumeName
-	cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, volumeLabel, ReplicaCount)
-	Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
-
-	cvCount := ops.GetCstorVolumeCount(openebsNamespace, volumeLabel, 1)
-	Expect(cvCount).To(Equal(1), "while checking cstorvolume count")
-}
 
 func verifyVolumeConfigurationEventually() {
 	var err error
@@ -87,11 +47,6 @@ func verifyVolumeConfigurationEventually() {
 	_, isReplicaIDExist := cvObj.Status.ReplicaDetails.KnownReplicas[ReplicaID]
 	Expect(isReplicaIDExist).To(Equal(true), "replicaId should exist in known replicas of cstorvolume")
 	Expect(cvObj.Status.Phase).To(Equal(apis.CStorVolumePhase("Healthy")))
-}
-
-// This function is local to this package
-func getLabelSelector(spc *apis.StoragePoolClaim) string {
-	return string(apis.StoragePoolClaimCPK) + "=" + spc.Name
 }
 
 func buildAndCreateSC() {

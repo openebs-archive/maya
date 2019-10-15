@@ -14,14 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Included replicareplace and replicamigration in same test
 package replicareplace
 
 import (
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/tests"
 	"github.com/openebs/maya/tests/cstor"
 
 	// auth plugins
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
@@ -40,7 +43,9 @@ var _ = Describe("[REPLICA REPLACE] CSTOR REPLICA REPLACE", func() {
 			}
 			ops.Config = spcConfig
 			spcObj = ops.BuildAndCreateSPC()
-			By("Creating SPC, Desired Number of CSP Should Be Created", verifyDesiredCSPCount)
+			By("Creating SPC, Desired Number of CSP Should Be Created", func() {
+				ops.VerifyDesiredCSPCount(spcObj, cstor.PoolCount)
+			})
 		})
 	})
 	When("PersistentVolumeClaim Is Created", func() {
@@ -55,7 +60,15 @@ var _ = Describe("[REPLICA REPLACE] CSTOR REPLICA REPLACE", func() {
 			}
 			ops.Config = pvcConfig
 			pvcObj = ops.BuildAndCreatePVC()
-			By("Creating PVC, Desired Number of CVR Should Be Created", verifyVolumeStatus)
+			By("Creating PVC, Desired Number of CVR Should Be Created", func() {
+				ops.VerifyVolumeStatus(pvcObj, cstor.ReplicaCount)
+			})
+			// GetLatest PVC object
+			var err error
+			pvcObj, err = ops.PVCClient.
+				WithNamespace(nsObj.Name).
+				Get(pvcObj.Name, metav1.GetOptions{})
+			Expect(err).To(BeNil())
 		})
 	})
 	When("More Than Quorum Replicas Replaced In CStor", func() {
@@ -63,7 +76,9 @@ var _ = Describe("[REPLICA REPLACE] CSTOR REPLICA REPLACE", func() {
 			By("Destroy Quorum Count of Volume Datasets", deleteZFSDataSets)
 			By("Update CStorVolume Configurations to Start Rebuild", updateCVConfigurationsAndVerifyStatus)
 			By("Restart CStor-Pool-Mgmt Container Pods Doesn't Have Volume DataSets", restartPoolPods)
-			By("Verify Volume Status after Performing Replica Replace", verifyVolumeStatus)
+			By("Verify Volume Status after Performing Replica Replace", func() {
+				ops.VerifyVolumeStatus(pvcObj, cstor.ReplicaCount)
+			})
 			By("Verify Volume configurations from cstor volume", verifyCVConfigForReplicaReplaceEventually)
 		})
 	})
@@ -72,14 +87,20 @@ var _ = Describe("[REPLICA REPLACE] CSTOR REPLICA REPLACE", func() {
 		It("Volume Replica Should Become Healthy and CStor Volume Configurations Should Be Updated Accordingly", func() {
 			By("Build And Create CstorVolumeReplica then Delete Which Has To Migrate Replica", migrateReplica)
 			By("Verify Volume configurations from cstorvolume", verifyCVConfigForReplicaMigrationEventually)
-			By("Verify Volume Status after Performing Replica Movement", verifyVolumeStatus)
+			By("Verify Volume Status after Performing Replica Movement", func() {
+				ops.VerifyVolumeStatus(pvcObj, cstor.ReplicaCount)
+			})
 		})
 	})
 
 	When("Clean up test resources", func() {
 		It("Test related resources should be cleanedup", func() {
-			By("Delete persistentVolumeClaim then volume resources should be deleted", deleteVolumeResources)
-			By("Delete StoragePoolClaim then pool related resources should be deleted", deletePoolResources)
+			By("Delete persistentVolumeClaim then volume resources should be deleted", func() {
+				ops.DeleteVolumeResources(pvcObj, scObj)
+			})
+			By("Delete StoragePoolClaim then pool related resources should be deleted", func() {
+				ops.DeleteStoragePoolClaim(spcObj.Name)
+			})
 		})
 	})
 })
