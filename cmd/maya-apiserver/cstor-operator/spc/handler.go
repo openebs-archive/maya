@@ -28,7 +28,7 @@ import (
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
-	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/pkg/upgrade"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -135,7 +135,7 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 		return nil
 	}
 
-	spcObj, err := c.populateVersion(gotSPC)
+	gotSPC, err = c.populateVersion(gotSPC)
 	if err != nil {
 		klog.Errorf("failed to add versionDetails to spc %s:%s", gotSPC.Name, err.Error())
 		c.recorder.Event(
@@ -146,8 +146,7 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 		)
 		return nil
 	}
-	gotSPC = spcObj.DeepCopy()
-	spcObj, err = c.reconcileVersion(spcObj)
+	gotSPC, err = c.reconcileVersion(gotSPC)
 	if err != nil {
 		klog.Errorf("failed to upgrade spc %s:%s", gotSPC.Name, err.Error())
 		c.recorder.Event(
@@ -159,9 +158,11 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 				err.Error(),
 			),
 		)
-		gotSPC.VersionDetails.Status.Message = "Failed to reconcile spc version"
-		gotSPC.VersionDetails.Status.Reason = err.Error()
-		gotSPC.VersionDetails.Status.LastUpdateTime = metav1.Now()
+		gotSPC.VersionDetails.Status = upgrade.SetErrorStatus(
+			gotSPC.VersionDetails.Status,
+			"Failed to reconcile spc version",
+			err,
+		)
 		_, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(gotSPC)
 		if err != nil {
 			klog.Errorf("failed to update versionDetails status for spc %s:%s", gotSPC.Name, err.Error())
@@ -169,7 +170,7 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 		return nil
 	}
 	// assinging the latest spc object
-	spc = spcObj
+	spc = gotSPC
 
 	err = validate(spc)
 	if err != nil {
@@ -529,41 +530,38 @@ func isManualProvisioning(spc *apis.StoragePoolClaim) bool {
 func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
 	var err error
 	if spc.VersionDetails.Status.Current != spc.VersionDetails.Desired {
+		spcObj := spc.DeepCopy()
 		if spc.VersionDetails.Status.State != apis.ReconcileInProgress {
-			spc.VersionDetails.Status.State = apis.ReconcileComplete
-			spc.VersionDetails.Status.LastUpdateTime = metav1.Now()
-			spc, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spc)
+			spcObj.VersionDetails.Status = upgrade.SetPendingStatus(spcObj.VersionDetails.Status)
+			spcObj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spcObj)
 			if err != nil {
-				return nil, err
+				return spc, err
 			}
 		}
-		if !isCurrentVersionValid(spc) {
-			return nil, errors.Errorf("invalid current version %s", spc.VersionDetails.Status.Current)
+		if !upgrade.IsCurrentVersionValid(spcObj.VersionDetails) {
+			return spcObj, errors.Errorf("invalid current version %s", spcObj.VersionDetails.Status.Current)
 		}
-		if !isDesiredVersionValid(spc) {
-			return nil, errors.Errorf("invalid desired version %s", spc.VersionDetails.Desired)
+		if !upgrade.IsDesiredVersionValid(spcObj.VersionDetails) {
+			return spcObj, errors.Errorf("invalid desired version %s", spcObj.VersionDetails.Desired)
 		}
 		// As no other steps are required just change current version to
 		// desired version
-		path := upgradePath(spc)
+		path := upgrade.Path(spcObj.VersionDetails)
 		u := &upgradeParams{
-			spc:    spc,
+			spc:    spcObj,
 			client: c.clientset,
 		}
-		spc, err = upgradeMap[path](u)
+		spcObj, err = upgradeMap[path](u)
 		if err != nil {
-			return spc, err
+			return spcObj, err
 		}
-		spc.VersionDetails.Status.Current = spc.VersionDetails.Desired
-		spc.VersionDetails.Status.Message = ""
-		spc.VersionDetails.Status.Reason = ""
-		spc.VersionDetails.Status.State = apis.ReconcileComplete
-		spc.VersionDetails.Status.LastUpdateTime = metav1.Now()
-		spc, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spc)
+		spc = spcObj.DeepCopy()
+		spcObj.VersionDetails.Status = upgrade.SetSuccessStatus(spcObj.VersionDetails.Status)
+		spcObj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spcObj)
 		if err != nil {
 			return spc, errors.Wrap(err, "failed to update storagepoolclaim")
 		}
-		return spc, nil
+		return spcObj, nil
 	}
 	return spc, nil
 }
@@ -576,7 +574,7 @@ func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StorageP
 		var obj *apis.StoragePoolClaim
 		v, err = spcv1alpha1.BuilderForAPIObject(spc).Spc.EstimateSPCVersion()
 		if err != nil {
-			return nil, err
+			return spc, err
 		}
 		spc.VersionDetails.Status.Current = v
 		// For newly created spc Desired field will also be empty.
@@ -587,33 +585,12 @@ func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StorageP
 			Update(spc)
 
 		if err != nil {
-			return nil, errors.Wrapf(
-				err,
-				"failed to update spc %s while adding versiondetails",
-				spc.Name,
-			)
+			return spc, err
 		}
 		klog.Infof("Version %s added on spc %s", v, spc.Name)
 		return obj, nil
 	}
 	return spc, nil
-}
-
-func isCurrentVersionValid(spc *apis.StoragePoolClaim) bool {
-	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
-	version := strings.Split(spc.VersionDetails.Status.Current, "-")[0]
-	return util.ContainsString(validVersions, version)
-}
-
-func isDesiredVersionValid(spc *apis.StoragePoolClaim) bool {
-	validVersions := []string{"1.3.0"}
-	version := strings.Split(spc.VersionDetails.Desired, "-")[0]
-	return util.ContainsString(validVersions, version)
-}
-
-func upgradePath(spc *apis.StoragePoolClaim) string {
-	return strings.Split(spc.VersionDetails.Status.Current, "-")[0] + "-" +
-		strings.Split(spc.VersionDetails.Desired, "-")[0]
 }
 
 func nothing(u *upgradeParams) (*apis.StoragePoolClaim, error) {

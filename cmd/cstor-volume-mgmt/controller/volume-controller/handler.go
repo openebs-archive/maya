@@ -22,6 +22,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/openebs/maya/pkg/upgrade"
+
 	pkg_errors "github.com/pkg/errors"
 
 	"strings"
@@ -69,7 +71,7 @@ func (c *CStorVolumeController) syncHandler(
 	if err != nil {
 		return err
 	}
-	cStorVolumeObj, err := c.populateVersion(cStorVolumeGot)
+	cStorVolumeGot, err = c.populateVersion(cStorVolumeGot)
 	if err != nil {
 		klog.Errorf("failed to add versionDetails to cv %s:%s", cStorVolumeGot.Name, err.Error())
 		c.recorder.Event(
@@ -80,8 +82,7 @@ func (c *CStorVolumeController) syncHandler(
 		)
 		return nil
 	}
-	cStorVolumeGot = cStorVolumeObj.DeepCopy()
-	cStorVolumeObj, err = c.reconcileVersion(cStorVolumeObj)
+	cStorVolumeGot, err = c.reconcileVersion(cStorVolumeGot)
 	if err != nil {
 		klog.Errorf("failed to upgrade cv %s:%s", cStorVolumeGot.Name, err.Error())
 		c.recorder.Event(
@@ -93,9 +94,11 @@ func (c *CStorVolumeController) syncHandler(
 				err.Error(),
 			),
 		)
-		cStorVolumeGot.VersionDetails.Status.Message = "Failed to reconcile cv version"
-		cStorVolumeGot.VersionDetails.Status.Reason = err.Error()
-		cStorVolumeGot.VersionDetails.Status.LastUpdateTime = metav1.Now()
+		cStorVolumeGot.VersionDetails.Status = upgrade.SetErrorStatus(
+			cStorVolumeGot.VersionDetails.Status,
+			"Failed to reconcile cv version",
+			err,
+		)
 		_, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
 		if err != nil {
@@ -103,7 +106,6 @@ func (c *CStorVolumeController) syncHandler(
 		}
 		return nil
 	}
-	cStorVolumeGot = cStorVolumeObj
 	status, err := c.cStorVolumeEventHandler(operation, cStorVolumeGot)
 	if status == common.CVStatusIgnore {
 		return nil
@@ -620,42 +622,41 @@ func IsOnlyStatusChange(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
 
 func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CStorVolume, error) {
 	var err error
+	// the below code uses DeepCopy() to have the state of object just before
+	// any update call is done so that on failure the last state object can be returned
 	if cv.VersionDetails.Status.Current != cv.VersionDetails.Desired {
+		cvObject := cv.DeepCopy()
 		if cv.VersionDetails.Status.State != apis.ReconcileInProgress {
-			cv.VersionDetails.Status.State = apis.ReconcileInProgress
-			cv.VersionDetails.Status.LastUpdateTime = metav1.Now()
-			cv, err = c.clientset.OpenebsV1alpha1().
-				CStorVolumes(cv.Namespace).Update(cv)
+			cvObject.VersionDetails.Status = upgrade.SetPendingStatus(cvObject.VersionDetails.Status)
+			cvObject, err = c.clientset.OpenebsV1alpha1().
+				CStorVolumes(cvObject.Namespace).Update(cvObject)
 			if err != nil {
-				return nil, err
+				return cv, err
 			}
 		}
-		if !isCurrentVersionValid(cv) {
-			return nil, pkg_errors.Errorf("invalid current version %s", cv.VersionDetails.Status.Current)
+		if !upgrade.IsCurrentVersionValid(cvObject.VersionDetails) {
+			return nil, pkg_errors.Errorf("invalid current version %s", cvObject.VersionDetails.Status.Current)
 		}
-		if !isDesiredVersionValid(cv) {
-			return nil, pkg_errors.Errorf("invalid desired version %s", cv.VersionDetails.Desired)
+		if !upgrade.IsDesiredVersionValid(cvObject.VersionDetails) {
+			return nil, pkg_errors.Errorf("invalid desired version %s", cvObject.VersionDetails.Desired)
 		}
-		path := upgradePath(cv)
+		path := upgrade.Path(cvObject.VersionDetails)
 		u := &upgradeParams{
-			cv:     cv,
+			cv:     cvObject,
 			client: c.clientset,
 		}
-		cv, err = upgradeMap[path](u)
+		cvObject, err = upgradeMap[path](u)
 		if err != nil {
-			return nil, err
+			return cvObject, err
 		}
-		cv.VersionDetails.Status.Current = cv.VersionDetails.Desired
-		cv.VersionDetails.Status.Message = ""
-		cv.VersionDetails.Status.Reason = ""
-		cv.VersionDetails.Status.State = apis.ReconcileComplete
-		cv.VersionDetails.Status.LastUpdateTime = metav1.Now()
-		cv, err = c.clientset.OpenebsV1alpha1().
-			CStorVolumes(cv.Namespace).Update(cv)
+		cv = cvObject.DeepCopy()
+		cvObject.VersionDetails.Status = upgrade.SetSuccessStatus(cvObject.VersionDetails.Status)
+		cvObject, err = c.clientset.OpenebsV1alpha1().
+			CStorVolumes(cvObject.Namespace).Update(cvObject)
 		if err != nil {
-			return nil, err
+			return cv, err
 		}
-		return cv, nil
+		return cvObject, nil
 	}
 	return cv, nil
 }
@@ -673,7 +674,7 @@ func (c *CStorVolumeController) populateVersion(cv *apis.CStorVolume) (
 			Update(cv)
 
 		if err != nil {
-			return nil, err
+			return cv, err
 		}
 		klog.Infof("Version %s added on cstorvolume %s", v, cv.Name)
 		return obj, nil
@@ -681,26 +682,9 @@ func (c *CStorVolumeController) populateVersion(cv *apis.CStorVolume) (
 	return cv, nil
 }
 
-func isCurrentVersionValid(cv *apis.CStorVolume) bool {
-	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
-	version := strings.Split(cv.VersionDetails.Status.Current, "-")[0]
-	return util.ContainsString(validVersions, version)
-}
-
-func isDesiredVersionValid(cv *apis.CStorVolume) bool {
-	validVersions := []string{"1.3.0"}
-	version := strings.Split(cv.VersionDetails.Desired, "-")[0]
-	return util.ContainsString(validVersions, version)
-}
-
 func setDesiredRF(u *upgradeParams) (*apis.CStorVolume, error) {
 	cv := u.cv
 	// Set new field DesiredReplicationFactor as ReplicationFactor
 	cv.Spec.DesiredReplicationFactor = cv.Spec.ReplicationFactor
 	return cv, nil
-}
-
-func upgradePath(cv *apis.CStorVolume) string {
-	return strings.Split(cv.VersionDetails.Status.Current, "-")[0] + "-" +
-		strings.Split(cv.VersionDetails.Desired, "-")[0]
 }

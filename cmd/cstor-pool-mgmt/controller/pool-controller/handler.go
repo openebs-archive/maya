@@ -32,6 +32,7 @@ import (
 	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	lease "github.com/openebs/maya/pkg/lease/v1alpha1"
+	upgrade "github.com/openebs/maya/pkg/upgrade"
 	"github.com/openebs/maya/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -81,7 +82,7 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		return err
 	}
 	klog.V(4).Infof("Lease acquired successfully on csp %s ", cspObject.Name)
-	cspGot, err := c.populateVersion(cspObject)
+	cspObject, err = c.populateVersion(cspObject)
 	if err != nil {
 		klog.Errorf("failed to add versionDetails to csp %s:%s", cspObject.Name, err.Error())
 		c.recorder.Event(
@@ -92,8 +93,7 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		)
 		return nil
 	}
-	cspObject = cspGot.DeepCopy()
-	cspGot, err = c.reconcileVersion(cspGot)
+	cspObject, err = c.reconcileVersion(cspObject)
 	if err != nil {
 		klog.Errorf("failed to upgrade csp %s:%s", cspObject.Name, err.Error())
 		c.recorder.Event(
@@ -105,16 +105,17 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 				err.Error(),
 			),
 		)
-		cspObject.VersionDetails.Status.Message = "Failed to reconcile csp version"
-		cspObject.VersionDetails.Status.Reason = err.Error()
-		cspObject.VersionDetails.Status.LastUpdateTime = metav1.Now()
+		cspObject.VersionDetails.Status = upgrade.SetErrorStatus(
+			cspObject.VersionDetails.Status,
+			"Failed to reconcile csp version",
+			err,
+		)
 		_, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObject)
 		if err != nil {
 			klog.Errorf("failed to update versionDetails status for csp %s:%s", cspObject.Name, err.Error())
 		}
 		return nil
 	}
-	cspObject = cspGot
 	status, err := c.cStorPoolEventHandler(operation, cspObject)
 	if status == "" {
 		klog.Warning("Empty status recieved for csp status in sync handler")
@@ -577,40 +578,39 @@ func (c *CStorPoolController) getDeviceIDs(csp *apis.CStorPool) ([]string, error
 
 func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStorPool, error) {
 	var err error
+	// the below code uses deep copy to have the state of object just before
+	// any update call is done so that on failure the last state object can be returned
 	if csp.VersionDetails.Status.Current != csp.VersionDetails.Desired {
+		cspObj := csp.DeepCopy()
 		if csp.VersionDetails.Status.State != apis.ReconcileInProgress {
-			csp.VersionDetails.Status.State = apis.ReconcileInProgress
-			csp.VersionDetails.Status.LastUpdateTime = metav1.Now()
-			csp, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(csp)
+			cspObj.VersionDetails.Status = upgrade.SetPendingStatus(cspObj.VersionDetails.Status)
+			cspObj, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObj)
 			if err != nil {
-				return nil, err
+				return csp, err
 			}
 		}
-		if !isCurrentVersionValid(csp) {
-			return nil, errors.Errorf("invalid current version %s", csp.VersionDetails.Status.Current)
+		if !upgrade.IsCurrentVersionValid(cspObj.VersionDetails) {
+			return cspObj, errors.Errorf("invalid current version %s", cspObj.VersionDetails.Status.Current)
 		}
-		if !isDesiredVersionValid(csp) {
-			return nil, errors.Errorf("invalid desired version %s", csp.VersionDetails.Desired)
+		if !upgrade.IsDesiredVersionValid(cspObj.VersionDetails) {
+			return cspObj, errors.Errorf("invalid desired version %s", cspObj.VersionDetails.Desired)
 		}
-		path := upgradePath(csp)
+		path := upgrade.Path(csp.VersionDetails)
 		u := &upgradeParams{
-			csp:    csp,
+			csp:    cspObj,
 			client: c.clientset,
 		}
-		csp, err = upgradeMap[path](u)
+		cspObj, err = upgradeMap[path](u)
 		if err != nil {
-			return csp, err
+			return cspObj, err
 		}
-		csp.VersionDetails.Status.Current = csp.VersionDetails.Desired
-		csp.VersionDetails.Status.Message = ""
-		csp.VersionDetails.Status.Reason = ""
-		csp.VersionDetails.Status.State = apis.ReconcileComplete
-		csp.VersionDetails.Status.LastUpdateTime = metav1.Now()
-		csp, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(csp)
+		csp = cspObj.DeepCopy()
+		cspObj.VersionDetails.Status = upgrade.SetSuccessStatus(cspObj.VersionDetails.Status)
+		cspObj, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObj)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to update csp with versionDetails")
+			return csp, errors.Wrap(err, "failed to update csp with versionDetails")
 		}
-		return csp, nil
+		return cspObj, nil
 	}
 	return csp, nil
 }
@@ -628,29 +628,12 @@ func (c *CStorPoolController) populateVersion(csp *apis.CStorPool) (
 			Update(csp)
 
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to update csp while adding versiondetails")
+			return csp, errors.Wrap(err, "failed to update csp while adding versiondetails")
 		}
 		klog.Infof("Version %s added on csp %s", v, csp.Name)
 		return obj, nil
 	}
 	return csp, nil
-}
-
-func isCurrentVersionValid(csp *apis.CStorPool) bool {
-	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
-	version := strings.Split(csp.VersionDetails.Status.Current, "-")[0]
-	return util.ContainsString(validVersions, version)
-}
-
-func isDesiredVersionValid(csp *apis.CStorPool) bool {
-	validVersions := []string{"1.3.0"}
-	version := strings.Split(csp.VersionDetails.Desired, "-")[0]
-	return util.ContainsString(validVersions, version)
-}
-
-func upgradePath(csp *apis.CStorPool) string {
-	return strings.Split(csp.VersionDetails.Status.Current, "-")[0] + "-" +
-		strings.Split(csp.VersionDetails.Desired, "-")[0]
 }
 
 func nothing(u *upgradeParams) (*apis.CStorPool, error) {

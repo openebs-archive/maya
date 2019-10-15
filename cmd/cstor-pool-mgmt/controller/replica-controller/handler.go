@@ -28,7 +28,7 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
-	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/pkg/upgrade"
 	pkg_errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -97,7 +97,7 @@ func (c *CStorVolumeReplicaController) syncHandler(
 			key,
 		)
 	}
-	cvrObj, err := c.populateVersion(cvrGot)
+	cvrGot, err = c.populateVersion(cvrGot)
 	if err != nil {
 		klog.Errorf("failed to add versionDetails to cvr %s:%s", cvrGot.Name, err.Error())
 		c.recorder.Event(
@@ -108,8 +108,7 @@ func (c *CStorVolumeReplicaController) syncHandler(
 		)
 		return nil
 	}
-	cvrGot = cvrObj.DeepCopy()
-	cvrObj, err = c.reconcileVersion(cvrObj)
+	cvrGot, err = c.reconcileVersion(cvrGot)
 	if err != nil {
 		klog.Errorf("failed to upgrade cvr %s:%s", cvrGot.Name, err.Error())
 		c.recorder.Event(
@@ -121,9 +120,11 @@ func (c *CStorVolumeReplicaController) syncHandler(
 				err.Error(),
 			),
 		)
-		cvrGot.VersionDetails.Status.Message = "Failed to reconcile cvr version"
-		cvrGot.VersionDetails.Status.Reason = err.Error()
-		cvrGot.VersionDetails.Status.LastUpdateTime = metav1.Now()
+		cvrGot.VersionDetails.Status = upgrade.SetErrorStatus(
+			cvrGot.VersionDetails.Status,
+			"Failed to reconcile cvr version",
+			err,
+		)
 		_, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumeReplicas(cvrGot.Namespace).Update(cvrGot)
 		if err != nil {
@@ -131,7 +132,6 @@ func (c *CStorVolumeReplicaController) syncHandler(
 		}
 		return nil
 	}
-	cvrGot = cvrObj
 	status, err := c.cVREventHandler(operation, cvrGot)
 	if status == "" {
 		// TODO
@@ -589,43 +589,41 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 	*apis.CStorVolumeReplica, error,
 ) {
 	var err error
+	// the below code uses deep copy to have the state of object just before
+	// any update call is done so that on failure the last state object can be returned
 	if cvr.VersionDetails.Status.Current != cvr.VersionDetails.Desired {
-		if cvr.VersionDetails.Status.State != apis.ReconcileInProgress {
-			cvr.VersionDetails.Status.State = apis.ReconcileInProgress
-			cvr.VersionDetails.Status.LastUpdateTime = metav1.Now()
-			cvr, err = c.clientset.OpenebsV1alpha1().
-				CStorVolumeReplicas(cvr.Namespace).Update(cvr)
+		cvrObj := cvr.DeepCopy()
+		if cvrObj.VersionDetails.Status.State != apis.ReconcileInProgress {
+			cvrObj.VersionDetails.Status = upgrade.SetPendingStatus(cvrObj.VersionDetails.Status)
+			cvrObj, err = c.clientset.OpenebsV1alpha1().
+				CStorVolumeReplicas(cvrObj.Namespace).Update(cvrObj)
 			if err != nil {
-				return nil, err
+				return cvr, err
 			}
-
 		}
-		if !isCurrentVersionValid(cvr) {
-			return nil, pkg_errors.Errorf("invalid current version %s", cvr.VersionDetails.Status.Current)
+		if !upgrade.IsCurrentVersionValid(cvrObj.VersionDetails) {
+			return cvrObj, pkg_errors.Errorf("invalid current version %s", cvrObj.VersionDetails.Status.Current)
 		}
-		if !isDesiredVersionValid(cvr) {
-			return nil, pkg_errors.Errorf("invalid desired version %s", cvr.VersionDetails.Desired)
+		if !upgrade.IsDesiredVersionValid(cvrObj.VersionDetails) {
+			return cvrObj, pkg_errors.Errorf("invalid desired version %s", cvrObj.VersionDetails.Desired)
 		}
-		path := upgradePath(cvr)
+		path := upgrade.Path(cvrObj.VersionDetails)
 		u := &upgradeParams{
-			cvr:    cvr,
+			cvr:    cvrObj,
 			client: c.clientset,
 		}
-		cvr, err = upgradeMap[path](u)
+		cvrObj, err = upgradeMap[path](u)
 		if err != nil {
-			return nil, err
+			return cvrObj, err
 		}
-		cvr.VersionDetails.Status.Current = cvr.VersionDetails.Desired
-		cvr.VersionDetails.Status.Message = ""
-		cvr.VersionDetails.Status.Reason = ""
-		cvr.VersionDetails.Status.State = apis.ReconcileComplete
-		cvr.VersionDetails.Status.LastUpdateTime = metav1.Now()
-		cvr, err = c.clientset.OpenebsV1alpha1().
-			CStorVolumeReplicas(cvr.Namespace).Update(cvr)
+		cvr = cvrObj.DeepCopy()
+		cvrObj.VersionDetails.Status = upgrade.SetSuccessStatus(cvrObj.VersionDetails.Status)
+		cvrObj, err = c.clientset.OpenebsV1alpha1().
+			CStorVolumeReplicas(cvrObj.Namespace).Update(cvrObj)
 		if err != nil {
-			return nil, err
+			return cvr, err
 		}
-		return cvr, nil
+		return cvrObj, nil
 	}
 	return cvr, nil
 }
@@ -643,7 +641,7 @@ func (c *CStorVolumeReplicaController) populateVersion(cvr *apis.CStorVolumeRepl
 			Update(cvr)
 
 		if err != nil {
-			return nil, err
+			return cvr, err
 		}
 		klog.Infof("Version %s added on cvr %s", v, cvr.Name)
 		return obj, nil
@@ -651,33 +649,17 @@ func (c *CStorVolumeReplicaController) populateVersion(cvr *apis.CStorVolumeRepl
 	return cvr, nil
 }
 
-func isCurrentVersionValid(cvr *apis.CStorVolumeReplica) bool {
-	validVersions := []string{"1.0.0", "1.1.0", "1.2.0"}
-	version := strings.Split(cvr.VersionDetails.Status.Current, "-")[0]
-	return util.ContainsString(validVersions, version)
-}
-
-func isDesiredVersionValid(cvr *apis.CStorVolumeReplica) bool {
-	validVersions := []string{"1.3.0"}
-	version := strings.Split(cvr.VersionDetails.Desired, "-")[0]
-	return util.ContainsString(validVersions, version)
-}
-
-func upgradePath(cvr *apis.CStorVolumeReplica) string {
-	return strings.Split(cvr.VersionDetails.Status.Current, "-")[0] + "-" +
-		strings.Split(cvr.VersionDetails.Desired, "-")[0]
-}
-
 func setReplicaID(u *upgradeParams) (*apis.CStorVolumeReplica, error) {
 	cvr := u.cvr
 	err := volumereplica.GetAndUpdateReplicaID(cvr)
 	if err != nil {
-		return nil, err
+		return cvr, err
 	}
-	cvr, err = u.client.OpenebsV1alpha1().
-		CStorVolumeReplicas(cvr.Namespace).Update(cvr)
+	cvrObj := cvr.DeepCopy()
+	cvrObj, err = u.client.OpenebsV1alpha1().
+		CStorVolumeReplicas(cvrObj.Namespace).Update(cvrObj)
 	if err != nil {
-		return nil, err
+		return cvr, err
 	}
-	return cvr, nil
+	return cvrObj, nil
 }
