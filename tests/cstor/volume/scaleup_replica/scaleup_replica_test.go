@@ -18,10 +18,12 @@ package replicascaleup
 
 import (
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/tests"
 	"github.com/openebs/maya/tests/cstor"
 
 	// auth plugins
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
@@ -40,10 +42,12 @@ var _ = Describe("[REPLICA SCALEUP] CSTOR REPLICA SCALEUP", func() {
 			}
 			ops.Config = spcConfig
 			spcObj = ops.BuildAndCreateSPC()
-			By("Creating SPC, Desired Number of CSP Should Be Created", verifyDesiredCSPCount)
+			By("Creating SPC, Desired Number of CSP Should Be Created", func() {
+				ops.VerifyDesiredCSPCount(spcObj, cstor.PoolCount)
+			})
 		})
 	})
-	When("CStor Volume Is Created", func() {
+	When("Persistent Volume Claim Is Created", func() {
 		It("Volume Should be Created and Provisioned", func() {
 			By("Build And Create StorageClass", buildAndCreateSC)
 			pvcConfig := &tests.PVCConfig{
@@ -55,7 +59,16 @@ var _ = Describe("[REPLICA SCALEUP] CSTOR REPLICA SCALEUP", func() {
 			}
 			ops.Config = pvcConfig
 			pvcObj = ops.BuildAndCreatePVC()
-			By("Creating PVC, Desired Number of CVR Should Be Created", verifyVolumeStatus)
+			By("Creating PVC, Desired Number of CVR Should Be Created", func() {
+				// ReplicaCount is initilized as 1
+				ops.VerifyVolumeStatus(pvcObj, ReplicaCount)
+			})
+			// GetLatest PVC object
+			var err error
+			pvcObj, err = ops.PVCClient.
+				WithNamespace(nsObj.Name).
+				Get(pvcObj.Name, metav1.GetOptions{})
+			Expect(err).To(BeNil())
 		})
 	})
 	When("CStor Replica ScaledUp", func() {
@@ -63,15 +76,21 @@ var _ = Describe("[REPLICA SCALEUP] CSTOR REPLICA SCALEUP", func() {
 			By("Update DesiredReplicationFactor", updateDesiredReplicationFactor)
 			By("Build and Create CStorVolumeReplica", buildAndCreateCVR)
 			ReplicaCount = ReplicaCount + 1
-			By("Verify Volume Status after ScaleUp Replica", verifyVolumeStatus)
+			By("Verify Volume Status after ScaleUp Replica", func() {
+				ops.VerifyVolumeStatus(pvcObj, ReplicaCount)
+			})
 			By("Verify Volume configurations from cstor volume", verifyVolumeConfigurationEventually)
 		})
 	})
 
 	When("Clean up test resources", func() {
 		It("Test related resources should be cleanedup", func() {
-			By("Delete persistentVolumeClaim then volume resources should be deleted", deleteVolumeResources)
-			By("Delete StoragePoolClaim then pool related resources should be deleted", deletePoolResources)
+			By("Delete persistentVolumeClaim then volume resources should be deleted", func() {
+				ops.DeleteVolumeResources(pvcObj, scObj)
+			})
+			By("Delete StoragePoolClaim then pool related resources should be deleted", func() {
+				ops.DeleteStoragePoolClaim(spcObj.Name)
+			})
 		})
 	})
 })

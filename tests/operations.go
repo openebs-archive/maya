@@ -133,8 +133,9 @@ type CVRConfig struct {
 }
 
 var (
-	pvLabel   = "openebs.io/persistent-volume="
-	poolLabel = "openebs.io/storagepoolclaim="
+	pvLabel            = "openebs.io/persistent-volume="
+	poolLabel          = "openebs.io/storagepoolclaim="
+	cstorPoolNameLabel = "cstorpool.openebs.io/name"
 )
 
 // OperationsOptions abstracts creating an
@@ -466,6 +467,7 @@ func (ops *Operations) ExecuteCMDEventually(
 	podObj *corev1.Pod,
 	containerName,
 	cmd string,
+	expectStdout bool,
 ) string {
 	var err error
 	output := &pod.ExecOutput{}
@@ -487,7 +489,7 @@ func (ops *Operations) ExecuteCMDEventually(
 						"-c",
 						cmd,
 					},
-					Container: podObj.Spec.Containers[0].Name,
+					Container: containerName,
 					Stdin:     false,
 					Stdout:    true,
 					Stderr:    true,
@@ -500,6 +502,10 @@ func (ops *Operations) ExecuteCMDEventually(
 			podName,
 			namespace,
 		)
+		// If caller pass expectStdout as false return from here
+		if !expectStdout {
+			return ""
+		}
 		if output.Stdout != "" {
 			return output.Stdout
 		}
@@ -716,6 +722,22 @@ func (ops *Operations) GetCSPCount(labelSelector string) int {
 	cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{LabelSelector: labelSelector})
 	Expect(err).To(BeNil())
 	return len(cspAPIList.Items)
+}
+
+// VerifyDesiredCSPCount verifies whether count of CSP belongs to SPC in cluster
+// matched with provided argument count
+func (ops *Operations) VerifyDesiredCSPCount(spcObj *apis.StoragePoolClaim, poolCount int) {
+	cspCount := ops.GetHealthyCSPCount(spcObj.Name, poolCount)
+	Expect(cspCount).To(Equal(poolCount))
+
+	// Check are there any extra csps
+	cspCount = ops.GetCSPCount(getLabelSelector(spcObj))
+	Expect(cspCount).To(Equal(poolCount), "Mismatch Of CSP Count")
+}
+
+// This function is local to this package
+func getLabelSelector(spc *apis.StoragePoolClaim) string {
+	return string(apis.StoragePoolClaimCPK) + "=" + spc.Name
 }
 
 // GetCSPICount gets cspi count based on cspc name at that time
@@ -1134,6 +1156,64 @@ func (ops *Operations) VerifyPoolResources(spcName string) {
 	labelSelector := poolLabel + spcName
 	isCSPDeleted := ops.GetCSPCountEventually(labelSelector, 0)
 	Expect(isCSPDeleted).To(Equal(true))
+}
+
+// VerifyVolumeStatus checks multiple resources related to volume
+// 1. Verifies whether PVC is bound to pv or not
+// 2. Verifies whether CStorVolume is in Healthy or not
+// 3. Verifies whether specified number of CVR's are healthy or not
+func (ops *Operations) VerifyVolumeStatus(
+	pvcObj *corev1.PersistentVolumeClaim, replicaCount int) {
+	status := ops.IsPVCBoundEventually(pvcObj.Name)
+	Expect(status).To(Equal(true), "while checking status equal to bound")
+
+	// GetLatest PVC object
+	updatedPVCObj, err := ops.PVCClient.
+		WithNamespace(pvcObj.Namespace).
+		Get(pvcObj.Name, metav1.GetOptions{})
+	Expect(err).To(BeNil())
+
+	volumeLabel := pvLabel + updatedPVCObj.Spec.VolumeName
+	cvCount := ops.GetCstorVolumeCount(openebsNamespace, volumeLabel, 1)
+	Expect(cvCount).To(Equal(1), "while checking cstorvolume count")
+
+	cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, volumeLabel, replicaCount)
+	Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
+}
+
+// DeleteVolumeResources deletes pvc and storageclass from cluster
+func (ops *Operations) DeleteVolumeResources(
+	pvcObj *corev1.PersistentVolumeClaim,
+	scObj *storagev1.StorageClass) {
+	ops.DeletePersistentVolumeClaim(pvcObj.Name, pvcObj.Namespace)
+	ops.VerifyVolumeResources(pvcObj.Spec.VolumeName, openebsNamespace)
+	err := ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
+	Expect(err).To(BeNil())
+}
+
+// GetUnUsedCStorPool returns the csp object where the volume replica doesn't exist
+func (ops *Operations) GetUnUsedCStorPool(
+	cvrList *apis.CStorVolumeReplicaList,
+	poolLabel string) *apis.CStorPool {
+	usedPools := map[string]bool{}
+	for _, cvrObj := range cvrList.Items {
+		poolName, ok := cvrObj.GetLabels()[cstorPoolNameLabel]
+		if ok {
+			usedPools[poolName] = true
+		}
+	}
+	cspList, err := ops.CSPClient.
+		List(metav1.ListOptions{LabelSelector: poolLabel})
+	Expect(err).To(BeNil())
+	for _, obj := range cspList.Items {
+		obj := obj
+		if !usedPools[obj.Name] {
+			return &obj
+		}
+	}
+	err = errors.Errorf("pools are not available to migrate storage replica")
+	Expect(err).To(BeNil())
+	return nil
 }
 
 // getCVRAnnotations get the annotations for cstorvolumereplica
