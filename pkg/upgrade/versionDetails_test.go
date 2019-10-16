@@ -81,6 +81,7 @@ func TestIsCurrentVersionValid(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt //pin it
 		t.Run(tt.name, func(t *testing.T) {
 			if got := IsCurrentVersionValid(tt.args.vd); got != tt.want {
 				t.Errorf("IsCurrentVersionValid() = %v, want %v", got, tt.want)
@@ -118,6 +119,7 @@ func TestIsDesiredVersionValid(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt //pin it
 		t.Run(tt.name, func(t *testing.T) {
 			if got := IsDesiredVersionValid(tt.args.vd); got != tt.want {
 				t.Errorf("IsDesiredVersionValid() = %v, want %v", got, tt.want)
@@ -149,6 +151,7 @@ func TestPath(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt //pin it
 		t.Run(tt.name, func(t *testing.T) {
 			if got := Path(tt.args.vd); got != tt.want {
 				t.Errorf("Path() = %v, want %v", got, tt.want)
@@ -177,6 +180,7 @@ func TestSetPendingStatus(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt //pin it
 		t.Run(tt.name, func(t *testing.T) {
 			got := SetPendingStatus(tt.args.vs)
 			// Exclude LastUpdateTime as it can never be same
@@ -209,6 +213,7 @@ func TestSetSuccessStatus(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt //pin it
 		t.Run(tt.name, func(t *testing.T) {
 			got := SetSuccessStatus(tt.args.vs)
 			// Exclude LastUpdateTime as it can never be same
@@ -248,6 +253,7 @@ func TestSetErrorStatus(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt //pin it
 		t.Run(tt.name, func(t *testing.T) {
 			got := SetErrorStatus(tt.args.vs, tt.args.msg, tt.args.err)
 			// Exclude LastUpdateTime as it can never be same
