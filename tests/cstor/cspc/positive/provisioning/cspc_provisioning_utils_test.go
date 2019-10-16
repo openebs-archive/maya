@@ -19,6 +19,9 @@ import (
 	cspc_v1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	cspcspecs_v1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
 	cspcrg_v1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/raidgroups"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 func createCSPCObjectForStripe() {
@@ -37,6 +40,32 @@ func createCSPCObjectForRaidz2() {
 	createCSPCObject(6, "raidz2")
 }
 
+func createCSPCObjectWithResources() {
+	createCSPCWithResourceLimits(1, "stripe")
+}
+
+func getResourceLimits(cpu, memory string) corev1.ResourceList {
+	res := corev1.ResourceList{}
+	res[corev1.ResourceCPU] = resource.MustParse(cpu)
+	res[corev1.ResourceMemory] = resource.MustParse(memory)
+
+	return res
+}
+
+func getDefaultResources(cpu, memory string) *corev1.ResourceRequirements {
+	Resources := &corev1.ResourceRequirements{
+		Limits: getResourceLimits(cpu, memory),
+	}
+	return Resources
+}
+
+func getAuxResources(cpu, memory string) corev1.ResourceRequirements {
+	Resources := corev1.ResourceRequirements{
+		Limits: getResourceLimits(cpu, memory),
+	}
+	return Resources
+}
+
 func createCSPCObject(blockDeviceCount int, poolType string) {
 	var err error
 	cspcObj, err = cspc_v1alpha1.NewBuilder().
@@ -47,6 +76,46 @@ func createCSPCObject(blockDeviceCount int, poolType string) {
 			WithRaidGroupBuilder(
 				cspcrg_v1alpha1.NewBuilder().
 					// TODO : PAss the entire label -- kubernetes.io/hostname
+					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(&NodeList.Items[0], blockDeviceCount)).
+					WithType(poolType),
+			),
+		).
+		WithPoolSpecBuilder(cspcspecs_v1alpha1.NewBuilder().
+			WithNodeSelector(NodeList.Items[1].Labels).
+			WithRaidGroupBuilder(
+				cspcrg_v1alpha1.NewBuilder().
+					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(&NodeList.Items[1], blockDeviceCount)).
+					WithType(poolType),
+			),
+		).
+		WithPoolSpecBuilder(cspcspecs_v1alpha1.NewBuilder().
+			WithNodeSelector(NodeList.Items[2].Labels).
+			WithRaidGroupBuilder(
+				cspcrg_v1alpha1.NewBuilder().
+					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(&NodeList.Items[2], blockDeviceCount)).
+					WithType(poolType),
+			),
+		).
+		GetObj()
+	Expect(err).ShouldNot(HaveOccurred())
+	cspcObj, err = ops.CSPCClient.WithNamespace(ops.NameSpace).Create(cspcObj)
+	Expect(err).To(BeNil())
+
+	Cspc, err = cspc_v1alpha1.BuilderForAPIObject(cspcObj).Build()
+	Expect(err).To(BeNil())
+}
+
+func createCSPCWithResourceLimits(blockDeviceCount int, poolType string) {
+	var err error
+	cspcObj, err = cspc_v1alpha1.NewBuilder().
+		WithGenerateName(cspcName).
+		WithNamespace(ops.NameSpace).
+		WithDefaultResourceRequirement(getDefaultResources("250m", "64Mi")).
+		WithAuxResourceRequirement(getAuxResources("500m", "128Mi")).
+		WithPoolSpecBuilder(cspcspecs_v1alpha1.NewBuilder().
+			WithNodeSelector(NodeList.Items[0].Labels).
+			WithRaidGroupBuilder(
+				cspcrg_v1alpha1.NewBuilder().
 					WithCSPCBlockDeviceList(ops.GetCSPCBDListForNode(&NodeList.Items[0], blockDeviceCount)).
 					WithType(poolType),
 			),
