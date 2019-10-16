@@ -534,7 +534,7 @@ func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.Storage
 	if spc.VersionDetails.Status.Current != spc.VersionDetails.Desired {
 		spcObj := spc.DeepCopy()
 		if spc.VersionDetails.Status.State != apis.ReconcileInProgress {
-			spcObj.VersionDetails.Status = upgrade.SetPendingStatus(spcObj.VersionDetails.Status)
+			spcObj.VersionDetails.Status = upgrade.SetInProgressStatus(spcObj.VersionDetails.Status)
 			spcObj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spcObj)
 			if err != nil {
 				return spc, err

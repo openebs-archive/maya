@@ -594,7 +594,7 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 	if cvr.VersionDetails.Status.Current != cvr.VersionDetails.Desired {
 		cvrObj := cvr.DeepCopy()
 		if cvrObj.VersionDetails.Status.State != apis.ReconcileInProgress {
-			cvrObj.VersionDetails.Status = upgrade.SetPendingStatus(cvrObj.VersionDetails.Status)
+			cvrObj.VersionDetails.Status = upgrade.SetInProgressStatus(cvrObj.VersionDetails.Status)
 			cvrObj, err = c.clientset.OpenebsV1alpha1().
 				CStorVolumeReplicas(cvrObj.Namespace).Update(cvrObj)
 			if err != nil {

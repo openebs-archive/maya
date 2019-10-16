@@ -56,8 +56,8 @@ func SetErrorStatus(vs apis.VersionStatus, msg string, err error) apis.VersionSt
 	return vs
 }
 
-// SetPendingStatus ...
-func SetPendingStatus(vs apis.VersionStatus) apis.VersionStatus {
+// SetInProgressStatus ...
+func SetInProgressStatus(vs apis.VersionStatus) apis.VersionStatus {
 	vs.State = apis.ReconcileInProgress
 	vs.LastUpdateTime = metav1.Now()
 	return vs

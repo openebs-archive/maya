@@ -583,7 +583,7 @@ func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStor
 	if csp.VersionDetails.Status.Current != csp.VersionDetails.Desired {
 		cspObj := csp.DeepCopy()
 		if csp.VersionDetails.Status.State != apis.ReconcileInProgress {
-			cspObj.VersionDetails.Status = upgrade.SetPendingStatus(cspObj.VersionDetails.Status)
+			cspObj.VersionDetails.Status = upgrade.SetInProgressStatus(cspObj.VersionDetails.Status)
 			cspObj, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObj)
 			if err != nil {
 				return csp, err

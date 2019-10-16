@@ -160,7 +160,7 @@ func TestPath(t *testing.T) {
 	}
 }
 
-func TestSetPendingStatus(t *testing.T) {
+func TestSetInProgressStatus(t *testing.T) {
 	type args struct {
 		vs apis.VersionStatus
 	}
@@ -182,11 +182,11 @@ func TestSetPendingStatus(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt //pin it
 		t.Run(tt.name, func(t *testing.T) {
-			got := SetPendingStatus(tt.args.vs)
+			got := SetInProgressStatus(tt.args.vs)
 			// Exclude LastUpdateTime as it can never be same
 			tt.want.LastUpdateTime = got.LastUpdateTime
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("SetPendingStatus() = %v, want %v", got, tt.want)
+				t.Errorf("SetInProgressStatus() = %v, want %v", got, tt.want)
 			}
 		})
 	}

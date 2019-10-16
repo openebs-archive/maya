@@ -627,7 +627,7 @@ func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CS
 	if cv.VersionDetails.Status.Current != cv.VersionDetails.Desired {
 		cvObject := cv.DeepCopy()
 		if cv.VersionDetails.Status.State != apis.ReconcileInProgress {
-			cvObject.VersionDetails.Status = upgrade.SetPendingStatus(cvObject.VersionDetails.Status)
+			cvObject.VersionDetails.Status = upgrade.SetInProgressStatus(cvObject.VersionDetails.Status)
 			cvObject, err = c.clientset.OpenebsV1alpha1().
 				CStorVolumes(cvObject.Namespace).Update(cvObject)
 			if err != nil {
