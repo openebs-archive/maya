@@ -529,6 +529,8 @@ func isManualProvisioning(spc *apis.StoragePoolClaim) bool {
 
 func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
 	var err error
+	// the below code uses deep copy to have the state of object just before
+	// any update call is done so that on failure the last state object can be returned
 	if spc.VersionDetails.Status.Current != spc.VersionDetails.Desired {
 		spcObj := spc.DeepCopy()
 		if spc.VersionDetails.Status.State != apis.ReconcileInProgress {
@@ -571,24 +573,24 @@ func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StorageP
 	if spc.VersionDetails.Status.Current == "" {
 		var err error
 		var v string
-		var obj *apis.StoragePoolClaim
-		v, err = spcv1alpha1.BuilderForAPIObject(spc).Spc.EstimateSPCVersion()
+		spcObj := spc.DeepCopy()
+		v, err = spcv1alpha1.BuilderForAPIObject(spcObj).Spc.EstimateSPCVersion()
 		if err != nil {
 			return spc, err
 		}
-		spc.VersionDetails.Status.Current = v
+		spcObj.VersionDetails.Status.Current = v
 		// For newly created spc Desired field will also be empty.
-		spc.VersionDetails.Desired = v
-		spc.VersionDetails.Status.DependentsUpgraded = true
+		spcObj.VersionDetails.Desired = v
+		spcObj.VersionDetails.Status.DependentsUpgraded = true
 
-		obj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().
-			Update(spc)
+		spcObj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().
+			Update(spcObj)
 
 		if err != nil {
 			return spc, err
 		}
-		klog.Infof("Version %s added on spc %s", v, spc.Name)
-		return obj, nil
+		klog.Infof("Version %s added on spc %s", v, spcObj.Name)
+		return spcObj, nil
 	}
 	return spc, nil
 }

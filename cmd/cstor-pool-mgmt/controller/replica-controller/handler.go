@@ -635,27 +635,28 @@ func (c *CStorVolumeReplicaController) populateVersion(cvr *apis.CStorVolumeRepl
 	v := cvr.Labels[string(apis.OpenEBSVersionKey)]
 	// 1.3.0 onwards new CVR will have the field populated during creation
 	if v < v130 && cvr.VersionDetails.Status.Current == "" {
-		cvr.VersionDetails.Status.Current = v
-		cvr.VersionDetails.Desired = v
-		obj, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cvr.Namespace).
-			Update(cvr)
+		cvrObj := cvr.DeepCopy()
+		cvrObj.VersionDetails.Status.Current = v
+		cvrObj.VersionDetails.Desired = v
+		cvrObj, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cvrObj.Namespace).
+			Update(cvrObj)
 
 		if err != nil {
 			return cvr, err
 		}
-		klog.Infof("Version %s added on cvr %s", v, cvr.Name)
-		return obj, nil
+		klog.Infof("Version %s added on cvr %s", v, cvrObj.Name)
+		return cvrObj, nil
 	}
 	return cvr, nil
 }
 
 func setReplicaID(u *upgradeParams) (*apis.CStorVolumeReplica, error) {
 	cvr := u.cvr
-	err := volumereplica.GetAndUpdateReplicaID(cvr)
+	cvrObj := cvr.DeepCopy()
+	err := volumereplica.GetAndUpdateReplicaID(cvrObj)
 	if err != nil {
 		return cvr, err
 	}
-	cvrObj := cvr.DeepCopy()
 	cvrObj, err = u.client.OpenebsV1alpha1().
 		CStorVolumeReplicas(cvrObj.Namespace).Update(cvrObj)
 	if err != nil {

@@ -595,7 +595,7 @@ func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStor
 		if !upgrade.IsDesiredVersionValid(cspObj.VersionDetails) {
 			return cspObj, errors.Errorf("invalid desired version %s", cspObj.VersionDetails.Desired)
 		}
-		path := upgrade.Path(csp.VersionDetails)
+		path := upgrade.Path(cspObj.VersionDetails)
 		u := &upgradeParams{
 			csp:    cspObj,
 			client: c.clientset,
@@ -619,19 +619,21 @@ func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStor
 func (c *CStorPoolController) populateVersion(csp *apis.CStorPool) (
 	*apis.CStorPool, error,
 ) {
+	var err error
 	v := csp.Labels[string(apis.OpenEBSVersionKey)]
 	// 1.3.0 onwards new CSP will have the field populated during creation
 	if v < "1.3.0" && csp.VersionDetails.Status.Current == "" {
-		csp.VersionDetails.Status.Current = v
-		csp.VersionDetails.Desired = v
-		obj, err := c.clientset.OpenebsV1alpha1().CStorPools().
-			Update(csp)
+		cspObj := csp.DeepCopy()
+		cspObj.VersionDetails.Status.Current = v
+		cspObj.VersionDetails.Desired = v
+		cspObj, err = c.clientset.OpenebsV1alpha1().CStorPools().
+			Update(cspObj)
 
 		if err != nil {
 			return csp, errors.Wrap(err, "failed to update csp while adding versiondetails")
 		}
-		klog.Infof("Version %s added on csp %s", v, csp.Name)
-		return obj, nil
+		klog.Infof("Version %s added on csp %s", v, cspObj.Name)
+		return cspObj, nil
 	}
 	return csp, nil
 }

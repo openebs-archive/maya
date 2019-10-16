@@ -668,16 +668,17 @@ func (c *CStorVolumeController) populateVersion(cv *apis.CStorVolume) (
 	v := cv.Labels[string(apis.OpenEBSVersionKey)]
 	// 1.3.0 onwards new CV will have the field populated during creation
 	if v < v130 && cv.VersionDetails.Status.Current == "" {
-		cv.VersionDetails.Status.Current = v
-		cv.VersionDetails.Desired = v
-		obj, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cv.Namespace).
-			Update(cv)
+		cvObj := cv.DeepCopy()
+		cvObj.VersionDetails.Status.Current = v
+		cvObj.VersionDetails.Desired = v
+		cvObj, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cvObj.Namespace).
+			Update(cvObj)
 
 		if err != nil {
 			return cv, err
 		}
-		klog.Infof("Version %s added on cstorvolume %s", v, cv.Name)
-		return obj, nil
+		klog.Infof("Version %s added on cstorvolume %s", v, cvObj.Name)
+		return cvObj, nil
 	}
 	return cv, nil
 }
