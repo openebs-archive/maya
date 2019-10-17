@@ -28,7 +28,6 @@ import (
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
-	"github.com/openebs/maya/pkg/upgrade"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -158,8 +157,7 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 				err.Error(),
 			),
 		)
-		gotSPC.VersionDetails.Status = upgrade.SetErrorStatus(
-			gotSPC.VersionDetails.Status,
+		gotSPC.VersionDetails.Status.SetErrorStatus(
 			"Failed to reconcile spc version",
 			err,
 		)
@@ -534,21 +532,21 @@ func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.Storage
 	if spc.VersionDetails.Status.Current != spc.VersionDetails.Desired {
 		spcObj := spc.DeepCopy()
 		if spc.VersionDetails.Status.State != apis.ReconcileInProgress {
-			spcObj.VersionDetails.Status = upgrade.SetInProgressStatus(spcObj.VersionDetails.Status)
+			spcObj.VersionDetails.Status.SetInProgressStatus()
 			spcObj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spcObj)
 			if err != nil {
 				return spc, err
 			}
 		}
-		if !upgrade.IsCurrentVersionValid(spcObj.VersionDetails) {
+		if !spcObj.VersionDetails.IsCurrentVersionValid() {
 			return spcObj, errors.Errorf("invalid current version %s", spcObj.VersionDetails.Status.Current)
 		}
-		if !upgrade.IsDesiredVersionValid(spcObj.VersionDetails) {
+		if !spcObj.VersionDetails.IsDesiredVersionValid() {
 			return spcObj, errors.Errorf("invalid desired version %s", spcObj.VersionDetails.Desired)
 		}
 		// As no other steps are required just change current version to
 		// desired version
-		path := upgrade.Path(spcObj.VersionDetails)
+		path := spcObj.VersionDetails.Path()
 		u := &upgradeParams{
 			spc:    spcObj,
 			client: c.clientset,
@@ -558,7 +556,7 @@ func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.Storage
 			return spcObj, err
 		}
 		spc = spcObj.DeepCopy()
-		spcObj.VersionDetails.Status = upgrade.SetSuccessStatus(spcObj.VersionDetails.Status)
+		spcObj.VersionDetails.Status.SetSuccessStatus()
 		spcObj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spcObj)
 		if err != nil {
 			return spc, errors.Wrap(err, "failed to update storagepoolclaim")

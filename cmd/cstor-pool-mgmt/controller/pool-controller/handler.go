@@ -32,7 +32,6 @@ import (
 	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	lease "github.com/openebs/maya/pkg/lease/v1alpha1"
-	upgrade "github.com/openebs/maya/pkg/upgrade"
 	"github.com/openebs/maya/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -105,8 +104,7 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 				err.Error(),
 			),
 		)
-		cspObject.VersionDetails.Status = upgrade.SetErrorStatus(
-			cspObject.VersionDetails.Status,
+		cspObject.VersionDetails.Status.SetErrorStatus(
 			"Failed to reconcile csp version",
 			err,
 		)
@@ -583,19 +581,19 @@ func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStor
 	if csp.VersionDetails.Status.Current != csp.VersionDetails.Desired {
 		cspObj := csp.DeepCopy()
 		if csp.VersionDetails.Status.State != apis.ReconcileInProgress {
-			cspObj.VersionDetails.Status = upgrade.SetInProgressStatus(cspObj.VersionDetails.Status)
+			cspObj.VersionDetails.Status.SetInProgressStatus()
 			cspObj, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObj)
 			if err != nil {
 				return csp, err
 			}
 		}
-		if !upgrade.IsCurrentVersionValid(cspObj.VersionDetails) {
+		if !cspObj.VersionDetails.IsCurrentVersionValid() {
 			return cspObj, errors.Errorf("invalid current version %s", cspObj.VersionDetails.Status.Current)
 		}
-		if !upgrade.IsDesiredVersionValid(cspObj.VersionDetails) {
+		if !cspObj.VersionDetails.IsDesiredVersionValid() {
 			return cspObj, errors.Errorf("invalid desired version %s", cspObj.VersionDetails.Desired)
 		}
-		path := upgrade.Path(cspObj.VersionDetails)
+		path := cspObj.VersionDetails.Path()
 		u := &upgradeParams{
 			csp:    cspObj,
 			client: c.clientset,
@@ -605,7 +603,7 @@ func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStor
 			return cspObj, err
 		}
 		csp = cspObj.DeepCopy()
-		cspObj.VersionDetails.Status = upgrade.SetSuccessStatus(cspObj.VersionDetails.Status)
+		cspObj.VersionDetails.Status.SetSuccessStatus()
 		cspObj, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObj)
 		if err != nil {
 			return csp, errors.Wrap(err, "failed to update csp with versionDetails")

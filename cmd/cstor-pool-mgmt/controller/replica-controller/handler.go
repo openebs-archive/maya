@@ -28,7 +28,6 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
-	"github.com/openebs/maya/pkg/upgrade"
 	pkg_errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -120,8 +119,7 @@ func (c *CStorVolumeReplicaController) syncHandler(
 				err.Error(),
 			),
 		)
-		cvrGot.VersionDetails.Status = upgrade.SetErrorStatus(
-			cvrGot.VersionDetails.Status,
+		cvrGot.VersionDetails.Status.SetErrorStatus(
 			"Failed to reconcile cvr version",
 			err,
 		)
@@ -594,20 +592,20 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 	if cvr.VersionDetails.Status.Current != cvr.VersionDetails.Desired {
 		cvrObj := cvr.DeepCopy()
 		if cvrObj.VersionDetails.Status.State != apis.ReconcileInProgress {
-			cvrObj.VersionDetails.Status = upgrade.SetInProgressStatus(cvrObj.VersionDetails.Status)
+			cvrObj.VersionDetails.Status.SetInProgressStatus()
 			cvrObj, err = c.clientset.OpenebsV1alpha1().
 				CStorVolumeReplicas(cvrObj.Namespace).Update(cvrObj)
 			if err != nil {
 				return cvr, err
 			}
 		}
-		if !upgrade.IsCurrentVersionValid(cvrObj.VersionDetails) {
+		if !cvrObj.VersionDetails.IsCurrentVersionValid() {
 			return cvrObj, pkg_errors.Errorf("invalid current version %s", cvrObj.VersionDetails.Status.Current)
 		}
-		if !upgrade.IsDesiredVersionValid(cvrObj.VersionDetails) {
+		if !cvrObj.VersionDetails.IsDesiredVersionValid() {
 			return cvrObj, pkg_errors.Errorf("invalid desired version %s", cvrObj.VersionDetails.Desired)
 		}
-		path := upgrade.Path(cvrObj.VersionDetails)
+		path := cvrObj.VersionDetails.Path()
 		u := &upgradeParams{
 			cvr:    cvrObj,
 			client: c.clientset,
@@ -617,7 +615,7 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 			return cvrObj, err
 		}
 		cvr = cvrObj.DeepCopy()
-		cvrObj.VersionDetails.Status = upgrade.SetSuccessStatus(cvrObj.VersionDetails.Status)
+		cvrObj.VersionDetails.Status.SetSuccessStatus()
 		cvrObj, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumeReplicas(cvrObj.Namespace).Update(cvrObj)
 		if err != nil {

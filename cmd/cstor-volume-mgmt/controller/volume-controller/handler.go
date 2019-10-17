@@ -22,8 +22,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/openebs/maya/pkg/upgrade"
-
 	pkg_errors "github.com/pkg/errors"
 
 	"strings"
@@ -94,8 +92,7 @@ func (c *CStorVolumeController) syncHandler(
 				err.Error(),
 			),
 		)
-		cStorVolumeGot.VersionDetails.Status = upgrade.SetErrorStatus(
-			cStorVolumeGot.VersionDetails.Status,
+		cStorVolumeGot.VersionDetails.Status.SetErrorStatus(
 			"Failed to reconcile cv version",
 			err,
 		)
@@ -627,20 +624,20 @@ func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CS
 	if cv.VersionDetails.Status.Current != cv.VersionDetails.Desired {
 		cvObject := cv.DeepCopy()
 		if cv.VersionDetails.Status.State != apis.ReconcileInProgress {
-			cvObject.VersionDetails.Status = upgrade.SetInProgressStatus(cvObject.VersionDetails.Status)
+			cvObject.VersionDetails.Status.SetInProgressStatus()
 			cvObject, err = c.clientset.OpenebsV1alpha1().
 				CStorVolumes(cvObject.Namespace).Update(cvObject)
 			if err != nil {
 				return cv, err
 			}
 		}
-		if !upgrade.IsCurrentVersionValid(cvObject.VersionDetails) {
+		if !cvObject.VersionDetails.IsCurrentVersionValid() {
 			return nil, pkg_errors.Errorf("invalid current version %s", cvObject.VersionDetails.Status.Current)
 		}
-		if !upgrade.IsDesiredVersionValid(cvObject.VersionDetails) {
+		if !cvObject.VersionDetails.IsDesiredVersionValid() {
 			return nil, pkg_errors.Errorf("invalid desired version %s", cvObject.VersionDetails.Desired)
 		}
-		path := upgrade.Path(cvObject.VersionDetails)
+		path := cvObject.VersionDetails.Path()
 		u := &upgradeParams{
 			cv:     cvObject,
 			client: c.clientset,
@@ -650,7 +647,7 @@ func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CS
 			return cvObject, err
 		}
 		cv = cvObject.DeepCopy()
-		cvObject.VersionDetails.Status = upgrade.SetSuccessStatus(cvObject.VersionDetails.Status)
+		cvObject.VersionDetails.Status.SetSuccessStatus()
 		cvObject, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumes(cvObject.Namespace).Update(cvObject)
 		if err != nil {

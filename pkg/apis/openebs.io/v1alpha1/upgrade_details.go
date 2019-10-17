@@ -16,7 +16,13 @@ limitations under the License.
 
 package v1alpha1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	"strings"
+
+	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/pkg/version"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // VersionDetails provides the details for upgrade
 type VersionDetails struct {
@@ -60,3 +66,49 @@ const (
 	// ReconcilePending is the state the reconciliation is still not started yet
 	ReconcilePending VersionState = "ReconcilePending"
 )
+
+var (
+	validCurrentVersions = []string{"1.0.0", "1.1.0", "1.2.0"}
+	validDesiredVersion  = version.GetVersion()
+)
+
+// IsCurrentVersionValid verifies if the  current version is valid or not
+func (vd VersionDetails) IsCurrentVersionValid() bool {
+	currentVersion := strings.Split(vd.Status.Current, "-")[0]
+	return util.ContainsString(validCurrentVersions, currentVersion)
+}
+
+// IsDesiredVersionValid verifies the desired version is valid or not
+func (vd VersionDetails) IsDesiredVersionValid() bool {
+	desiredVersion := strings.Split(vd.Desired, "-")[0]
+	return validDesiredVersion == desiredVersion
+}
+
+// Path gives the path from current version to desired version
+func (vd VersionDetails) Path() string {
+	return strings.Split(vd.Status.Current, "-")[0] + "-" +
+		strings.Split(vd.Desired, "-")[0]
+}
+
+// SetErrorStatus sets the message and reason for the error
+func (vs *VersionStatus) SetErrorStatus(msg string, err error) {
+	vs.Message = msg
+	vs.Reason = err.Error()
+	vs.LastUpdateTime = metav1.Now()
+}
+
+// SetInProgressStatus sets the state as ReconcileInProgress
+func (vs *VersionStatus) SetInProgressStatus() {
+	vs.State = ReconcileInProgress
+	vs.LastUpdateTime = metav1.Now()
+}
+
+// SetSuccessStatus resets the message and reason and sets the state as
+// Reconciled
+func (vs *VersionStatus) SetSuccessStatus() {
+	vs.Current = validDesiredVersion
+	vs.Message = ""
+	vs.Reason = ""
+	vs.State = ReconcileComplete
+	vs.LastUpdateTime = metav1.Now()
+}
