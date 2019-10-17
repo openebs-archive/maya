@@ -45,10 +45,6 @@ func NewPoolSyncMetric(runner types.Runner) col.Collector {
 	}
 }
 
-func (p *poolMetrics) isRequestInProgress() bool {
-	return p.request
-}
-
 func (p *poolMetrics) setRequestToFalse() {
 	p.Lock()
 	p.request = false
@@ -72,7 +68,7 @@ func (p *poolMetrics) Describe(ch chan<- *prometheus.Desc) {
 	}
 }
 
-func (p *poolMetrics) checkError(stdout []byte, ch chan<- prometheus.Metric) *poolfields {
+func (p *poolMetrics) checkError(stdout []byte) *poolfields {
 
 	if zvol.IsNoDataSetAvailable(string(stdout)) || IsNoPoolAvailable(string(stdout)) {
 		pool := poolfields{
@@ -86,7 +82,7 @@ func (p *poolMetrics) checkError(stdout []byte, ch chan<- prometheus.Metric) *po
 	return nil
 }
 
-func (p *poolMetrics) get(ch chan<- prometheus.Metric) (*poolfields, error) {
+func (p *poolMetrics) get(ch chan<- prometheus.Metric) *poolfields {
 	p.Lock()
 	defer p.Unlock()
 
@@ -99,16 +95,16 @@ func (p *poolMetrics) get(ch chan<- prometheus.Metric) (*poolfields, error) {
 			zpoolStateUnknown:             0,
 			zpoolLastSyncTimeCommandError: 1,
 		}
-		return &pool, nil
+		return &pool
 	}
 
-	if pool := p.checkError(stdout, ch); pool != nil {
-		return pool, nil
+	if pool := p.checkError(stdout); pool != nil {
+		return pool
 	}
 	klog.V(2).Infof("Parse stdout of zfs get openebs.io:livenesstimestamp command, got stdout: \n%v", string(stdout))
 	pool := poolMetricParser(stdout, p.poolSyncMetrics)
 
-	return pool, nil
+	return pool
 }
 
 // Collect is implementation of prometheus's prometheus.Collector interface
@@ -117,11 +113,7 @@ func (p *poolMetrics) Collect(ch chan<- prometheus.Metric) {
 	p.request = true
 	p.Unlock()
 
-	pool, err := p.get(ch)
-	if err != nil {
-		p.setRequestToFalse()
-		return
-	}
+	pool := p.get(ch)
 
 	klog.V(2).Infof("Got zfs pool last sync time: %#v", pool)
 	p.setPoolStats(pool)

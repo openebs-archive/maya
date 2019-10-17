@@ -83,7 +83,7 @@ func poolMetricParser(stdout []byte, p *poolSyncMetrics) *poolfields {
 
 	pool := poolfields{
 		name:                          f[0],
-		zpoolLastSyncTime:             poolParseFloat64(f[2], p),
+		zpoolLastSyncTime:             poolSyncTimeParseFloat64(f[2]),
 		zpoolStateUnknown:             0,
 		zpoolLastSyncTimeCommandError: 0,
 	}
@@ -91,7 +91,7 @@ func poolMetricParser(stdout []byte, p *poolSyncMetrics) *poolfields {
 	return &pool
 }
 
-func poolParseFloat64(e string, p *poolSyncMetrics) float64 {
+func poolSyncTimeParseFloat64(e string) float64 {
 	num, err := strconv.ParseFloat(e, 64)
 	if err != nil {
 		return 0
