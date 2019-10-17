@@ -64,7 +64,7 @@ func (p *poolSyncMetrics) withZpoolLastSyncTime() *poolSyncMetrics {
 	return p
 }
 
-func poolMetricParser(stdout []byte, p *poolSyncMetrics) *poolfields {
+func poolMetricParser(stdout []byte) *poolfields {
 	if len(string(stdout)) == 0 {
 		pool := poolfields{
 			name:                          os.Getenv("HOSTNAME"),

@@ -82,7 +82,7 @@ func (p *poolMetrics) checkError(stdout []byte) *poolfields {
 	return nil
 }
 
-func (p *poolMetrics) get(ch chan<- prometheus.Metric) *poolfields {
+func (p *poolMetrics) get() *poolfields {
 	p.Lock()
 	defer p.Unlock()
 
@@ -102,7 +102,7 @@ func (p *poolMetrics) get(ch chan<- prometheus.Metric) *poolfields {
 		return pool
 	}
 	klog.V(2).Infof("Parse stdout of zfs get openebs.io:livenesstimestamp command, got stdout: \n%v", string(stdout))
-	pool := poolMetricParser(stdout, p.poolSyncMetrics)
+	pool := poolMetricParser(stdout)
 
 	return pool
 }
@@ -113,7 +113,7 @@ func (p *poolMetrics) Collect(ch chan<- prometheus.Metric) {
 	p.request = true
 	p.Unlock()
 
-	pool := p.get(ch)
+	pool := p.get()
 
 	klog.V(2).Infof("Got zfs pool last sync time: %#v", pool)
 	p.setPoolStats(pool)
