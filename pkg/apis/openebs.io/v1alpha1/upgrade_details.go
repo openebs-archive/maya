@@ -19,7 +19,6 @@ package v1alpha1
 import (
 	"strings"
 
-	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -75,7 +74,12 @@ var (
 // IsCurrentVersionValid verifies if the  current version is valid or not
 func (vd VersionDetails) IsCurrentVersionValid() bool {
 	currentVersion := strings.Split(vd.Status.Current, "-")[0]
-	return util.ContainsString(validCurrentVersions, currentVersion)
+	for _, version := range validCurrentVersions {
+		if currentVersion == version {
+			return true
+		}
+	}
+	return false
 }
 
 // IsDesiredVersionValid verifies the desired version is valid or not
