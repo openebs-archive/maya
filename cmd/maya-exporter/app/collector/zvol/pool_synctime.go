@@ -1,0 +1,145 @@
+// Copyright © 2017-2019 The OpenEBS Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package zvol
+
+import (
+	"os"
+	"strings"
+	"sync"
+
+	col "github.com/openebs/maya/cmd/maya-exporter/app/collector"
+	types "github.com/openebs/maya/pkg/exec"
+	zvol "github.com/openebs/maya/pkg/zvol/v1alpha1"
+	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog"
+)
+
+// poolMetrics implements prometheus.Collector interface
+type poolMetrics struct {
+	sync.Mutex
+	*poolSyncMetrics
+	request bool
+	runner  types.Runner
+}
+
+// NewPoolSyncMetric returns new instance of poolMetrics
+func NewPoolSyncMetric(runner types.Runner) col.Collector {
+	return &poolMetrics{
+		poolSyncMetrics: newPoolMetrics().
+			withZpoolLastSyncTime().
+			withZpoolStateUnknown().
+			withzpoolLastSyncTimeCommandError(),
+		runner: runner,
+	}
+}
+
+func (p *poolMetrics) isRequestInProgress() bool {
+	return p.request
+}
+
+func (p *poolMetrics) setRequestToFalse() {
+	p.Lock()
+	p.request = false
+	p.Unlock()
+}
+
+// collectors returns the list of the collectors
+func (p *poolMetrics) collectors() []prometheus.Collector {
+	return []prometheus.Collector{
+		p.zpoolLastSyncTime,
+		p.zpoolStateUnknown,
+		p.zpoolLastSyncTimeCommandError,
+	}
+}
+
+// Describe is implementation of Describe method of prometheus.Collector
+// interface.
+func (p *poolMetrics) Describe(ch chan<- *prometheus.Desc) {
+	for _, col := range p.collectors() {
+		col.Describe(ch)
+	}
+}
+
+func (p *poolMetrics) checkError(stdout []byte, ch chan<- prometheus.Metric) *poolfields {
+
+	if zvol.IsNoDataSetAvailable(string(stdout)) || IsNoPoolAvailable(string(stdout)) {
+		pool := poolfields{
+			name:                          os.Getenv("HOSTNAME"),
+			zpoolLastSyncTime:             0,
+			zpoolStateUnknown:             1,
+			zpoolLastSyncTimeCommandError: 0,
+		}
+		return &pool
+	}
+	return nil
+}
+
+func (p *poolMetrics) get(ch chan<- prometheus.Metric) (*poolfields, error) {
+	p.Lock()
+	defer p.Unlock()
+
+	klog.V(2).Info("Run zfs get openebs.io:livenesstimestamp")
+	stdout, err := zvol.Run(p.runner)
+	if err != nil {
+		pool := poolfields{
+			name:                          os.Getenv("HOSTNAME"),
+			zpoolLastSyncTime:             0,
+			zpoolStateUnknown:             0,
+			zpoolLastSyncTimeCommandError: 1,
+		}
+		return &pool, nil
+	}
+
+	if pool := p.checkError(stdout, ch); pool != nil {
+		return pool, nil
+	}
+	klog.V(2).Infof("Parse stdout of zfs get openebs.io:livenesstimestamp command, got stdout: \n%v", string(stdout))
+	pool := poolMetricParser(stdout, p.poolSyncMetrics)
+
+	return pool, nil
+}
+
+// Collect is implementation of prometheus's prometheus.Collector interface
+func (p *poolMetrics) Collect(ch chan<- prometheus.Metric) {
+	p.Lock()
+	p.request = true
+	p.Unlock()
+
+	pool, err := p.get(ch)
+	if err != nil {
+		p.setRequestToFalse()
+		return
+	}
+
+	klog.V(2).Infof("Got zfs pool last sync time: %#v", pool)
+	p.setPoolStats(pool)
+	for _, col := range p.collectors() {
+		col.Collect(ch)
+	}
+	p.setRequestToFalse()
+
+}
+
+func (p *poolMetrics) setPoolStats(poolSyncTime *poolfields) {
+	p.zpoolLastSyncTime.WithLabelValues(poolSyncTime.name).Set(poolSyncTime.zpoolLastSyncTime)
+	p.zpoolLastSyncTimeCommandError.WithLabelValues(poolSyncTime.name).Set(poolSyncTime.zpoolLastSyncTimeCommandError)
+	p.zpoolStateUnknown.WithLabelValues(poolSyncTime.name).Set(poolSyncTime.zpoolStateUnknown)
+
+}
+
+// IsNoPoolAvailable checks if output is No Pool Available
+func IsNoPoolAvailable(str string) bool {
+	return strings.Contains(str, string("No Pool Available"))
+}
