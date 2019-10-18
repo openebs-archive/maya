@@ -423,7 +423,7 @@ func (m *metrics) withInitializeLibuzfsClientErrorCounter() *metrics {
 	return m
 }
 
-// All new metrics related to pool last sync time (zfs get openebs.io:livenesstimestamp command o/p)
+// All new metrics related to pool last sync time
 func (p *poolSyncMetrics) withZpoolStateUnknown() *poolSyncMetrics {
 
 	p.zpoolStateUnknown = prometheus.NewGaugeVec(
@@ -498,9 +498,9 @@ func poolMetricParser(stdout []byte) *poolfields {
 	if len(string(stdout)) == 0 {
 		pool := poolfields{
 			name:                          os.Getenv("HOSTNAME"),
-			zpoolLastSyncTime:             zpool.False,
-			zpoolLastSyncTimeCommandError: zpool.False,
-			zpoolStateUnknown:             zpool.True,
+			zpoolLastSyncTime:             zpool.ZpoolLastSyncCommandErrorOrUnknownUnset,
+			zpoolLastSyncTimeCommandError: zpool.ZpoolLastSyncCommandErrorOrUnknownUnset,
+			zpoolStateUnknown:             zpool.ZpoolLastSyncCommandErrorOrUnknownSet,
 		}
 		return &pool
 	}
@@ -514,14 +514,14 @@ func poolMetricParser(stdout []byte) *poolfields {
 	pool := poolfields{
 		name:                          f[0],
 		zpoolLastSyncTime:             poolSyncTimeParseFloat64(f[2]),
-		zpoolStateUnknown:             zpool.False,
-		zpoolLastSyncTimeCommandError: zpool.False,
+		zpoolStateUnknown:             zpool.ZpoolLastSyncCommandErrorOrUnknownUnset,
+		zpoolLastSyncTimeCommandError: zpool.ZpoolLastSyncCommandErrorOrUnknownUnset,
 	}
 
 	return &pool
 }
 
-// poolSyncTimeParseFloat64 is used to convert epoch timestamp value which is in string to float64
+// poolSyncTimeParseFloat64 is used to convert epoch timestamp in string to float64
 func poolSyncTimeParseFloat64(e string) float64 {
 	num, err := strconv.ParseFloat(e, 64)
 	if err != nil {

@@ -46,11 +46,11 @@ const (
 	// InCompleteStdoutErr is err msg when recieved output id incomplete
 	InCompleteStdoutErr = "Couldn't receive complete output"
 
-	// False is for setting value as 0 whereever needed
-	False = 0
+	// ZpoolLastSyncCommandErrorOrUnknownUnset is for setting value as 0 for zpool last sync metrics
+	ZpoolLastSyncCommandErrorOrUnknownUnset = 0
 
-	// True is for setting value as 1 whereever needed
-	True = 1
+	// ZpoolLastSyncCommandErrorOrUnknownSet is for setting value as 1 for zpool last sync metrics
+	ZpoolLastSyncCommandErrorOrUnknownSet = 1
 )
 
 var (

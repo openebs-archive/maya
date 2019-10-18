@@ -73,9 +73,9 @@ func (p *poolMetrics) checkError(stdout []byte) *poolfields {
 	if zvol.IsNoDataSetAvailable(string(stdout)) || zpool.IsNotAvailable(string(stdout)) {
 		pool := poolfields{
 			name:                          os.Getenv("HOSTNAME"),
-			zpoolLastSyncTime:             zpool.False,
-			zpoolStateUnknown:             zpool.True,
-			zpoolLastSyncTimeCommandError: zpool.False,
+			zpoolLastSyncTime:             zpool.ZpoolLastSyncCommandErrorOrUnknownUnset,
+			zpoolStateUnknown:             zpool.ZpoolLastSyncCommandErrorOrUnknownSet,
+			zpoolLastSyncTimeCommandError: zpool.ZpoolLastSyncCommandErrorOrUnknownUnset,
 		}
 		return &pool
 	}
@@ -91,9 +91,9 @@ func (p *poolMetrics) get() *poolfields {
 	if err != nil {
 		pool := poolfields{
 			name:                          os.Getenv("HOSTNAME"),
-			zpoolLastSyncTime:             zpool.False,
-			zpoolStateUnknown:             zpool.False,
-			zpoolLastSyncTimeCommandError: zpool.True,
+			zpoolLastSyncTime:             zpool.ZpoolLastSyncCommandErrorOrUnknownUnset,
+			zpoolStateUnknown:             zpool.ZpoolLastSyncCommandErrorOrUnknownUnset,
+			zpoolLastSyncTimeCommandError: zpool.ZpoolLastSyncCommandErrorOrUnknownSet,
 		}
 		return &pool
 	}
