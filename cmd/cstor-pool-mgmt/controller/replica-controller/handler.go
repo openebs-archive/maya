@@ -590,6 +590,12 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 	// the below code uses deep copy to have the state of object just before
 	// any update call is done so that on failure the last state object can be returned
 	if cvr.VersionDetails.Status.Current != cvr.VersionDetails.Desired {
+		if !cvr.VersionDetails.IsCurrentVersionValid() {
+			return cvr, pkg_errors.Errorf("invalid current version %s", cvr.VersionDetails.Status.Current)
+		}
+		if !cvr.VersionDetails.IsDesiredVersionValid() {
+			return cvr, pkg_errors.Errorf("invalid desired version %s", cvr.VersionDetails.Desired)
+		}
 		cvrObj := cvr.DeepCopy()
 		if cvrObj.VersionDetails.Status.State != apis.ReconcileInProgress {
 			cvrObj.VersionDetails.Status.SetInProgressStatus()
@@ -598,12 +604,6 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 			if err != nil {
 				return cvr, err
 			}
-		}
-		if !cvrObj.VersionDetails.IsCurrentVersionValid() {
-			return cvrObj, pkg_errors.Errorf("invalid current version %s", cvrObj.VersionDetails.Status.Current)
-		}
-		if !cvrObj.VersionDetails.IsDesiredVersionValid() {
-			return cvrObj, pkg_errors.Errorf("invalid desired version %s", cvrObj.VersionDetails.Desired)
 		}
 		path := cvrObj.VersionDetails.Path()
 		u := &upgradeParams{
@@ -648,6 +648,8 @@ func (c *CStorVolumeReplicaController) populateVersion(cvr *apis.CStorVolumeRepl
 	return cvr, nil
 }
 
+// setReplicaID sets the replica_id if not present for old cvrs when
+// they are upgraded to version 1.3.0 or above.
 func setReplicaID(u *upgradeParams) (*apis.CStorVolumeReplica, error) {
 	cvr := u.cvr
 	cvrObj := cvr.DeepCopy()

@@ -530,6 +530,12 @@ func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.Storage
 	// the below code uses deep copy to have the state of object just before
 	// any update call is done so that on failure the last state object can be returned
 	if spc.VersionDetails.Status.Current != spc.VersionDetails.Desired {
+		if !spc.VersionDetails.IsCurrentVersionValid() {
+			return spc, errors.Errorf("invalid current version %s", spc.VersionDetails.Status.Current)
+		}
+		if !spc.VersionDetails.IsDesiredVersionValid() {
+			return spc, errors.Errorf("invalid desired version %s", spc.VersionDetails.Desired)
+		}
 		spcObj := spc.DeepCopy()
 		if spc.VersionDetails.Status.State != apis.ReconcileInProgress {
 			spcObj.VersionDetails.Status.SetInProgressStatus()
@@ -537,12 +543,6 @@ func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.Storage
 			if err != nil {
 				return spc, err
 			}
-		}
-		if !spcObj.VersionDetails.IsCurrentVersionValid() {
-			return spcObj, errors.Errorf("invalid current version %s", spcObj.VersionDetails.Status.Current)
-		}
-		if !spcObj.VersionDetails.IsDesiredVersionValid() {
-			return spcObj, errors.Errorf("invalid desired version %s", spcObj.VersionDetails.Desired)
 		}
 		// As no other steps are required just change current version to
 		// desired version

@@ -579,6 +579,12 @@ func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStor
 	// the below code uses deep copy to have the state of object just before
 	// any update call is done so that on failure the last state object can be returned
 	if csp.VersionDetails.Status.Current != csp.VersionDetails.Desired {
+		if !csp.VersionDetails.IsCurrentVersionValid() {
+			return csp, errors.Errorf("invalid current version %s", csp.VersionDetails.Status.Current)
+		}
+		if !csp.VersionDetails.IsDesiredVersionValid() {
+			return csp, errors.Errorf("invalid desired version %s", csp.VersionDetails.Desired)
+		}
 		cspObj := csp.DeepCopy()
 		if csp.VersionDetails.Status.State != apis.ReconcileInProgress {
 			cspObj.VersionDetails.Status.SetInProgressStatus()
@@ -586,12 +592,6 @@ func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStor
 			if err != nil {
 				return csp, err
 			}
-		}
-		if !cspObj.VersionDetails.IsCurrentVersionValid() {
-			return cspObj, errors.Errorf("invalid current version %s", cspObj.VersionDetails.Status.Current)
-		}
-		if !cspObj.VersionDetails.IsDesiredVersionValid() {
-			return cspObj, errors.Errorf("invalid desired version %s", cspObj.VersionDetails.Desired)
 		}
 		path := cspObj.VersionDetails.Path()
 		u := &upgradeParams{

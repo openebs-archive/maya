@@ -622,6 +622,12 @@ func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CS
 	// the below code uses DeepCopy() to have the state of object just before
 	// any update call is done so that on failure the last state object can be returned
 	if cv.VersionDetails.Status.Current != cv.VersionDetails.Desired {
+		if !cv.VersionDetails.IsCurrentVersionValid() {
+			return cv, pkg_errors.Errorf("invalid current version %s", cv.VersionDetails.Status.Current)
+		}
+		if !cv.VersionDetails.IsDesiredVersionValid() {
+			return cv, pkg_errors.Errorf("invalid desired version %s", cv.VersionDetails.Desired)
+		}
 		cvObject := cv.DeepCopy()
 		if cv.VersionDetails.Status.State != apis.ReconcileInProgress {
 			cvObject.VersionDetails.Status.SetInProgressStatus()
@@ -630,12 +636,6 @@ func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CS
 			if err != nil {
 				return cv, err
 			}
-		}
-		if !cvObject.VersionDetails.IsCurrentVersionValid() {
-			return nil, pkg_errors.Errorf("invalid current version %s", cvObject.VersionDetails.Status.Current)
-		}
-		if !cvObject.VersionDetails.IsDesiredVersionValid() {
-			return nil, pkg_errors.Errorf("invalid desired version %s", cvObject.VersionDetails.Desired)
 		}
 		path := cvObject.VersionDetails.Path()
 		u := &upgradeParams{
