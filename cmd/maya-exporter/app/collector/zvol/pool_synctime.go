@@ -16,11 +16,11 @@ package zvol
 
 import (
 	"os"
-	"strings"
 	"sync"
 
 	col "github.com/openebs/maya/cmd/maya-exporter/app/collector"
 	types "github.com/openebs/maya/pkg/exec"
+	zpool "github.com/openebs/maya/pkg/zpool/v1alpha1"
 	zvol "github.com/openebs/maya/pkg/zvol/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/klog"
@@ -70,12 +70,12 @@ func (p *poolMetrics) Describe(ch chan<- *prometheus.Desc) {
 
 func (p *poolMetrics) checkError(stdout []byte) *poolfields {
 
-	if zvol.IsNoDataSetAvailable(string(stdout)) || IsNoPoolAvailable(string(stdout)) {
+	if zvol.IsNoDataSetAvailable(string(stdout)) || zpool.IsNotAvailable(string(stdout)) {
 		pool := poolfields{
 			name:                          os.Getenv("HOSTNAME"),
-			zpoolLastSyncTime:             0,
-			zpoolStateUnknown:             1,
-			zpoolLastSyncTimeCommandError: 0,
+			zpoolLastSyncTime:             zpool.False,
+			zpoolStateUnknown:             zpool.True,
+			zpoolLastSyncTimeCommandError: zpool.False,
 		}
 		return &pool
 	}
@@ -91,9 +91,9 @@ func (p *poolMetrics) get() *poolfields {
 	if err != nil {
 		pool := poolfields{
 			name:                          os.Getenv("HOSTNAME"),
-			zpoolLastSyncTime:             0,
-			zpoolStateUnknown:             0,
-			zpoolLastSyncTimeCommandError: 1,
+			zpoolLastSyncTime:             zpool.False,
+			zpoolStateUnknown:             zpool.False,
+			zpoolLastSyncTimeCommandError: zpool.True,
 		}
 		return &pool
 	}
@@ -134,9 +134,4 @@ func (p *poolMetrics) setPoolStats(poolSyncTime *poolfields) {
 	p.zpoolLastSyncTimeCommandError.WithLabelValues(poolSyncTime.name).Set(poolSyncTime.zpoolLastSyncTimeCommandError)
 	p.zpoolStateUnknown.WithLabelValues(poolSyncTime.name).Set(poolSyncTime.zpoolStateUnknown)
 
-}
-
-// IsNoPoolAvailable checks if output is No Pool Available
-func IsNoPoolAvailable(str string) bool {
-	return strings.Contains(str, string("No Pool Available"))
 }

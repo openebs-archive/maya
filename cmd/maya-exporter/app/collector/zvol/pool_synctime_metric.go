@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	zpool "github.com/openebs/maya/pkg/zpool/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -68,9 +69,9 @@ func poolMetricParser(stdout []byte) *poolfields {
 	if len(string(stdout)) == 0 {
 		pool := poolfields{
 			name:                          os.Getenv("HOSTNAME"),
-			zpoolLastSyncTime:             0,
-			zpoolLastSyncTimeCommandError: 0,
-			zpoolStateUnknown:             1,
+			zpoolLastSyncTime:             zpool.False,
+			zpoolLastSyncTimeCommandError: zpool.False,
+			zpoolStateUnknown:             zpool.True,
 		}
 		return &pool
 	}
@@ -84,8 +85,8 @@ func poolMetricParser(stdout []byte) *poolfields {
 	pool := poolfields{
 		name:                          f[0],
 		zpoolLastSyncTime:             poolSyncTimeParseFloat64(f[2]),
-		zpoolStateUnknown:             0,
-		zpoolLastSyncTimeCommandError: 0,
+		zpoolStateUnknown:             zpool.False,
+		zpoolLastSyncTimeCommandError: zpool.False,
 	}
 
 	return &pool

@@ -45,6 +45,12 @@ const (
 	InitializeLibuzfsClientErr ZpoolStatus = "failed to initialize libuzfs client"
 	// InCompleteStdoutErr is err msg when recieved output id incomplete
 	InCompleteStdoutErr = "Couldn't receive complete output"
+
+	// False is for setting value as 0 whereever needed
+	False = 0
+
+	// True is for setting value as 1 whereever needed
+	True = 1
 )
 
 var (
