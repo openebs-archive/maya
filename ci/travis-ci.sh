@@ -16,14 +16,14 @@
 
 #./ci/helm_install_openebs.sh
 # global env vars to be used in test scripts
-export CI_BRANCH="master"
-export CI_TAG="ci"
+export CI_BRANCH=${TRAVIS_BRANCH}
+export CI_TAG=${TRAVIS_BRANCH}"-ci"
 export MAYACTL="$GOPATH/src/github.com/openebs/maya/bin/maya/mayactl"
 
 ./ci/build-maya.sh
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
-curl https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/test-script.sh > test-script.sh
+curl https://raw.githubusercontent.com/openebs/openebs/${CI_BRANCH}/k8s/ci/test-script.sh > test-script.sh
 
 # append mayactl tests to this script 
 cat ./ci/mayactl.sh >> ./test-script.sh
