@@ -115,6 +115,11 @@ func (p *poolMetrics) Collect(ch chan<- prometheus.Metric) {
 
 	pool := p.get()
 
+	if pool == nil {
+		p.setRequestToFalse()
+		return
+	}
+
 	klog.V(2).Infof("Got zfs pool last sync time: %#v", pool)
 	p.setPoolStats(pool)
 	for _, col := range p.collectors() {
