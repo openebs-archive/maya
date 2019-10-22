@@ -21,6 +21,7 @@ import (
 	types "github.com/openebs/maya/pkg/exec"
 	mock "github.com/openebs/maya/pkg/exec/mock/v1alpha1"
 	mockServer "github.com/openebs/maya/pkg/prometheus/exporter/mock/v1alpha1"
+	zpool "github.com/openebs/maya/pkg/zpool/v1alpha1"
 	zvol "github.com/openebs/maya/pkg/zvol/v1alpha1"
 )
 
@@ -52,7 +53,7 @@ func TestPoolSyncTimeMetricCollector(t *testing.T) {
 		},
 		"Test2": {
 			// if expected output is No pool Available
-			zpoolLastSyncTimeOutput: "No Pool Available",
+			zpoolLastSyncTimeOutput: string(zpool.NoPoolAvailable),
 			expectedOutput: []string{
 				`openebs_zpool_last_sync_time{pool=""} 0`,
 				`openebs_zpool_state_unknown{pool=""} 1`,
