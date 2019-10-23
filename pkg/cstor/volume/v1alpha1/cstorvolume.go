@@ -342,12 +342,14 @@ func (csr *CVReplicationDetails) UpdateCVWithReplicationDetails(kubeclient *Kube
 	if err != nil {
 		return errors.Wrapf(err, "failed to get cstorvolume")
 	}
-	_, oldReplica := cv.Status.ReplicaDetails.KnownReplicas[csr.ReplicaID]
+	_, oldReplica := cv.Spec.
+		ReplicaDetails.
+		KnownReplicas[apis.ReplicaID(csr.ReplicaID)]
 	if !oldReplica &&
-		len(cv.Status.ReplicaDetails.KnownReplicas) >= cv.Spec.DesiredReplicationFactor {
+		len(cv.Spec.ReplicaDetails.KnownReplicas) >= cv.Spec.DesiredReplicationFactor {
 		return errors.Errorf("can not update cstorvolume %s known replica"+
 			" count %d is greater than or equal to desired replication factor %d",
-			cv.Name, len(cv.Status.ReplicaDetails.KnownReplicas),
+			cv.Name, len(cv.Spec.ReplicaDetails.KnownReplicas),
 			cv.Spec.DesiredReplicationFactor,
 		)
 	}
@@ -365,10 +367,15 @@ func (csr *CVReplicationDetails) UpdateCVWithReplicationDetails(kubeclient *Kube
 	}
 	cv.Spec.ReplicationFactor = csr.ReplicationFactor
 	cv.Spec.ConsistencyFactor = csr.ConsistencyFactor
-	if cv.Status.ReplicaDetails.KnownReplicas == nil {
-		cv.Status.ReplicaDetails.KnownReplicas = map[string]string{}
+	if cv.Spec.ReplicaDetails.KnownReplicas == nil {
+		cv.Spec.ReplicaDetails.KnownReplicas = map[apis.ReplicaID]string{}
 	}
-	cv.Status.ReplicaDetails.KnownReplicas[csr.ReplicaID] = csr.ReplicaGUID
+	if cv.Status.ReplicaDetails.KnownReplicas == nil {
+		cv.Status.ReplicaDetails.KnownReplicas = map[apis.ReplicaID]string{}
+	}
+	// Updating both spec and status known replica list
+	cv.Spec.ReplicaDetails.KnownReplicas[apis.ReplicaID(csr.ReplicaID)] = csr.ReplicaGUID
+	cv.Status.ReplicaDetails.KnownReplicas[apis.ReplicaID(csr.ReplicaID)] = csr.ReplicaGUID
 	_, err = kubeclient.Update(cv)
 	if err == nil {
 		klog.Infof("Successfully updated %s volume with following replication "+

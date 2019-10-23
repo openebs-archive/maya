@@ -107,7 +107,7 @@ var (
   LUN0 Option WZero Disable
   LUN0 Option ATS Disable
   LUN0 Option XCOPY Disable
-  {{- range $k, $v := .Status.ReplicaDetails.KnownReplicas }}
+  {{- range $k, $v := .Spec.ReplicaDetails.KnownReplicas }}
   Replica {{$k}} {{$v}}
   {{- end }}
 `

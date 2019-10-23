@@ -141,11 +141,11 @@ func updateCVConfigurationsAndVerifyStatus() {
 
 func getAvailableKnownReplicaDetails(cvObj *apis.CStorVolume) apis.CStorVolumeReplicaDetails {
 	cvKnownReplicaDetails := apis.CStorVolumeReplicaDetails{
-		KnownReplicas: map[string]string{},
+		KnownReplicas: map[apis.ReplicaID]string{},
 	}
-	failedReplicaIDs := map[string]bool{}
+	failedReplicaIDs := map[apis.ReplicaID]bool{}
 	for _, cvrObj := range targetCVRObjList.Items {
-		failedReplicaIDs[cvrObj.Spec.ReplicaID] = true
+		failedReplicaIDs[apis.ReplicaID(cvrObj.Spec.ReplicaID)] = true
 	}
 	for replicaID, zvolGUID := range cvObj.Status.ReplicaDetails.KnownReplicas {
 		if !failedReplicaIDs[replicaID] {
@@ -178,7 +178,7 @@ func migrateReplica() {
 		List(metav1.ListOptions{LabelSelector: volumeLabel})
 	Expect(err).To(BeNil())
 	oldCVRObj := &cvrList.Items[0]
-	ZvolGUID = cvObj.Status.ReplicaDetails.KnownReplicas[oldCVRObj.Spec.ReplicaID]
+	ZvolGUID = cvObj.Status.ReplicaDetails.KnownReplicas[apis.ReplicaID(oldCVRObj.Spec.ReplicaID)]
 	Expect(ZvolGUID).NotTo(BeEmpty())
 	poolLabel := string(apis.StoragePoolClaimCPK) + "=" + spcObj.Name
 	migratingCSPObj = ops.GetUnUsedCStorPool(cvrList, poolLabel)
@@ -238,7 +238,8 @@ func verifyCVConfigForReplicaMigrationEventually() {
 		cvObj, err = ops.CVClient.WithNamespace(openebsNamespace).
 			Get(pvcObj.Spec.VolumeName, metav1.GetOptions{})
 		Expect(err).To(BeNil())
-		if cvObj.Status.ReplicaDetails.KnownReplicas[newCVRObj.Spec.ReplicaID] != ZvolGUID {
+		if cvObj.Status.ReplicaDetails.
+			KnownReplicas[apis.ReplicaID(newCVRObj.Spec.ReplicaID)] != ZvolGUID {
 			break
 		}
 		time.Sleep(5 * time.Second)
