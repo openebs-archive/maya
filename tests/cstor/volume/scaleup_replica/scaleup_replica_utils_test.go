@@ -44,7 +44,7 @@ func verifyVolumeConfigurationEventually() {
 		time.Sleep(5 * time.Second)
 	}
 	Expect(cvObj.Spec.ConsistencyFactor).To(Equal(consistencyFactor), "mismatch of consistencyFactor")
-	_, isReplicaIDExist := cvObj.Status.ReplicaDetails.KnownReplicas[ReplicaID]
+	_, isReplicaIDExist := cvObj.Status.ReplicaDetails.KnownReplicas[apis.ReplicaID(ReplicaID)]
 	Expect(isReplicaIDExist).To(Equal(true), "replicaId should exist in known replicas of cstorvolume")
 	Expect(cvObj.Status.Phase).To(Equal(apis.CStorVolumePhase("Healthy")))
 }
