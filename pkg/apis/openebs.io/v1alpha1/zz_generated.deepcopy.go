@@ -1125,7 +1125,7 @@ func (in *CStorVolumeReplicaDetails) DeepCopyInto(out *CStorVolumeReplicaDetails
 	*out = *in
 	if in.KnownReplicas != nil {
 		in, out := &in.KnownReplicas, &out.KnownReplicas
-		*out = make(map[string]string, len(*in))
+		*out = make(map[ReplicaID]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -1215,6 +1215,7 @@ func (in *CStorVolumeReplicaStatus) DeepCopy() *CStorVolumeReplicaStatus {
 func (in *CStorVolumeSpec) DeepCopyInto(out *CStorVolumeSpec) {
 	*out = *in
 	out.Capacity = in.Capacity.DeepCopy()
+	in.ReplicaDetails.DeepCopyInto(&out.ReplicaDetails)
 	return
 }
 
