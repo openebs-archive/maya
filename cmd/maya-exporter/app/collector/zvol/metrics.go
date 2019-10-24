@@ -15,9 +15,11 @@
 package zvol
 
 import (
+	"os"
 	"strconv"
 	"strings"
 
+	zpool "github.com/openebs/maya/pkg/zpool/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -62,10 +64,28 @@ type listMetrics struct {
 	zfsListInitializeLibuzfsClientErrorCounter prometheus.Gauge
 }
 
+type poolSyncMetrics struct {
+	zpoolLastSyncTime             *prometheus.GaugeVec
+	zpoolStateUnknown             *prometheus.GaugeVec
+	zpoolLastSyncTimeCommandError *prometheus.GaugeVec
+}
+
+// poolfields struct is for pool last sync time metric
+type poolfields struct {
+	name                          string
+	zpoolLastSyncTime             float64
+	zpoolStateUnknown             float64
+	zpoolLastSyncTimeCommandError float64
+}
+
 type fields struct {
 	name      string
 	used      float64
 	available float64
+}
+
+func newPoolMetrics() *poolSyncMetrics {
+	return new(poolSyncMetrics)
 }
 
 // newMetrics initializes fields of the metrics and returns its instance
@@ -403,6 +423,46 @@ func (m *metrics) withInitializeLibuzfsClientErrorCounter() *metrics {
 	return m
 }
 
+// All new metrics related to pool last sync time
+func (p *poolSyncMetrics) withZpoolStateUnknown() *poolSyncMetrics {
+
+	p.zpoolStateUnknown = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "zpool_state_unknown",
+			Help:      "zpool state unknown",
+		},
+		[]string{"pool"},
+	)
+	return p
+}
+
+func (p *poolSyncMetrics) withzpoolLastSyncTimeCommandError() *poolSyncMetrics {
+
+	p.zpoolLastSyncTimeCommandError = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "zpool_sync_time_command_error",
+			Help:      "Zpool sync time command error",
+		},
+		[]string{"pool"},
+	)
+	return p
+}
+
+func (p *poolSyncMetrics) withZpoolLastSyncTime() *poolSyncMetrics {
+
+	p.zpoolLastSyncTime = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "zpool_last_sync_time",
+			Help:      "Last sync time of pool",
+		},
+		[]string{"pool"},
+	)
+	return p
+}
+
 func parseFloat64(e string, m *listMetrics) float64 {
 	num, err := strconv.ParseFloat(e, 64)
 	if err != nil {
@@ -431,4 +491,42 @@ func listParser(stdout []byte, m *listMetrics) []fields {
 		list = append(list, vol)
 	}
 	return list
+}
+
+// poolMetricParser is used to parse output from zfs get openebs.io:livenesstimestamp
+func poolMetricParser(stdout []byte) *poolfields {
+	if len(string(stdout)) == 0 {
+		pool := poolfields{
+			name:                          os.Getenv("HOSTNAME"),
+			zpoolLastSyncTime:             zpool.ZpoolLastSyncCommandErrorOrUnknownUnset,
+			zpoolLastSyncTimeCommandError: zpool.ZpoolLastSyncCommandErrorOrUnknownUnset,
+			zpoolStateUnknown:             zpool.ZpoolLastSyncCommandErrorOrUnknownSet,
+		}
+		return &pool
+	}
+
+	pools := strings.Split(string(stdout), "\n")
+	f := strings.Fields(pools[0])
+	if len(f) < 2 {
+		return nil
+	}
+
+	pool := poolfields{
+		name:                          f[0],
+		zpoolLastSyncTime:             poolSyncTimeParseFloat64(f[2]),
+		zpoolStateUnknown:             zpool.ZpoolLastSyncCommandErrorOrUnknownUnset,
+		zpoolLastSyncTimeCommandError: zpool.ZpoolLastSyncCommandErrorOrUnknownUnset,
+	}
+
+	return &pool
+}
+
+// poolSyncTimeParseFloat64 is used to convert epoch timestamp in string to float64
+func poolSyncTimeParseFloat64(e string) float64 {
+	num, err := strconv.ParseFloat(e, 64)
+	if err != nil {
+		return 0
+
+	}
+	return num
 }
