@@ -165,7 +165,6 @@ type ServiceYml struct {
 	YmlInBytes []byte
 }
 
-
 // NewServiceYml returns a ServiceYml instance.
 func NewServiceYml(context, yml string, values map[string]interface{}) (*ServiceYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
