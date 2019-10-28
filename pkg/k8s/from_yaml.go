@@ -98,6 +98,7 @@ type DeploymentYml struct {
 	YmlInBytes []byte
 }
 
+// NewDeploymentYml returns a DeploymentYml instance.
 func NewDeploymentYml(context, yml string, values map[string]interface{}) (*DeploymentYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -164,6 +165,7 @@ type ServiceYml struct {
 	YmlInBytes []byte
 }
 
+// NewServiceYml returns a ServiceYml instance.
 func NewServiceYml(context, yml string, values map[string]interface{}) (*ServiceYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -212,6 +214,7 @@ type StoragePoolYml struct {
 	YmlInBytes []byte
 }
 
+// NewCStorPoolYml returns a CStorPoolYml instance.
 func NewCStorPoolYml(context, yml string, values map[string]interface{}) (*CStorPoolYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -223,6 +226,7 @@ func NewCStorPoolYml(context, yml string, values map[string]interface{}) (*CStor
 	}, nil
 }
 
+// NewStoragePoolYml returns a StoragePoolYml instance.
 func NewStoragePoolYml(context, yml string, values map[string]interface{}) (*StoragePoolYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -234,6 +238,7 @@ func NewStoragePoolYml(context, yml string, values map[string]interface{}) (*Sto
 	}, nil
 }
 
+// NewCStorVolumeYml returns a new CStorVolumeYml instance based on yml string and values.
 func NewCStorVolumeYml(context, yml string, values map[string]interface{}) (*CStorVolumeYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -300,6 +305,7 @@ type CStorVolumeReplicaYml struct {
 	YmlInBytes []byte
 }
 
+// NewCStorVolumeReplicaYml returns a CStorVolumeReplicaYml instance.
 func NewCStorVolumeReplicaYml(context, yml string, values map[string]interface{}) (*CStorVolumeReplicaYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
