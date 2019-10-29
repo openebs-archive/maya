@@ -87,6 +87,8 @@ func (r RealFileOperator) Updatefile(fileName, updatedVal, searchString string, 
 func (r RealFileOperator) UpdateOrAppendMultipleLines(fileName string,
 	keyUpdateValue map[string]string, perm os.FileMode) error {
 	var newLines []string
+	var index int
+	var line string
 	buffer, err := ioutil.ReadFile(filepath.Clean(fileName))
 	if err != nil {
 		return errors.Wrapf(err, "failed to read %s file", fileName)
@@ -105,12 +107,17 @@ func (r RealFileOperator) UpdateOrAppendMultipleLines(fileName string,
 	// will be doing after current blockers
 	for key, updatedValue := range keyUpdateValue {
 		found := false
-		for index, line := range newLines {
+		for index, line = range newLines {
 			if strings.HasPrefix(line, key) {
 				newLines[index] = updatedValue
 				found = true
 				break
 			}
+		}
+		// To remove particular line that matched with key
+		if found && updatedValue == "" {
+			newLines = append(newLines[:index], newLines[index+1:]...)
+			continue
 		}
 		if found == false {
 			newLines = append(newLines, updatedValue)

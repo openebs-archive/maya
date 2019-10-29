@@ -18,10 +18,11 @@ package volumereplica
 
 import (
 	"fmt"
-	"github.com/openebs/maya/pkg/alertlog"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/openebs/maya/pkg/alertlog"
 
 	"encoding/json"
 

@@ -126,11 +126,9 @@ func NewCStorVolumeController(
 			} else if IsDestroyEvent(newCStorVolume) {
 				q.Operation = common.QOpDestroy
 				klog.Infof("cStorVolume Destroy event : %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
-				controller.recorder.Event(newCStorVolume, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
 			} else {
 				q.Operation = common.QOpModify
 				klog.Infof("cStorVolume Modify event : %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
-				controller.recorder.Event(newCStorVolume, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageModifySynced))
 			}
 			controller.enqueueCStorVolume(newCStorVolume, q)
 		},

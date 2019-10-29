@@ -188,10 +188,15 @@ func (c *CStorVolume) IsDRFPending() bool {
 		)
 		return false
 	}
-	drfStringValue := fmt.Sprintf("%d", c.object.Spec.DesiredReplicationFactor)
+	drfStringValue := fmt.Sprintf(" %d", c.object.Spec.DesiredReplicationFactor)
 	// gotConfig will have "  DesiredReplicationFactor  3" and we will extract
 	// numeric character from output
-	return !strings.HasSuffix(gotConfig, drfStringValue)
+	if !strings.HasSuffix(gotConfig, drfStringValue) {
+		return true
+	}
+	// reconciliation check for replica scaledown scenarion
+	return (len(c.object.Spec.ReplicaDetails.KnownReplicas) <
+		len(c.object.Status.ReplicaDetails.KnownReplicas))
 }
 
 // GetCVCondition returns corresponding cstorvolume condition based argument passed
@@ -213,6 +218,56 @@ func (c *CStorVolume) IsConditionPresent(condType apis.CStorVolumeConditionType)
 		}
 	}
 	return false
+}
+
+// AreSpecReplicasHealthy return true if all the spec replicas are in Healthy
+// state else return false
+func (c *CStorVolume) AreSpecReplicasHealthy(volStatus *apis.CVStatus) bool {
+	var isReplicaExist bool
+	var replicaInfo apis.ReplicaStatus
+	for _, replicaValue := range c.object.Spec.ReplicaDetails.KnownReplicas {
+		isReplicaExist = false
+		for _, replicaInfo = range volStatus.ReplicaStatuses {
+			if replicaInfo.ID == replicaValue {
+				isReplicaExist = true
+				break
+			}
+		}
+		if (isReplicaExist && replicaInfo.Mode != "Healthy") || !isReplicaExist {
+			return false
+		}
+	}
+	return true
+}
+
+// GetRemovingReplicaID return replicaID that present in status but not in spec
+func (c *CStorVolume) GetRemovingReplicaID() string {
+	for repID := range c.object.Status.ReplicaDetails.KnownReplicas {
+		// If known replica is not exist in spec but if it exist in status then
+		// user/operator selected that replica for removal
+		if _, isReplicaExist :=
+			c.object.Spec.ReplicaDetails.KnownReplicas[repID]; !isReplicaExist {
+			return string(repID)
+		}
+	}
+	return ""
+}
+
+// BuildScaleDownConfigData build data based on replica that needs to remove
+func (c *CStorVolume) BuildScaleDownConfigData(repId string) map[string]string {
+	configData := map[string]string{}
+	newReplicationFactor := c.object.Spec.ReplicationFactor
+	newConsistencyFactor := (newReplicationFactor / 2) + 1
+	key := fmt.Sprintf("  ReplicationFactor")
+	value := fmt.Sprintf("  ReplicationFactor %d", newReplicationFactor)
+	configData[key] = value
+	key = fmt.Sprintf("  ConsistencyFactor")
+	value = fmt.Sprintf("  ConsistencyFactor %d", newConsistencyFactor)
+	configData[key] = value
+	key = fmt.Sprintf("  Replica %s", repId)
+	value = fmt.Sprintf("")
+	configData[key] = value
+	return configData
 }
 
 // PredicateList holds a list of cstor volume

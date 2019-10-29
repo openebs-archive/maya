@@ -484,7 +484,16 @@ func (c *CStorVolumeController) addResizeConditions(
 // configuration on success updates istgt.conf file
 func (c *CStorVolumeController) updateCStorVolumeDRF(
 	cStorVolume *apis.CStorVolume) {
-	err := volume.ExecuteDesiredReplicationFactorCommand(cStorVolume)
+	// make changes to copyCV instead of cStorVolume
+	copyCV := cStorVolume.DeepCopy()
+	var err error
+	if len(copyCV.Spec.ReplicaDetails.KnownReplicas) <
+		len(copyCV.Status.ReplicaDetails.KnownReplicas) {
+		copyCV, err = c.triggerScaleDownProcess(copyCV)
+	} else if len(copyCV.Spec.ReplicaDetails.KnownReplicas) ==
+		len(copyCV.Status.ReplicaDetails.KnownReplicas) {
+		copyCV, err = c.triggerScaleUpProcess(copyCV)
+	}
 	if err != nil {
 		c.recorder.Event(cStorVolume,
 			corev1.EventTypeWarning,
@@ -493,6 +502,27 @@ func (c *CStorVolumeController) updateCStorVolumeDRF(
 				" Error: %v", cStorVolume.Spec.DesiredReplicationFactor, err,
 			),
 		)
+		return
+	}
+	c.recorder.Event(cStorVolume,
+		corev1.EventTypeNormal,
+		string(common.SuccessUpdated),
+		fmt.Sprintf("Successfully updated the desiredReplicationFactor to %d",
+			cStorVolume.Spec.DesiredReplicationFactor),
+	)
+	cStorVolume = copyCV
+}
+
+// triggerScaleUpProcess returns error incase of any error during scaleup
+// process else it will return cstorvolume object
+func (c *CStorVolumeController) triggerScaleUpProcess(
+	cStorVolume *apis.CStorVolume) (*apis.CStorVolume, error) {
+	err := volume.ExecuteDesiredReplicationFactorCommand(
+		cStorVolume,
+		volume.GetScaleUpCommand,
+	)
+	if err != nil {
+		return nil, err
 	}
 	fileOperator := util.RealFileOperator{}
 	updatedConfig := fmt.Sprintf("%s %d",
@@ -506,20 +536,81 @@ func (c *CStorVolumeController) updateCStorVolumeDRF(
 	)
 	cstorvolume_v1alpha1.ConfFileMutex.Unlock()
 	if err != nil {
-		c.recorder.Event(cStorVolume,
-			corev1.EventTypeWarning,
-			string(common.FailureUpdate),
-			fmt.Sprintf("failed to update confile with desired replication factor %d"+
-				" Error: %v", cStorVolume.Spec.DesiredReplicationFactor, err,
-			),
+		return nil, pkg_errors.Wrapf(err, "failed to update conf file with "+
+			"desiredReplicationFactor %d", cStorVolume.Spec.DesiredReplicationFactor)
+	}
+	return cStorVolume, nil
+}
+
+// triggerScaleDownProcess returns error incase of any error during scaledown
+// process else it will return cstorvolume object. Following steps are executed
+// 1. Verify are all the replicas are healthy other than removing replica.
+// 2. If step1 is passed then update the istgt.conf file with latest
+//    information.
+// 3. Update cStorVolume CR(replicationFactor, ConsistencyFactor and known
+//    replica list.
+// 4. Trigger istgtcontrol command (istgtcontrol drf <vol_name> <value>
+//    <remaining_replica_list>
+// In triggerScaleDownProcess cStorVolumeAPI is used to access fields in CV
+// object and cStorvolume is used to access methods of cStorVolume
+func (c *CStorVolumeController) triggerScaleDownProcess(
+	cStorVolumeAPI *apis.CStorVolume) (*apis.CStorVolume, error) {
+	volumeStatus, err := volume.GetVolumeStatus(cStorVolumeAPI)
+	if err != nil {
+		return nil, err
+	}
+	if common.CStorVolumeStatus(volumeStatus.Status) != common.CVStatusHealthy {
+		return nil, pkg_errors.Errorf("cStorvolume is not in healthy to trigger scaledown")
+	}
+	cStorVolume := cstorvolume_v1alpha1.NewForAPIObject(cStorVolumeAPI)
+	if !cStorVolume.AreSpecReplicasHealthy(volumeStatus) {
+		return nil, pkg_errors.Errorf("spec replicas are not in healthy state")
+	}
+	replicaID := cStorVolume.GetRemovingReplicaID()
+	if replicaID == "" {
+		return nil, pkg_errors.Errorf("removing replica is not present in volume status")
+	}
+	if cStorVolumeAPI.Spec.DesiredReplicationFactor < cStorVolumeAPI.Spec.ReplicationFactor {
+		configData := cStorVolume.BuildScaleDownConfigData(replicaID)
+		fileOperator := util.RealFileOperator{}
+		cstorvolume_v1alpha1.ConfFileMutex.Lock()
+		err := fileOperator.UpdateOrAppendMultipleLines(
+			cstorvolume_v1alpha1.IstgtConfPath,
+			configData,
+			0644)
+		cstorvolume_v1alpha1.ConfFileMutex.Unlock()
+		if err != nil {
+			return nil, pkg_errors.Wrapf(err, "failed to update istgt conf file %v", configData)
+		}
+		cStorVolumeAPI.Spec.ReplicationFactor = cStorVolumeAPI.Spec.DesiredReplicationFactor
+		cStorVolumeAPI.Spec.ConsistencyFactor = (cStorVolumeAPI.Spec.ReplicationFactor)/2 + 1
+		cStorVolumeAPI, err = c.clientset.
+			OpenebsV1alpha1().
+			CStorVolumes(cStorVolumeAPI.Namespace).
+			Update(cStorVolumeAPI)
+		if err != nil {
+			return nil, pkg_errors.Wrapf(err, "failed to update cstorvolume")
+		}
+	}
+	err = volume.ExecuteDesiredReplicationFactorCommand(
+		cStorVolumeAPI,
+		volume.GetScaleDownCommand,
+	)
+	if err != nil {
+		return nil, err
+	}
+	cStorVolumeAPI.Status.ReplicaDetails.KnownReplicas =
+		cStorVolumeAPI.Spec.ReplicaDetails.KnownReplicas
+	cStorVolumeAPI, err = c.clientset.
+		OpenebsV1alpha1().
+		CStorVolumes(cStorVolumeAPI.Namespace).
+		Update(cStorVolumeAPI)
+	if err != nil {
+		return nil, pkg_errors.Wrapf(err,
+			"failed to update cstorvolume status with scaledown replica information",
 		)
 	}
-	c.recorder.Event(cStorVolume,
-		corev1.EventTypeNormal,
-		string(common.SuccessUpdated),
-		fmt.Sprintf("Successfully updated the desiredReplicationFactor to %d",
-			cStorVolume.Spec.DesiredReplicationFactor),
-	)
+	return cStorVolumeAPI, nil
 }
 
 // resizeCStorVolume resize the cstorvolume and if any error occurs updates the

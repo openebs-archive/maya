@@ -96,12 +96,13 @@ var (
   LUN0 Option XCOPY Disable
   Replica 6161 6061
   Replica 6162 6062334
+  Replica 7161 7061
 `
 )
 
 var (
 	fakePath     = "/tmp/istgt.conf"
-	defaultLines = 69
+	defaultLines = 70
 )
 
 func fakeCreateConfFile() error {
@@ -146,9 +147,9 @@ func TestUpdateOrAppendMultipleLines(t *testing.T) {
 		expectedErr    bool
 		keyUpdateValue map[string]string
 		totalLines     int
-		searchString   map[int]string
+		searchString   map[string]bool
 	}{
-		"Matched values": {
+		"Add Lines": {
 			expectedErr: false,
 			keyUpdateValue: map[string]string{
 				"  ReplicationFactor": "  ReplicationFactor 4",
@@ -157,12 +158,33 @@ func TestUpdateOrAppendMultipleLines(t *testing.T) {
 				"  Replica 6163":      "  Replica 6163 6163",
 				"  Replica 6164":      "  Replica 6164 6164",
 			},
-			searchString: map[int]string{
-				1: "  Replica 6163 6163",
-				2: "  ReplicationFactor 4",
-				3: "  Replica 6162 6162",
-				4: "  Replica 6161 6161",
-				5: "  Replica 6164 6164",
+			searchString: map[string]bool{
+				"  Replica 6163 6163":    true,
+				"  ReplicationFactor 4":  true,
+				"  Replica 6162 6162":    true,
+				"  Replica 6161 6161":    false,
+				"  Replica 6164 6164":    true,
+				"  Replica 6162 6062334": false,
+				"  ConsistencyFactor 2":  false,
+			},
+			totalLines: defaultLines + 1,
+		},
+		"Remove Lines": {
+			expectedErr: false,
+			keyUpdateValue: map[string]string{
+				"  ReplicationFactor": "  ReplicationFactor 5",
+				"  ConsistencyFactor": "  ConsistencyFactor 3",
+				"  Replica 6161":      "",
+				"  Replica 6163":      "  Replica 6163 6163",
+				"  Replica 6164":      "  Replica 6164 6164",
+				"  Replica 7161":      "",
+			},
+			searchString: map[string]bool{
+				"  Replica 6163 6163":   true,
+				"  ReplicationFactor 5": true,
+				"  Replica 6164 6164":   true,
+				"  ReplicationFactor 3": false,
+				"  Replica 6161 6161":   false,
 			},
 			totalLines: defaultLines + 1,
 		},
@@ -175,14 +197,21 @@ func TestUpdateOrAppendMultipleLines(t *testing.T) {
 	for name, mock := range tests {
 		name := name // pin it
 		mock := mock // pin it
+		var index int
 		err = fakeFileOperator.UpdateOrAppendMultipleLines(fakePath, mock.keyUpdateValue, 0644)
 		if err != nil {
 			t.Fatalf("test %q failed : expected error not to be nil but got %v", name, err)
 		}
-		for _, value := range mock.searchString {
-			_, _, err = fakeFileOperator.GetLineDetails(fakePath, value)
+		for key, value := range mock.searchString {
+			index, _, err = fakeFileOperator.GetLineDetails(fakePath, key)
 			if err != nil {
-				t.Fatalf("test %q failed :to get %s details from file %s", name, value, fakePath)
+				t.Fatalf("test %q failed :to get %s details from file %s", name, key, fakePath)
+			}
+			if value && index == -1 {
+				t.Fatalf("test %q failed :expected %s should exist in file but it doesn't exist", name, key)
+			}
+			if !value && index != -1 {
+				t.Fatalf("test %q failed :expected %s should not exist but it exist", name, key)
 			}
 		}
 	}
