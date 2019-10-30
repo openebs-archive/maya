@@ -39,6 +39,7 @@ func createCSPCObjectForRaidz2() {
 
 func createCSPCObject(blockDeviceCount int, poolType string) {
 	var err error
+	Expect(blockDeviceCount).To(Equal(DefaultBDCount[poolType]), "Mismatch Of BD Count")
 	cspcObj, err = cspc_v1alpha1.NewBuilder().
 		WithGenerateName(cspcName).
 		WithNamespace(ops.NameSpace).
@@ -88,4 +89,11 @@ func verifyDesiredCSPICount() {
 // This function is local to this package
 func getLabelSelector(cspc *apis.CStorPoolCluster) string {
 	return string(apis.CStorPoolClusterCPK) + "=" + cspc.Name
+}
+
+var DefaultBDCount = map[string]int{
+	"mirror": int(apis.MirroredBlockDeviceCountCPV),
+	"stripe": int(apis.StripedBlockDeviceCountCPV),
+	"raidz":  int(apis.RaidzBlockDeviceCountCPV),
+	"raidz2": int(apis.Raidz2BlockDeviceCountCPV),
 }
