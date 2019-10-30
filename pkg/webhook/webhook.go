@@ -18,6 +18,7 @@ package webhook
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -92,16 +93,72 @@ func init() {
 }
 
 // New creates a new instance of a webhook.
-func New(p Parameters, kubeClient kubernetes.Interface, openebsClient clientset.Interface, snapClient snapclient.Interface) (*webhook, error) {
+func New(p Parameters, kubeClient kubernetes.Interface,
+	openebsClient clientset.Interface,
+	snapClient snapclient.Interface) (
+	*webhook, error) {
 
-	pair, err := tls.LoadX509KeyPair(p.CertFile, p.KeyFile)
+	admNamespace, err := getOpenebsNamespace()
 	if err != nil {
 		return nil, err
 	}
+
+	// Fetch certificate secret information
+	certSecret, err := GetSecret(admNamespace, validatorSecret)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to read secret(%s) object %v",
+			validatorSecret,
+			err,
+		)
+	}
+
+	// extract cert information from the secret object
+	certBytes, ok := certSecret.Data[appCrt]
+	if !ok {
+		return nil, fmt.Errorf(
+			"%s value not found in %s secret",
+			appCrt,
+			validatorSecret,
+		)
+	}
+	keyBytes, ok := certSecret.Data[appKey]
+	if !ok {
+		return nil, fmt.Errorf(
+			"%s value not found in %s secret",
+			appKey,
+			validatorSecret,
+		)
+	}
+
+	signingCertBytes, ok := certSecret.Data[rootCrt]
+	if !ok {
+		return nil, fmt.Errorf(
+			"%s value not found in %s secret",
+			rootCrt,
+			validatorSecret,
+		)
+	}
+
+	certPool := x509.NewCertPool()
+	ok = certPool.AppendCertsFromPEM(signingCertBytes)
+	if !ok {
+		return nil, fmt.Errorf("failed to parse root certificate")
+	}
+
+	sCert, err := tls.X509KeyPair(certBytes, keyBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	//	pair, err := tls.LoadX509KeyPair(p.CertFile, p.KeyFile)
+	//	if err != nil {
+	//		return nil, err
+	//	}
 	wh := &webhook{
 		Server: &http.Server{
 			Addr:      fmt.Sprintf(":%v", p.Port),
-			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
+			TLSConfig: &tls.Config{Certificates: []tls.Certificate{sCert}},
 		},
 		kubeClient:    kubeClient,
 		clientset:     openebsClient,

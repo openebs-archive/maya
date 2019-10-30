@@ -75,11 +75,22 @@ func main() {
 		klog.Fatalf("Error building openebs snapshot clientset: %s", err.Error())
 	}
 
+	// Fetch a reference to the admission server deployment object
+	ownerReference, err := webhook.GetAdmissionReference()
+	if err != nil {
+		klog.Error(err, "failed to get a reference to the admission deployment object")
+		os.Exit(1)
+	}
+	validatorErr := webhook.InitValidationServer(*ownerReference)
+	if validatorErr != nil {
+		klog.Error(validatorErr, "failed to initialize validation server")
+		os.Exit(1)
+	}
+
 	wh, err := webhook.New(parameters, kubeClient, openebsClient, snapClient)
 	if err != nil {
 		klog.Fatalf("failed to create validation webhook: %s", err.Error())
 	}
-
 	// define http server and server handler
 	mux := http.NewServeMux()
 	mux.HandleFunc("/validate", wh.Serve)
