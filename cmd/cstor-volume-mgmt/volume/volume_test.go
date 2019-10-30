@@ -294,7 +294,7 @@ func TestCheckValidVolume(t *testing.T) {
 			},
 		},
 		"invalid desiredreplicationfactor/replicationfactor": {
-			expectedError: true,
+			expectedError: false,
 			test: &apis.CStorVolume{
 				ObjectMeta: v1.ObjectMeta{
 					Name: "testvol1",

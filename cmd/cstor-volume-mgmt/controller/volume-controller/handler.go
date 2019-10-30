@@ -504,13 +504,13 @@ func (c *CStorVolumeController) updateCStorVolumeDRF(
 		)
 		return
 	}
+	cStorVolume = copyCV
 	c.recorder.Event(cStorVolume,
 		corev1.EventTypeNormal,
 		string(common.SuccessUpdated),
 		fmt.Sprintf("Successfully updated the desiredReplicationFactor to %d",
 			cStorVolume.Spec.DesiredReplicationFactor),
 	)
-	cStorVolume = copyCV
 }
 
 // triggerScaleUpProcess returns error incase of any error during scaleup
@@ -574,7 +574,7 @@ func (c *CStorVolumeController) triggerScaleDownProcess(
 		configData := cStorVolume.BuildScaleDownConfigData(replicaID)
 		fileOperator := util.RealFileOperator{}
 		cstorvolume_v1alpha1.ConfFileMutex.Lock()
-		err := fileOperator.UpdateOrAppendMultipleLines(
+		err = fileOperator.UpdateOrAppendMultipleLines(
 			cstorvolume_v1alpha1.IstgtConfPath,
 			configData,
 			0644)

@@ -254,7 +254,7 @@ func (c *CStorVolume) GetRemovingReplicaID() string {
 }
 
 // BuildScaleDownConfigData build data based on replica that needs to remove
-func (c *CStorVolume) BuildScaleDownConfigData(repId string) map[string]string {
+func (c *CStorVolume) BuildScaleDownConfigData(repID string) map[string]string {
 	configData := map[string]string{}
 	newReplicationFactor := c.object.Spec.ReplicationFactor
 	newConsistencyFactor := (newReplicationFactor / 2) + 1
@@ -264,7 +264,7 @@ func (c *CStorVolume) BuildScaleDownConfigData(repId string) map[string]string {
 	key = fmt.Sprintf("  ConsistencyFactor")
 	value = fmt.Sprintf("  ConsistencyFactor %d", newConsistencyFactor)
 	configData[key] = value
-	key = fmt.Sprintf("  Replica %s", repId)
+	key = fmt.Sprintf("  Replica %s", repID)
 	value = fmt.Sprintf("")
 	configData[key] = value
 	return configData
