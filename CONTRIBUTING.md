@@ -57,7 +57,7 @@ For setting up a Development environment on your local host, see the detailed in
 ## Reviews against Pull Requests
 
 A PR can be reviewed by both core as well as external contributors. Below can be referred to during reviews:
-- contributor should be faimilar with maya's [idiomatic standards](https://github.com/openebs/maya/blob/master/docs/idiomatic-maya-guide.md)
+- contributor should be familiar with maya's [idiomatic standards](https://github.com/openebs/maya/blob/master/docs/idiomatic-maya-guide.md)
 - contributor should fix all the linting issues raised by the lint tools integrated with maya
 - contributor should try to implement relevant golang based unit tests for the fix/enhancement
 - contributor should try to rework on the review comments as much as possible
