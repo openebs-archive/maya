@@ -51,9 +51,10 @@ type upgradeFunc func(u *upgradeParams) (*apis.CStorVolume, error)
 var (
 	v130       = "1.3.0"
 	upgradeMap = map[string]upgradeFunc{
-		"1.0.0-1.3.0": setDesiredRF,
-		"1.1.0-1.3.0": setDesiredRF,
-		"1.2.0-1.3.0": setDesiredRF,
+		"1.0.0-1.4.0": setDesiredRF,
+		"1.1.0-1.4.0": setDesiredRF,
+		"1.2.0-1.4.0": setDesiredRF,
+		"1.3.0-1.4.0": nothing,
 	}
 )
 
@@ -794,4 +795,8 @@ func setDesiredRF(u *upgradeParams) (*apis.CStorVolume, error) {
 	// Set new field DesiredReplicationFactor as ReplicationFactor
 	cv.Spec.DesiredReplicationFactor = cv.Spec.ReplicationFactor
 	return cv, nil
+}
+
+func nothing(u *upgradeParams) (*apis.CStorVolume, error) {
+	return u.cv, nil
 }

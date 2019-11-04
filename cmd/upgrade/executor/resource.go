@@ -144,7 +144,7 @@ func (u *UpgradeOptions) RunResourceUpgrade(cmd *cobra.Command) error {
 		return err
 	}
 	switch path {
-	case "1.0.0-1.3.0", "1.1.0-1.3.0", "1.2.0-1.3.0":
+	case "1.0.0-1.4.0", "1.1.0-1.4.0", "1.2.0-1.4.0", "1.3.0-1.4.0":
 		// RC1-RC2 for RC1 to RC2, RC1- for RC1 to GA, RC2- for RC2 to GA
 		klog.Infof("Upgrading to %s", u.toVersion)
 		err := upgrader.Exec(u.fromVersion, u.toVersion,

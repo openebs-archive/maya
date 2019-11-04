@@ -51,9 +51,10 @@ type upgradeFunc func(u *upgradeParams) (*apis.CStorVolumeReplica, error)
 
 var (
 	upgradeMap = map[string]upgradeFunc{
-		"1.0.0-1.3.0": setReplicaID,
-		"1.1.0-1.3.0": setReplicaID,
-		"1.2.0-1.3.0": setReplicaID,
+		"1.0.0-1.4.0": setReplicaID,
+		"1.1.0-1.4.0": setReplicaID,
+		"1.2.0-1.4.0": setReplicaID,
+		"1.3.0-1.4.0": nothing,
 	}
 )
 
@@ -663,4 +664,8 @@ func setReplicaID(u *upgradeParams) (*apis.CStorVolumeReplica, error) {
 		return cvr, err
 	}
 	return cvrObj, nil
+}
+
+func nothing(u *upgradeParams) (*apis.CStorVolumeReplica, error) {
+	return u.cvr, nil
 }
