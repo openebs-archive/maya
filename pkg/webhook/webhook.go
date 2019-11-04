@@ -92,7 +92,9 @@ func init() {
 	_ = v1.AddToScheme(runtimeScheme)
 }
 
-// New creates a new instance of a webhook.
+// New creates a new instance of a webhook. Prior to
+// invoking this function, InitValidationServer function must be called to
+// set up secret (for TLS certs) k8s resource. This function runs forever.
 func New(p Parameters, kubeClient kubernetes.Interface,
 	openebsClient clientset.Interface,
 	snapClient snapclient.Interface) (
@@ -363,6 +365,7 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 	klog.Info("Admission webhook request received")
 	switch req.Kind.Kind {
 	case "PersistentVolumeClaim":
+		klog.V(2).Infof("Admission webhook request for type %s", req.Kind.Kind)
 		return wh.validatePVC(ar)
 	case "CStorPoolCluster":
 		klog.V(2).Infof("Admission webhook request for type %s", req.Kind.Kind)

@@ -116,6 +116,13 @@ func WithClientSet(c *kubernetes.Clientset) KubeClientBuildOption {
 	}
 }
 
+// WithNamespace set namespace in kubeclient object
+func WithNamespace(namespace string) KubeClientBuildOption {
+	return func(k *Kubeclient) {
+		k.namespace = namespace
+	}
+}
+
 // WithKubeConfigPath sets the kubeConfig path
 // against client instance
 func WithKubeConfigPath(path string) KubeClientBuildOption {

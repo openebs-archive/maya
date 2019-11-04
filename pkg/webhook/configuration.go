@@ -42,14 +42,23 @@ const (
 	validatorSecret      = "admission-server-secret"
 	webhookHandlerName   = "admission-webhook.openebs.io"
 	validationPath       = "/validate"
-
+	validationPort       = 8443
 	// AdmissionNameEnvVar is the constant for env variable ADMISSION_WEBHOOK_NAME
 	// which is the name of the current admission webhook
 	AdmissionNameEnvVar = "ADMISSION_WEBHOOK_NAME"
+	appCrt              = "app.crt"
+	appKey              = "app.pem"
+	rootCrt             = "ca.crt"
+)
 
-	appCrt  = "app.crt"
-	appKey  = "app.pem"
-	rootCrt = "ca.crt"
+var (
+	// TimeoutSeconds specifies the timeout for this webhook. After the timeout passes,
+	// the webhook call will be ignored or the API call will fail based on the
+	// failure policy.
+	// The timeout value must be between 1 and 30 seconds.
+	five = int32(5)
+	// Ignore means that an error calling the webhook is ignored.
+	Ignore = v1beta1.Ignore
 )
 
 // createWebhookService creates our webhook Service resource if it does not
@@ -60,7 +69,7 @@ func createWebhookService(
 	namespace string,
 ) error {
 
-	svcObj, err := svc.NewKubeClient(svc.WithNamespace("openebs")).
+	_, err := svc.NewKubeClient(svc.WithNamespace(namespace)).
 		Get(serviceName, metav1.GetOptions{})
 
 	if err == nil {
@@ -77,9 +86,8 @@ func createWebhookService(
 	}
 
 	// create service resource that refers to admission server pod
-	//whName, _ := k8sutil.GetOperatorName()
 	serviceLabels := map[string]string{"app": "admission-webhook"}
-	svcObj = &corev1.Service{
+	svcObj := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
@@ -96,7 +104,7 @@ func createWebhookService(
 				{
 					Protocol:   "TCP",
 					Port:       443,
-					TargetPort: intstr.FromInt(8443),
+					TargetPort: intstr.FromInt(validationPort),
 				},
 			},
 		},
@@ -136,7 +144,6 @@ func createAdmissionService(
 		Rules: []v1beta1.RuleWithOperations{{
 			Operations: []v1beta1.OperationType{
 				v1beta1.Create,
-				v1beta1.Update,
 				v1beta1.Delete,
 			},
 			Rule: v1beta1.Rule{
@@ -144,7 +151,18 @@ func createAdmissionService(
 				APIVersions: []string{"*"},
 				Resources:   []string{"persistentvolumeclaims"},
 			},
-		}},
+		},
+			{
+				Operations: []v1beta1.OperationType{
+					v1beta1.Create,
+					v1beta1.Update,
+				},
+				Rule: v1beta1.Rule{
+					APIGroups:   []string{"*"},
+					APIVersions: []string{"*"},
+					Resources:   []string{"cstorpoolclusters"},
+				},
+			}},
 		ClientConfig: v1beta1.WebhookClientConfig{
 			Service: &v1beta1.ServiceReference{
 				Namespace: namespace,
@@ -153,6 +171,8 @@ func createAdmissionService(
 			},
 			CABundle: signingCert,
 		},
+		TimeoutSeconds: &five,
+		FailurePolicy:  &Ignore,
 	}
 
 	validator := &v1beta1.ValidatingWebhookConfiguration{
@@ -166,10 +186,6 @@ func createAdmissionService(
 		},
 		Webhooks: []v1beta1.Webhook{webhookHandler},
 	}
-
-	//	_, err = wh.kubeClient.AdmissionregistrationV1beta1().
-	//		ValidatingWebhookConfigurations().
-	//		Create(validator)
 
 	_, err = validate.KubeClient().Create(validator)
 
@@ -226,7 +242,7 @@ func createCertsSecret(
 	}
 
 	//secret, err = wh.kubeClient.CoreV1().Secrets("openebs").Create(secret)
-	return secret.NewKubeClient().Create(secretObj)
+	return secret.NewKubeClient(secret.WithNamespace(namespace)).Create(secretObj)
 }
 
 // GetValidatorWebhook fetches the webhook validator resource in
@@ -246,83 +262,6 @@ func GetValidatorWebhook(
 func StrPtr(s string) *string {
 	return &s
 }
-
-// StartValidationServer starts the admission validation server. Prior to
-// invoking this function, InitValidationServer function must be called to
-// set up secret (for TLS certs) k8s resource. This function runs forever.
-//func StartValidationServer() error {
-//
-//	admNamespace, err := getOpenebsNamespace()
-//	if err != nil {
-//		return err
-//	}
-//
-//	// Fetch certificate secret information
-//	certSecret, err := GetSecret(admNamespace, validatorSecret)
-//	if err != nil {
-//		return fmt.Errorf(
-//			"failed to read secret(%s) object %v",
-//			validatorSecret,
-//			err,
-//		)
-//	}
-//
-//	// extract cert information from the secret object
-//	certBytes, ok := certSecret.Data[appCrt]
-//	if !ok {
-//		return fmt.Errorf(
-//			"%s value not found in %s secret",
-//			appCrt,
-//			validatorSecret,
-//		)
-//	}
-//	keyBytes, ok := certSecret.Data[appKey]
-//	if !ok {
-//		return fmt.Errorf(
-//			"%s value not found in %s secret",
-//			appKey,
-//			validatorSecret,
-//		)
-//	}
-//
-//	signingCertBytes, ok := certSecret.Data[rootCrt]
-//	if !ok {
-//		return fmt.Errorf(
-//			"%s value not found in %s secret",
-//			rootCrt,
-//			validatorSecret,
-//		)
-//	}
-//
-//	certPool := x509.NewCertPool()
-//	ok = certPool.AppendCertsFromPEM(signingCertBytes)
-//	if !ok {
-//		return fmt.Errorf("failed to parse root certificate")
-//	}
-//
-//	sCert, err := tls.X509KeyPair(certBytes, keyBytes)
-//	if err != nil {
-//		return err
-//	}
-//
-//	//	server := &http.Server{
-//	//		Addr: ":" + strconv.Itoa(validationPort),
-//	//		TLSConfig: &tls.Config{
-//	//			Certificates: []tls.Certificate{sCert},
-//	//		},
-//	//	}
-//
-//	//	http.HandleFunc(
-//	//		validationPath,
-//	//		func(w http.ResponseWriter, r *http.Request) {
-//	//			Serve(w, r)
-//	//		},
-//	//	)
-//
-//	//	err = server.ListenAndServeTLS("", "")
-//
-//	return err
-//}
 
 // InitValidationServer creates secret, service and admission validation k8s
 // resources. All these resources are created in the same namespace where
@@ -414,7 +353,7 @@ func GetSecret(
 	//	return wh.kubeClient.CoreV1().
 	//		Secrets(namespace).
 	//		Get(secretName, metav1.GetOptions{})
-	return secret.NewKubeClient().Get(secretName, metav1.GetOptions{})
+	return secret.NewKubeClient(secret.WithNamespace(namespace)).Get(secretName, metav1.GetOptions{})
 }
 
 // getOpenebsNamespace gets the namespace OPENEBS_NAMESPACE env value which is
@@ -444,14 +383,21 @@ func GetAdmissionName() (string, error) {
 // to the admission webhook deployment object
 func GetAdmissionReference() (*metav1.OwnerReference, error) {
 
+	// Fetch our namespace
+	openebsNamespace, err := getOpenebsNamespace()
+	if err != nil {
+		return nil, err
+	}
+
 	// Fetch our deployment object
 	admName, err := GetAdmissionName()
 	if err != nil {
 		return nil, err
 	}
 
-	admdeploy, err := deploy.NewKubeClient(deploy.WithNamespace("openebs")).
+	admdeploy, err := deploy.NewKubeClient(deploy.WithNamespace(openebsNamespace)).
 		Get(admName)
+
 	if err != nil {
 		return nil, err
 	}

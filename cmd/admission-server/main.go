@@ -42,7 +42,7 @@ func main() {
 	var parameters webhook.Parameters
 
 	// get command line parameters
-	flag.IntVar(&parameters.Port, "port", 443, "Webhook server port.")
+	flag.IntVar(&parameters.Port, "port", 8443, "Webhook server port.")
 	flag.StringVar(&parameters.CertFile, "tlsCertFile", "/etc/webhook/certs/cert.pem", "File containing the x509 Certificate for HTTPS.")
 	flag.StringVar(&parameters.KeyFile, "tlsKeyFile", "/etc/webhook/certs/key.pem", "File containing the x509 private key to --tlsCertFile.")
 
@@ -79,12 +79,12 @@ func main() {
 	ownerReference, err := webhook.GetAdmissionReference()
 	if err != nil {
 		klog.Error(err, "failed to get a reference to the admission deployment object")
-		os.Exit(1)
+		//	os.Exit(1)
 	}
 	validatorErr := webhook.InitValidationServer(*ownerReference)
 	if validatorErr != nil {
 		klog.Error(validatorErr, "failed to initialize validation server")
-		os.Exit(1)
+		//	os.Exit(1)
 	}
 
 	wh, err := webhook.New(parameters, kubeClient, openebsClient, snapClient)
