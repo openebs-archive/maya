@@ -32,7 +32,7 @@
 **Maya** components can be broadly classified based on their deployment type as follows:
 
 -   **Control Plane Components** - These are containers that are initialized as part of enabling OpenEBS in a Kubernetes cluster.
-    -   *maya-apiserver* helps with creation of CAS Volumes and provides API endpoints to manage those volumes. *maya-apiserver* can also be considered as a template engine that can be easily extended to support any kind of CAS storage solutions. It takes as input a set of CAS templates that are converted into CAS K8s YAMLs based on user requests.
+    -   *maya-apiserver* helps with the creation of CAS Volumes and provides API endpoints to manage those volumes. *maya-apiserver* can also be considered as a template engine that can be easily extended to support any kind of CAS storage solutions. It takes as input a set of CAS templates that are converted into CAS K8s YAMLs based on user requests.
     -   *provisioner* is an implementation of Kubernetes Dynamic Provisioner that processes the PVC requests by interacting with maya-apiserver.
 
 -   **CAS Side-car Components** - These are adapter components that help with managing the CAS containers that do not inherently come up with the required endpoints. For example:
