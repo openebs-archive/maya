@@ -95,7 +95,10 @@ func createWebhookService(
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      serviceName,
-			//Labels:          map[string]string{"webhook": Name},
+			Labels: map[string]string{
+				"app":                       "admission-webhook",
+				"openebs.io/component-name": "admission-webhook-svc",
+			},
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
 		},
 		Spec: corev1.ServiceSpec{
@@ -181,7 +184,11 @@ func createAdmissionService(
 			APIVersion: "admissionregistration.k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            validatorWebhook,
+			Name: validatorWebhook,
+			Labels: map[string]string{
+				"app":                       "admission-webhook",
+				"openebs.io/component-name": "admission-webhook",
+			},
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
 		},
 		Webhooks: []v1beta1.Webhook{webhookHandler},
@@ -229,8 +236,12 @@ func createCertsSecret(
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            secretName,
-			Namespace:       namespace,
+			Name:      secretName,
+			Namespace: namespace,
+			Labels: map[string]string{
+				"app":                       "admission-webhook",
+				"openebs.io/component-name": "admission-webhook",
+			},
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
 		},
 		Type: corev1.SecretTypeOpaque,
@@ -241,7 +252,6 @@ func createCertsSecret(
 		},
 	}
 
-	//secret, err = wh.kubeClient.CoreV1().Secrets("openebs").Create(secret)
 	return secret.NewKubeClient(secret.WithNamespace(namespace)).Create(secretObj)
 }
 
@@ -250,10 +260,6 @@ func createCertsSecret(
 func GetValidatorWebhook(
 	validator string,
 ) (*v1beta1.ValidatingWebhookConfiguration, error) {
-
-	//	return wh.kubeClient.AdmissionregistrationV1beta1().
-	//		ValidatingWebhookConfigurations().
-	//		Get(validator, metav1.GetOptions{})
 
 	return validate.KubeClient().Get(validator, metav1.GetOptions{})
 }
@@ -350,9 +356,6 @@ func GetSecret(
 	secretName string,
 ) (*corev1.Secret, error) {
 
-	//	return wh.kubeClient.CoreV1().
-	//		Secrets(namespace).
-	//		Get(secretName, metav1.GetOptions{})
 	return secret.NewKubeClient(secret.WithNamespace(namespace)).Get(secretName, metav1.GetOptions{})
 }
 
