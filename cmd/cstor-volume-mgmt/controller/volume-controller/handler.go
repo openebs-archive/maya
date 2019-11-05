@@ -480,19 +480,37 @@ func (c *CStorVolumeController) addResizeConditions(
 	return updatedCVObj, nil
 }
 
-// updateCStorVolumeDRF updates desiredReplicationFactor in memory istgt
-// configuration on success updates istgt.conf file
+// updateCStorVolumeDRF updates volume configurations to changes made to
+// cStorVolume CR.
+// If no.of entries in cStorvolume spec.ReplicaDetails.KnownReplicas is less
+// than entries in status.ReplicaDetails.knownReplicas then the changes are
+// identified for scaledown
+// process.
+// If no.of entries in cStorVolume spec.ReplicaDetails.KnownReplicas is equal to
+// no.of entries in stauts.ReplicaDetails.KnownReplicas then the changes are
+// identified for scaleup process(Only one process should be triggered either
+// scaleup or scaledown).
+// NOTE: No.of entries in spec.KnownReplicas and status.knownReplicas will vary
+// only in the scaledown process else always it will be same
 func (c *CStorVolumeController) updateCStorVolumeDRF(
 	cStorVolume *apis.CStorVolume) {
 	// make changes to copyCV instead of cStorVolume
 	copyCV := cStorVolume.DeepCopy()
 	var err error
-	if len(copyCV.Spec.ReplicaDetails.KnownReplicas) <
-		len(copyCV.Status.ReplicaDetails.KnownReplicas) {
+	specKnownReplicaCount := len(copyCV.Spec.ReplicaDetails.KnownReplicas)
+	statusKnownReplicaCount := len(copyCV.Status.ReplicaDetails.KnownReplicas)
+	if specKnownReplicaCount < statusKnownReplicaCount {
 		copyCV, err = c.triggerScaleDownProcess(copyCV)
-	} else if len(copyCV.Spec.ReplicaDetails.KnownReplicas) ==
-		len(copyCV.Status.ReplicaDetails.KnownReplicas) {
+	} else if specKnownReplicaCount == statusKnownReplicaCount {
 		copyCV, err = c.triggerScaleUpProcess(copyCV)
+	} else {
+		// entries in spec.ReplicaDetails.KnownReplicas can't be greater than
+		// status.ReplicaDetails.KnownReplicas(unkown changes)
+		err = pkg_errors.Errorf("unkown changes are made to cStorVolume no.of "+
+			"entries in spec.ReplicaDetails.knownReplicas are %d and no.of entries "+
+			"in status.ReplicaDetails.KnownReplicas are %d",
+			specKnownReplicaCount,
+			statusKnownReplicaCount)
 	}
 	if err != nil {
 		c.recorder.Event(cStorVolume,
@@ -513,7 +531,7 @@ func (c *CStorVolumeController) updateCStorVolumeDRF(
 	)
 }
 
-// triggerScaleUpProcess returns error incase of any error during scaleup
+// triggerScaleUpProcess returns error in case of any error occurred during scaleup
 // process else it will return cstorvolume object
 func (c *CStorVolumeController) triggerScaleUpProcess(
 	cStorVolume *apis.CStorVolume) (*apis.CStorVolume, error) {
@@ -542,9 +560,9 @@ func (c *CStorVolumeController) triggerScaleUpProcess(
 	return cStorVolume, nil
 }
 
-// triggerScaleDownProcess returns error incase of any error during scaledown
+// triggerScaleDownProcess returns error in case of any error during the scaledown
 // process else it will return cstorvolume object. Following steps are executed
-// 1. Verify are all the replicas are healthy other than removing replica.
+// 1. Verify whether all the replicas are healthy other than removing replica.
 // 2. If step1 is passed then update the istgt.conf file with latest
 //    information.
 // 3. Update cStorVolume CR(replicationFactor, ConsistencyFactor and known
