@@ -41,6 +41,14 @@ type listFunc func(cs *kubernetes.Clientset, opts metav1.ListOptions) (*admissio
 // getting validatingWebhookConfiguration instances
 type getFunc func(cs *kubernetes.Clientset, name string, opts metav1.GetOptions) (*admission.ValidatingWebhookConfiguration, error)
 
+// createFn is a typed function that abstracts
+// to create admissionwebhook configuration
+type createFunc func(cli *kubernetes.Clientset,
+	config *admission.ValidatingWebhookConfiguration) (
+	*admission.ValidatingWebhookConfiguration,
+	error,
+)
+
 // Kubeclient enables kubernetes API operations
 // on upgrade result instance
 type Kubeclient struct {
@@ -52,6 +60,7 @@ type Kubeclient struct {
 	// functions useful during mocking
 	getClientset getClientsetFunc
 	list         listFunc
+	create       createFunc
 	get          getFunc
 }
 
@@ -79,6 +88,11 @@ func (k *Kubeclient) withDefaults() {
 	if k.get == nil {
 		k.get = func(cs *kubernetes.Clientset, name string, opts metav1.GetOptions) (*admission.ValidatingWebhookConfiguration, error) {
 			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(name, opts)
+		}
+	}
+	if k.create == nil {
+		k.create = func(cs *kubernetes.Clientset, config *admission.ValidatingWebhookConfiguration) (*admission.ValidatingWebhookConfiguration, error) {
+			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Create(config)
 		}
 	}
 }
@@ -145,4 +159,17 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*admission.Valida
 		return nil, err
 	}
 	return k.get(cs, name, opts)
+}
+
+// Create create validatingWebhookConfiguration, and returns the
+// corresponding validatingWebhookConfiguration object, and an error if there is any.
+func (k *Kubeclient) Create(config *admission.ValidatingWebhookConfiguration) (*admission.ValidatingWebhookConfiguration, error) {
+	if config == nil {
+		return nil, errors.New("failed to create validating configuration: nil configuration")
+	}
+	cs, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	return k.create(cs, config)
 }
