@@ -331,7 +331,7 @@ func distributeCVRs(
 	for count, pool := range usablePoolList.Items {
 		pool := pool
 		if count < pendingReplicaCount {
-			_, err = createCVR(service, volume, claim, &pool)
+			_, err = createCVR(service, volume, &pool)
 			if err != nil {
 				return err
 			}
@@ -400,7 +400,6 @@ func getSrcDetails(cstorVolumeSrc string) (string, string, error) {
 func createCVR(
 	service *corev1.Service,
 	volume *apis.CStorVolume,
-	claim *apis.CStorVolumeClaim,
 	pool *apis.CStorPoolInstance,
 ) (*apis.CStorVolumeReplica, error) {
 
