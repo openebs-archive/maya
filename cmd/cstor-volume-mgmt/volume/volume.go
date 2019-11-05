@@ -281,11 +281,13 @@ func ResizeTargetVolume(cStorVolume *apis.CStorVolume) error {
 	return nil
 }
 
-//ExecuteDesiredReplicationFactorCommand executes istgtcontrol command to update
-//desired replication factor
-func ExecuteDesiredReplicationFactorCommand(cStorVolume *apis.CStorVolume) error {
+// ExecuteDesiredReplicationFactorCommand executes istgtcontrol command to update
+// desired replication factor
+func ExecuteDesiredReplicationFactorCommand(
+	cStorVolume *apis.CStorVolume,
+	getDRFCmd func(*apis.CStorVolume) string) error {
 	// send desiredReplicationFactor command to istgt and read the response
-	drfCmd := getDRFCommand(cStorVolume)
+	drfCmd := getDRFCmd(cStorVolume)
 	sockResp, err := UnixSockVar.SendCommand(drfCmd)
 	if err != nil {
 		return errors.Wrapf(
@@ -307,14 +309,27 @@ func ExecuteDesiredReplicationFactorCommand(cStorVolume *apis.CStorVolume) error
 	return nil
 }
 
-//getResizeCommand will return data required to execute istgtcontrol drf
-//command
-//Ex command: drf <vol_name> <value>
-func getDRFCommand(cstorVolume *apis.CStorVolume) string {
+// GetScaleUpCommand will return data required to execute istgtcontrol drf
+// command
+// Ex command: drf <vol_name> <value>
+func GetScaleUpCommand(cstorVolume *apis.CStorVolume) string {
 	return fmt.Sprintf("%s %s %d", util.IstgtDRFCmd,
 		cstorVolume.Name,
 		cstorVolume.Spec.DesiredReplicationFactor,
 	)
+}
+
+// GetScaleDownCommand return replica scale down command
+// Ex command: drf <vol_name> <value> <known replica list>
+func GetScaleDownCommand(cStorVolume *apis.CStorVolume) string {
+	cmd := fmt.Sprintf("%s %s %d ", util.IstgtDRFCmd,
+		cStorVolume.Name,
+		cStorVolume.Spec.DesiredReplicationFactor,
+	)
+	for repID := range cStorVolume.Spec.ReplicaDetails.KnownReplicas {
+		cmd = cmd + fmt.Sprintf("%s ", repID)
+	}
+	return cmd
 }
 
 // getResizeCommand returns resize used to resize volumes
@@ -348,13 +363,6 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 	if cStorVolume.VersionDetails.Status.Current >= "1.3.0" {
 		if cStorVolume.Spec.DesiredReplicationFactor == 0 {
 			return fmt.Errorf("DesiredReplicationFactor cannot be zero")
-		}
-		if cStorVolume.Spec.DesiredReplicationFactor < cStorVolume.Spec.ReplicationFactor {
-			return fmt.Errorf("DesiredReplicationFactor %d cannot be less "+
-				"than ReplicationFactor %d",
-				cStorVolume.Spec.DesiredReplicationFactor,
-				cStorVolume.Spec.ReplicationFactor,
-			)
 		}
 	}
 	if cStorVolume.Spec.ReplicationFactor == 0 {
