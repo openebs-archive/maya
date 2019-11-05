@@ -312,7 +312,11 @@ func distributeCVRs(
 	service *corev1.Service,
 	volume *apis.CStorVolume,
 ) error {
-	var usablePoolList *apis.CStorPoolInstanceList
+	var (
+		usablePoolList *apis.CStorPoolInstanceList
+		srcVolName     string
+		err            error
+	)
 
 	cspcName := getCSPC(claim)
 	if len(cspcName) == 0 {
@@ -325,7 +329,7 @@ func distributeCVRs(
 	}
 
 	if claim.Spec.CstorVolumeSource != "" {
-		srcVolName, _, err := getSrcDetails(claim.Spec.CstorVolumeSource)
+		srcVolName, _, err = getSrcDetails(claim.Spec.CstorVolumeSource)
 		if err != nil {
 			return err
 		}
