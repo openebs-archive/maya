@@ -312,6 +312,7 @@ func distributeCVRs(
 	service *corev1.Service,
 	volume *apis.CStorVolume,
 ) error {
+	var usablePoolList *apis.CStorPoolInstanceList
 
 	cspcName := getCSPC(claim)
 	if len(cspcName) == 0 {
@@ -323,58 +324,21 @@ func distributeCVRs(
 		return err
 	}
 
-	usablePoolList := getUsablePoolList(volume.Name, poolList)
-
-	// randomizePoolList to get the pool list in random order
-	usablePoolList = randomizePoolList(usablePoolList)
-
-	for count, pool := range usablePoolList.Items {
-		pool := pool
-		if count < pendingReplicaCount {
-			_, err = createCVR(service, volume, &pool)
-			if err != nil {
-				return err
-			}
-		} else {
-			return nil
+	if claim.Spec.CstorVolumeSource != "" {
+		srcVolName, _, err := getSrcDetails(claim.Spec.CstorVolumeSource)
+		if err != nil {
+			return err
 		}
+		usablePoolList = getUsablePoolListForClone(volume.Name, srcVolName, poolList)
+	} else {
+		usablePoolList = getUsablePoolList(volume.Name, poolList)
 	}
-	return nil
-}
-
-// distributeCVRsForClone create cstorvolume replica based on the replicaCount
-// on the available cstor pools created for storagepoolclaim.
-// if pools are less then desired replicaCount its return an error.
-func distributeCVRsForClone(
-	pendingReplicaCount int,
-	claim *apis.CStorVolumeClaim,
-	service *corev1.Service,
-	volume *apis.CStorVolume,
-) error {
-
-	cspcName := getCSPC(claim)
-	if len(cspcName) == 0 {
-		return errors.New("failed to get cspc name from cstorvolumeclaim")
-	}
-
-	srcVolName, _, err := getSrcDetails(claim.Spec.CstorVolumeSource)
-	if err != nil {
-		return err
-	}
-	poolList, err := listCStorPools(cspcName, claim.Spec.ReplicaCount)
-	if err != nil {
-		return err
-	}
-
-	usablePoolList := getUsablePoolListForClone(volume.Name, srcVolName, poolList)
-
 	// randomizePoolList to get the pool list in random order
 	usablePoolList = randomizePoolList(usablePoolList)
-
 	for count, pool := range usablePoolList.Items {
 		pool := pool
 		if count < pendingReplicaCount {
-			_, err = createCVRForClone(service, volume, claim, &pool)
+			_, err = createCVR(service, volume, claim, &pool)
 			if err != nil {
 				return err
 			}
@@ -400,80 +364,27 @@ func getSrcDetails(cstorVolumeSrc string) (string, string, error) {
 func createCVR(
 	service *corev1.Service,
 	volume *apis.CStorVolume,
-	pool *apis.CStorPoolInstance,
-) (*apis.CStorVolumeReplica, error) {
-
-	cvrObj, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).
-		Get(volume.Name+"-"+string(pool.Name), metav1.GetOptions{})
-
-	if err != nil && !k8serror.IsNotFound(err) {
-		return nil, errors.Wrapf(
-			err,
-			"failed to get cstorvolumereplica {%v}",
-			cvrObj.Name,
-		)
-	}
-	if k8serror.IsNotFound(err) {
-		cvrObj, err = cvr.NewBuilder().
-			WithName(volume.Name + "-" + pool.Name).
-			WithLabelsNew(getCVRLabels(pool, volume.Name)).
-			WithAnnotationsNew(getCVRAnnotations(pool)).
-			WithOwnerRefernceNew(getCVROwnerReference(volume)).
-			WithFinalizers(getCVRFinalizer()).
-			WithTargetIP(service.Spec.ClusterIP).
-			WithCapacity(volume.Spec.Capacity.String()).
-			WithNewVersion(version.GetVersion()).
-			WithDependentsUpgraded().
-			Build()
-		if err != nil {
-			return nil, errors.Wrapf(
-				err,
-				"failed to build cstorvolumereplica {%v}",
-				cvrObj.Name,
-			)
-		}
-		cvrObj, err = cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).Create(cvrObj)
-		if err != nil {
-			return nil, errors.Wrapf(
-				err,
-				"failed to create cstorvolumereplica {%v}",
-				cvrObj.Name,
-			)
-		}
-		return cvrObj, nil
-	}
-	return cvrObj, nil
-}
-
-// createCVRForClone is actual method to create cstorvolumereplica resource on a given
-// cstor pool
-func createCVRForClone(
-	service *corev1.Service,
-	volume *apis.CStorVolume,
 	claim *apis.CStorVolumeClaim,
 	pool *apis.CStorPoolInstance,
 ) (*apis.CStorVolumeReplica, error) {
 	var (
 		isClone             string
 		srcVolume, snapName string
-		volSrcLabels        map[string]string
-		volSrcAnnotations   map[string]string
 		err                 error
 	)
+	annotations := getCVRAnnotations(pool)
+	labels := getCVRLabels(pool, volume.Name)
 
-	isClone = "true"
-	srcVolume, snapName, err = getSrcDetails(claim.Spec.CstorVolumeSource)
-	if err != nil {
-		return nil, err
+	if claim.Spec.CstorVolumeSource != "" {
+		isClone = "true"
+		srcVolume, snapName, err = getSrcDetails(claim.Spec.CstorVolumeSource)
+		if err != nil {
+			return nil, err
+		}
+		annotations[string(apis.SourceVolumeKey)] = srcVolume
+		annotations[string(apis.SnapshotNameKey)] = snapName
+		labels[string(apis.CloneEnableKEY)] = isClone
 	}
-	volSrcAnnotations = map[string]string{
-		string(apis.SourceVolumeKey): srcVolume,
-		string(apis.SnapshotNameKey): snapName,
-	}
-	volSrcLabels = map[string]string{
-		string(apis.CloneEnableKEY): isClone,
-	}
-
 	cvrObj, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).
 		Get(volume.Name+"-"+string(pool.Name), metav1.GetOptions{})
 
@@ -487,10 +398,8 @@ func createCVRForClone(
 	if k8serror.IsNotFound(err) {
 		cvrObj, err = cvr.NewBuilder().
 			WithName(volume.Name + "-" + pool.Name).
-			WithLabelsNew(getCVRLabels(pool, volume.Name)).
-			WithLabels(volSrcLabels).
-			WithAnnotationsNew(getCVRAnnotations(pool)).
-			WithAnnotations(volSrcAnnotations).
+			WithLabelsNew(labels).
+			WithAnnotationsNew(annotations).
 			WithOwnerRefernceNew(getCVROwnerReference(volume)).
 			WithFinalizers(getCVRFinalizer()).
 			WithTargetIP(service.Spec.ClusterIP).

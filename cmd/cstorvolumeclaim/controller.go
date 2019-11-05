@@ -288,14 +288,6 @@ func (c *CVCController) distributePendingCVRs(
 	if err != nil {
 		return err
 	}
-	if len(cvc.Spec.CstorVolumeSource) != 0 {
-		err = distributeCVRsForClone(pendingReplicaCount, cvc, service, cv)
-		if err != nil {
-			return err
-		}
-		return nil
-
-	}
 	err = distributeCVRs(pendingReplicaCount, cvc, service, cv)
 	if err != nil {
 		return err
