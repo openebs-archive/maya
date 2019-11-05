@@ -56,6 +56,8 @@ type CStorVolumeClaimSpec struct {
 	// CStorVolumeRef has the information about where CstorVolumeClaim
 	// is created from.
 	CStorVolumeRef *corev1.ObjectReference `json:"cstorVolumeRef,omitempty"`
+	// CstorVolumeSource contains the source volumeID+Snapshot combaination
+	CstorVolumeSource string `json:"cstorVolumeSource,omitempty"`
 }
 
 // CStorVolumeClaimPublish contains info related to attachment of a volume to a node.

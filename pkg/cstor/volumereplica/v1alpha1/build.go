@@ -77,14 +77,10 @@ func (b *Builder) WithNamespace(namespace string) *Builder {
 // with the ones that are provided here
 func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 	if len(annotations) == 0 {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build cvr object: no new annotations"),
-		)
 		return b
 	}
 
-	if b.cvr.object.Labels == nil {
+	if b.cvr.object.Annotations == nil {
 		return b.WithAnnotationsNew(annotations)
 	}
 
@@ -135,10 +131,6 @@ func (b *Builder) WithOwnerRefernceNew(ownerRefernce []metav1.OwnerReference) *B
 // with the ones that are provided here
 func (b *Builder) WithLabels(labels map[string]string) *Builder {
 	if len(labels) == 0 {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build cvr object: missing labels"),
-		)
 		return b
 	}
 

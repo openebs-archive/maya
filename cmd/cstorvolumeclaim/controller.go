@@ -288,6 +288,14 @@ func (c *CVCController) distributePendingCVRs(
 	if err != nil {
 		return err
 	}
+	if len(cvc.Spec.CstorVolumeSource) != 0 {
+		err = distributeCVRsForClone(pendingReplicaCount, cvc, service, cv)
+		if err != nil {
+			return err
+		}
+		return nil
+
+	}
 	err = distributeCVRs(pendingReplicaCount, cvc, service, cv)
 	if err != nil {
 		return err
@@ -302,6 +310,7 @@ func (c *CVCController) isClaimDeletionCandidate(cvc *apis.CStorVolumeClaim) boo
 }
 
 // removeFinalizer removes finalizers present in CStorVolumeClaim resource
+// TODO Avoid removing clone finalizer
 func (c *CVCController) removeClaimFinalizer(
 	cvc *apis.CStorVolumeClaim,
 ) error {

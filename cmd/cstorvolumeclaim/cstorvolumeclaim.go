@@ -18,6 +18,7 @@ package cstorvolumeclaim
 
 import (
 	"math/rand"
+	"strings"
 	"time"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -39,7 +40,8 @@ const (
 	cvcKind = "CStorVolumeClaim"
 	cvKind  = "CStorVolume"
 
-	cstorpoolNameLabel = "cstorpool.openebs.io/name"
+	cstorpoolInstanceLabel = "cstorpoolinstance.openebs.io/name"
+	cstorpoolNameLabel     = "cstorpool.openebs.io/name"
 	// ReplicaCount represents replica count value
 	ReplicaCount = "replicaCount"
 	// pvSelector is the selector key for cstorvolumereplica belongs to a cstor
@@ -272,6 +274,7 @@ func getOrCreateCStorVolumeResource(
 			cvObj.Name,
 		)
 	}
+
 	if k8serror.IsNotFound(err) {
 		cvObj, err = cv.NewBuilder().
 			WithName(claim.Name).
@@ -293,7 +296,7 @@ func getOrCreateCStorVolumeResource(
 			return nil, errors.Wrapf(
 				err,
 				"failed to build cstorvolume {%v}",
-				cvObj,
+				claim.Name,
 			)
 		}
 		return cv.NewKubeclient(cv.WithNamespace(getNamespace())).Create(cvObj)
@@ -329,7 +332,7 @@ func distributeCVRs(
 	for count, pool := range usablePoolList.Items {
 		pool := pool
 		if count < pendingReplicaCount {
-			_, err = createCVR(service, volume, &pool)
+			_, err = createCVR(service, volume, claim, &pool)
 			if err != nil {
 				return err
 			}
@@ -340,16 +343,86 @@ func distributeCVRs(
 	return nil
 }
 
+// distributeCVRsForClone create cstorvolume replica based on the replicaCount
+// on the available cstor pools created for storagepoolclaim.
+// if pools are less then desired replicaCount its return an error.
+func distributeCVRsForClone(
+	pendingReplicaCount int,
+	claim *apis.CStorVolumeClaim,
+	service *corev1.Service,
+	volume *apis.CStorVolume,
+) error {
+
+	cspcName := getCSPC(claim)
+	if len(cspcName) == 0 {
+		return errors.New("failed to get cspc name from cstorvolumeclaim")
+	}
+
+	srcVolName, _, err := getSrcDetails(claim.Spec.CstorVolumeSource)
+	poolList, err := listCStorPools(cspcName, claim.Spec.ReplicaCount)
+	if err != nil {
+		return err
+	}
+
+	usablePoolList := getUsablePoolListForClone(volume.Name, srcVolName, poolList)
+
+	// randomizePoolList to get the pool list in random order
+	usablePoolList = randomizePoolList(usablePoolList)
+
+	for count, pool := range usablePoolList.Items {
+		pool := pool
+		if count < pendingReplicaCount {
+			_, err = createCVR(service, volume, claim, &pool)
+			if err != nil {
+				return err
+			}
+		} else {
+			return nil
+		}
+	}
+	return nil
+}
+
+func getSrcDetails(cstorVolumeSrc string) (string, string, error) {
+	volSrc := strings.Split(cstorVolumeSrc, "@")
+	if len(volSrc) == 0 {
+		return "", "", errors.New(
+			"failed to get volumeSource",
+		)
+	}
+	return volSrc[0], volSrc[1], nil
+}
+
 // createCVR is actual method to create cstorvolumereplica resource on a given
 // cstor pool
 func createCVR(
 	service *corev1.Service,
 	volume *apis.CStorVolume,
+	claim *apis.CStorVolumeClaim,
 	pool *apis.CStorPoolInstance,
 ) (*apis.CStorVolumeReplica, error) {
+	var (
+		isClone             string
+		srcVolume, snapName string
+		volSrcLabels        map[string]string
+		volSrcAnnotations   map[string]string
+		err                 error
+	)
+
+	if claim.Spec.CstorVolumeSource != "" {
+		isClone = "true"
+		srcVolume, snapName, err = getSrcDetails(claim.Spec.CstorVolumeSource)
+		volSrcAnnotations = map[string]string{
+			string(apis.SourceVolumeKey): srcVolume,
+			string(apis.SnapshotNameKey): snapName,
+		}
+		volSrcLabels = map[string]string{
+			string(apis.CloneEnableKEY): isClone,
+		}
+	}
 
 	cvrObj, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).
-		Get(volume.Name+"-"+pool.Name, metav1.GetOptions{})
+		Get(volume.Name+"-"+string(pool.Name), metav1.GetOptions{})
 
 	if err != nil && !k8serror.IsNotFound(err) {
 		return nil, errors.Wrapf(
@@ -362,7 +435,9 @@ func createCVR(
 		cvrObj, err = cvr.NewBuilder().
 			WithName(volume.Name + "-" + pool.Name).
 			WithLabelsNew(getCVRLabels(pool, volume.Name)).
+			WithLabels(volSrcLabels).
 			WithAnnotationsNew(getCVRAnnotations(pool)).
+			WithAnnotations(volSrcAnnotations).
 			WithOwnerRefernceNew(getCVROwnerReference(volume)).
 			WithFinalizers(getCVRFinalizer()).
 			WithTargetIP(service.Spec.ClusterIP).
@@ -390,18 +465,18 @@ func createCVR(
 	return cvrObj, nil
 }
 
-// GetUsedPoolNames returns a list of cstor pool
+// getPoolmapFromCVRList returns a list of cstor pool
 // name corresponding to cstor volume replica
 // instances
-func getUsedPoolNames(cvrList *apis.CStorVolumeReplicaList) map[string]bool {
-	var usedPoolMap = make(map[string]bool)
+func getPoolMapFromCVRList(cvrList *apis.CStorVolumeReplicaList) map[string]bool {
+	var poolMap = make(map[string]bool)
 	for _, cvr := range cvrList.Items {
-		poolName := cvr.GetLabels()[string(cstorpoolNameLabel)]
+		poolName := cvr.GetLabels()[string(cstorpoolInstanceLabel)]
 		if poolName != "" {
-			usedPoolMap[poolName] = true
+			poolMap[poolName] = true
 		}
 	}
-	return usedPoolMap
+	return poolMap
 }
 
 // GetUsablePoolList returns a list of usable cstorpools
@@ -418,9 +493,40 @@ func getUsablePoolList(pvName string, poolList *apis.CStorPoolInstanceList) *api
 		return nil
 	}
 
-	usedPoolMap := getUsedPoolNames(cvrList)
+	usedPoolMap := getPoolMapFromCVRList(cvrList)
 	for _, pool := range poolList.Items {
 		if !usedPoolMap[pool.Name] {
+			usablePoolList.Items = append(usablePoolList.Items, pool)
+		}
+	}
+	return usablePoolList
+}
+
+// GetUsablePoolListForClones returns a list of usable cstorpools
+// which hasn't been used to create cstor volume replica
+// instances
+func getUsablePoolListForClone(pvName, srcPVName string, poolList *apis.CStorPoolInstanceList) *apis.CStorPoolInstanceList {
+	usablePoolList := &apis.CStorPoolInstanceList{}
+
+	pvLabel := pvSelector + "=" + pvName
+	cvrList, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).List(metav1.ListOptions{
+		LabelSelector: pvLabel,
+	})
+	if err != nil {
+		return nil
+	}
+	srcPVLabel := pvSelector + "=" + srcPVName
+	srcCVRList, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).List(metav1.ListOptions{
+		LabelSelector: srcPVLabel,
+	})
+	if err != nil {
+		return nil
+	}
+
+	srcVolPoolMap := getPoolMapFromCVRList(srcCVRList)
+	usedPoolMap := getPoolMapFromCVRList(cvrList)
+	for _, pool := range poolList.Items {
+		if !usedPoolMap[pool.Name] && srcVolPoolMap[pool.Name] {
 			usablePoolList.Items = append(usablePoolList.Items, pool)
 		}
 	}
