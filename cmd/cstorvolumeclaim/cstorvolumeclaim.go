@@ -28,8 +28,8 @@ import (
 	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
+	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -256,6 +256,10 @@ func getOrCreateCStorVolumeResource(
 	service *corev1.Service,
 	claim *apis.CStorVolumeClaim,
 ) (*apis.CStorVolume, error) {
+	var (
+		srcVolume string
+		err       error
+	)
 
 	qCap := claim.Spec.Capacity[corev1.ResourceStorage]
 
@@ -263,6 +267,15 @@ func getOrCreateCStorVolumeResource(
 	rfactor := claim.Spec.ReplicaCount
 	desiredRF := claim.Spec.ReplicaCount
 	cfactor := rfactor/2 + 1
+
+	volLabels := getCVLabels(claim)
+	if len(claim.Spec.CstorVolumeSource) != 0 {
+		srcVolume, _, err = getSrcDetails(claim.Spec.CstorVolumeSource)
+		if err != nil {
+			return nil, err
+		}
+		volLabels[string(apis.SourceVolumeKey)] = srcVolume
+	}
 
 	cvObj, err := cv.NewKubeclient(cv.WithNamespace(getNamespace())).
 		Get(claim.Name, metav1.GetOptions{})
@@ -277,7 +290,7 @@ func getOrCreateCStorVolumeResource(
 	if k8serror.IsNotFound(err) {
 		cvObj, err = cv.NewBuilder().
 			WithName(claim.Name).
-			WithLabelsNew(getCVLabels(claim)).
+			WithLabelsNew(volLabels).
 			WithOwnerRefernceNew(getCVOwnerReference(claim)).
 			WithTargetIP(service.Spec.ClusterIP).
 			WithCapacity(qCap.String()).

@@ -22,7 +22,7 @@ import (
 	"time"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	merrors "github.com/pkg/errors"
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
