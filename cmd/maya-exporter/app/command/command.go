@@ -170,7 +170,7 @@ func (o *VolumeExporterOptions) RegisterPool() {
 	p := pool.New(buildRunner(timeout, "zpool", "list", "-Hp"))
 	z := zvol.New(buildRunner(timeout, "zfs", "stats"))
 	l := zvol.NewVolumeList(buildRunner(timeout, "zfs", "list", "-Hp"))
-	s := zvol.NewPoolSyncMetric(buildRunner(timeout, "zfs", "get", "openebs.io:livenesstimestamp", "-Hp"))
+	s := zvol.NewPoolSyncMetric(buildRunner(timeout, "zfs", "get", "io.openebs:livenesstimestamp", "-Hp"))
 	prometheus.MustRegister(p, z, l, s)
 	klog.Info("Registered maya exporter for cstor pool")
 	return
