@@ -78,13 +78,11 @@ func main() {
 	// Fetch a reference to the admission server deployment object
 	ownerReference, err := webhook.GetAdmissionReference()
 	if err != nil {
-		klog.Error(err, "failed to get a reference to the admission deployment object")
-		//	os.Exit(1)
+		klog.Fatal(err, "failed to get a reference to the admission deployment object")
 	}
 	validatorErr := webhook.InitValidationServer(*ownerReference)
 	if validatorErr != nil {
-		klog.Error(validatorErr, "failed to initialize validation server")
-		//	os.Exit(1)
+		klog.Fatal(validatorErr, "failed to initialize validation server")
 	}
 
 	wh, err := webhook.New(parameters, kubeClient, openebsClient, snapClient)
