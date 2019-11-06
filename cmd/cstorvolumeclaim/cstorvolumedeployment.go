@@ -20,12 +20,12 @@ import (
 	"os"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
 	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	"github.com/openebs/maya/pkg/version"
+	errors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"

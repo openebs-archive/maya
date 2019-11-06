@@ -257,6 +257,24 @@ func (wh *webhook) validatePVCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 		}
 		return response
 	}
+
+	cStorVolumeClaims, err := wh.getCstorVolumeClaims(listOptions)
+	if err != nil {
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: fmt.Sprintf("error retrieving CstorVolumeClaims: %v", err.Error()),
+		}
+		return response
+	}
+
+	if len(cStorVolumeClaims.Items) != 0 {
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: "PVC with cloned volumes can't be deleted",
+			Message: fmt.Sprintf("pvc %q has '%v' cloned volume(s)", pvc.Name, len(cStorVolumeClaims.Items)),
+		}
+		return response
+	}
 	return response
 }
 
@@ -393,11 +411,12 @@ func (wh *webhook) validatePVC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRe
 
 // getCstorVolumes gets the list of CstorVolumes based in the source-volume labels
 func (wh *webhook) getCstorVolumes(listOptions metav1.ListOptions) (*v1alpha1.CStorVolumeList, error) {
-	var cStorVolumes *v1alpha1.CStorVolumeList
-	var err error
+	return wh.clientset.OpenebsV1alpha1().CStorVolumes("").List(listOptions)
+}
 
-	cStorVolumes, err = wh.clientset.OpenebsV1alpha1().CStorVolumes("").List(listOptions)
-	return cStorVolumes, err
+// getCstorVolumeClaims gets the list of CstorVolumeclaims based in the source-volume labels
+func (wh *webhook) getCstorVolumeClaims(listOptions metav1.ListOptions) (*v1alpha1.CStorVolumeClaimList, error) {
+	return wh.clientset.OpenebsV1alpha1().CStorVolumeClaims("").List(listOptions)
 }
 
 // Serve method for webhook server, handles http requests for webhooks

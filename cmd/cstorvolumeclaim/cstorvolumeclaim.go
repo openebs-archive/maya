@@ -18,6 +18,7 @@ package cstorvolumeclaim
 
 import (
 	"math/rand"
+	"strings"
 	"time"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -27,8 +28,8 @@ import (
 	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
+	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +40,7 @@ const (
 	cvcKind = "CStorVolumeClaim"
 	cvKind  = "CStorVolume"
 
-	cstorpoolNameLabel = "cstorpool.openebs.io/name"
+	cstorpoolInstanceLabel = "cstorpoolinstance.openebs.io/name"
 	// ReplicaCount represents replica count value
 	ReplicaCount = "replicaCount"
 	// pvSelector is the selector key for cstorvolumereplica belongs to a cstor
@@ -255,6 +256,10 @@ func getOrCreateCStorVolumeResource(
 	service *corev1.Service,
 	claim *apis.CStorVolumeClaim,
 ) (*apis.CStorVolume, error) {
+	var (
+		srcVolume string
+		err       error
+	)
 
 	qCap := claim.Spec.Capacity[corev1.ResourceStorage]
 
@@ -262,6 +267,15 @@ func getOrCreateCStorVolumeResource(
 	rfactor := claim.Spec.ReplicaCount
 	desiredRF := claim.Spec.ReplicaCount
 	cfactor := rfactor/2 + 1
+
+	volLabels := getCVLabels(claim)
+	if len(claim.Spec.CstorVolumeSource) != 0 {
+		srcVolume, _, err = getSrcDetails(claim.Spec.CstorVolumeSource)
+		if err != nil {
+			return nil, err
+		}
+		volLabels[string(apis.SourceVolumeKey)] = srcVolume
+	}
 
 	cvObj, err := cv.NewKubeclient(cv.WithNamespace(getNamespace())).
 		Get(claim.Name, metav1.GetOptions{})
@@ -272,10 +286,11 @@ func getOrCreateCStorVolumeResource(
 			cvObj.Name,
 		)
 	}
+
 	if k8serror.IsNotFound(err) {
 		cvObj, err = cv.NewBuilder().
 			WithName(claim.Name).
-			WithLabelsNew(getCVLabels(claim)).
+			WithLabelsNew(volLabels).
 			WithOwnerRefernceNew(getCVOwnerReference(claim)).
 			WithTargetIP(service.Spec.ClusterIP).
 			WithCapacity(qCap.String()).
@@ -293,7 +308,7 @@ func getOrCreateCStorVolumeResource(
 			return nil, errors.Wrapf(
 				err,
 				"failed to build cstorvolume {%v}",
-				cvObj,
+				claim.Name,
 			)
 		}
 		return cv.NewKubeclient(cv.WithNamespace(getNamespace())).Create(cvObj)
@@ -310,6 +325,11 @@ func distributeCVRs(
 	service *corev1.Service,
 	volume *apis.CStorVolume,
 ) error {
+	var (
+		usablePoolList *apis.CStorPoolInstanceList
+		srcVolName     string
+		err            error
+	)
 
 	cspcName := getCSPC(claim)
 	if len(cspcName) == 0 {
@@ -321,15 +341,21 @@ func distributeCVRs(
 		return err
 	}
 
-	usablePoolList := getUsablePoolList(volume.Name, poolList)
-
+	if claim.Spec.CstorVolumeSource != "" {
+		srcVolName, _, err = getSrcDetails(claim.Spec.CstorVolumeSource)
+		if err != nil {
+			return err
+		}
+		usablePoolList = getUsablePoolListForClone(volume.Name, srcVolName, poolList)
+	} else {
+		usablePoolList = getUsablePoolList(volume.Name, poolList)
+	}
 	// randomizePoolList to get the pool list in random order
 	usablePoolList = randomizePoolList(usablePoolList)
-
 	for count, pool := range usablePoolList.Items {
 		pool := pool
 		if count < pendingReplicaCount {
-			_, err = createCVR(service, volume, &pool)
+			_, err = createCVR(service, volume, claim, &pool)
 			if err != nil {
 				return err
 			}
@@ -340,16 +366,44 @@ func distributeCVRs(
 	return nil
 }
 
+func getSrcDetails(cstorVolumeSrc string) (string, string, error) {
+	volSrc := strings.Split(cstorVolumeSrc, "@")
+	if len(volSrc) == 0 {
+		return "", "", errors.New(
+			"failed to get volumeSource",
+		)
+	}
+	return volSrc[0], volSrc[1], nil
+}
+
 // createCVR is actual method to create cstorvolumereplica resource on a given
 // cstor pool
 func createCVR(
 	service *corev1.Service,
 	volume *apis.CStorVolume,
+	claim *apis.CStorVolumeClaim,
 	pool *apis.CStorPoolInstance,
 ) (*apis.CStorVolumeReplica, error) {
+	var (
+		isClone             string
+		srcVolume, snapName string
+		err                 error
+	)
+	annotations := getCVRAnnotations(pool)
+	labels := getCVRLabels(pool, volume.Name)
 
+	if claim.Spec.CstorVolumeSource != "" {
+		isClone = "true"
+		srcVolume, snapName, err = getSrcDetails(claim.Spec.CstorVolumeSource)
+		if err != nil {
+			return nil, err
+		}
+		annotations[string(apis.SourceVolumeKey)] = srcVolume
+		annotations[string(apis.SnapshotNameKey)] = snapName
+		labels[string(apis.CloneEnableKEY)] = isClone
+	}
 	cvrObj, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).
-		Get(volume.Name+"-"+pool.Name, metav1.GetOptions{})
+		Get(volume.Name+"-"+string(pool.Name), metav1.GetOptions{})
 
 	if err != nil && !k8serror.IsNotFound(err) {
 		return nil, errors.Wrapf(
@@ -361,8 +415,8 @@ func createCVR(
 	if k8serror.IsNotFound(err) {
 		cvrObj, err = cvr.NewBuilder().
 			WithName(volume.Name + "-" + pool.Name).
-			WithLabelsNew(getCVRLabels(pool, volume.Name)).
-			WithAnnotationsNew(getCVRAnnotations(pool)).
+			WithLabelsNew(labels).
+			WithAnnotationsNew(annotations).
 			WithOwnerRefernceNew(getCVROwnerReference(volume)).
 			WithFinalizers(getCVRFinalizer()).
 			WithTargetIP(service.Spec.ClusterIP).
@@ -390,18 +444,18 @@ func createCVR(
 	return cvrObj, nil
 }
 
-// GetUsedPoolNames returns a list of cstor pool
+// getPoolmapFromCVRList returns a list of cstor pool
 // name corresponding to cstor volume replica
 // instances
-func getUsedPoolNames(cvrList *apis.CStorVolumeReplicaList) map[string]bool {
-	var usedPoolMap = make(map[string]bool)
+func getPoolMapFromCVRList(cvrList *apis.CStorVolumeReplicaList) map[string]bool {
+	var poolMap = make(map[string]bool)
 	for _, cvr := range cvrList.Items {
-		poolName := cvr.GetLabels()[string(cstorpoolNameLabel)]
+		poolName := cvr.GetLabels()[string(cstorpoolInstanceLabel)]
 		if poolName != "" {
-			usedPoolMap[poolName] = true
+			poolMap[poolName] = true
 		}
 	}
-	return usedPoolMap
+	return poolMap
 }
 
 // GetUsablePoolList returns a list of usable cstorpools
@@ -418,9 +472,40 @@ func getUsablePoolList(pvName string, poolList *apis.CStorPoolInstanceList) *api
 		return nil
 	}
 
-	usedPoolMap := getUsedPoolNames(cvrList)
+	usedPoolMap := getPoolMapFromCVRList(cvrList)
 	for _, pool := range poolList.Items {
 		if !usedPoolMap[pool.Name] {
+			usablePoolList.Items = append(usablePoolList.Items, pool)
+		}
+	}
+	return usablePoolList
+}
+
+// GetUsablePoolListForClones returns a list of usable cstorpools
+// which hasn't been used to create cstor volume replica
+// instances
+func getUsablePoolListForClone(pvName, srcPVName string, poolList *apis.CStorPoolInstanceList) *apis.CStorPoolInstanceList {
+	usablePoolList := &apis.CStorPoolInstanceList{}
+
+	pvLabel := pvSelector + "=" + pvName
+	cvrList, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).List(metav1.ListOptions{
+		LabelSelector: pvLabel,
+	})
+	if err != nil {
+		return nil
+	}
+	srcPVLabel := pvSelector + "=" + srcPVName
+	srcCVRList, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).List(metav1.ListOptions{
+		LabelSelector: srcPVLabel,
+	})
+	if err != nil {
+		return nil
+	}
+
+	srcVolPoolMap := getPoolMapFromCVRList(srcCVRList)
+	usedPoolMap := getPoolMapFromCVRList(cvrList)
+	for _, pool := range poolList.Items {
+		if !usedPoolMap[pool.Name] && srcVolPoolMap[pool.Name] {
 			usablePoolList.Items = append(usablePoolList.Items, pool)
 		}
 	}
