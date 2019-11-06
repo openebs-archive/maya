@@ -50,10 +50,10 @@ type upgradeFunc func(u *upgradeParams) (*apis.CStorPool, error)
 
 var (
 	upgradeMap = map[string]upgradeFunc{
-		"1.0.0-1.4.0": nothing,
-		"1.1.0-1.4.0": nothing,
-		"1.2.0-1.4.0": nothing,
-		"1.3.0-1.4.0": nothing,
+		"1.0.0": nothing,
+		"1.1.0": nothing,
+		"1.2.0": nothing,
+		"1.3.0": nothing,
 	}
 )
 
@@ -580,10 +580,10 @@ func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStor
 	// the below code uses deep copy to have the state of object just before
 	// any update call is done so that on failure the last state object can be returned
 	if csp.VersionDetails.Status.Current != csp.VersionDetails.Desired {
-		if !csp.VersionDetails.IsCurrentVersionValid() {
+		if !apis.IsCurrentVersionValid(csp.VersionDetails.Status.Current) {
 			return csp, errors.Errorf("invalid current version %s", csp.VersionDetails.Status.Current)
 		}
-		if !csp.VersionDetails.IsDesiredVersionValid() {
+		if !apis.IsDesiredVersionValid(csp.VersionDetails.Desired) {
 			return csp, errors.Errorf("invalid desired version %s", csp.VersionDetails.Desired)
 		}
 		cspObj := csp.DeepCopy()
@@ -594,7 +594,7 @@ func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStor
 				return csp, err
 			}
 		}
-		path := cspObj.VersionDetails.Path()
+		path := strings.Split(cspObj.VersionDetails.Status.Current, "-")[0]
 		u := &upgradeParams{
 			csp:    cspObj,
 			client: c.clientset,

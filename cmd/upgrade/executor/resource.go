@@ -21,7 +21,8 @@ import (
 
 	"k8s.io/klog"
 
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
+	utaskapis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 
@@ -85,7 +86,7 @@ func NewUpgradeResourceJob() *cobra.Command {
 
 // InitializeFromUpgradeTaskResource will populate the UpgradeOptions from given UpgradeTask
 func (u *UpgradeOptions) InitializeFromUpgradeTaskResource(
-	upgradeTaskCRObj apis.UpgradeTask, cmd *cobra.Command) error {
+	upgradeTaskCRObj utaskapis.UpgradeTask, cmd *cobra.Command) error {
 
 	if len(strings.TrimSpace(u.openebsNamespace)) == 0 {
 		return errors.Errorf("Cannot execute upgrade job: namespace is missing")
@@ -139,13 +140,7 @@ func (u *UpgradeOptions) RunResourceUpgradeChecks(cmd *cobra.Command) error {
 // RunResourceUpgrade upgrades the given upgradeTask
 func (u *UpgradeOptions) RunResourceUpgrade(cmd *cobra.Command) error {
 
-	path, err := u.getUpgradePath()
-	if err != nil {
-		return err
-	}
-	switch path {
-	case "1.0.0-1.4.0", "1.1.0-1.4.0", "1.2.0-1.4.0", "1.3.0-1.4.0":
-		// RC1-RC2 for RC1 to RC2, RC1- for RC1 to GA, RC2- for RC2 to GA
+	if apis.IsCurrentVersionValid(u.fromVersion) && apis.IsDesiredVersionValid(u.toVersion) {
 		klog.Infof("Upgrading to %s", u.toVersion)
 		err := upgrader.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
@@ -156,7 +151,7 @@ func (u *UpgradeOptions) RunResourceUpgrade(cmd *cobra.Command) error {
 		if err != nil {
 			return errors.Wrapf(err, "Failed to upgrade %v %v", u.resourceKind, u.resource.name)
 		}
-	default:
+	} else {
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)
 	}
 	return nil

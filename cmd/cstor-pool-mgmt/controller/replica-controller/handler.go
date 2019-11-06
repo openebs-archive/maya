@@ -51,10 +51,10 @@ type upgradeFunc func(u *upgradeParams) (*apis.CStorVolumeReplica, error)
 
 var (
 	upgradeMap = map[string]upgradeFunc{
-		"1.0.0-1.4.0": setReplicaID,
-		"1.1.0-1.4.0": setReplicaID,
-		"1.2.0-1.4.0": setReplicaID,
-		"1.3.0-1.4.0": nothing,
+		"1.0.0": setReplicaID,
+		"1.1.0": setReplicaID,
+		"1.2.0": setReplicaID,
+		"1.3.0": nothing,
 	}
 )
 
@@ -591,10 +591,10 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 	// the below code uses deep copy to have the state of object just before
 	// any update call is done so that on failure the last state object can be returned
 	if cvr.VersionDetails.Status.Current != cvr.VersionDetails.Desired {
-		if !cvr.VersionDetails.IsCurrentVersionValid() {
+		if !apis.IsCurrentVersionValid(cvr.VersionDetails.Status.Current) {
 			return cvr, pkg_errors.Errorf("invalid current version %s", cvr.VersionDetails.Status.Current)
 		}
-		if !cvr.VersionDetails.IsDesiredVersionValid() {
+		if !apis.IsDesiredVersionValid(cvr.VersionDetails.Desired) {
 			return cvr, pkg_errors.Errorf("invalid desired version %s", cvr.VersionDetails.Desired)
 		}
 		cvrObj := cvr.DeepCopy()
@@ -606,7 +606,7 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 				return cvr, err
 			}
 		}
-		path := cvrObj.VersionDetails.Path()
+		path := strings.Split(cvrObj.VersionDetails.Status.Current, "-")[0]
 		u := &upgradeParams{
 			cvr:    cvrObj,
 			client: c.clientset,
