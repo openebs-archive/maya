@@ -173,7 +173,7 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.CStorPoolInstance) (*appsv1.De
 					volume.NewBuilder().
 						WithName("tmp").
 						WithHostPathAndType(
-							getSparseDirPath()+"/shared-"+csp.Name,
+							getSparseDirPath()+"/shared-"+pc.AlgorithmConfig.CSPC.Name,
 							&hostpathTypeDirectoryOrCreate,
 						),
 					volume.NewBuilder().
