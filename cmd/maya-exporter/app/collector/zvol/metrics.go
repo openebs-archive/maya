@@ -493,7 +493,7 @@ func listParser(stdout []byte, m *listMetrics) []fields {
 	return list
 }
 
-// poolMetricParser is used to parse output from zfs get openebs.io:livenesstimestamp
+// poolMetricParser is used to parse output from zfs get io.openebs:livenesstimestamp
 func poolMetricParser(stdout []byte) *poolfields {
 	if len(string(stdout)) == 0 {
 		pool := poolfields{

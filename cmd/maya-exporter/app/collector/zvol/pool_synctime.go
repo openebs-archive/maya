@@ -86,7 +86,7 @@ func (p *poolMetrics) get() *poolfields {
 	p.Lock()
 	defer p.Unlock()
 
-	klog.V(2).Info("Run zfs get openebs.io:livenesstimestamp")
+	klog.V(2).Info("Run zfs get io.openebs:livenesstimestamp")
 	stdout, err := zvol.Run(p.runner)
 	if err != nil {
 		pool := poolfields{
@@ -101,7 +101,7 @@ func (p *poolMetrics) get() *poolfields {
 	if pool := p.checkError(stdout); pool != nil {
 		return pool
 	}
-	klog.V(2).Infof("Parse stdout of zfs get openebs.io:livenesstimestamp command, got stdout: \n%v", string(stdout))
+	klog.V(2).Infof("Parse stdout of zfs get io.openebs:livenesstimestamp command, got stdout: \n%v", string(stdout))
 	pool := poolMetricParser(stdout)
 
 	return pool

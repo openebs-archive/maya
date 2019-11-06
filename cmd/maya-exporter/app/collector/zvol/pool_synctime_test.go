@@ -34,8 +34,8 @@ func TestPoolSyncTimeMetricCollector(t *testing.T) {
 	}{
 		"Test0": {
 			// expected output if there is openebs.io:timestamp set
-			zpoolLastSyncTimeOutput: `cstor-c6f17743-e5d7-11e9-b673-42010a800112      openebs.io:livenesstimestamp    1570625404      local
-			cstor-c6f17743-e5d7-11e9-b673-42010a800112/pvc-053647ca-e5d8-11e9-b673-42010a800112     openebs.io:livenesstimestamp    1570625404      inherited from cstor-c6f17743-e5d7-11e9-b673-42010a800112`,
+			zpoolLastSyncTimeOutput: `cstor-c6f17743-e5d7-11e9-b673-42010a800112      io.openebs:livenesstimestamp    1570625404      local
+			cstor-c6f17743-e5d7-11e9-b673-42010a800112/pvc-053647ca-e5d8-11e9-b673-42010a800112     io.openebs:livenesstimestamp    1570625404      inherited from cstor-c6f17743-e5d7-11e9-b673-42010a800112`,
 			expectedOutput: []string{
 				`openebs_zpool_last_sync_time{pool="cstor-c6f17743-e5d7-11e9-b673-42010a800112"} 1.570625404e\+09`,
 				`openebs_zpool_state_unknown{pool="cstor-c6f17743-e5d7-11e9-b673-42010a800112"} 0`,
@@ -71,8 +71,8 @@ func TestPoolSyncTimeMetricCollector(t *testing.T) {
 		},
 		"Test4": {
 			// if there is unexpected output of last sync time  which cannot be parsed
-			zpoolLastSyncTimeOutput: `cstor-c6d62069-e5d7-11e9-b673-42010a800112      openebs.io:livenesstimestamp    -       -
-			cstor-c6d62069-e5d7-11e9-b673-42010a800112/pvc-053647ca-e5d8-11e9-b673-42010a800112     openebs.io:livenesstimestamp    -       -`,
+			zpoolLastSyncTimeOutput: `cstor-c6d62069-e5d7-11e9-b673-42010a800112      io.openebs:livenesstimestamp    -       -
+			cstor-c6d62069-e5d7-11e9-b673-42010a800112/pvc-053647ca-e5d8-11e9-b673-42010a800112     io.openebs:livenesstimestamp    -       -`,
 			expectedOutput: []string{
 				`openebs_zpool_last_sync_time{pool="cstor-c6d62069-e5d7-11e9-b673-42010a800112"} 0`,
 				`openebs_zpool_state_unknown{pool="cstor-c6d62069-e5d7-11e9-b673-42010a800112"} 0`,
