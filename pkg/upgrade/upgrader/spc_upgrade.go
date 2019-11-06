@@ -77,7 +77,7 @@ func spcUpgrade(spcName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		if uerr != nil && isENVPresent {
 			return nil, uerr
 		}
-		utaskObj, err := cspUpgrade(cspObj.Name, openebsNamespace, utaskObj)
+		utaskObj, err = cspUpgrade(cspObj.Name, openebsNamespace, utaskObj)
 		if err != nil {
 			return utaskObj, err
 		}
