@@ -353,18 +353,8 @@ func (j *jivaVolumeOptions) preupgrade(pvName, openebsNamespace string) error {
 		controllerLabel = "openebs.io/controller=jiva-controller," + pvLabel
 		uerr, err       error
 	)
-	j.utaskObj, uerr = getOrCreateUpgradeTask("jivaVolume", pvName, openebsNamespace)
-	if uerr != nil && isENVPresent {
-		return uerr
-	}
 
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.PreUpgrade}
-
-	statusObj.Phase = utask.StepWaiting
-	j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
-	if uerr != nil && isENVPresent {
-		return uerr
-	}
 
 	statusObj.Phase = utask.StepErrored
 	j.ns, err = getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
@@ -526,7 +516,7 @@ func (j *jivaVolumeOptions) verify(controllerLabel, openebsNamespace string) err
 	return nil
 }
 
-func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
+func jivaUpgrade(pvName, openebsNamespace string, utaskObj *utask.UpgradeTask) (*utask.UpgradeTask, error) {
 
 	var (
 		pvLabel         = "openebs.io/persistent-volume=" + pvName
@@ -535,6 +525,8 @@ func jivaUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
 	)
 
 	options := &jivaVolumeOptions{}
+
+	options.utaskObj = utaskObj
 
 	// PreUpgrade
 	err = options.preupgrade(pvName, openebsNamespace)
