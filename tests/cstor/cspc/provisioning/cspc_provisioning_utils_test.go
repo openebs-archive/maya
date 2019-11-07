@@ -85,6 +85,21 @@ func verifyDesiredCSPICount() {
 	Expect(cspiCount).To(Equal(3), "Mismatch Of CSPI Count")
 }
 
+func verifyDesiredCSPICountTo(count int) {
+	cspiCount := ops.GetHealthyCSPICount(cspcObj.Name, count)
+	Expect(cspiCount).To(Equal(count))
+
+	// Check are there any extra created csps
+	cspiCount = ops.GetCSPICount(getLabelSelector(cspcObj))
+	Expect(cspiCount).To(Equal(count), "Mismatch Of CSPI Count")
+}
+
+func verifyDesiredCSPIResourceCountTo(count int) {
+	// Check are there any extra created csps
+	cspiCount := ops.GetCSPIResourceCountEventually(cspcObj.Name, count)
+	Expect(cspiCount).To(Equal(count), "Mismatch Of CSPI Resource Count")
+}
+
 // This function is local to this package
 func getLabelSelector(cspc *apis.CStorPoolCluster) string {
 	return string(apis.CStorPoolClusterCPK) + "=" + cspc.Name

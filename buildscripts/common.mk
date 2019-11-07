@@ -16,7 +16,7 @@
 .PHONY: check_license-go
 check-license-go:
 	@echo ">> checking license header"
-	@licRes=$$(for file in $$(find . -type f -iname '*.go' ! -path './vendor/*' ) ; do \
+	@licRes=$$(for file in $$(find . -type f -iname '*.go' ! -path './vendor/*' ! -path './pkg/debug/*' ) ; do \
                awk 'NR<=3' $$file | grep -Eq "(Copyright|generated|GENERATED)" || echo $$file; \
        done); \
        if [ -n "$${licRes}" ]; then \

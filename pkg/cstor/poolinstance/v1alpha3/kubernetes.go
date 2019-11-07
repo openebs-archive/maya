@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"github.com/openebs/maya/pkg/debug"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -210,6 +211,11 @@ func (k *Kubeclient) getClientsetOrCached() (*clientset.Clientset, error) {
 // List returns a list of disk
 // instances present in kubernetes cluster
 func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.CStorPoolInstanceList, error) {
+
+	if debug.EI.IsCSPIListErrorInjected() {
+		return nil, errors.New("CSPI list error via injection")
+	}
+
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list cspi in namespace {%s}", k.namespace)
@@ -219,6 +225,11 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.CStorPoolInstanceList,
 
 // Get returns a disk object
 func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.CStorPoolInstance, error) {
+
+	if debug.EI.IsCSPIGetErrorInjected() {
+		return nil, errors.New("CSPI get error via injection")
+	}
+
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("failed to get cspi: missing cspi name")
 	}
@@ -231,6 +242,11 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.CStorPoolIn
 
 // Create creates a cspi in specified namespace in kubernetes cluster
 func (k *Kubeclient) Create(cspi *apis.CStorPoolInstance) (*apis.CStorPoolInstance, error) {
+
+	if debug.EI.IsCSPICreateErrorInjected() {
+		return nil, errors.New("CSPI create error via injection")
+	}
+
 	if cspi == nil {
 		return nil, errors.New("failed to create cspi: nil cspi object")
 	}
@@ -243,6 +259,11 @@ func (k *Kubeclient) Create(cspi *apis.CStorPoolInstance) (*apis.CStorPoolInstan
 
 // DeleteCollection deletes a collection of cspi objects.
 func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+
+	if debug.EI.IsCSPIDeleteCollectionErrorInjected() {
+		return errors.New("Delete collection error injected")
+	}
+
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete the collection of cspis")
@@ -253,6 +274,11 @@ func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *m
 // Delete deletes a cspi instance from the
 // kubecrnetes cluster
 func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error {
+
+	if debug.EI.IsCSPIDeleteErrorInjected() {
+		return errors.New("CSPI delete error via injection")
+	}
+
 	if strings.TrimSpace(name) == "" {
 		return errors.New("failed to delete cspi: missing cspi name")
 	}
@@ -265,6 +291,11 @@ func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 
 // Patch patches the cspi claim if present in kubernetes cluster
 func (k *Kubeclient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*apis.CStorPoolInstance, error) {
+
+	if debug.EI.IsCSPIPatchErrorInjected() {
+		return nil, errors.New("CSPI patch error via injection")
+	}
+
 	if len(name) == 0 {
 		return nil, errors.New("failed to patch cspi : missing cspi name")
 	}
@@ -277,6 +308,11 @@ func (k *Kubeclient) Patch(name string, pt types.PatchType, data []byte, subreso
 
 // Update updates the cspi  if present in kubernetes cluster
 func (k *Kubeclient) Update(cspi *apis.CStorPoolInstance) (*apis.CStorPoolInstance, error) {
+
+	if debug.EI.IsCSPIUpdateErrorInjected() {
+		return nil, errors.New("CSPI update error via injection")
+	}
+
 	if cspi == nil {
 		return nil, errors.New("failed to update cspi : nil cspi object")
 	}

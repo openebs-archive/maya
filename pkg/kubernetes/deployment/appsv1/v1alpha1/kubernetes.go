@@ -17,6 +17,7 @@ package v1alpha1
 
 import (
 	"encoding/json"
+	"github.com/openebs/maya/pkg/debug"
 	"strings"
 
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
@@ -352,6 +353,11 @@ func (k *Kubeclient) GetRaw(name string) ([]byte, error) {
 // Delete deletes a deployment instance from the
 // kubernetes cluster
 func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
+
+	if debug.EI.IsDeploymentDeleteErrorInjected() {
+		return errors.New("Deployment delete error via injection")
+	}
+
 	if strings.TrimSpace(name) == "" {
 		return errors.New("failed to delete deployment: missing deployment name")
 	}
@@ -366,6 +372,11 @@ func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
 
 // Create creates a deployment in specified namespace in kubernetes cluster
 func (k *Kubeclient) Create(deployment *appsv1.Deployment) (*appsv1.Deployment, error) {
+
+	if debug.EI.IsDeploymentCreateErrorInjected() {
+		return nil, errors.New("Deployment create error via injection")
+	}
+
 	if deployment == nil {
 		return nil, errors.New("failed to create deployment: nil deployment object")
 	}

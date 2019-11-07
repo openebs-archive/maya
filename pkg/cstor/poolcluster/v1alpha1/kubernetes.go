@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/openebs/maya/pkg/debug"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -259,6 +260,11 @@ func (k *Kubeclient) getClientsetOrCached() (*clientset.Clientset, error) {
 // List returns a list of disk
 // instances present in kubernetes cluster
 func (k *Kubeclient) List(opts metav1.ListOptions) (*apisv1alpha1.CStorPoolClusterList, error) {
+
+	if debug.EI.IsCSPCListErrorInjected() {
+		return nil, errors.New("CSPC list error via injection")
+	}
+
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list cspc in namespace {%s}", k.namespace)
@@ -268,6 +274,11 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*apisv1alpha1.CStorPoolClust
 
 // Get returns a disk object
 func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apisv1alpha1.CStorPoolCluster, error) {
+
+	if debug.EI.IsCSPCGetErrorInjected() {
+		return nil, errors.New("CSPC get error via injection")
+	}
+
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("failed to get cspc: missing cspc name")
 	}
@@ -280,6 +291,11 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apisv1alpha1.CSt
 
 // Create creates a cspc in specified namespace in kubernetes cluster
 func (k *Kubeclient) Create(cspc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
+
+	if debug.EI.IsCSPCCreateErrorInjected() {
+		return nil, errors.New("CSPC create error via injection")
+	}
+
 	if cspc == nil {
 		return nil, errors.New("failed to create cspc: nil cspc object")
 	}
@@ -292,6 +308,11 @@ func (k *Kubeclient) Create(cspc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.
 
 // DeleteCollection deletes a collection of cspc objects.
 func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+
+	if debug.EI.IsCSPCDeleteCollectionErrorInjected() {
+		return errors.New("CSPC delete collection error via injection")
+	}
+
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete the collection of cspcs")
@@ -302,6 +323,11 @@ func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *m
 // Delete deletes a cspc instance from the
 // kubecrnetes cluster
 func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error {
+
+	if debug.EI.IsCSPCDeleteErrorInjected() {
+		return errors.New("CSPC delete error via injection")
+	}
+
 	if strings.TrimSpace(name) == "" {
 		return errors.New("failed to delete cspc: missing cspc name")
 	}
@@ -317,6 +343,11 @@ func (k *Kubeclient) Patch(
 	name string,
 	pt types.PatchType,
 	data []byte, subresources ...string) (*apisv1alpha1.CStorPoolCluster, error) {
+
+	if debug.EI.IsCSPCPatchErrorInjected() {
+		return nil, errors.New("CSPC patch error via injection")
+	}
+
 	if len(name) == 0 {
 		return nil, errors.New("failed to patch cspc : missing cspc name")
 	}
@@ -329,6 +360,11 @@ func (k *Kubeclient) Patch(
 
 // Update updates the cspc in specified namespace in kubernetes cluster
 func (k *Kubeclient) Update(cspc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
+
+	if debug.EI.IsCSPCUpdateErrorInjected() {
+		return nil, errors.New("CSPC update error via injection")
+	}
+
 	if cspc == nil {
 		return nil, errors.New("failed to update cspc: nil cspc object")
 	}

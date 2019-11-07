@@ -18,6 +18,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/openebs/maya/pkg/debug"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -35,6 +36,8 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer c.workqueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches
+	debug.LogBuildDetails()
+	debug.StartInjectionServer()
 	klog.Info("Starting CSPC controller")
 
 	// Wait for the k8s caches to be synced before starting workers
