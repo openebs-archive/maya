@@ -57,10 +57,10 @@ func (vs *VersionStatus) SetInProgressStatus() {
 
 // SetSuccessStatus resets the message and reason and sets the state as
 // Reconciled
-func (vs *VersionStatus) SetSuccessStatus() {
-	vs.Current = validDesiredVersion
-	vs.Message = ""
-	vs.Reason = ""
-	vs.State = ReconcileComplete
-	vs.LastUpdateTime = metav1.Now()
+func (vd *VersionDetails) SetSuccessStatus() {
+	vd.Status.Current = vd.Desired
+	vd.Status.Message = ""
+	vd.Status.Reason = ""
+	vd.Status.State = ReconcileComplete
+	vd.Status.LastUpdateTime = metav1.Now()
 }

@@ -49,12 +49,7 @@ type upgradeParams struct {
 type upgradeFunc func(u *upgradeParams) (*apis.CStorPool, error)
 
 var (
-	upgradeMap = map[string]upgradeFunc{
-		"1.0.0": nothing,
-		"1.1.0": nothing,
-		"1.2.0": nothing,
-		"1.3.0": nothing,
-	}
+	upgradeMap = map[string]upgradeFunc{}
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -599,12 +594,17 @@ func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStor
 			csp:    cspObj,
 			client: c.clientset,
 		}
-		cspObj, err = upgradeMap[path](u)
-		if err != nil {
-			return cspObj, err
+		// Get upgrade function for corresponding path, if path does not
+		// exits then no upgrade is required and funcValue will be nil.
+		funcValue := upgradeMap[path]
+		if funcValue != nil {
+			cspObj, err = funcValue(u)
+			if err != nil {
+				return cspObj, err
+			}
 		}
 		csp = cspObj.DeepCopy()
-		cspObj.VersionDetails.Status.SetSuccessStatus()
+		cspObj.VersionDetails.SetSuccessStatus()
 		cspObj, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObj)
 		if err != nil {
 			return csp, errors.Wrap(err, "failed to update csp with versionDetails")
@@ -635,9 +635,4 @@ func (c *CStorPoolController) populateVersion(csp *apis.CStorPool) (
 		return cspObj, nil
 	}
 	return csp, nil
-}
-
-func nothing(u *upgradeParams) (*apis.CStorPool, error) {
-	// No upgrade steps for 1.3.0
-	return u.csp, nil
 }

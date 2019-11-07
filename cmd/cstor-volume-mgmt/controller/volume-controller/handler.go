@@ -54,7 +54,6 @@ var (
 		"1.0.0": setDesiredRF,
 		"1.1.0": setDesiredRF,
 		"1.2.0": setDesiredRF,
-		"1.3.0": nothing,
 	}
 )
 
@@ -752,12 +751,17 @@ func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CS
 			cv:     cvObject,
 			client: c.clientset,
 		}
-		cvObject, err = upgradeMap[path](u)
-		if err != nil {
-			return cvObject, err
+		// Get upgrade function for corresponding path, if path does not
+		// exits then no upgrade is required and funcValue will be nil.
+		funcValue := upgradeMap[path]
+		if funcValue != nil {
+			cvObject, err = funcValue(u)
+			if err != nil {
+				return cvObject, err
+			}
 		}
 		cv = cvObject.DeepCopy()
-		cvObject.VersionDetails.Status.SetSuccessStatus()
+		cvObject.VersionDetails.SetSuccessStatus()
 		cvObject, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumes(cvObject.Namespace).Update(cvObject)
 		if err != nil {
@@ -795,8 +799,4 @@ func setDesiredRF(u *upgradeParams) (*apis.CStorVolume, error) {
 	// Set new field DesiredReplicationFactor as ReplicationFactor
 	cv.Spec.DesiredReplicationFactor = cv.Spec.ReplicationFactor
 	return cv, nil
-}
-
-func nothing(u *upgradeParams) (*apis.CStorVolume, error) {
-	return u.cv, nil
 }

@@ -54,7 +54,6 @@ var (
 		"1.0.0": setReplicaID,
 		"1.1.0": setReplicaID,
 		"1.2.0": setReplicaID,
-		"1.3.0": nothing,
 	}
 )
 
@@ -611,12 +610,17 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 			cvr:    cvrObj,
 			client: c.clientset,
 		}
-		cvrObj, err = upgradeMap[path](u)
-		if err != nil {
-			return cvrObj, err
+		// Get upgrade function for corresponding path, if path does not
+		// exits then no upgrade is required and funcValue will be nil.
+		funcValue := upgradeMap[path]
+		if funcValue != nil {
+			cvrObj, err = funcValue(u)
+			if err != nil {
+				return cvrObj, err
+			}
 		}
 		cvr = cvrObj.DeepCopy()
-		cvrObj.VersionDetails.Status.SetSuccessStatus()
+		cvrObj.VersionDetails.SetSuccessStatus()
 		cvrObj, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumeReplicas(cvrObj.Namespace).Update(cvrObj)
 		if err != nil {
@@ -664,8 +668,4 @@ func setReplicaID(u *upgradeParams) (*apis.CStorVolumeReplica, error) {
 		return cvr, err
 	}
 	return cvrObj, nil
-}
-
-func nothing(u *upgradeParams) (*apis.CStorVolumeReplica, error) {
-	return u.cvr, nil
 }

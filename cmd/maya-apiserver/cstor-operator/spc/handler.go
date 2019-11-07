@@ -52,12 +52,7 @@ var (
 		apis.PoolTypeRaidzCPV:    true,
 		apis.PoolTypeRaidz2CPV:   true,
 	}
-	upgradeMap = map[string]upgradeFunc{
-		"1.0.0": nothing,
-		"1.1.0": nothing,
-		"1.2.0": nothing,
-		"1.3.0": nothing,
-	}
+	upgradeMap = map[string]upgradeFunc{}
 )
 
 const (
@@ -552,12 +547,17 @@ func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.Storage
 			spc:    spcObj,
 			client: c.clientset,
 		}
-		spcObj, err = upgradeMap[path](u)
-		if err != nil {
-			return spcObj, err
+		// Get upgrade function for corresponding path, if path does not
+		// exits then no upgrade is required and funcValue will be nil.
+		funcValue := upgradeMap[path]
+		if funcValue != nil {
+			spcObj, err = funcValue(u)
+			if err != nil {
+				return spcObj, err
+			}
 		}
 		spc = spcObj.DeepCopy()
-		spcObj.VersionDetails.Status.SetSuccessStatus()
+		spcObj.VersionDetails.SetSuccessStatus()
 		spcObj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spcObj)
 		if err != nil {
 			return spc, errors.Wrap(err, "failed to update storagepoolclaim")
@@ -592,9 +592,4 @@ func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StorageP
 		return spcObj, nil
 	}
 	return spc, nil
-}
-
-func nothing(u *upgradeParams) (*apis.StoragePoolClaim, error) {
-	// No upgrade steps for 1.3.0
-	return u.spc, nil
 }
