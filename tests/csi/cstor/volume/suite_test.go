@@ -37,7 +37,7 @@ var (
 	openebsNamespace   = "openebs"
 	nsName             = "cstor-provision"
 	scName             = "cstor-volume"
-	openebsProvisioner = "openebs-csi.openebs.io"
+	openebsProvisioner = "cstor.csi.openebs.io"
 	cspcName           = "cspc-sparse"
 	pvcName            = "cstor-volume-claim"
 	appName            = "busybox-cstor"
