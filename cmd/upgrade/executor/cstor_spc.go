@@ -34,7 +34,7 @@ type CStorSPCOptions struct {
 
 var (
 	cstorSPCUpgradeCmdHelpText = `
-This command upgrades the cStor SPC 
+This command upgrades the cStor SPC
 
 Usage: upgrade cstor-spc --spc-name <spc-name> --options...
 `

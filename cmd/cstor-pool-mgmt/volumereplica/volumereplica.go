@@ -100,6 +100,7 @@ type Stats struct {
 	RebuildCnt                int    `json:"rebuildCnt"`
 	RebuildDoneCnt            int    `json:"rebuildDoneCnt"`
 	RebuildFailedCnt          int    `json:"rebuildFailedCnt"`
+	Quorum                    int    `json:"quorum"`
 }
 
 // RunnerVar the runner variable for executing binaries.
@@ -507,7 +508,7 @@ func Status(volumeName string) (string, error) {
 	if strings.TrimSpace(volumeStatus) == "" {
 		klog.Warningf("Empty volume status for volume stats: '%+v'", volumeStats)
 	}
-	cvrStatus := ZfsToCvrStatusMapper(volumeStatus)
+	cvrStatus := ZfsToCvrStatusMapper(volumeStatus, volumeStats.Stats[0].Quorum)
 	return cvrStatus, nil
 }
 
@@ -528,18 +529,26 @@ func GetVolumeName(cVR *apis.CStorVolumeReplica) (string, error) {
 }
 
 // ZfsToCvrStatusMapper maps zfs status to defined cvr status.
-func ZfsToCvrStatusMapper(zfsstatus string) string {
+func ZfsToCvrStatusMapper(zfsstatus string, quorum int) string {
 	if zfsstatus == ZfsStatusHealthy {
 		return string(apis.CVRStatusOnline)
 	}
 	if zfsstatus == ZfsStatusOffline {
 		return string(apis.CVRStatusOffline)
 	}
+	if quorum == 1 {
+		if zfsstatus == ZfsStatusDegraded {
+			return string(apis.CVRStatusDegraded)
+		}
+		if zfsstatus == ZfsStatusRebuilding {
+			return string(apis.CVRStatusRebuilding)
+		}
+	}
 	if zfsstatus == ZfsStatusDegraded {
-		return string(apis.CVRStatusDegraded)
+		return string(apis.CVRStatusNonQuorumDegraded)
 	}
 	if zfsstatus == ZfsStatusRebuilding {
-		return string(apis.CVRStatusRebuilding)
+		return string(apis.CVRStatusReconstructing)
 	}
 	return string(apis.CVRStatusError)
 }

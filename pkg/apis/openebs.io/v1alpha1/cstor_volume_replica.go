@@ -72,9 +72,15 @@ const (
 	CVRStatusOffline CStorVolumeReplicaPhase = "Offline"
 	// CVRStatusDegraded means that the rebuilding has not yet started.
 	CVRStatusDegraded CStorVolumeReplicaPhase = "Degraded"
-	// CVRStatusRebuilding means that the volume is in re-building phase.
+	// CVRStatusNonQuorumDegraded means that replica(i.e recreated/scaledup
+	// replica) has not yet started reconstructing data from other replicas
+	CVRStatusNonQuorumDegraded CStorVolumeReplicaPhase = "NonQuorumDegraded"
+	// CVRStatusRebuilding means that the volume is in re-building phase
 	CVRStatusRebuilding CStorVolumeReplicaPhase = "Rebuilding"
-	// CVRStatusRebuilding means that the volume status could not be found.
+	// CVRStatusReconstructing means that non quorum volume replica is
+	// reconstructing data from other available replicas
+	CVRStatusReconstructing CStorVolumeReplicaPhase = "Reconstructing"
+	// CVRStatusError means that the volume status could not be found.
 	CVRStatusError CStorVolumeReplicaPhase = "Error"
 	// CVRStatusDeletionFailed ensures the resource deletion has failed.
 	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "DeletionFailed"

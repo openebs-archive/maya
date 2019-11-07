@@ -139,6 +139,7 @@ func TestStatusHelperProcess(*testing.T) {
       "runningIONum": 0,
       "checkpointedIONum": 0,
       "degradedCheckpointedIONum": 0,
+      "quorum": 1,
       "checkpointedTime": 0,
       "rebuildBytes": 0,
       "rebuildCnt": 0,
@@ -158,6 +159,7 @@ func TestStatusHelperProcess(*testing.T) {
       "runningIONum": 0,
       "checkpointedIONum": 0,
       "degradedCheckpointedIONum": 0,
+      "quorum": 1,
       "checkpointedTime": 0,
       "rebuildBytes": 0,
       "rebuildCnt": 0,
@@ -177,6 +179,7 @@ func TestStatusHelperProcess(*testing.T) {
       "runningIONum": 0,
       "checkpointedIONum": 0,
       "degradedCheckpointedIONum": 0,
+      "quorum": 1,
       "checkpointedTime": 0,
       "rebuildBytes": 0,
       "rebuildCnt": 0,
@@ -196,11 +199,32 @@ func TestStatusHelperProcess(*testing.T) {
       "runningIONum": 0,
       "checkpointedIONum": 0,
       "degradedCheckpointedIONum": 0,
+      "quorum": 1,
       "checkpointedTime": 0,
       "rebuildBytes": 0,
       "rebuildCnt": 0,
       "rebuildDoneCnt": 0,
       "rebuildFailedCnt": 0
+    }
+  ]
+}`
+		mockedStatusOutputReconstructing = `{
+  "stats": [
+    {
+      "name": "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
+      "status": "Rebuilding",
+      "rebuildStatus": "SNAP REBUILD INPROGRESS",
+      "quorum": 0
+    }
+  ]
+}`
+		mockedStatusOutputNonQuorumDegraded = `{
+  "stats": [
+    {
+      "name": "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
+      "status": "Degraded",
+      "rebuildStatus": "INIT",
+      "quorum": 0
     }
   ]
 }`
@@ -220,6 +244,12 @@ func TestStatusHelperProcess(*testing.T) {
 	}
 	if os.Getenv("StatusType") == ZfsStatusRebuilding {
 		fmt.Fprint(os.Stdout, mockedStatusOutputRebuilding)
+	}
+	if os.Getenv("StatusType") == "Reconstructing" {
+		fmt.Fprint(os.Stdout, mockedStatusOutputReconstructing)
+	}
+	if os.Getenv("StatusType") == "NonQuorumDegraded" {
+		fmt.Fprint(os.Stdout, mockedStatusOutputNonQuorumDegraded)
 	}
 
 	defer os.Exit(0)
@@ -459,7 +489,7 @@ func TestParseCapacityUnit(t *testing.T) {
 	}
 }
 
-// TestPoolStatus tests Status function which retunr cvr status.
+// TestVolumeStatus tests Status function which retunr cvr status.
 func TestVolumeStatus(t *testing.T) {
 	testPoolResource := map[string]struct {
 		// cvrName holds the name of zfs volume(not the cvr object name).
@@ -495,6 +525,16 @@ func TestVolumeStatus(t *testing.T) {
 			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
 			mockedOutputType: ZfsStatusRebuilding,
 			expectedStatus:   "Rebuilding",
+		},
+		"#6 ReconstructingVolumeStatus": {
+			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
+			mockedOutputType: "Reconstructing",
+			expectedStatus:   "Reconstructing",
+		},
+		"#7 NonQuorumDegradedStatus": {
+			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
+			mockedOutputType: "NonQuorumDegraded",
+			expectedStatus:   "NonQuorumDegraded",
 		},
 	}
 	for name, test := range testPoolResource {
