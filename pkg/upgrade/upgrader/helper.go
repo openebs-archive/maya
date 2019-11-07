@@ -297,13 +297,6 @@ func buildUpgradeTask(kind, name, openebsNamespace string) *apis.UpgradeTask {
 				PoolName: name,
 			},
 		}
-	case "storagePoolClaim":
-		utaskObj.Name = "upgrade-cstor-pool-" + name
-		utaskObj.Spec.ResourceSpec = apis.ResourceSpec{
-			StoragePoolClaim: &apis.StoragePoolClaim{
-				SPCName: name,
-			},
-		}
 	case "cstorVolume":
 		utaskObj.Name = "upgrade-cstor-volume-" + name
 		utaskObj.Spec.ResourceSpec = apis.ResourceSpec{

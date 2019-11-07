@@ -71,21 +71,28 @@ func Exec(fromVersion, toVersion, kind, name,
 	urlPrefix = urlprefix
 	imageTag = imagetag
 
-	utaskObj, uerr := getOrCreateUpgradeTask(kind, name, openebsNamespace)
-	if uerr != nil && isENVPresent {
-		return uerr
-	}
+	var (
+		statusObj apis.UpgradeDetailedStatuses
+		utaskObj  *apis.UpgradeTask
+		uerr      error
+	)
 
-	statusObj := apis.UpgradeDetailedStatuses{Step: apis.PreUpgrade}
-
-	statusObj.Phase = apis.StepWaiting
-	utaskObj, uerr = updateUpgradeDetailedStatus(utaskObj, statusObj, openebsNamespace)
-	if uerr != nil && isENVPresent {
-		return uerr
+	if kind != "storagePoolClaim" {
+		utaskObj, uerr = getOrCreateUpgradeTask(kind, name, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
+		statusObj = apis.UpgradeDetailedStatuses{Step: apis.PreUpgrade}
+		statusObj.Phase = apis.StepWaiting
+		utaskObj, uerr = updateUpgradeDetailedStatus(utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
 	}
 
 	err := verifyMayaApiserver(openebsNamespace)
-	if err != nil {
+
+	if err != nil && kind != "storagePoolClaim" {
 		statusObj.Phase = apis.StepErrored
 		statusObj.Message = "failed to verify maya-apiserver pod"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
