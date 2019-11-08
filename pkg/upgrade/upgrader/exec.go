@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"bytes"
+	"strings"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
@@ -70,26 +71,54 @@ func Exec(fromVersion, toVersion, kind, name,
 	urlPrefix = urlprefix
 	imageTag = imagetag
 
-	err := verifyMayaApiserver(openebsNamespace)
-	if err != nil {
-		return err
+	var (
+		statusObj apis.UpgradeDetailedStatuses
+		utaskObj  *apis.UpgradeTask
+		uerr      error
+	)
+
+	if kind != "storagePoolClaim" {
+		utaskObj, uerr = getOrCreateUpgradeTask(kind, name, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
+		statusObj = apis.UpgradeDetailedStatuses{Step: apis.PreUpgrade}
+		statusObj.Phase = apis.StepWaiting
+		utaskObj, uerr = updateUpgradeDetailedStatus(utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
 	}
 
-	switch kind {
-	case "jivaVolume":
-		utaskObj, err = jivaUpgrade(name, openebsNamespace)
+	err := verifyMayaApiserver(openebsNamespace)
 
-	case "storagePoolClaim":
-		utaskObj, err = spcUpgrade(name, openebsNamespace)
+	if err != nil && kind != "storagePoolClaim" {
+		statusObj.Phase = apis.StepErrored
+		statusObj.Message = "failed to verify maya-apiserver pod"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		utaskObj, uerr = updateUpgradeDetailedStatus(utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
+	}
 
-	case "cstorPool":
-		utaskObj, err = cspUpgrade(name, openebsNamespace)
+	if err == nil {
+		switch kind {
+		case "jivaVolume":
+			utaskObj, err = jivaUpgrade(name, openebsNamespace, utaskObj)
 
-	case "cstorVolume":
-		utaskObj, err = cstorVolumeUpgrade(name, openebsNamespace)
+		case "storagePoolClaim":
+			utaskObj, err = spcUpgrade(name, openebsNamespace)
 
-	default:
-		err = errors.Errorf("Invalid kind for upgrade")
+		case "cstorPool":
+			utaskObj, err = cspUpgrade(name, openebsNamespace, utaskObj)
+
+		case "cstorVolume":
+			utaskObj, err = cstorVolumeUpgrade(name, openebsNamespace, utaskObj)
+
+		default:
+			err = errors.Errorf("Invalid kind for upgrade")
+		}
 	}
 
 	if err != nil {

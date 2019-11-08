@@ -65,7 +65,19 @@ func spcUpgrade(spcName, openebsNamespace string) (*utask.UpgradeTask, error) {
 		if cspObj.Name == "" {
 			return nil, errors.Errorf("missing csp name")
 		}
-		utaskObj, err := cspUpgrade(cspObj.Name, openebsNamespace)
+		utaskObj, uerr := getOrCreateUpgradeTask("cstorPool", cspObj.Name, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+
+		statusObj := utask.UpgradeDetailedStatuses{Step: utask.PreUpgrade}
+
+		statusObj.Phase = utask.StepWaiting
+		utaskObj, uerr = updateUpgradeDetailedStatus(utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return nil, uerr
+		}
+		utaskObj, err = cspUpgrade(cspObj.Name, openebsNamespace, utaskObj)
 		if err != nil {
 			return utaskObj, err
 		}
