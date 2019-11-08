@@ -31,6 +31,13 @@ import (
 
 type TestRunner struct{}
 
+const (
+	testZfsStatusUnknown  = "Unknown"
+	testZfsReconstructing = "Reconstructing"
+	testNonQuorumDegraded = "NonQuorumDegraded"
+	testStatusType        = "StatusType"
+)
+
 // RunCombinedOutput is to mock Real runner exec.
 func (r TestRunner) RunCombinedOutput(command string, args ...string) ([]byte, error) {
 	var cs []string
@@ -228,27 +235,40 @@ func TestStatusHelperProcess(*testing.T) {
     }
   ]
 }`
+		mockedStatusOutputUnknown = `{
+  "stats": [
+    {
+      "name": "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
+      "status": "Error",
+      "rebuildStatus": "Failed",
+      "quorum": 0
+    }
+  ]
+}`
 	)
 	if os.Getenv("GO_WANT_STATUS_HELPER_PROCESS") != "1" {
 		return
 	}
 	// Pick the mocked output as specified by the env variable.
-	if os.Getenv("StatusType") == ZfsStatusHealthy {
+	if os.Getenv(testStatusType) == ZfsStatusHealthy {
 		fmt.Fprint(os.Stdout, mockedStatusOutputHealthy)
 	}
-	if os.Getenv("StatusType") == ZfsStatusDegraded {
+	if os.Getenv(testStatusType) == ZfsStatusDegraded {
 		fmt.Fprint(os.Stdout, mockedStatusOutputDegraded)
 	}
-	if os.Getenv("StatusType") == ZfsStatusOffline {
+	if os.Getenv(testStatusType) == ZfsStatusOffline {
 		fmt.Fprint(os.Stdout, mockedStatusOutputOffline)
 	}
-	if os.Getenv("StatusType") == ZfsStatusRebuilding {
+	if os.Getenv(testStatusType) == ZfsStatusRebuilding {
 		fmt.Fprint(os.Stdout, mockedStatusOutputRebuilding)
 	}
-	if os.Getenv("StatusType") == "Reconstructing" {
+	if os.Getenv(testStatusType) == testZfsStatusUnknown {
+		fmt.Fprint(os.Stdout, mockedStatusOutputUnknown)
+	}
+	if os.Getenv(testStatusType) == testZfsReconstructing {
 		fmt.Fprint(os.Stdout, mockedStatusOutputReconstructing)
 	}
-	if os.Getenv("StatusType") == "NonQuorumDegraded" {
+	if os.Getenv(testStatusType) == testNonQuorumDegraded {
 		fmt.Fprint(os.Stdout, mockedStatusOutputNonQuorumDegraded)
 	}
 
@@ -498,56 +518,56 @@ func TestVolumeStatus(t *testing.T) {
 		// for 'ZfsStatusHealthy' type a mocked output of `zfs stats` command for Healthy type is taken.
 		mockedOutputType string
 		// expectedStatus is the status that is expected for the test case.
-		expectedStatus string
+		expectedStatus apis.CStorVolumeReplicaPhase
 	}{
 		// ToDo : Test case for error status.
 		"#1 OnlineVolumeStatus": {
 			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
 			mockedOutputType: ZfsStatusHealthy,
-			expectedStatus:   "Healthy",
+			expectedStatus:   apis.CVRStatusOnline,
 		},
 		"#2 OfflineVolumeStatus": {
 			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
 			mockedOutputType: ZfsStatusOffline,
-			expectedStatus:   "Offline",
+			expectedStatus:   apis.CVRStatusOffline,
 		},
 		"#3 DegradedVolumeStatus": {
 			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
 			mockedOutputType: ZfsStatusDegraded,
-			expectedStatus:   "Degraded",
+			expectedStatus:   apis.CVRStatusDegraded,
 		},
 		"#4 RebuildingVolumeStatus": {
 			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
 			mockedOutputType: ZfsStatusRebuilding,
-			expectedStatus:   "Rebuilding",
+			expectedStatus:   apis.CVRStatusRebuilding,
 		},
 		"#5 ErrorVolumeStatus": {
 			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
-			mockedOutputType: ZfsStatusRebuilding,
-			expectedStatus:   "Rebuilding",
+			mockedOutputType: testZfsStatusUnknown,
+			expectedStatus:   apis.CVRStatusError,
 		},
 		"#6 ReconstructingVolumeStatus": {
 			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
-			mockedOutputType: "Reconstructing",
-			expectedStatus:   "Reconstructing",
+			mockedOutputType: testZfsReconstructing,
+			expectedStatus:   apis.CVRStatusReconstructing,
 		},
 		"#7 NonQuorumDegradedStatus": {
 			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
-			mockedOutputType: "NonQuorumDegraded",
-			expectedStatus:   "NonQuorumDegraded",
+			mockedOutputType: testNonQuorumDegraded,
+			expectedStatus:   apis.CVRStatusNonQuorumDegraded,
 		},
 	}
 	for name, test := range testPoolResource {
 		t.Run(name, func(t *testing.T) {
 			// Set env variable "StatusType" to "mockedOutputType"
 			// It will help to decide which mocked output should be considered as a std output.
-			os.Setenv("StatusType", test.mockedOutputType)
+			os.Setenv(testStatusType, test.mockedOutputType)
 			RunnerVar = TestRunner{}
 			gotStatus, err := Status(test.volumeName)
 			if err != nil {
 				t.Fatal("Some error occured in getting volume status:", err)
 			}
-			if test.expectedStatus != gotStatus {
+			if string(test.expectedStatus) != gotStatus {
 				t.Errorf("Test case failed as expected status '%s' but got '%s'", test.expectedStatus, gotStatus)
 			}
 			// Unset the "StatusType" env variable
