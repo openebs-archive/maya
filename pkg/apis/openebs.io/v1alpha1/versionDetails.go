@@ -25,27 +25,21 @@ import (
 
 var (
 	validCurrentVersions = map[string]bool{
-		"1.0.0": true, "1.1.0": true, "1.2.0": true,
+		"1.0.0": true, "1.1.0": true, "1.2.0": true, "1.3.0": true,
 	}
 	validDesiredVersion = version.GetVersion()
 )
 
 // IsCurrentVersionValid verifies if the  current version is valid or not
-func (vd VersionDetails) IsCurrentVersionValid() bool {
-	currentVersion := strings.Split(vd.Status.Current, "-")[0]
+func IsCurrentVersionValid(v string) bool {
+	currentVersion := strings.Split(v, "-")[0]
 	return validCurrentVersions[currentVersion]
 }
 
 // IsDesiredVersionValid verifies the desired version is valid or not
-func (vd VersionDetails) IsDesiredVersionValid() bool {
-	desiredVersion := strings.Split(vd.Desired, "-")[0]
+func IsDesiredVersionValid(v string) bool {
+	desiredVersion := strings.Split(v, "-")[0]
 	return validDesiredVersion == desiredVersion
-}
-
-// Path gives the path from current version to desired version
-func (vd VersionDetails) Path() string {
-	return strings.Split(vd.Status.Current, "-")[0] + "-" +
-		strings.Split(vd.Desired, "-")[0]
 }
 
 // SetErrorStatus sets the message and reason for the error
@@ -63,10 +57,10 @@ func (vs *VersionStatus) SetInProgressStatus() {
 
 // SetSuccessStatus resets the message and reason and sets the state as
 // Reconciled
-func (vs *VersionStatus) SetSuccessStatus() {
-	vs.Current = validDesiredVersion
-	vs.Message = ""
-	vs.Reason = ""
-	vs.State = ReconcileComplete
-	vs.LastUpdateTime = metav1.Now()
+func (vd *VersionDetails) SetSuccessStatus() {
+	vd.Status.Current = vd.Desired
+	vd.Status.Message = ""
+	vd.Status.Reason = ""
+	vd.Status.State = ReconcileComplete
+	vd.Status.LastUpdateTime = metav1.Now()
 }
