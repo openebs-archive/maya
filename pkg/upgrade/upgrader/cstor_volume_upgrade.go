@@ -264,18 +264,7 @@ func (c *cstorVolumeOptions) preUpgrade(pvName, openebsNamespace string) error {
 		targetLabel = pvLabel + ",openebs.io/target=cstor-target"
 	)
 
-	c.utaskObj, uerr = getOrCreateUpgradeTask("cstorVolume", pvName, openebsNamespace)
-	if uerr != nil && isENVPresent {
-		return uerr
-	}
-
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.PreUpgrade}
-
-	statusObj.Phase = utask.StepWaiting
-	c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
-	if uerr != nil && isENVPresent {
-		return uerr
-	}
 
 	statusObj.Phase = utask.StepErrored
 	c.ns, err = getPVCDeploymentsNamespace(pvName, pvLabel, openebsNamespace)
@@ -565,10 +554,12 @@ func (c *cstorVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 	return nil
 }
 
-func cstorVolumeUpgrade(pvName, openebsNamespace string) (*utask.UpgradeTask, error) {
+func cstorVolumeUpgrade(pvName, openebsNamespace string, utaskObj *utask.UpgradeTask) (*utask.UpgradeTask, error) {
 	var err error
 
 	options := &cstorVolumeOptions{}
+
+	options.utaskObj = utaskObj
 
 	// PreUpgrade
 	err = options.preUpgrade(pvName, openebsNamespace)
