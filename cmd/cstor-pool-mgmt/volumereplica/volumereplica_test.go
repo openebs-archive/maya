@@ -558,6 +558,8 @@ func TestVolumeStatus(t *testing.T) {
 		},
 	}
 	for name, test := range testPoolResource {
+		test := test
+		name := name
 		t.Run(name, func(t *testing.T) {
 			// Set env variable "StatusType" to "mockedOutputType"
 			// It will help to decide which mocked output should be considered as a std output.
