@@ -549,12 +549,12 @@ func TestVolumeStatus(t *testing.T) {
 		"#6 ReconstructingVolumeStatus": {
 			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
 			mockedOutputType: testZfsReconstructing,
-			expectedStatus:   apis.CVRStatusReconstructing,
+			expectedStatus:   apis.CVRStatusReconstructingNewReplica,
 		},
 		"#7 NonQuorumDegradedStatus": {
 			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
 			mockedOutputType: testNonQuorumDegraded,
-			expectedStatus:   apis.CVRStatusNonQuorumDegraded,
+			expectedStatus:   apis.CVRStatusNewReplicaDegraded,
 		},
 	}
 	for name, test := range testPoolResource {

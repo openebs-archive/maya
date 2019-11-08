@@ -530,27 +530,24 @@ func GetVolumeName(cVR *apis.CStorVolumeReplica) (string, error) {
 
 // ZfsToCvrStatusMapper maps zfs status to defined cvr status.
 func ZfsToCvrStatusMapper(zfsstatus string, quorum int) string {
-	if zfsstatus == ZfsStatusHealthy {
+	switch zfsstatus {
+	case ZfsStatusHealthy:
 		return string(apis.CVRStatusOnline)
-	}
-	if zfsstatus == ZfsStatusOffline {
+	case ZfsStatusOffline:
 		return string(apis.CVRStatusOffline)
-	}
-	if quorum == 1 {
-		if zfsstatus == ZfsStatusDegraded {
+	case ZfsStatusDegraded:
+		if quorum == 1 {
 			return string(apis.CVRStatusDegraded)
 		}
-		if zfsstatus == ZfsStatusRebuilding {
+		return string(apis.CVRStatusNewReplicaDegraded)
+	case ZfsStatusRebuilding:
+		if quorum == 1 {
 			return string(apis.CVRStatusRebuilding)
 		}
+		return string(apis.CVRStatusReconstructingNewReplica)
+	default:
+		return string(apis.CVRStatusError)
 	}
-	if zfsstatus == ZfsStatusDegraded {
-		return string(apis.CVRStatusNonQuorumDegraded)
-	}
-	if zfsstatus == ZfsStatusRebuilding {
-		return string(apis.CVRStatusReconstructing)
-	}
-	return string(apis.CVRStatusError)
 }
 
 /*
