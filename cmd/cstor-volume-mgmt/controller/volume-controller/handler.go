@@ -51,9 +51,9 @@ type upgradeFunc func(u *upgradeParams) (*apis.CStorVolume, error)
 var (
 	v130       = "1.3.0"
 	upgradeMap = map[string]upgradeFunc{
-		"1.0.0-1.3.0": setDesiredRF,
-		"1.1.0-1.3.0": setDesiredRF,
-		"1.2.0-1.3.0": setDesiredRF,
+		"1.0.0": setDesiredRF,
+		"1.1.0": setDesiredRF,
+		"1.2.0": setDesiredRF,
 	}
 )
 
@@ -731,10 +731,10 @@ func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CS
 	// the below code uses DeepCopy() to have the state of object just before
 	// any update call is done so that on failure the last state object can be returned
 	if cv.VersionDetails.Status.Current != cv.VersionDetails.Desired {
-		if !cv.VersionDetails.IsCurrentVersionValid() {
+		if !apis.IsCurrentVersionValid(cv.VersionDetails.Status.Current) {
 			return cv, pkg_errors.Errorf("invalid current version %s", cv.VersionDetails.Status.Current)
 		}
-		if !cv.VersionDetails.IsDesiredVersionValid() {
+		if !apis.IsDesiredVersionValid(cv.VersionDetails.Desired) {
 			return cv, pkg_errors.Errorf("invalid desired version %s", cv.VersionDetails.Desired)
 		}
 		cvObject := cv.DeepCopy()
@@ -746,17 +746,22 @@ func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CS
 				return cv, err
 			}
 		}
-		path := cvObject.VersionDetails.Path()
+		path := strings.Split(cvObject.VersionDetails.Status.Current, "-")[0]
 		u := &upgradeParams{
 			cv:     cvObject,
 			client: c.clientset,
 		}
-		cvObject, err = upgradeMap[path](u)
-		if err != nil {
-			return cvObject, err
+		// Get upgrade function for corresponding path, if path does not
+		// exits then no upgrade is required and funcValue will be nil.
+		funcValue := upgradeMap[path]
+		if funcValue != nil {
+			cvObject, err = funcValue(u)
+			if err != nil {
+				return cvObject, err
+			}
 		}
 		cv = cvObject.DeepCopy()
-		cvObject.VersionDetails.Status.SetSuccessStatus()
+		cvObject.VersionDetails.SetSuccessStatus()
 		cvObject, err = c.clientset.OpenebsV1alpha1().
 			CStorVolumes(cvObject.Namespace).Update(cvObject)
 		if err != nil {

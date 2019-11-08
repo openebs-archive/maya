@@ -20,8 +20,6 @@ import (
 	"strings"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
-	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/spf13/cobra"
 )
@@ -76,42 +74,4 @@ func (u *UpgradeOptions) InitializeDefaults(cmd *cobra.Command) error {
 	}
 
 	return nil
-}
-
-// getUpgradePath gives the path for the upgrade
-func (u *UpgradeOptions) getUpgradePath() (string, error) {
-	podClient := pod.NewKubeClient()
-	from := strings.Split(u.fromVersion, "-")[0]
-	to := strings.Split(u.toVersion, "-")[0]
-	mayaLabels := "name=maya-apiserver"
-	mayaPods, err := podClient.WithNamespace(u.openebsNamespace).
-		List(
-			metav1.ListOptions{
-				LabelSelector: mayaLabels,
-			},
-		)
-	if err != nil {
-		return "", err
-	}
-	if len(mayaPods.Items) != 1 {
-		return "", errors.Errorf("Expecting 1 maya pod got %d", len(mayaPods.Items))
-	}
-	// mayaVersion is the version of the control plane
-	mayaVersion := strings.Split(mayaPods.Items[0].Labels["openebs.io/version"], "-")[0]
-
-	// if the from version and to version have equal prefix to control plane
-	// version for example 1.3.0-RC1, 1.3.0-RC2, 1.3.0, then this will require
-	// a RC upgrade path like RC1-RC2, RC2-, RC1-.
-	if from == mayaVersion && to == mayaVersion {
-		from = ""
-		if len(strings.Split(u.fromVersion, "-")) == 2 {
-			from = strings.Split(u.fromVersion, "-")[1]
-		}
-		to = ""
-		if len(strings.Split(u.toVersion, "-")) == 2 {
-			to = strings.Split(u.toVersion, "-")[1]
-		}
-	}
-	// if from and to version don't have same prefix, return the normal path
-	return from + "-" + to, nil
 }
