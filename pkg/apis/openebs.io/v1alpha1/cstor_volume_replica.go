@@ -82,11 +82,12 @@ const (
 	// IO's
 	CVRStatusDegraded CStorVolumeReplicaPhase = "Degraded"
 
-	// CVRStatusNewReplicaDegraded describes replica is recreated due to pool
-	// recreation(under lying disk got changed)/volume replica scaleup case and
-	// replica has to start reconstructing entier data from other available
-	// healthy replica until replica becomes healthy whatever data written to it
-	// is lost(replica also not part of quorum decision)
+	// CVRStatusNewReplicaDegraded describes replica is recreated (due to pool
+	// recreation[underlying disk got changed]/volume replica scaleup cases) and
+	// just connected to the target. Volume replica has to start reconstructing
+	// entier data from another available healthy replica. Until volume replica
+	// becomes healthy whatever data written to it is lost(NewReplica also not part
+	// of any quorum decision)
 	CVRStatusNewReplicaDegraded CStorVolumeReplicaPhase = "NewReplicaDegraded"
 
 	// CVRStatusRebuilding describes volume replica has missing data and it
