@@ -64,25 +64,55 @@ type CStorVolumeReplicaPhase string
 
 // Status written onto CStorVolumeReplica objects.
 const (
-	// CVRStatusEmpty ensures the create operation is to be done, if import fails.
+
+	// CVRStatusEmpty describes CVR resource is created but not yet monitored by
+	// controller(i.e resource is just created)
 	CVRStatusEmpty CStorVolumeReplicaPhase = ""
-	// CVRStatusOnline ensures the resource is available.
+
+	// CVRStatusOnline describes volume replica is Healthy and data existing on
+	// the healthy replica is up to date
 	CVRStatusOnline CStorVolumeReplicaPhase = "Healthy"
-	// CVRStatusOffline ensures the resource is not available.
+
+	// CVRStatusOffline describes volume replica is created but not yet connected
+	// to the target
 	CVRStatusOffline CStorVolumeReplicaPhase = "Offline"
-	// CVRStatusDegraded means that the rebuilding has not yet started.
+
+	// CVRStatusDegraded describes volume replica is connected to the target and
+	// rebuilding from other replicas is not yet started but ready for serving
+	// IO's
 	CVRStatusDegraded CStorVolumeReplicaPhase = "Degraded"
-	// CVRStatusRebuilding means that the volume is in re-building phase.
+
+	// CVRStatusNewReplicaDegraded describes replica is recreated (due to pool
+	// recreation[underlying disk got changed]/volume replica scaleup cases) and
+	// just connected to the target. Volume replica has to start reconstructing
+	// entier data from another available healthy replica. Until volume replica
+	// becomes healthy whatever data written to it is lost(NewReplica also not part
+	// of any quorum decision)
+	CVRStatusNewReplicaDegraded CStorVolumeReplicaPhase = "NewReplicaDegraded"
+
+	// CVRStatusRebuilding describes volume replica has missing data and it
+	// started rebuilding missing data from other replicas
 	CVRStatusRebuilding CStorVolumeReplicaPhase = "Rebuilding"
-	// CVRStatusRebuilding means that the volume status could not be found.
+
+	// CVRStatusReconstructingNewReplica describes volume replica is recreated
+	// and it started reconstructing entier data from other healthy replica
+	CVRStatusReconstructingNewReplica CStorVolumeReplicaPhase = "ReconstructingNewReplica"
+
+	// CVRStatusError describes either volume replica is not exist in cstor pool
 	CVRStatusError CStorVolumeReplicaPhase = "Error"
-	// CVRStatusDeletionFailed ensures the resource deletion has failed.
+
+	// CVRStatusDeletionFailed describes volume replica deletion is failed
 	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "DeletionFailed"
-	// CVRStatusInvalid ensures invalid resource.
+
+	// CVRStatusInvalid ensures invalid resource(currently not honoring)
 	CVRStatusInvalid CStorVolumeReplicaPhase = "Invalid"
-	// CVRStatusInit ensures Init task of cvr resource.
+
+	// CVRStatusInit describes CVR resource is newly created but it is not yet
+	// created zfs dataset
 	CVRStatusInit CStorVolumeReplicaPhase = "Init"
-	// CVRStatusRecreate ensures recreation task of cvr resource.
+
+	// CVRStatusRecreate describes the volume replica is recreated due to pool
+	// recreation/scaleup
 	CVRStatusRecreate CStorVolumeReplicaPhase = "Recreate"
 )
 
