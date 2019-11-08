@@ -49,11 +49,7 @@ type upgradeParams struct {
 type upgradeFunc func(u *upgradeParams) (*apis.CStorPool, error)
 
 var (
-	upgradeMap = map[string]upgradeFunc{
-		"1.0.0-1.3.0": nothing,
-		"1.1.0-1.3.0": nothing,
-		"1.2.0-1.3.0": nothing,
-	}
+	upgradeMap = map[string]upgradeFunc{}
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -579,10 +575,10 @@ func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStor
 	// the below code uses deep copy to have the state of object just before
 	// any update call is done so that on failure the last state object can be returned
 	if csp.VersionDetails.Status.Current != csp.VersionDetails.Desired {
-		if !csp.VersionDetails.IsCurrentVersionValid() {
+		if !apis.IsCurrentVersionValid(csp.VersionDetails.Status.Current) {
 			return csp, errors.Errorf("invalid current version %s", csp.VersionDetails.Status.Current)
 		}
-		if !csp.VersionDetails.IsDesiredVersionValid() {
+		if !apis.IsDesiredVersionValid(csp.VersionDetails.Desired) {
 			return csp, errors.Errorf("invalid desired version %s", csp.VersionDetails.Desired)
 		}
 		cspObj := csp.DeepCopy()
@@ -593,17 +589,22 @@ func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStor
 				return csp, err
 			}
 		}
-		path := cspObj.VersionDetails.Path()
+		path := strings.Split(cspObj.VersionDetails.Status.Current, "-")[0]
 		u := &upgradeParams{
 			csp:    cspObj,
 			client: c.clientset,
 		}
-		cspObj, err = upgradeMap[path](u)
-		if err != nil {
-			return cspObj, err
+		// Get upgrade function for corresponding path, if path does not
+		// exits then no upgrade is required and funcValue will be nil.
+		funcValue := upgradeMap[path]
+		if funcValue != nil {
+			cspObj, err = funcValue(u)
+			if err != nil {
+				return cspObj, err
+			}
 		}
 		csp = cspObj.DeepCopy()
-		cspObj.VersionDetails.Status.SetSuccessStatus()
+		cspObj.VersionDetails.SetSuccessStatus()
 		cspObj, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObj)
 		if err != nil {
 			return csp, errors.Wrap(err, "failed to update csp with versionDetails")
@@ -634,9 +635,4 @@ func (c *CStorPoolController) populateVersion(csp *apis.CStorPool) (
 		return cspObj, nil
 	}
 	return csp, nil
-}
-
-func nothing(u *upgradeParams) (*apis.CStorPool, error) {
-	// No upgrade steps for 1.3.0
-	return u.csp, nil
 }

@@ -52,11 +52,7 @@ var (
 		apis.PoolTypeRaidzCPV:    true,
 		apis.PoolTypeRaidz2CPV:   true,
 	}
-	upgradeMap = map[string]upgradeFunc{
-		"1.0.0-1.3.0": nothing,
-		"1.1.0-1.3.0": nothing,
-		"1.2.0-1.3.0": nothing,
-	}
+	upgradeMap = map[string]upgradeFunc{}
 )
 
 const (
@@ -530,10 +526,10 @@ func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.Storage
 	// the below code uses deep copy to have the state of object just before
 	// any update call is done so that on failure the last state object can be returned
 	if spc.VersionDetails.Status.Current != spc.VersionDetails.Desired {
-		if !spc.VersionDetails.IsCurrentVersionValid() {
+		if !apis.IsCurrentVersionValid(spc.VersionDetails.Status.Current) {
 			return spc, errors.Errorf("invalid current version %s", spc.VersionDetails.Status.Current)
 		}
-		if !spc.VersionDetails.IsDesiredVersionValid() {
+		if !apis.IsDesiredVersionValid(spc.VersionDetails.Desired) {
 			return spc, errors.Errorf("invalid desired version %s", spc.VersionDetails.Desired)
 		}
 		spcObj := spc.DeepCopy()
@@ -546,17 +542,22 @@ func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.Storage
 		}
 		// As no other steps are required just change current version to
 		// desired version
-		path := spcObj.VersionDetails.Path()
+		path := strings.Split(spcObj.VersionDetails.Status.Current, "-")[0]
 		u := &upgradeParams{
 			spc:    spcObj,
 			client: c.clientset,
 		}
-		spcObj, err = upgradeMap[path](u)
-		if err != nil {
-			return spcObj, err
+		// Get upgrade function for corresponding path, if path does not
+		// exits then no upgrade is required and funcValue will be nil.
+		funcValue := upgradeMap[path]
+		if funcValue != nil {
+			spcObj, err = funcValue(u)
+			if err != nil {
+				return spcObj, err
+			}
 		}
 		spc = spcObj.DeepCopy()
-		spcObj.VersionDetails.Status.SetSuccessStatus()
+		spcObj.VersionDetails.SetSuccessStatus()
 		spcObj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spcObj)
 		if err != nil {
 			return spc, errors.Wrap(err, "failed to update storagepoolclaim")
@@ -591,9 +592,4 @@ func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StorageP
 		return spcObj, nil
 	}
 	return spc, nil
-}
-
-func nothing(u *upgradeParams) (*apis.StoragePoolClaim, error) {
-	// No upgrade steps for 1.3.0
-	return u.spc, nil
 }

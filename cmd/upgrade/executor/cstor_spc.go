@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	upgrader "github.com/openebs/maya/pkg/upgrade/upgrader"
 )
@@ -77,13 +78,7 @@ func (u *UpgradeOptions) RunCStorSPCUpgradeChecks(cmd *cobra.Command) error {
 // RunCStorSPCUpgrade upgrades the given Jiva Volume.
 func (u *UpgradeOptions) RunCStorSPCUpgrade(cmd *cobra.Command) error {
 
-	path, err := u.getUpgradePath()
-	if err != nil {
-		return err
-	}
-	switch path {
-	case "1.0.0-1.3.0", "1.1.0-1.3.0", "1.2.0-1.3.0":
-		// RC1-RC2 for RC1 to RC2, RC1- for RC1 to GA, RC2- for RC2 to GA
+	if apis.IsCurrentVersionValid(u.fromVersion) && apis.IsDesiredVersionValid(u.toVersion) {
 		klog.Infof("Upgrading to %s", u.toVersion)
 		err := upgrader.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
@@ -95,7 +90,7 @@ func (u *UpgradeOptions) RunCStorSPCUpgrade(cmd *cobra.Command) error {
 			klog.Error(err)
 			return errors.Errorf("Failed to upgrade cStor SPC %v:", u.cstorSPC.spcName)
 		}
-	default:
+	} else {
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)
 	}
 	return nil
