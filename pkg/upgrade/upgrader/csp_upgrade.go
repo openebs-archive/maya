@@ -338,10 +338,12 @@ func (c *cstorCSPOptions) poolInstanceUpgrade(openebsNamespace string) error {
 	return nil
 }
 
-func cspUpgrade(cspName, openebsNamespace string) (*utask.UpgradeTask, error) {
+func cspUpgrade(cspName, openebsNamespace string, utaskObj *utask.UpgradeTask) (*utask.UpgradeTask, error) {
 	var err error
 
 	options := &cstorCSPOptions{}
+
+	options.utaskObj = utaskObj
 
 	err = options.preUpgrade(cspName, openebsNamespace)
 	if err != nil {
