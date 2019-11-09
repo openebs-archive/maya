@@ -25,9 +25,9 @@ import (
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 )
 
-// volumeEngine is capable of executing CAS volume
+// Engine is capable of executing CAS volume
 // related operation via CAS template
-type volumeEngine struct {
+type Engine struct {
 	// engine can execute a CAS template
 	engine cast.Interface
 
@@ -57,7 +57,7 @@ func NewVolumeEngine(
 	casConfigSC string,
 	castObj *v1alpha1.CASTemplate,
 	key string,
-	volumeValues map[string]interface{}) (e *volumeEngine, err error) {
+	volumeValues map[string]interface{}) (e *Engine, err error) {
 
 	if len(strings.TrimSpace(key)) == 0 {
 		err = errors.New("failed to instantiate volume engine: missing volume runtime key")
@@ -90,7 +90,7 @@ func NewVolumeEngine(
 		return
 	}
 
-	e = &volumeEngine{
+	e = &Engine{
 		engine:        cEngine,
 		defaultConfig: castObj.Spec.Defaults,
 		casConfigSC:   casConfSC,
@@ -107,7 +107,7 @@ func NewVolumeEngine(
 //  Priority of CAS config merge is as follows:
 //
 //  PersistentVolumeClaim >> StorageClass >> CAS Template
-func (c *volumeEngine) prepareFinalConfig() (final []v1alpha1.Config) {
+func (c *Engine) prepareFinalConfig() (final []v1alpha1.Config) {
 	// merge unique config elements from SC
 	// against config from PVC
 	mc := cast.MergeConfig(c.casConfigPVC, c.casConfigSC)
@@ -118,7 +118,7 @@ func (c *volumeEngine) prepareFinalConfig() (final []v1alpha1.Config) {
 }
 
 // Run executes a CAS volume related operation
-func (c *volumeEngine) Run() (op []byte, err error) {
+func (c *Engine) Run() (op []byte, err error) {
 	m, err := cast.ConfigToMap(c.prepareFinalConfig())
 	if err != nil {
 		err = errors.Wrapf(err, "failed to run volume engine")
