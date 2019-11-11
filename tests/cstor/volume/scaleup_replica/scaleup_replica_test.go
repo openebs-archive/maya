@@ -27,7 +27,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
-var _ = Describe("[REPLICA SCALEUP] CSTOR REPLICA SCALEUP", func() {
+var _ = Describe("[REPLICA SCALEUP/SCALEDOWN] CSTOR REPLICA SCALEUP And SCALEDOWN", func() {
 	When("SPC is created", func() {
 		It("cStor Pools Should be Provisioned ", func() {
 
@@ -80,6 +80,21 @@ var _ = Describe("[REPLICA SCALEUP] CSTOR REPLICA SCALEUP", func() {
 				ops.VerifyVolumeStatus(pvcObj, ReplicaCount)
 			})
 			By("Verify Volume configurations from cstor volume", verifyVolumeConfigurationEventually)
+		})
+	})
+	When("CStor Replica ScaleDown", func() {
+		It("Volume Replica Should be disconnected and CStor Volume Configurations Should Be Updated", func() {
+			ReplicaCount = ReplicaCount - 1
+			replicaIDList := []string{ReplicaID}
+			By("Update cStor Volume Configurations", func() {
+				updateCStorVolumeConfigurations(ReplicaCount, replicaIDList)
+			})
+			By("Verify CStorVolume Configurations After Performing Scaledown", func() {
+				verifyCVConfigForReplicaScaleDownEventually(ReplicaCount)
+			})
+			By("Verify Volume Status after ScaleDown Replica", func() {
+				ops.VerifyVolumeStatus(pvcObj, ReplicaCount)
+			})
 		})
 	})
 
