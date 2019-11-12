@@ -81,6 +81,7 @@ func updateCStorVolumeConfigurations(replicaCount int, replicaIDList []string) {
 	var err error
 	cvObj, err = ops.CVClient.WithNamespace(openebsNamespace).
 		Get(cvObj.Name, metav1.GetOptions{})
+	Expect(err).To(BeNil())
 	// update the cStorVolume
 	cvObj.Spec.DesiredReplicationFactor = replicaCount
 	cvObj.Spec.ReplicaDetails.KnownReplicas = getNewKnownReplicas(replicaIDList, cvObj)
