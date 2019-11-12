@@ -127,8 +127,8 @@ func Exec(fromVersion, toVersion, kind, name,
 		if utaskObj != nil && isENVPresent {
 			backoffLimit, uerr := getBackoffLimit(openebsNamespace)
 			if uerr != nil {
-				klog.Error(err)
-				return uerr
+				klog.Error(uerr)
+				return err
 			}
 			if utaskObj.Status.Retries == backoffLimit {
 				utaskObj.Status.Phase = apis.UpgradeError
