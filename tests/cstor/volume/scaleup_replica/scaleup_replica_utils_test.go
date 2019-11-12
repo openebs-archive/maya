@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	hash "github.com/openebs/maya/pkg/hash"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/tests"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -76,9 +77,52 @@ func updateDesiredReplicationFactor() {
 	Expect(err).To(BeNil())
 }
 
+func updateCStorVolumeConfigurations(replicaCount int, replicaIDList []string) {
+	var err error
+	cvObj, err = ops.CVClient.WithNamespace(openebsNamespace).
+		Get(cvObj.Name, metav1.GetOptions{})
+	Expect(err).To(BeNil())
+	// update the cStorVolume
+	cvObj.Spec.DesiredReplicationFactor = replicaCount
+	cvObj.Spec.ReplicaDetails.KnownReplicas = getNewKnownReplicas(replicaIDList, cvObj)
+	cvObj, err = ops.CVClient.Update(cvObj)
+	Expect(err).To(BeNil())
+}
+
+func getNewKnownReplicas(
+	removableNewReplicas []string, cvObj *apis.CStorVolume) map[apis.ReplicaID]string {
+	count := len(cvObj.Spec.ReplicaDetails.KnownReplicas) - len(removableNewReplicas)
+	updatedKnownReplicaList := make(map[apis.ReplicaID]string, count)
+	for key, value := range cvObj.Spec.ReplicaDetails.KnownReplicas {
+		if !util.ContainsString(removableNewReplicas, string(key)) {
+			updatedKnownReplicaList[key] = value
+		}
+	}
+	return updatedKnownReplicaList
+}
+
+func verifyCVConfigForReplicaScaleDownEventually(drf int) {
+	var err error
+	replicationFactor := drf
+	consistencyFactor := (replicationFactor)/2 + 1
+	for i := 0; i < MaxRetry; i++ {
+		cvObj, err = ops.CVClient.WithNamespace(openebsNamespace).
+			Get(cvObj.Name, metav1.GetOptions{})
+		Expect(err).To(BeNil())
+		if len(cvObj.Status.ReplicaDetails.KnownReplicas) == drf {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+	Expect(cvObj.Spec.ReplicationFactor).To(Equal(replicationFactor),
+		"mismatch of replicationFactor")
+	Expect(cvObj.Spec.ConsistencyFactor).To(Equal(consistencyFactor),
+		"mismatch of consistencyFactor")
+}
+
 func buildAndCreateCVR() {
-	var err, getErr error
-	retryUpdate := 3
+	var err error
+	var replicaID string
 	volumeLabel := pvLabel + pvcObj.Spec.VolumeName
 	cvrObjList, err := ops.CVRClient.
 		WithNamespace(openebsNamespace).
@@ -88,6 +132,9 @@ func buildAndCreateCVR() {
 	cvrObj = &cvrObjList.Items[0]
 	poolLabel := string(apis.StoragePoolClaimCPK) + "=" + spcObj.Name
 	cspObj = ops.GetUnUsedCStorPool(cvrObjList, poolLabel)
+	uid := string(cspObj.UID) + string(pvcObj.UID)
+	replicaID, err = hash.Hash(uid)
+	Expect(err).To(BeNil())
 	cvrConfig := &tests.CVRConfig{
 		VolumeName: pvcObj.Spec.VolumeName,
 		PoolObj:    cspObj,
@@ -95,37 +142,9 @@ func buildAndCreateCVR() {
 		TargetIP:   cvrObj.Spec.TargetIP,
 		Phase:      "Recreate",
 		Capacity:   cvrObj.Spec.Capacity,
+		ReplicaID:  replicaID,
 	}
 	ops.Config = cvrConfig
 	newCVRObj = ops.BuildAndCreateCVR()
-
-	cvrName := pvcObj.Spec.VolumeName + "-" + cspObj.Name
-	hashUID, err := hash.Hash(newCVRObj.UID)
-	Expect(err).To(BeNil())
-	ReplicaID = strings.ToUpper(hashUID)
-	for i := 0; i < retryUpdate; i++ {
-		newCVRObj.Spec.ReplicaID = ReplicaID
-		newCVRObj, err = ops.CVRClient.
-			WithNamespace(openebsNamespace).
-			Update(newCVRObj)
-		if err == nil {
-			break
-		}
-		time.Sleep(time.Second * 5)
-		newCVRObj, getErr = ops.CVRClient.Get(cvrName, metav1.GetOptions{})
-		Expect(getErr).To(BeNil())
-	}
-	Expect(err).To(BeNil())
-	//TODO: Need to fix bug in cvr during creation time
-	podLabel := cspLabel + cspObj.Name
-	podObjList, err := ops.PodClient.
-		WithNamespace(openebsNamespace).
-		List(metav1.ListOptions{LabelSelector: podLabel})
-	Expect(err).To(BeNil())
-	err = ops.PodClient.Delete(podObjList.Items[0].Name, &metav1.DeleteOptions{})
-	Expect(err).To(BeNil())
-	isPodDeleted := ops.IsPodDeletedEventually(
-		podObjList.Items[0].Namespace,
-		podObjList.Items[0].Name)
-	Expect(isPodDeleted).To(Equal(true))
+	ReplicaID = replicaID
 }

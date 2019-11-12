@@ -130,6 +130,7 @@ type CVRConfig struct {
 	Capacity   string
 	Phase      string
 	TargetIP   string
+	ReplicaID  string
 }
 
 var (
@@ -1116,6 +1117,7 @@ func (ops *Operations) BuildAndCreateCVR() *apis.CStorVolumeReplica {
 		WithCapacity(cvrConfig.Capacity).
 		WithTargetIP(cvrConfig.TargetIP).
 		WithStatusPhase(cvrConfig.Phase).
+		WithReplicaID(cvrConfig.ReplicaID).
 		Build()
 	Expect(err).To(BeNil())
 	cvrObj, err = ops.CVRClient.
