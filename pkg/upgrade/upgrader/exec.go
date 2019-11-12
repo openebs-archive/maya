@@ -160,7 +160,7 @@ func getBackoffLimit(openebsNamespace string) (int, error) {
 	podObj, err := podClient.WithNamespace(openebsNamespace).
 		Get(podName, metav1.GetOptions{})
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrapf(err, "failed to get backoff limit")
 	}
 	jobObj, err := jobClient.WithNamespace(openebsNamespace).
 		Get(podObj.OwnerReferences[0].Name, metav1.GetOptions{})
