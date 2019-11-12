@@ -20,6 +20,8 @@ import (
 	"bytes"
 	"strings"
 
+	"k8s.io/klog"
+
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
@@ -122,10 +124,11 @@ func Exec(fromVersion, toVersion, kind, name,
 	}
 
 	if err != nil {
-		if utaskObj != nil {
+		if utaskObj != nil && isENVPresent {
 			backoffLimit, uerr := getBackoffLimit(openebsNamespace)
 			if uerr != nil {
-				return uerr
+				klog.Error(uerr)
+				return err
 			}
 			if utaskObj.Status.Retries == backoffLimit {
 				utaskObj.Status.Phase = apis.UpgradeError
@@ -157,12 +160,12 @@ func getBackoffLimit(openebsNamespace string) (int, error) {
 	podObj, err := podClient.WithNamespace(openebsNamespace).
 		Get(podName, metav1.GetOptions{})
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrapf(err, "failed to get backoff limit")
 	}
 	jobObj, err := jobClient.WithNamespace(openebsNamespace).
 		Get(podObj.OwnerReferences[0].Name, metav1.GetOptions{})
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrapf(err, "failed to get backoff limit")
 	}
 	// if backoffLimit not present it returns the default as 6
 	if jobObj.Spec.BackoffLimit == nil {
