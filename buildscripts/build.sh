@@ -87,7 +87,8 @@ output_name="bin/${PNAME}/"$GOOS"_"$GOARCH"/"$CTLNAME
 if [ $GOOS = "windows" ]; then
     output_name+='.exe'
 fi
-env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
+
+env GOOS=$GOOS GOARCH=$GOARCH go build ${BUILD_TAG} -ldflags \
     "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
     -X main.CtlName='${CTLNAME}' \
     -X github.com/openebs/maya/pkg/version.Version=${VERSION} \

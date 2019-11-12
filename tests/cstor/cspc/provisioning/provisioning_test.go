@@ -22,6 +22,8 @@ import (
 	"strconv"
 )
 
+var skipPositiveCaseIfRequired = false
+
 var _ = Describe("[CSPC] CSTOR STRIPE POOL PROVISIONING AND RECONCILIATION ", func() {
 	provisioningAndReconciliationTest(createCSPCObjectForStripe)
 })
@@ -38,7 +40,7 @@ var _ = Describe("[CSPC] CSTOR RAIDZ2 POOL PROVISIONING AND RECONCILIATION ", fu
 func provisioningAndReconciliationTest(createCSPCObject func()) {
 	When("A CSPC Is Created", func() {
 		It("cStor Pools Should be Provisioned ", func() {
-
+			SkipTest(skipPositiveCaseIfRequired)
 			By("Preparing A CSPC Object, No Error Should Occur", createCSPCObject)
 
 			By("Creating A CSPC Object, Desired Number of CSPIs Should Be Created", verifyDesiredCSPICount)
@@ -47,6 +49,7 @@ func provisioningAndReconciliationTest(createCSPCObject func()) {
 
 	When("The CSPC Finalizer Is Removed From CSPC", func() {
 		It("The Finalizer Should Come Back As Part Of Reconcilation", func() {
+			SkipTest(skipPositiveCaseIfRequired)
 			err := Cspc.RemoveFinalizer(cspc_v1alpha1.CSPCFinalizer)
 			Expect(err).To(BeNil())
 			Expect(ops.IsCSPCFinalizerExistsOnCSPC(cspcObj.Name, cspc_v1alpha1.CSPCFinalizer)).To(BeTrue())
@@ -59,6 +62,7 @@ func provisioningAndReconciliationTest(createCSPCObject func()) {
 			// pin it
 			i := i
 			It(strconv.Itoa(i)+" New CSPI Should Come Up Again", func() {
+				SkipTest(skipPositiveCaseIfRequired)
 				ops.DeleteCSPI(cspcObj.Name, i)
 				// We expect 3 cstorPool objects.
 				cspCount := ops.GetHealthyCSPICount(cspcObj.Name, 3)
@@ -70,6 +74,7 @@ func provisioningAndReconciliationTest(createCSPCObject func()) {
 	// TODO : Improve this cleanup BDD
 	When("Cleaning up cspc", func() {
 		It("should delete the cspc", func() {
+			SkipTest(skipPositiveCaseIfRequired)
 			err := ops.CSPCClient.Delete(cspcObj.Name, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil())
 			bdcCount := ops.GetBDCCountEventually(

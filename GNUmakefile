@@ -107,6 +107,7 @@ CSPI_MGMT=cspi-mgmt
 VOLUME_MGMT=cstor-volume-mgmt
 EXPORTER=maya-exporter
 CSPC_OPERATOR=cspc-operator
+CSPC_OPERATOR_DEBUG=cspc-operator-debug
 
 
 # Specify the date o build
@@ -119,7 +120,7 @@ include ./buildscripts/upgrade/Makefile.mk
 include ./buildscripts/upgrade-082090/Makefile.mk
 
 .PHONY: all
-all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image cspc-operator-image cspi-mgmt-image upgrade-image provisioner-localpv-image
+all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image cspc-operator-image cspc-operator-debug-image cspi-mgmt-image upgrade-image provisioner-localpv-image
 
 .PHONY: all.arm64
 all.arm64: apiserver-image.arm64 provisioner-localpv-image.arm64
@@ -396,6 +397,17 @@ cspc-operator-image:
 	@cp bin/${CSPC_OPERATOR}/${CSPC_OPERATOR} buildscripts/cspc-operator/
 	@cd buildscripts/${CSPC_OPERATOR} && sudo docker build -t ${HUB_USER}/${CSPC_OPERATOR_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/${CSPC_OPERATOR}/${CSPC_OPERATOR}
+
+.PHONY: cspc-operator-debug-image
+cspc-operator-debug-image:
+	@echo "----------------------------"
+	@echo -n "--> cspc-operator image "
+	@echo "${HUB_USER}/${CSPC_OPERATOR_REPO_NAME}:${IMAGE_TAG}"
+	@echo "----------------------------"
+	@PNAME=${CSPC_OPERATOR_DEBUG} CTLNAME=${CSPC_OPERATOR} BUILD_TAG="-tags=debug" sh -c "'$(PWD)/buildscripts/build.sh'"
+	@cp bin/${CSPC_OPERATOR_DEBUG}/${CSPC_OPERATOR} buildscripts/cspc-operator-debug/
+	@cd buildscripts/${CSPC_OPERATOR_DEBUG} && sudo docker build -t ${HUB_USER}/${CSPC_OPERATOR_REPO_NAME}:inject --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/${CSPC_OPERATOR_DEBUG}/${CSPC_OPERATOR}
 
 # Push images
 .PHONY: deploy-images

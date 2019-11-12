@@ -767,6 +767,19 @@ func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) 
 	return cspCount
 }
 
+// GetCSPIResourceCountEventually gets  cspis based on cspcName
+func (ops *Operations) GetCSPIResourceCountEventually(labelSelector string, expectedCSPICount int) int {
+	var cspiCount int
+	for i := 0; i < maxRetry; i++ {
+		cspiCount = ops.GetCSPICount(labelSelector)
+		if cspiCount == expectedCSPICount {
+			return cspiCount
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return cspiCount
+}
+
 // GetHealthyCSPICount gets healthy csp based on spcName
 func (ops *Operations) GetHealthyCSPICount(cspcName string, expectedCSPICount int) int {
 	var cspiCount int
