@@ -75,12 +75,6 @@ func main() {
 		klog.Fatalf("Error building openebs snapshot clientset: %s", err.Error())
 	}
 
-	// Cleaning up older configuration before 1.4.0
-	err = webhook.Preupgrade(kubeClient)
-	if err != nil {
-		klog.Fatalf("Error cleaning older config: %s", err.Error())
-	}
-
 	// Fetch a reference to the admission server deployment object
 	ownerReference, err := webhook.GetAdmissionReference()
 	if err != nil {
