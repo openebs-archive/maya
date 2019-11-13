@@ -41,6 +41,9 @@ type listFunc func(cs *kubernetes.Clientset, opts metav1.ListOptions) (*admissio
 // getting validatingWebhookConfiguration instances
 type getFunc func(cs *kubernetes.Clientset, name string, opts metav1.GetOptions) (*admission.ValidatingWebhookConfiguration, error)
 
+// delFunc is a typed function that abstracts deleting validatingWebhookConfiguration
+type delFunc func(cli *kubernetes.Clientset, name string, opts *metav1.DeleteOptions) error
+
 // createFn is a typed function that abstracts
 // to create admissionwebhook configuration
 type createFunc func(cli *kubernetes.Clientset,
@@ -62,6 +65,7 @@ type Kubeclient struct {
 	list         listFunc
 	create       createFunc
 	get          getFunc
+	del          delFunc
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -95,6 +99,13 @@ func (k *Kubeclient) withDefaults() {
 			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Create(config)
 		}
 	}
+	if k.del == nil {
+		k.del = func(cs *kubernetes.Clientset, name string, opts *metav1.DeleteOptions) error {
+			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Delete(name, opts)
+		}
+
+	}
+
 }
 
 // WithClientset sets the kubernetes clientset against
@@ -172,4 +183,17 @@ func (k *Kubeclient) Create(config *admission.ValidatingWebhookConfiguration) (*
 		return nil, err
 	}
 	return k.create(cs, config)
+}
+
+// Delete deletes validatingWebhookConfiguration object for given name
+func (k *Kubeclient) Delete(name string, options *metav1.DeleteOptions) error {
+	if strings.TrimSpace(name) == "" {
+		return errors.New("failed to delete validating config: missing name")
+	}
+
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return err
+	}
+	return k.del(cli, name, options)
 }
