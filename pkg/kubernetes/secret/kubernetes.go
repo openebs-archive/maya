@@ -40,6 +40,9 @@ type getFn func(cli *kubernetes.Clientset, namespace, name string, opts metav1.G
 // to create secret
 type createFn func(cli *kubernetes.Clientset, namespace string, secret *corev1.Secret) (*corev1.Secret, error)
 
+// listFn is a typed function that abstracts listing of secret instances
+type listFn func(cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*corev1.SecretList, error)
+
 // deleteFn is a typed function that abstracts
 // to delete secret
 type deleteFn func(cli *kubernetes.Clientset, namespace, name string, opts *metav1.DeleteOptions) error
@@ -64,6 +67,7 @@ type Kubeclient struct {
 	get                 getFn
 	create              createFn
 	del                 deleteFn
+	list                listFn
 }
 
 // KubeClientBuildOption defines the abstraction
@@ -91,6 +95,12 @@ func (k *Kubeclient) withDefaults() {
 			return cli.CoreV1().Secrets(namespace).Create(secret)
 		}
 	}
+	if k.list == nil {
+		k.list = func(cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*corev1.SecretList, error) {
+			return cli.CoreV1().Secrets(namespace).List(opts)
+		}
+	}
+
 	if k.del == nil {
 		k.del = func(cli *kubernetes.Clientset, namespace, name string, opts *metav1.DeleteOptions) error {
 			return cli.CoreV1().Secrets(namespace).Delete(name, opts)
@@ -182,4 +192,13 @@ func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
 		return errors.Wrapf(err, "failed to delete secret: {%s}", name)
 	}
 	return k.del(cli, k.namespace, name, opts)
+}
+
+// List lists the secret if present in kubernetes cluster
+func (k *Kubeclient) List(opts metav1.ListOptions) (*corev1.SecretList, error) {
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to lists secret in namespace: {%s}", k.namespace)
+	}
+	return k.list(cli, k.namespace, opts)
 }
