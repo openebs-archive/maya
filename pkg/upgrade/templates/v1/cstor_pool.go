@@ -35,7 +35,16 @@ var (
 				 "containers": [
 					{
 					   "name": "cstor-pool",
-					   "image": "{{.PoolImage}}:{{.ImageTag}}"
+					   "image": "{{.PoolImage}}:{{.ImageTag}}",
+					   "livenessProbe": {
+                            "exec": {
+                                "command": [
+                                    "/bin/sh",
+                                    "-c",
+                                    "zfs set io.openebs:livenesstimestamp=\"$(date +%s)\" cstor-$OPENEBS_IO_CSTOR_ID"
+                                ]
+                            }
+                        }
 					},
 					{
 					  "name": "cstor-pool-mgmt",
