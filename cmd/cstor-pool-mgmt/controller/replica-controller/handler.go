@@ -208,7 +208,7 @@ func (c *CStorVolumeReplicaController) cVREventHandler(
 	// particular number of attempts.
 	var noOfAttempts = 2
 	if !common.PoolNameHandler(cvrObj, noOfAttempts) {
-		return string(apis.CVRStatusOffline), merrors.New("pool not found")
+		return string(cvrObj.Status.Phase), merrors.New("pool not found")
 	}
 
 	// cvr is created at zfs in the form poolname/volname
@@ -267,6 +267,9 @@ func (c *CStorVolumeReplicaController) cVREventHandler(
 			cvrObj.Name,
 			operation,
 		)
+		if isCVRCreateStatus(cvrObj) {
+			return c.cVRAddEventHandler(cvrObj, fullVolName)
+		}
 		return c.getCVRStatus(cvrObj)
 	}
 
@@ -319,6 +322,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 	cVR *apis.CStorVolumeReplica,
 	fullVolName string,
 ) (string, error) {
+	var err error
 	// lock is to synchronize pool and volumereplica. Until certain pool related
 	// operations are over, the volumereplica threads will be held.
 	common.SyncResources.Mux.Lock()
@@ -341,7 +345,14 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 				string(common.SuccessImported),
 				string(common.MessageResourceImported),
 			)
-			return string(apis.CVRStatusOnline), nil
+			// If the volume already present then get the status of replica from ZFS
+			// and update it with corresponding status phase. If status gives error
+			// then return old phase.
+			status, err := volumereplica.Status(fullVolName)
+			if err != nil {
+				return string(cVR.Status.Phase), err
+			}
+			return status, nil
 		}
 	} else {
 		common.SyncResources.Mux.Unlock()
@@ -361,8 +372,25 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 			string(common.AlreadyPresent),
 			string(common.MessageResourceAlreadyPresent),
 		)
-		// If the volume already present then return the cvr status as online
-		return string(apis.CVRStatusOnline), nil
+		// After creating zfs datasets in zpool but update to etcd might be
+		// failed
+		if isEmptyReplicaID(cVR) {
+			cVR.Spec.ReplicaID, err = volumereplica.GetReplicaIDFromZFS(fullVolName)
+			if err != nil {
+				// If error happened then update with same as with existing CVR
+				// phase. So, in next reconciliation it will try to update with
+				// proper changes
+				return string(cVR.Status.Phase), pkg_errors.Wrapf(err,
+					"volume replica %s exists", cVR.Name)
+			}
+		}
+		// If the volume already present then get the status of replica from ZFS
+		// and update it with corresponding status
+		status, err := volumereplica.Status(fullVolName)
+		if err != nil {
+			return string(cVR.Status.Phase), err
+		}
+		return status, nil
 	}
 
 	// Setting quorum to true for newly creating Volumes.
@@ -374,13 +402,23 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 		quorum = false
 	}
 
+	//TODO: Follow best practice while refactor reconciliation logic
+
+	// Following sinppet will do following things
+	// 1. Verify whether volume replica needs to create or not? If yes proceed
+	//    further.
+	// 2. If replicaID is empty and if it is new volume generate replicaID.
+	// 3. Trigger ZFS create command on success get the status from ZFS and
+	//    update it. If `ZFS command` fails then return with same status phase
+	//    which is currently holding by CVR.
 	// IsEmptyStatus is to check if initial status of cVR object is empty.
 	if IsEmptyStatus(cVR) || IsInitStatus(cVR) || IsRecreateStatus(cVR) {
-		// We should generate replicaID for new volume only
-		if IsEmptyStatus(cVR) || IsInitStatus(cVR) {
+		// We should generate replicaID for new volumes only if it doesn't has
+		// replica ID.
+		if isEmptyReplicaID(cVR) && (IsEmptyStatus(cVR) || IsInitStatus(cVR)) {
 			if err := volumereplica.GenerateReplicaID(cVR); err != nil {
 				klog.Errorf("cVR ReplicaID creation failure: %v", err.Error())
-				return string(apis.CVRStatusOffline), err
+				return string(cVR.Status.Phase), err
 			}
 		}
 		if len(cVR.Spec.ReplicaID) == 0 {
@@ -390,7 +428,13 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 		err := volumereplica.CreateVolumeReplica(cVR, fullVolName, quorum)
 		if err != nil {
 			klog.Errorf("cVR creation failure: %v", err.Error())
-			return string(apis.CVRStatusOffline), err
+			c.recorder.Event(
+				cVR,
+				corev1.EventTypeWarning,
+				string(common.FailureCreate),
+				fmt.Sprintf("failed to create volume replica error: %v", err.Error()),
+			)
+			return string(cVR.Status.Phase), err
 		}
 		c.recorder.Event(
 			cVR,
@@ -403,7 +447,11 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 			cVR.ObjectMeta.Name,
 			string(cVR.GetUID()),
 		)
-		return string(apis.CVRStatusOnline), nil
+		status, err := volumereplica.Status(fullVolName)
+		if err != nil {
+			return string(cVR.Status.Phase), err
+		}
+		return status, nil
 	}
 	return string(apis.CVRStatusOffline),
 		fmt.Errorf(
@@ -533,6 +581,22 @@ func IsRecreateStatus(cVR *apis.CStorVolumeReplica) bool {
 	return false
 }
 
+// isCVRCreateStatus returns true if volume replica needs to be created else
+// return false
+func isCVRCreateStatus(cVR *apis.CStorVolumeReplica) bool {
+	cVRStatus := string(cVR.Status.Phase)
+	if strings.EqualFold(cVRStatus, string(apis.CVRStatusEmpty)) ||
+		strings.EqualFold(cVRStatus, string(apis.CVRStatusRecreate)) ||
+		strings.EqualFold(cVRStatus, string(apis.CVRStatusInit)) {
+		return true
+	}
+	return false
+}
+
+func isEmptyReplicaID(cVR *apis.CStorVolumeReplica) bool {
+	return cVR.Spec.ReplicaID == ""
+}
+
 //  getCVRStatus is a wrapper that fetches the status of cstor volume.
 func (c *CStorVolumeReplicaController) getCVRStatus(
 	cVR *apis.CStorVolumeReplica,
@@ -541,7 +605,7 @@ func (c *CStorVolumeReplicaController) getCVRStatus(
 	if err != nil {
 		return "", fmt.Errorf("unable to get volume name:%s", err.Error())
 	}
-	poolStatus, err := volumereplica.Status(volumeName)
+	replicaStatus, err := volumereplica.Status(volumeName)
 	if err != nil {
 		// ToDO : Put error in event recorder
 		c.recorder.Event(
@@ -552,7 +616,7 @@ func (c *CStorVolumeReplicaController) getCVRStatus(
 		)
 		return "", err
 	}
-	return poolStatus, nil
+	return replicaStatus, nil
 }
 
 // syncCvr updates field on CVR object after fetching the values from zfs utility.
