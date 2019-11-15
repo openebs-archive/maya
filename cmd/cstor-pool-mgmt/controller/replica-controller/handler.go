@@ -323,6 +323,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 	fullVolName string,
 ) (string, error) {
 	var err error
+	var status string
 	// lock is to synchronize pool and volumereplica. Until certain pool related
 	// operations are over, the volumereplica threads will be held.
 	common.SyncResources.Mux.Lock()
@@ -348,7 +349,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 			// If the volume already present then get the status of replica from ZFS
 			// and update it with corresponding status phase. If status gives error
 			// then return old phase.
-			status, err := volumereplica.Status(fullVolName)
+			status, err = volumereplica.Status(fullVolName)
 			if err != nil {
 				return string(cVR.Status.Phase), err
 			}
@@ -386,7 +387,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 		}
 		// If the volume already present then get the status of replica from ZFS
 		// and update it with corresponding status
-		status, err := volumereplica.Status(fullVolName)
+		status, err = volumereplica.Status(fullVolName)
 		if err != nil {
 			return string(cVR.Status.Phase), err
 		}
@@ -447,7 +448,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 			cVR.ObjectMeta.Name,
 			string(cVR.GetUID()),
 		)
-		status, err := volumereplica.Status(fullVolName)
+		status, err = volumereplica.Status(fullVolName)
 		if err != nil {
 			return string(cVR.Status.Phase), err
 		}
