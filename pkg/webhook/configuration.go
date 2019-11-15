@@ -116,7 +116,7 @@ func createWebhookService(
 			},
 		},
 	}
-	_, err = svc.NewKubeClient(svc.WithNamespace("openebs")).
+	_, err = svc.NewKubeClient(svc.WithNamespace(namespace)).
 		Create(svcObj)
 	return err
 }
