@@ -403,24 +403,24 @@ func GetAdmissionReference() (*metav1.OwnerReference, error) {
 		return nil, err
 	}
 
-	// Fetch our deployment object
-	admName, err := GetAdmissionName()
+	// Fetch our admission server deployment object
+	admdeployList, err := deploy.NewKubeClient(deploy.WithNamespace(openebsNamespace)).
+		List(&metav1.ListOptions{LabelSelector: webhookLabel})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list admission deployment: %s", err.Error())
 	}
 
-	admdeploy, err := deploy.NewKubeClient(deploy.WithNamespace(openebsNamespace)).
-		Get(admName)
+	for _, admdeploy := range admdeployList.Items {
+		if len(admdeploy.Name) != 0 {
+			return metav1.NewControllerRef(admdeploy.GetObjectMeta(), schema.GroupVersionKind{
+				Group:   appsv1.SchemeGroupVersion.Group,
+				Version: appsv1.SchemeGroupVersion.Version,
+				Kind:    "Deployment",
+			}), nil
 
-	if err != nil {
-		return nil, err
+		}
 	}
-	//	admdeploy.GetOwnerReferences()
-	return metav1.NewControllerRef(admdeploy, schema.GroupVersionKind{
-		Group:   appsv1.SchemeGroupVersion.Group,
-		Version: appsv1.SchemeGroupVersion.Version,
-		Kind:    "Deployment",
-	}), nil
+	return nil, fmt.Errorf("failed to create deployment ownerReference")
 }
 
 // preUpgrade checks for the required older webhook configs,older
