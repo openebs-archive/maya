@@ -41,38 +41,54 @@ var EI = &ErrorInjection{}
 
 // ErrorInjection schema to inject errors.
 type ErrorInjection struct {
-	CSPIError       CSPIErrorInjection       `json:"cspi_error"`
-	CSPCError       CSPCErrorInjection       `json:"cspc_error"`
-	DeploymentError DeploymentErrorInjection `json:"deployment_error"`
+	CSPIError       CSPIErrorInjection       `json:"cspiError"`
+	CSPCError       CSPCErrorInjection       `json:"cspcError"`
+	DeploymentError DeploymentErrorInjection `json:"deploymentError"`
+	ZFSError        ZFSErrorInjection        `json:"zfsError"`
+	CVRError        CVRErrorInjection        `json:"cvrError"`
 }
 
 // CSPIErrorInjection is used to inject errors for CSPI related operations.
 type CSPIErrorInjection struct {
-	CRUDErrorInjection CRUDErrorInjection       `json:"crud_error_injection"`
-	ErrorPercentage    ErrorPercentageThreshold `json:"error_percentage"`
+	CRUDErrorInjection CRUDErrorInjection       `json:"crudErrorInjection"`
+	ErrorPercentage    ErrorPercentageThreshold `json:"errorPercentage"`
 }
 
 // CSPCErrorInjection is used to inject errors for CSPC related operations.
 type CSPCErrorInjection struct {
-	CRUDErrorInjection CRUDErrorInjection       `json:"crud_error_injection"`
-	ErrorPercentage    ErrorPercentageThreshold `json:"error_percentage"`
+	CRUDErrorInjection CRUDErrorInjection       `json:"crudErrorInjection"`
+	ErrorPercentage    ErrorPercentageThreshold `json:"errorPercentage"`
 }
 
 // DeploymentErrorInjection is used to inject errors for CSPC related operations.
 type DeploymentErrorInjection struct {
-	CRUDErrorInjection CRUDErrorInjection       `json:"crud_error_injection"`
-	ErrorPercentage    ErrorPercentageThreshold `json:"error_percentage"`
+	CRUDErrorInjection CRUDErrorInjection       `json:"crudErrorInjection"`
+	ErrorPercentage    ErrorPercentageThreshold `json:"errorPercentage"`
+}
+
+// ZFSErrorInjection is used to inject errors for Volume Replica related
+// operations.
+type ZFSErrorInjection struct {
+	CRUDErrorInjection CRUDErrorInjection       `json:"crudErrorInjection"`
+	ErrorPercentage    ErrorPercentageThreshold `json:"errorPercentage"`
+}
+
+// CVRErrorInjection is used to inject errors in API calls for Volume Replica
+// related operations
+type CVRErrorInjection struct {
+	CRUDErrorInjection CRUDErrorInjection       `json:"crudErrorInjection"`
+	ErrorPercentage    ErrorPercentageThreshold `json:"errorPercentage"`
 }
 
 // CRUDErrorInjection is used to inject CRUD errors.
 type CRUDErrorInjection struct {
-	InjectDeleteCollectionError string `json:"inject_delete_collection_error"`
-	InjectDeleteError           string `json:"inject_delete_error"`
-	InjectListError             string `json:"inject_list_error"`
-	InjectGetError              string `json:"inject_get_error"`
-	InjectCreateError           string `json:"inject_create_error"`
-	InjectUpdateError           string `json:"inject_update_error"`
-	InjectPatchError            string `json:"inject_patch_error"`
+	InjectDeleteCollectionError string `json:"injectDeleteCollectionError"`
+	InjectDeleteError           string `json:"injectDeleteError"`
+	InjectListError             string `json:"injectListError"`
+	InjectGetError              string `json:"injectGetError"`
+	InjectCreateError           string `json:"injectCreateError"`
+	InjectUpdateError           string `json:"injectUpdateError"`
+	InjectPatchError            string `json:"injectPatchError"`
 }
 
 // ErrorPercentageThreshold is the threshold value above which the error will not be injected.
@@ -135,6 +151,29 @@ func (ei *ErrorInjection) WithDeploymentThreshold(threshold int) *ErrorInjection
 			WithDeploymentListError(Inject).
 			WithDeploymentPatchError(Inject).
 			WithDeploymentUpdateError(Inject)
+	}
+	return ei
+}
+
+// WithZFSThreshold injects ZFS errors depending on passed error threshold value
+func (ei *ErrorInjection) WithZFSThreshold(threshold int) *ErrorInjection {
+	ei.ZFSError.ErrorPercentage.Threshold = threshold
+	if GetRandomErrorPercentage() > threshold {
+		ei.WithZFSCreateError(Inject).
+			WithZFSDeleteError(Inject).
+			WithZFSGetError(Inject)
+	}
+	return ei
+}
+
+// WithCVRThreshold injects CVR error depending on passed error threshold value
+func (ei *ErrorInjection) WithCVRThreshold(threshold int) *ErrorInjection {
+	ei.CVRError.ErrorPercentage.Threshold = threshold
+	if GetRandomErrorPercentage() > threshold {
+		ei.WithCVRCreateError(Inject).
+			WithCVRDeleteError(Inject).
+			WithCVRGetError(Inject).
+			WithCVRUpdateError(Inject)
 	}
 	return ei
 }
@@ -262,5 +301,47 @@ func (ei *ErrorInjection) WithDeploymentUpdateError(ejectOrInject string) *Error
 // WithDeploymentPatchError injects/ejects  Deployment patch error.
 func (ei *ErrorInjection) WithDeploymentPatchError(ejectOrInject string) *ErrorInjection {
 	ei.DeploymentError.CRUDErrorInjection.InjectPatchError = ejectOrInject
+	return ei
+}
+
+// WithZFSGetError injects/ejects ZFS get error.
+func (ei *ErrorInjection) WithZFSGetError(ejectOrInject string) *ErrorInjection {
+	ei.ZFSError.CRUDErrorInjection.InjectGetError = ejectOrInject
+	return ei
+}
+
+// WithZFSCreateError injects/ejects ZFS create error.
+func (ei *ErrorInjection) WithZFSCreateError(ejectOrInject string) *ErrorInjection {
+	ei.ZFSError.CRUDErrorInjection.InjectCreateError = ejectOrInject
+	return ei
+}
+
+// WithZFSDeleteError injects/ejects ZFS delete error.
+func (ei *ErrorInjection) WithZFSDeleteError(ejectOrInject string) *ErrorInjection {
+	ei.ZFSError.CRUDErrorInjection.InjectDeleteError = ejectOrInject
+	return ei
+}
+
+// WithCVRCreateError injects/ejects CVR create error.
+func (ei *ErrorInjection) WithCVRCreateError(ejectOrInject string) *ErrorInjection {
+	ei.CVRError.CRUDErrorInjection.InjectCreateError = ejectOrInject
+	return ei
+}
+
+// WithCVRGetError injects/ejects CVR get error.
+func (ei *ErrorInjection) WithCVRGetError(ejectOrInject string) *ErrorInjection {
+	ei.CVRError.CRUDErrorInjection.InjectGetError = ejectOrInject
+	return ei
+}
+
+// WithCVRDeleteError injects/ejects CVR delete error.
+func (ei *ErrorInjection) WithCVRDeleteError(ejectOrInject string) *ErrorInjection {
+	ei.CVRError.CRUDErrorInjection.InjectDeleteError = ejectOrInject
+	return ei
+}
+
+// WithCVRUpdateError injects/ejects CVR update error.
+func (ei *ErrorInjection) WithCVRUpdateError(ejectOrInject string) *ErrorInjection {
+	ei.CVRError.CRUDErrorInjection.InjectUpdateError = ejectOrInject
 	return ei
 }

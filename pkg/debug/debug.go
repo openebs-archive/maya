@@ -22,10 +22,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"k8s.io/klog"
 	"log"
 	"net/http"
 	"time"
+
+	"k8s.io/klog"
 )
 
 // LogBuildDetails logs the build details when the cspc-operator starts.
@@ -285,5 +286,51 @@ func (ei *ErrorInjection) IsDeploymentPatchErrorInjected() bool {
 	if ei.DeploymentError.CRUDErrorInjection.InjectPatchError == Inject {
 		return true
 	}
+	return false
+}
+
+// IsZFSGetErrorInjected returns true if error is injected for ZFS get command
+func (ei *ErrorInjection) IsZFSGetErrorInjected() bool {
+	if ei.ZFSError.CRUDErrorInjection.InjectGetError == Inject {
+		return true
+	}
+	return false
+}
+
+// IsZFSDeleteErrorInjected returns true if error is injected for ZFS delete command
+func (ei *ErrorInjection) IsZFSDeleteErrorInjected() bool {
+	if ei.ZFSError.CRUDErrorInjection.InjectDeleteError == Inject {
+		return true
+	}
+	return false
+}
+
+// IsZFSCreateErrorInjected returns true if error is injected for ZFS create command
+func (ei *ErrorInjection) IsZFSCreateErrorInjected() bool {
+	if ei.ZFSError.CRUDErrorInjection.InjectCreateError == Inject {
+		return true
+	}
+	return false
+}
+
+// IsCVRCreateErrorInjected returns true if error is injected for CVR create
+// command
+func (ei *ErrorInjection) IsCVRCreateErrorInjected() bool {
+	return false
+}
+
+// IsCVRDeleteErrorInjected returns true if error is injected for CVR delete
+// command
+func (ei *ErrorInjection) IsCVRDeleteErrorInjected() bool {
+	return false
+}
+
+// IsCVRGetErrorInjected returns true if error is injected for CVR get command
+func (ei *ErrorInjection) IsCVRGetErrorInjected() bool {
+	return false
+}
+
+// IsCVRUpdateErrorInjected returns true if error is injected for CVR update command
+func (ei *ErrorInjection) IsCVRUpdateErrorInjected() bool {
 	return false
 }

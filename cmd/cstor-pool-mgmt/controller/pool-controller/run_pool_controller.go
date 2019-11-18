@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
+	"github.com/openebs/maya/pkg/debug"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
@@ -33,6 +34,10 @@ import (
 func (c *CStorPoolController) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer runtime.HandleCrash()
 	defer c.workqueue.ShutDown()
+
+	// Start server only in debug build
+	debug.LogBuildDetails()
+	debug.StartInjectionServer()
 
 	// Start the informer factories to begin populating the informer caches
 	klog.Info("Starting CStorPool controller")

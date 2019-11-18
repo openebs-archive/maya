@@ -27,6 +27,7 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	"github.com/openebs/maya/pkg/debug"
 	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	pkg_errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -146,6 +147,9 @@ func (c *CStorVolumeReplicaController) syncHandler(
 
 	// need to update cvr before returning this error
 	if err != nil {
+		if debug.EI.IsCVRUpdateErrorInjected() {
+			return merrors.Errorf("CVR update error via injection")
+		}
 		_, err1 := c.clientset.
 			OpenebsV1alpha1().
 			CStorVolumeReplicas(cvrGot.Namespace).

@@ -133,6 +133,14 @@ type CVRConfig struct {
 	ReplicaID  string
 }
 
+// ServiceConfig provides config to create Service
+type ServiceConfig struct {
+	Name        string
+	Namespace   string
+	Selectors   map[string]string
+	ServicePort []corev1.ServicePort
+}
+
 var (
 	pvLabel            = "openebs.io/persistent-volume="
 	poolLabel          = "openebs.io/storagepoolclaim="
@@ -252,6 +260,9 @@ func (ops *Operations) withDefaults() {
 	}
 	if ops.BDCClient == nil {
 		ops.BDCClient = bdc.NewKubeClient(bdc.WithKubeConfigPath(ops.KubeConfigPath))
+	}
+	if ops.SVCClient == nil {
+		ops.SVCClient = svc.NewKubeClient(svc.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 }
 
@@ -1138,6 +1149,24 @@ func (ops *Operations) BuildAndCreateCVR() *apis.CStorVolumeReplica {
 		Create(cvrObj)
 	Expect(err).To(BeNil())
 	return cvrObj
+}
+
+// BuildAndCreateService builds and creates Service in cluster
+func (ops *Operations) BuildAndCreateService() *corev1.Service {
+	svcConfig := ops.Config.(*ServiceConfig)
+	buildSVCObj, err := svc.NewBuilder().
+		WithGenerateName(svcConfig.Name).
+		WithNamespace(svcConfig.Namespace).
+		WithSelectorsNew(svcConfig.Selectors).
+		WithPorts(svcConfig.ServicePort).
+		WithType(corev1.ServiceTypeNodePort).
+		Build()
+	Expect(err).To(BeNil())
+	svcObj, err := ops.SVCClient.
+		WithNamespace(svcConfig.Namespace).
+		Create(buildSVCObj)
+	Expect(err).To(BeNil())
+	return svcObj
 }
 
 // DeletePersistentVolumeClaim deletes PVC from cluster based on provided

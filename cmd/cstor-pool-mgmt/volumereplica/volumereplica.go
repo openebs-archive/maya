@@ -27,6 +27,7 @@ import (
 	"encoding/json"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/debug"
 	"github.com/openebs/maya/pkg/hash"
 	"github.com/openebs/maya/pkg/util"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
@@ -182,6 +183,10 @@ func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolNam
 	var cmd []string
 	isClone := cStorVolumeReplica.Labels[string(apis.CloneEnableKEY)] == "true"
 	snapName := ""
+
+	if debug.EI.IsZFSCreateErrorInjected() {
+		return errors.New("ZFS create error via injection")
+	}
 
 	if isClone {
 		srcVolume := cStorVolumeReplica.Annotations[string(apis.SourceVolumeKey)]
@@ -413,6 +418,10 @@ func buildVolumeRestoreCommand(poolName, fullVolName, restoreSrc string) []strin
 
 // GetVolumes returns the slice of volumes.
 func GetVolumes() ([]string, error) {
+	if debug.EI.IsZFSGetErrorInjected() {
+		return []string{}, errors.New("ZFS get error via injection")
+	}
+
 	volStrCmd := []string{"get", "-Hp", "name", "-o", "name"}
 	volnameByte, err := RunnerVar.RunStdoutPipe(VolumeReplicaOperator, volStrCmd...)
 	if err != nil || string(volnameByte) == "" {
@@ -431,6 +440,10 @@ func GetVolumes() ([]string, error) {
 
 // DeleteVolume deletes the specified volume.
 func DeleteVolume(fullVolName string) error {
+	if debug.EI.IsZFSDeleteErrorInjected() {
+		return errors.New("ZFS delete error via injection")
+	}
+
 	deleteVolStr := []string{"destroy", "-R", fullVolName}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, deleteVolStr...)
 	if err != nil {

@@ -31,7 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
+var _ = Describe("[Cstor Volume Provisioning Positive] TEST VOLUME PROVISIONING", func() {
 	var (
 		err     error
 		pvcName = "cstor-volume-claim"
@@ -189,5 +189,4 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
 		})
 	})
-
 })
