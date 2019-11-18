@@ -156,6 +156,8 @@ var _ = Describe("[Cstor Volume Provisioning Negative] Volume Provisioning", fun
 
 	When("CleanUp Negative Volume Provisioned Resources", func() {
 		It("Should Delete All The Resources Related To Test", func() {
+			err := ops.SVCClient.Delete(serviceObj.Name, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil())
 			By("Delete persistentVolumeClaim then volume resources should be deleted", func() {
 				ops.DeleteVolumeResources(pvcObj, scObj)
 			})
