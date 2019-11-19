@@ -98,6 +98,9 @@ type PoolSpec struct {
 	// PoolConfig is the default pool config that applies to the
 	// pool on node.
 	PoolConfig PoolConfig `json:"poolConfig"`
+	// OldCSPUID is used to migrate old csp to cspi. This will be the
+	// old pool name which needs to imported and renamed as new pool
+	OldCSPUID string `json:"oldCSPUID,omitempty"`
 }
 
 // PoolConfig is the default pool config that applies to the
