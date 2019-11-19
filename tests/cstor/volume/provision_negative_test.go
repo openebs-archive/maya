@@ -88,7 +88,7 @@ var _ = Describe("[Cstor Volume Provisioning Negative] Volume Provisioning", fun
 				}
 			}
 			Expect(nodeIP).NotTo(BeEmpty())
-			hostIpPort = nodeIP + ":30031"
+			hostIPPort = nodeIP + ":30031"
 			serviceConfig := &tests.ServiceConfig{
 				Name:        svcName,
 				Namespace:   openebsNamespace,
@@ -113,7 +113,7 @@ var _ = Describe("[Cstor Volume Provisioning Negative] Volume Provisioning", fun
 			ops.Config = pvcConfig
 
 			//Injecting Errors During CVRUpdate and ZFS Creation Time
-			injectError := debug.NewClient(hostIpPort)
+			injectError := debug.NewClient(hostIPPort)
 			err := injectError.PostInject(
 				debug.NewErrorInjection().
 					WithZFSCreateError(debug.Inject).
@@ -143,7 +143,7 @@ var _ = Describe("[Cstor Volume Provisioning Negative] Volume Provisioning", fun
 					"cstor-pool-mgmt", command, false)
 
 				// Eject the ZFSCreate error
-				injectError := debug.NewClient(hostIpPort)
+				injectError := debug.NewClient(hostIPPort)
 				err := injectError.PostInject(
 					debug.NewErrorInjection().
 						WithZFSCreateError(debug.Eject).

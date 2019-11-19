@@ -59,7 +59,7 @@ var (
 	svcName            = "volume-provision-svc-injector"
 	serviceObj         *corev1.Service
 	pvcName            = "volume-claim1"
-	hostIpPort         string
+	hostIPPort         string
 	hostLabel          = "kubernetes.io/hostname"
 	poolPodList        *corev1.PodList
 )
