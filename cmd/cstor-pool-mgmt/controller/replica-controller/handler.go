@@ -323,7 +323,6 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 	fullVolName string,
 ) (string, error) {
 	var err error
-	var status string
 	// lock is to synchronize pool and volumereplica. Until certain pool related
 	// operations are over, the volumereplica threads will be held.
 	common.SyncResources.Mux.Lock()
@@ -349,11 +348,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 			// If the volume already present then get the status of replica from ZFS
 			// and update it with corresponding status phase. If status gives error
 			// then return old phase.
-			status, err = volumereplica.Status(fullVolName)
-			if err != nil {
-				return string(cVR.Status.Phase), err
-			}
-			return status, nil
+			return getVolumeReplicaStatus(cVR, fullVolName)
 		}
 	} else {
 		common.SyncResources.Mux.Unlock()
@@ -387,13 +382,29 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 		}
 		// If the volume already present then get the status of replica from ZFS
 		// and update it with corresponding status
-		status, err = volumereplica.Status(fullVolName)
-		if err != nil {
-			return string(cVR.Status.Phase), err
-		}
-		return status, nil
+		return getVolumeReplicaStatus(cVR, fullVolName)
 	}
 
+	//TODO: Follow best practice while refactor reconciliation logic
+
+	if isCVRCreateStatus(cVR) {
+		return c.createVolumeReplica(cVR, fullVolName)
+	}
+	return string(apis.CVRStatusOffline),
+		fmt.Errorf(
+			"VolumeReplica offline: %v, %v",
+			cVR.Name,
+			cVR.Labels["cstorvolume.openebs.io/name"],
+		)
+}
+
+// createVolumeReplica will do following things
+// 1. If replicaID is empty and if it is new volume generate replicaID.
+// 2. Trigger ZFS volume dataset create command on success get the status from
+// ZFS and update it. If `ZFS command` fails then return with same status phase
+// which is currently holding by CVR.
+func (c *CStorVolumeReplicaController) createVolumeReplica(
+	cVR *apis.CStorVolumeReplica, fullVolName string) (string, error) {
 	// Setting quorum to true for newly creating Volumes.
 	var quorum = true
 	if IsRecreateStatus(cVR) {
@@ -403,63 +414,53 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(
 		quorum = false
 	}
 
-	//TODO: Follow best practice while refactor reconciliation logic
-
-	// Following sinppet will do following things
-	// 1. Verify whether volume replica needs to create or not? If yes proceed
-	//    further.
-	// 2. If replicaID is empty and if it is new volume generate replicaID.
-	// 3. Trigger ZFS create command on success get the status from ZFS and
-	//    update it. If `ZFS command` fails then return with same status phase
-	//    which is currently holding by CVR.
-	// IsEmptyStatus is to check if initial status of cVR object is empty.
-	if IsEmptyStatus(cVR) || IsInitStatus(cVR) || IsRecreateStatus(cVR) {
-		// We should generate replicaID for new volumes only if it doesn't has
-		// replica ID.
-		if isEmptyReplicaID(cVR) && (IsEmptyStatus(cVR) || IsInitStatus(cVR)) {
-			if err := volumereplica.GenerateReplicaID(cVR); err != nil {
-				klog.Errorf("cVR ReplicaID creation failure: %v", err.Error())
-				return string(cVR.Status.Phase), err
-			}
-		}
-		if len(cVR.Spec.ReplicaID) == 0 {
-			return string(apis.CVRStatusOffline), merrors.New("ReplicaID is not set")
-		}
-
-		err := volumereplica.CreateVolumeReplica(cVR, fullVolName, quorum)
-		if err != nil {
-			klog.Errorf("cVR creation failure: %v", err.Error())
-			c.recorder.Event(
-				cVR,
-				corev1.EventTypeWarning,
-				string(common.FailureCreate),
-				fmt.Sprintf("failed to create volume replica error: %v", err.Error()),
-			)
+	// We should generate replicaID for new volume replicas only if it doesn't has
+	// replica ID.
+	if isEmptyReplicaID(cVR) && (IsEmptyStatus(cVR) || IsInitStatus(cVR)) {
+		if err := volumereplica.GenerateReplicaID(cVR); err != nil {
+			klog.Errorf("cVR ReplicaID creation failure: %v", err.Error())
 			return string(cVR.Status.Phase), err
 		}
+	}
+	if len(cVR.Spec.ReplicaID) == 0 {
+		return string(cVR.Status.Phase), merrors.New("ReplicaID is not set")
+	}
+
+	err := volumereplica.CreateVolumeReplica(cVR, fullVolName, quorum)
+	if err != nil {
+		klog.Errorf("cVR creation failure: %v", err.Error())
 		c.recorder.Event(
 			cVR,
-			corev1.EventTypeNormal,
-			string(common.SuccessCreated),
-			string(common.MessageResourceCreated),
+			corev1.EventTypeWarning,
+			string(common.FailureCreate),
+			fmt.Sprintf("failed to create volume replica error: %v", err.Error()),
 		)
-		klog.Infof(
-			"cVR creation successful: %v, %v",
-			cVR.ObjectMeta.Name,
-			string(cVR.GetUID()),
-		)
-		status, err = volumereplica.Status(fullVolName)
-		if err != nil {
-			return string(cVR.Status.Phase), err
-		}
-		return status, nil
+		return string(cVR.Status.Phase), err
 	}
-	return string(apis.CVRStatusOffline),
-		fmt.Errorf(
-			"VolumeReplica offline: %v, %v",
-			cVR.Name,
-			cVR.Labels["cstorvolume.openebs.io/name"],
-		)
+	c.recorder.Event(
+		cVR,
+		corev1.EventTypeNormal,
+		string(common.SuccessCreated),
+		string(common.MessageResourceCreated),
+	)
+	klog.Infof(
+		"cVR creation successful: %v, %v",
+		cVR.ObjectMeta.Name,
+		string(cVR.GetUID()),
+	)
+	return getVolumeReplicaStatus(cVR, fullVolName)
+}
+
+// getVolumeReplicaStatus return the status of replica after executing ZFS
+// stats command and return previous state and error if any error occured while
+// getting the status from ZFS
+func getVolumeReplicaStatus(
+	cVR *apis.CStorVolumeReplica, fullVolName string) (string, error) {
+	status, err := volumereplica.Status(fullVolName)
+	if err != nil {
+		return string(cVR.Status.Phase), err
+	}
+	return status, nil
 }
 
 // getVolumeReplicaResource returns object corresponding to the resource key
