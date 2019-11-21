@@ -216,7 +216,7 @@ func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolNam
 			)
 		}
 
-		return err
+		return errors.Wrapf(err, "failed to create volume: %s", fullVolName)
 	}
 
 	if isClone {
@@ -597,6 +597,22 @@ func GenerateReplicaID(cvr *apis.CStorVolumeReplica) error {
 	return nil
 }
 
+// GetReplicaIDFromZFS returns replicaID for provided volume name by executing
+// ZFS commands
+func GetReplicaIDFromZFS(volumeName string) (string, error) {
+	ret, err := zfs.NewVolumeGetProperty().
+		WithScriptedMode(true).
+		WithParsableMode(true).
+		WithField("value").
+		WithProperty("io.openebs:zvol_replica_id").
+		WithDataset(volumeName).
+		Execute()
+	if err != nil {
+		return "", errors.Errorf("Failed to get replicaID %s", err)
+	}
+	return strings.Split(string(ret), "\n")[0], nil
+}
+
 // SetReplicaID set replicaID to volume
 func SetReplicaID(cvr *apis.CStorVolumeReplica) error {
 	var err error
@@ -606,18 +622,10 @@ func SetReplicaID(cvr *apis.CStorVolumeReplica) error {
 		return err
 	}
 
-	ret, err := zfs.NewVolumeGetProperty().
-		WithScriptedMode(true).
-		WithParsableMode(true).
-		WithField("value").
-		WithProperty("io.openebs:zvol_replica_id").
-		WithDataset(vol).
-		Execute()
+	sid, err := GetReplicaIDFromZFS(vol)
 	if err != nil {
-		return errors.Errorf("Failed to get replicaID %s", err)
+		return err
 	}
-
-	sid := strings.Split(string(ret), "\n")[0]
 
 	if len(sid) == 0 {
 		lr, err := zfs.NewVolumeSetProperty().
