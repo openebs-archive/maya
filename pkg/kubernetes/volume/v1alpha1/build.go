@@ -87,6 +87,7 @@ func (b *Builder) WithConfigMap(configMap *corev1.ConfigMap, defaultmode int32) 
 		},
 	}
 	b.volume.object.VolumeSource = volumeSource
+	b.volume.object.Name = configMap.Name
 	return b
 }
 
