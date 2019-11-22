@@ -64,7 +64,7 @@ func (b *Builder) WithHostDirectory(path string) *Builder {
 	b.volume.object.VolumeSource = volumeSource
 	return b
 }
-func (b *Builder) WithConfigMap(configMap *corev1.ConfigMap) *Builder {
+func (b *Builder) WithConfigMap(configMap *corev1.ConfigMap, defaultmode int32) *Builder {
 	if configMap == nil {
 		b.errs = append(
 			b.errs,
@@ -72,10 +72,15 @@ func (b *Builder) WithConfigMap(configMap *corev1.ConfigMap) *Builder {
 		)
 		return b
 	}
-	k := int32(420)
+	if defaultmode == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build volume object: missing defaultmode"),
+		)
+	}
 	volumeSource := corev1.VolumeSource{
 		ConfigMap: &corev1.ConfigMapVolumeSource{
-			DefaultMode: &k,
+			DefaultMode: &defaultmode,
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: configMap.Name,
 			},
