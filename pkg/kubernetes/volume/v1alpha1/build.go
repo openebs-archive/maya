@@ -64,6 +64,26 @@ func (b *Builder) WithHostDirectory(path string) *Builder {
 	b.volume.object.VolumeSource = volumeSource
 	return b
 }
+func (b *Builder) WithConfigMap(configMap *corev1.ConfigMap) *Builder {
+	if configMap == nil {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build volume object: nil ConfigMap"),
+		)
+		return b
+	}
+	k := int32(420)
+	volumeSource := corev1.VolumeSource{
+		ConfigMap: &corev1.ConfigMapVolumeSource{
+			DefaultMode: &k,
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: configMap.Name,
+			},
+		},
+	}
+	b.volume.object.VolumeSource = volumeSource
+	return b
+}
 
 // WithHostPathAndType sets the VolumeSource field of Volume with provided
 // hostpath as directory path and type as directory type
