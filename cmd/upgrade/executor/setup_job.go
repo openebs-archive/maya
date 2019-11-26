@@ -24,7 +24,7 @@ import (
 
 	//"k8s.io/klog"
 	"github.com/spf13/cobra"
-	//errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	//errors "github.com/pkg/errors"
 )
 
 // NewJob will setup a new upgrade job

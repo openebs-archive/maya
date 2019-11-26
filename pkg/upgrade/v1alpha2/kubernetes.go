@@ -22,7 +22,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"

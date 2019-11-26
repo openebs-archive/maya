@@ -19,7 +19,7 @@ package executor
 import (
 	"strings"
 
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 
 	"github.com/spf13/cobra"
 )

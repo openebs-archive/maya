@@ -24,7 +24,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 	upgrader "github.com/openebs/maya/pkg/upgrade/upgrader"
 )
 

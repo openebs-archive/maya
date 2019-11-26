@@ -24,7 +24,7 @@ import (
 
 	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	jivaClient "github.com/openebs/maya/pkg/client/jiva"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"

@@ -27,7 +27,7 @@ import (
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	job "github.com/openebs/maya/pkg/kubernetes/job"
 	pv "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"

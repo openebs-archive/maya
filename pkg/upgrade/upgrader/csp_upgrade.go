@@ -25,8 +25,8 @@ import (
 
 	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
+	errors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -106,6 +106,10 @@ func getCSPDeployment(cspName, openebsNamespace string) (*appsv1.Deployment, err
 			currentVersion,
 			upgradeVersion,
 		)
+	}
+	err = verifyReplicaStatus(cspDeployObj)
+	if err != nil {
+		return nil, err
 	}
 	return cspDeployObj, nil
 }
