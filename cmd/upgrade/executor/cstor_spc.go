@@ -24,8 +24,8 @@ import (
 	"k8s.io/klog"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	errors "github.com/pkg/errors"
 	upgrader "github.com/openebs/maya/pkg/upgrade/upgrader"
+	errors "github.com/pkg/errors"
 )
 
 // CStorSPCOptions stores information required for cstor SPC upgrade

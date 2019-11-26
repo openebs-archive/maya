@@ -24,8 +24,8 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 
-	errors "github.com/pkg/errors"
 	upgrader "github.com/openebs/maya/pkg/upgrade/upgrader"
+	errors "github.com/pkg/errors"
 )
 
 // CStorVolumeOptions stores information required for cstor volume upgrade
