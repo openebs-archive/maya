@@ -125,7 +125,7 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 	if stgType == "hostpath" {
 		return p.ProvisionHostPath(opts, pvCASConfig)
 	}
-	if stgType == "device" {
+	if stgType == "device" || *opts.PVC.Spec.VolumeMode == v1.PersistentVolumeBlock {
 		return p.ProvisionBlockDevice(opts, pvCASConfig)
 	}
 	alertlog.Logger.Errorw("",

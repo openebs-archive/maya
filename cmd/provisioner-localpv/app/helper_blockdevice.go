@@ -63,6 +63,8 @@ type HelperBlockDeviceOptions struct {
 	capacity     string
 	//	deviceType string
 	bdcName string
+	//  volumeMode PVC
+	volumeMode corev1.PersistentVolumeMode
 }
 
 // validate checks that the required fields to create BDC
@@ -192,8 +194,10 @@ func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (
 		//If the error is about BDC being already present, then return nil
 		return "", "", errors.Errorf("unable to find BD:%v for BDC:%v associated with PV:%v", bdName, blkDevOpts.bdcName, blkDevOpts.name)
 	}
-
 	path := bd.Spec.FileSystem.Mountpoint
+	if blkDevOpts.volumeMode == corev1.PersistentVolumeBlock {
+		path = bd.Spec.Path
+	}
 	blkPath := bd.Spec.Path
 	if len(bd.Spec.DevLinks) > 0 {
 		//TODO : Iterate and get the first path by id.
