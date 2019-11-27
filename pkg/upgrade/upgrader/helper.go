@@ -44,7 +44,7 @@ func getDeployment(labels, namespace string) (*appsv1.Deployment, error) {
 	if len(deployList.Items) == 0 {
 		return nil, errors.Errorf("no deployments found for %s in %s", labels, namespace)
 	}
-	err = verifyReplicaStatus(&(deployList.Items[0]))
+	err = verifyDeploymentReplicaStatus(&(deployList.Items[0]))
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +312,7 @@ func buildUpgradeTask(kind, name, openebsNamespace string) *apis.UpgradeTask {
 	return utaskObj
 }
 
-func verifyReplicaStatus(d *appsv1.Deployment) error {
+func verifyDeploymentReplicaStatus(d *appsv1.Deployment) error {
 	if d.Status.ReadyReplicas != 1 {
 		return errors.New(d.Name + " deployment pod is not in running state.")
 	}

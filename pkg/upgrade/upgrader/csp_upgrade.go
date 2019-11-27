@@ -107,7 +107,7 @@ func getCSPDeployment(cspName, openebsNamespace string) (*appsv1.Deployment, err
 			upgradeVersion,
 		)
 	}
-	err = verifyReplicaStatus(cspDeployObj)
+	err = verifyDeploymentReplicaStatus(cspDeployObj)
 	if err != nil {
 		return nil, err
 	}
