@@ -27,8 +27,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var spcName, openebsNamespace string
-
 // NewJob will setup a new migrate job
 func NewJob() *cobra.Command {
 	// Create a new command.
@@ -61,6 +59,6 @@ func NewJob() *cobra.Command {
 func PreRun(cmd *cobra.Command, args []string) {
 	namespace := getOpenEBSNamespace()
 	if len(strings.TrimSpace(namespace)) != 0 {
-		openebsNamespace = namespace
+		options.openebsNamespace = namespace
 	}
 }
