@@ -75,6 +75,7 @@ HUB_USER?=openebs
 ADMISSION_SERVER_REPO_NAME?=admission-server
 M_UPGRADE_REPO_NAME?=m-upgrade
 CSPC_OPERATOR_REPO_NAME?=cspc-operator
+M_MIGRATE_REPO_NAME?=migrate
 
 ifeq (${IMAGE_TAG}, )
   IMAGE_TAG = ci
@@ -122,6 +123,7 @@ include ./buildscripts/cstor-pool-mgmt/Makefile.mk
 include ./buildscripts/cstor-volume-mgmt/Makefile.mk
 include ./buildscripts/cspi-mgmt/Makefile.mk
 include ./buildscripts/cvc-operator/Makefile.mk
+include ./buildscripts/migrate/Makefile.mk
 
 .PHONY: all
 all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image \

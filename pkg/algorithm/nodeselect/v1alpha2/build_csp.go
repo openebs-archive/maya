@@ -70,9 +70,25 @@ func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 		return nil, errors.Wrapf(err, "failed to build CSP object for node selector {%v}", poolSpec.NodeSelector)
 	}
 
-	err = ac.ClaimBDsForNode(ac.GetBDListForNode(poolSpec))
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to claim block devices for node {%s}", nodeName)
+	annotations := map[string]string{}
+
+	if ac.CSPC.GetAnnotations()["reconcile.openebs.io/dependants"] == "false" {
+		annotations[string(apis.OpenEBSDisableReconcileKey)] = "true"
+	}
+
+	if poolSpec.OldCSPUID != "" {
+		annotations["cspuid"] = poolSpec.OldCSPUID
+	}
+
+	if len(annotations) != 0 {
+		cspObj.Object.SetAnnotations(annotations)
+	}
+
+	if poolSpec.OldCSPUID == "" {
+		err = ac.ClaimBDsForNode(ac.GetBDListForNode(poolSpec))
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to claim block devices for node {%s}", nodeName)
+		}
 	}
 	return cspObj.Object, nil
 }

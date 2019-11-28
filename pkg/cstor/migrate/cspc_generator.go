@@ -17,10 +17,15 @@ limitations under the License.
 package migrate
 
 import (
+	"time"
+
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
-	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
+	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
+	"github.com/openebs/maya/pkg/util/retry"
+	"github.com/pkg/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -85,18 +90,59 @@ func getCSPCSpec(spc *apis.StoragePoolClaim) (*apis.CStorPoolCluster, error) {
 	return cspcObj, nil
 }
 
-func generateCSPC(spcName, openebsNamespace string) error {
-	spcObj, err := spc.NewKubeClient().Get(spcName, metav1.GetOptions{})
-	if err != nil {
-		return err
+func generateCSPC(spcObj *apis.StoragePoolClaim, openebsNamespace string) (
+	*apis.CStorPoolCluster, error) {
+	cspcObj, err := cspc.NewKubeClient().
+		WithNamespace(openebsNamespace).Get(spcObj.Name, metav1.GetOptions{})
+	if err == nil {
+		return cspcObj, nil
 	}
-	cspcObj, err := getCSPCSpec(spcObj)
-	if err != nil {
-		return err
+	if !k8serrors.IsNotFound(err) {
+		return nil, err
 	}
-	_, err = cspc.NewKubeClient().WithNamespace(openebsNamespace).Create(cspcObj)
+	cspcObj, err = getCSPCSpec(spcObj)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	cspcObj, err = cspc.NewKubeClient().
+		WithNamespace(openebsNamespace).Create(cspcObj)
+	if err != nil {
+		return nil, err
+	}
+	err = retry.
+		Times(60).
+		Wait(5 * time.Second).
+		Try(func(attempt uint) error {
+			cspiList, err1 := cspi.NewKubeClient().
+				WithNamespace(openebsNamespace).List(
+				metav1.ListOptions{
+					LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + cspcObj.Name,
+				})
+			if err1 != nil {
+				return err1
+			}
+			if len(cspiList.Items) != len(cspcObj.Spec.Pools) {
+				return errors.Errorf("failed to verify cspi count expected: %d got: %d",
+					len(cspcObj.Spec.Pools),
+					len(cspiList.Items),
+				)
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+	cspcObj, err = cspc.NewKubeClient().
+		WithNamespace(openebsNamespace).Get(spcObj.Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	delete(cspcObj.Annotations, "reconcile.openebs.io/dependants")
+	cspcObj, err = cspc.NewKubeClient().
+		WithNamespace(openebsNamespace).
+		Update(cspcObj)
+	if err != nil {
+		return nil, err
+	}
+	return cspcObj, nil
 }

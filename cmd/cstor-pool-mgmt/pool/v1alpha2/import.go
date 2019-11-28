@@ -31,7 +31,7 @@ import (
 // It will return -
 // - If pool is imported or not
 // - If any error occurred during import operation
-func Import(cspi *apis.CStorPoolInstance) (bool, error) {
+func Import(cspi *apis.CStorPoolInstance, oldName string) (bool, error) {
 	if poolExist := checkIfPoolPresent(PoolName(cspi)); poolExist {
 		return true, nil
 	}
@@ -54,7 +54,8 @@ func Import(cspi *apis.CStorPoolInstance) (bool, error) {
 			WithCachefile(cspi.Spec.PoolConfig.CacheFile).
 			WithProperty("cachefile", cspi.Spec.PoolConfig.CacheFile).
 			WithDirectory(devID).
-			WithPool(PoolName(cspi)).
+			WithPool(oldName).
+			WithNewPool(PoolName(cspi)).
 			Execute()
 		if err == nil {
 			poolImported = true
