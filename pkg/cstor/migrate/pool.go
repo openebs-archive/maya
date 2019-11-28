@@ -188,29 +188,31 @@ func scaleDownDeployment(cspObj *apis.CStorPool, openebsNamespace string) error 
 	if err != nil {
 		return err
 	}
-	_, err = deploy.NewKubeClient().WithNamespace(openebsNamespace).
-		Patch(
-			cspObj.Name,
-			types.StrategicMergePatchType,
-			[]byte(replicaPatch),
-		)
-	if err != nil {
-		return err
-	}
-	err = retry.
-		Times(60).
-		Wait(5 * time.Second).
-		Try(func(attempt uint) error {
-			_, err1 := pod.NewKubeClient().
-				WithNamespace(openebsNamespace).
-				Get(cspPod.Items[0].Name, metav1.GetOptions{})
-			if !k8serrors.IsNotFound(err1) {
-				return errors.Errorf("failed to get csp pod because %s", err1)
-			}
-			return nil
-		})
-	if err != nil {
-		return err
+	if len(cspPod.Items) > 0 {
+		_, err = deploy.NewKubeClient().WithNamespace(openebsNamespace).
+			Patch(
+				cspObj.Name,
+				types.StrategicMergePatchType,
+				[]byte(replicaPatch),
+			)
+		if err != nil {
+			return err
+		}
+		err = retry.
+			Times(60).
+			Wait(5 * time.Second).
+			Try(func(attempt uint) error {
+				_, err1 := pod.NewKubeClient().
+					WithNamespace(openebsNamespace).
+					Get(cspPod.Items[0].Name, metav1.GetOptions{})
+				if !k8serrors.IsNotFound(err1) {
+					return errors.Errorf("failed to get csp pod because %s", err1)
+				}
+				return nil
+			})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
