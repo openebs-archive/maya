@@ -63,7 +63,7 @@ type HelperBlockDeviceOptions struct {
 	capacity     string
 	//	deviceType string
 	bdcName string
-	//  volumeMode PVC
+	//  volumeMode of PVC
 	volumeMode corev1.PersistentVolumeMode
 }
 
@@ -195,7 +195,11 @@ func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (
 		return "", "", errors.Errorf("unable to find BD:%v for BDC:%v associated with PV:%v", bdName, blkDevOpts.bdcName, blkDevOpts.name)
 	}
 	path := bd.Spec.FileSystem.Mountpoint
+
+	// Override the path with devicePath, rather than mountPath
+	// If the volumeMode is set to Block
 	if blkDevOpts.volumeMode == corev1.PersistentVolumeBlock {
+		klog.V(4).Infof("Overriding the mountPath {%v}, with devicePath {%v},PVC volume mode set to 'Block'", bd.Spec.FileSystem.Mountpoint, bd.Spec.Path)
 		path = bd.Spec.Path
 	}
 	blkPath := bd.Spec.Path

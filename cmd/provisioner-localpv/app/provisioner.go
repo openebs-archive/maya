@@ -78,9 +78,9 @@ func NewProvisioner(stopCh chan struct{}, kubeClient *clientset.Clientset) (*Pro
 }
 
 // SupportsBlock will be used by controller to determine if block mode is
-//  supported by the host path provisioner. Return false.
+//  supported by the host path provisioner.
 func (p *Provisioner) SupportsBlock() bool {
-	return false
+	return true
 }
 
 // Provision is invoked by the PVC controller which expect the PV
