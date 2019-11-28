@@ -313,7 +313,7 @@ func buildUpgradeTask(kind, name, openebsNamespace string) *apis.UpgradeTask {
 }
 
 func verifyDeploymentReplicaStatus(d *appsv1.Deployment) error {
-	if d.Status.ReadyReplicas != 1 {
+	if d.Status.ReadyReplicas != *d.Spec.Replicas {
 		return errors.New(d.Name + " deployment pod is not in running state.")
 	}
 	return nil
