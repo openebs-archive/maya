@@ -70,11 +70,13 @@ func (u *MigrateOptions) RunCStorSPCMigrateChecks(cmd *cobra.Command) error {
 // RunCStorSPCMigrate migrates the given spc.
 func (u *MigrateOptions) RunCStorSPCMigrate(cmd *cobra.Command) error {
 
+	klog.Infof("Migrating spc %s to cspc", u.spcName)
 	err := migrate.Pool(u.spcName, u.openebsNamespace)
 	if err != nil {
 		klog.Error(err)
 		return errors.Errorf("Failed to migrate cStor SPC : %s", u.spcName)
 	}
+	klog.Infof("Successfully migrated spc %s to cspc", u.spcName)
 
 	return nil
 }

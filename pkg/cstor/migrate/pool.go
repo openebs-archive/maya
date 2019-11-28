@@ -47,7 +47,7 @@ const replicaPatch = `{
 
 // Pool ...
 func Pool(spcName, openebsNamespace string) error {
-	klog.Infof("Migrating spc %s to cspc", spcName)
+
 	spcObj, err := spc.NewKubeClient().
 		Get(spcName, metav1.GetOptions{})
 	if k8serrors.IsNotFound(err) {
