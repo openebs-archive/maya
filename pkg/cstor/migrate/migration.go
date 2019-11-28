@@ -52,7 +52,7 @@ func Pool(spcName, openebsNamespace string) error {
 		Get(spcName, metav1.GetOptions{})
 	if k8serrors.IsNotFound(err) {
 		klog.Infof("spc %s not found.", spcName)
-		_, err := cspc.NewKubeClient().
+		_, err = cspc.NewKubeClient().
 			WithNamespace(openebsNamespace).Get(spcName, metav1.GetOptions{})
 		if err != nil {
 			return errors.Wrapf(err, "failed to get equivalent cspc for spc %s", spcName)
@@ -86,6 +86,9 @@ func Pool(spcName, openebsNamespace string) error {
 			}
 			cspcObj, err = cspc.NewKubeClient().
 				WithNamespace(openebsNamespace).Get(cspcObj.Name, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
 			for i, poolspec := range cspcObj.Spec.Pools {
 				if poolspec.NodeSelector[string(apis.HostNameCPK)] ==
 					cspiObj.Labels[string(apis.HostNameCPK)] {
@@ -111,7 +114,7 @@ func csptocspi(cspiObj *apis.CStorPoolInstance, cspcObj *apis.CStorPoolCluster, 
 	hostnameLabel := string(apis.HostNameCPK) + "=" + cspiObj.Labels[string(apis.HostNameCPK)]
 	spcLabel := string(apis.StoragePoolClaimCPK) + "=" + cspcObj.Name
 	cspLabel := hostnameLabel + "," + spcLabel
-
+	var err1 error
 	cspObj, err := getCSP(cspLabel)
 	if err != nil {
 		return err
@@ -138,7 +141,7 @@ func csptocspi(cspiObj *apis.CStorPoolInstance, cspcObj *apis.CStorPoolCluster, 
 		Times(60).
 		Wait(5 * time.Second).
 		Try(func(attempt uint) error {
-			cspiObj, err1 := cspi.NewKubeClient().
+			cspiObj, err1 = cspi.NewKubeClient().
 				WithNamespace(openebsNamespace).
 				Get(cspiObj.Name, metav1.GetOptions{})
 			if err1 != nil {
@@ -172,9 +175,6 @@ func getCSP(cspLabel string) (*apis.CStorPool, error) {
 		return nil, fmt.Errorf("Invalid number of pools on one node: %d", len(cspList.Items))
 	}
 	cspObj := cspList.Items[0]
-	if err != nil {
-		return nil, err
-	}
 	return &cspObj, nil
 }
 
@@ -188,12 +188,15 @@ func scaleDownDeployment(cspObj *apis.CStorPool, openebsNamespace string) error 
 	if err != nil {
 		return err
 	}
-	_, err = deploy.NewKubeClient().
-		WithNamespace(openebsNamespace).Patch(
-		cspObj.Name,
-		types.StrategicMergePatchType,
-		[]byte(replicaPatch),
-	)
+	_, err = deploy.NewKubeClient().WithNamespace(openebsNamespace).
+		Patch(
+			cspObj.Name,
+			types.StrategicMergePatchType,
+			[]byte(replicaPatch),
+		)
+	if err != nil {
+		return err
+	}
 	err = retry.
 		Times(60).
 		Wait(5 * time.Second).
@@ -235,7 +238,7 @@ func updateBDC(bdName apis.CspBlockDevice, cspcObj *apis.CStorPoolCluster, opene
 	}
 	bdcObj.OwnerReferences[0].Kind = "CStorPoolCluster"
 	bdcObj.OwnerReferences[0].UID = cspcObj.UID
-	bdcObj, err = bdc.NewKubeClient().
+	_, err = bdc.NewKubeClient().
 		WithNamespace(openebsNamespace).
 		Update(bdcObj)
 	if err != nil {
