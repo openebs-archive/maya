@@ -72,12 +72,12 @@ func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 
 	annotations := map[string]string{}
 
-	if ac.CSPC.GetAnnotations()["reconcile.openebs.io/dependants"] == "false" {
+	if ac.CSPC.GetAnnotations()[string(apis.OpenEBSDisableDependantsReconcileKey)] == "false" {
 		annotations[string(apis.OpenEBSDisableReconcileKey)] = "true"
 	}
 
 	if poolSpec.OldCSPUID != "" {
-		annotations["cspuid"] = poolSpec.OldCSPUID
+		annotations[string(apis.OldCSPUID)] = poolSpec.OldCSPUID
 	}
 
 	if len(annotations) != 0 {

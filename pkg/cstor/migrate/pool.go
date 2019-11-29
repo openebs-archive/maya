@@ -39,11 +39,21 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 )
 
-const replicaPatch = `{
+const (
+	replicaPatch = `{
 	"spec": {
 		"replicas": 0
 	}	
 }`
+	cspNameLabel           = "cstorpool.openebs.io/name"
+	cspUIDLabel            = "cstorpool.openebs.io/uid"
+	cspHostnameAnnotation  = "cstorpool.openebs.io/hostname"
+	cspiNameLabel          = "cstorpoolinstance.openebs.io/name"
+	cspiUIDLabel           = "cstorpoolinstance.openebs.io/uid"
+	cspiHostnameAnnotation = "cstorpoolinstance.openebs.io/hostname"
+	spcFinalizer           = "storagepoolclaim.openebs.io/finalizer"
+	cspcFinalizer          = "cstorpoolcluster.openebs.io/finalizer"
+)
 
 // Pool ...
 func Pool(spcName, openebsNamespace string) error {
@@ -234,8 +244,8 @@ func updateBDC(bdName apis.CspBlockDevice, cspcObj *apis.CStorPoolCluster, opene
 	delete(bdcObj.Labels, string(apis.StoragePoolClaimCPK))
 	bdcObj.Labels[string(apis.CStorPoolClusterCPK)] = cspcObj.Name
 	for i, finalizer := range bdcObj.Finalizers {
-		if finalizer == "storagepoolclaim.openebs.io/finalizer" {
-			bdcObj.Finalizers[i] = "cstorpoolcluster.openebs.io/finalizer"
+		if finalizer == spcFinalizer {
+			bdcObj.Finalizers[i] = cspcFinalizer
 		}
 	}
 	bdcObj.OwnerReferences[0].Kind = "CStorPoolCluster"
@@ -252,19 +262,19 @@ func updateBDC(bdName apis.CspBlockDevice, cspcObj *apis.CStorPoolCluster, opene
 func updateCVRsLabels(cspName, openebsNamespace string, cspiObj *apis.CStorPoolInstance) error {
 	cvrList, err := cvr.NewKubeclient().
 		WithNamespace(openebsNamespace).List(metav1.ListOptions{
-		LabelSelector: "cstorpool.openebs.io/name=" + cspName,
+		LabelSelector: cspNameLabel + "=" + cspName,
 	})
 	if err != nil {
 		return err
 	}
 	for _, cvrObj := range cvrList.Items {
 		klog.Infof("Updating cvr %s with cspi %s info.", cvrObj.Name, cspiObj.Name)
-		delete(cvrObj.Labels, "cstorpool.openebs.io/name")
-		delete(cvrObj.Labels, "cstorpool.openebs.io/uid")
-		cvrObj.Labels["cstorpoolinstance.openebs.io/name"] = cspiObj.Name
-		cvrObj.Labels["cstorpoolinstance.openebs.io/uid"] = string(cspiObj.UID)
-		delete(cvrObj.Annotations, "cstorpool.openebs.io/hostname")
-		cvrObj.Annotations["cstorpoolinstance.openebs.io/hostname"] = cspiObj.Spec.HostName
+		delete(cvrObj.Labels, cspNameLabel)
+		delete(cvrObj.Labels, cspUIDLabel)
+		cvrObj.Labels[cspiNameLabel] = cspiObj.Name
+		cvrObj.Labels[cspiUIDLabel] = string(cspiObj.UID)
+		delete(cvrObj.Annotations, cspHostnameAnnotation)
+		cvrObj.Annotations[cspiHostnameAnnotation] = cspiObj.Spec.HostName
 		_, err = cvr.NewKubeclient().WithNamespace(openebsNamespace).
 			Update(&cvrObj)
 		if err != nil {

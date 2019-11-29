@@ -63,7 +63,7 @@ func getCSPCSpec(spc *apis.StoragePoolClaim) (*apis.CStorPoolCluster, error) {
 	cspcObj.Annotations = map[string]string{
 		// This label will be used to disable reconciliation on the dependants
 		// In this case that will be CSPI
-		"reconcile.openebs.io/dependants": "false",
+		string(apis.OpenEBSDisableDependantsReconcileKey): "false",
 	}
 	for _, cspObj := range cspList.Items {
 		cspcObj.Spec.Pools = append(cspcObj.Spec.Pools,
@@ -137,7 +137,7 @@ func generateCSPC(spcObj *apis.StoragePoolClaim, openebsNamespace string) (
 	if err != nil {
 		return nil, err
 	}
-	delete(cspcObj.Annotations, "reconcile.openebs.io/dependants")
+	delete(cspcObj.Annotations, string(apis.OpenEBSDisableDependantsReconcileKey))
 	cspcObj, err = cspc.NewKubeClient().
 		WithNamespace(openebsNamespace).
 		Update(cspcObj)
