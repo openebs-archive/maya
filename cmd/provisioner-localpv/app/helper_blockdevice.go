@@ -100,7 +100,6 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 	if err := blkDevOpts.validate(); err != nil {
 		return err
 	}
-
 	//Create a BDC for this PV (of type device). NDM will
 	//look for the device matching the capacity and node on which
 	//pod is being scheduled. Since this BDC is specific to a PV
@@ -127,6 +126,7 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 		WithHostName(blkDevOpts.nodeHostname).
 		WithCapacity(blkDevOpts.capacity).
 		WithFinalizer(LocalPVFinalizer).
+		WithBlockVolumeMode(blkDevOpts.volumeMode).
 		Build()
 
 	if err != nil {
@@ -196,16 +196,17 @@ func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (
 	}
 	path := bd.Spec.FileSystem.Mountpoint
 
-	// Override the path with devicePath, rather than mountPath
-	// If the volumeMode is set to Block
-	if blkDevOpts.volumeMode == corev1.PersistentVolumeBlock {
-		klog.V(4).Infof("Overriding the mountPath {%v}, with devicePath {%v},PVC volume mode set to 'Block'", bd.Spec.FileSystem.Mountpoint, bd.Spec.Path)
-		path = bd.Spec.Path
-	}
 	blkPath := bd.Spec.Path
 	if len(bd.Spec.DevLinks) > 0 {
-		//TODO : Iterate and get the first path by id.
+
 		blkPath = bd.Spec.DevLinks[0].Links[0]
+
+		//Iterate and get the first path by id.
+		for _, v := range bd.Spec.DevLinks {
+			if v.Kind == "by-id" {
+				blkPath = v.Links[0]
+			}
+		}
 	}
 
 	return path, blkPath, nil

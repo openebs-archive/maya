@@ -65,7 +65,6 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 		klog.Infof("Using block device{%v} with fs{%v}", blkPath, fsType)
 	}
 
-	// TODO
 	// VolumeMode will always be specified as Filesystem for host path volume,
 	// and the value passed in from the PVC spec will be ignored.
 	volumeMode := v1.PersistentVolumeFilesystem
@@ -87,7 +86,7 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 	//labels[string(v1alpha1.StorageClassKey)] = *className
 
 	//TODO Change the following to a builder pattern
-	pvObj, err := mPV.NewBuilder().
+	pvObjBuilder := mPV.NewBuilder().
 		WithName(name).
 		WithLabels(labels).
 		WithAnnotations(volAnnotations).
@@ -95,9 +94,18 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 		WithAccessModes(pvc.Spec.AccessModes).
 		WithVolumeMode(volumeMode).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
-		WithLocalHostPathFormat(path, fsType).
-		WithNodeAffinity(nodeHostname).
-		Build()
+		//WithLocalHostPathFormat(path, fsType).
+		WithNodeAffinity(nodeHostname)
+
+	// If volumeMode set to "Block", then provide the blockDevicePath
+	if *opts.PVC.Spec.VolumeMode == v1.PersistentVolumeBlock {
+		pvObjBuilder.WithLocalHostPathFormat(blkPath, "")
+	} else {
+		pvObjBuilder.WithLocalHostPathFormat(path, fsType)
+	}
+
+	//Build the pvObject
+	pvObj, err := pvObjBuilder.Build()
 
 	if err != nil {
 		alertlog.Logger.Errorw("",

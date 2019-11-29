@@ -125,8 +125,11 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 	if stgType == "hostpath" {
 		return p.ProvisionHostPath(opts, pvCASConfig)
 	}
-	if stgType == "device" || *opts.PVC.Spec.VolumeMode == v1.PersistentVolumeBlock {
+	if stgType == "device" {
 		return p.ProvisionBlockDevice(opts, pvCASConfig)
+	}
+	if *opts.PVC.Spec.VolumeMode == v1.PersistentVolumeBlock && stgType != "device" {
+		return nil, fmt.Errorf("PV with BlockMode is not supported with StorageType %v", stgType)
 	}
 	alertlog.Logger.Errorw("",
 		"eventcode", "cstor.local.pv.provision.failure",
