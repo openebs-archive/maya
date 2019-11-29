@@ -259,7 +259,7 @@ spec:
   - name: OpenEBSNamespace
     value: {{env "OPENEBS_NAMESPACE"}}
   - name: ScrubImage
-    value: "quay.io/openebs/openebs-tools:3.8"
+    value: "quay.io/openebs/linux-utils:latest"
   # RetainReplicaData specifies whether jiva replica data folder
   # should be cleared or retained.
   - name: RetainReplicaData
