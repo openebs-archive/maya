@@ -59,8 +59,8 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 	common.SyncResources.Mux.Lock()
 
 	// try to import pool
-	if cspi.Annotations["cspuid"] != "" {
-		isImported, err = zpool.Import(cspi, "cstor-"+cspi.Annotations["cspuid"])
+	if cspi.Annotations[string(apis.OldCSPUID)] != "" {
+		isImported, err = zpool.Import(cspi, "cstor-"+cspi.Annotations[string(apis.OldCSPUID)])
 	} else {
 		isImported, err = zpool.Import(cspi, "")
 	}
@@ -75,7 +75,7 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 		}
 		zpool.CheckImportedPoolVolume()
 		common.SyncResources.Mux.Unlock()
-		delete(cspi.Annotations, "cspuid")
+		delete(cspi.Annotations, string(apis.OldCSPUID))
 		err = c.update(cspi)
 		if err != nil {
 			c.recorder.Event(cspi,
