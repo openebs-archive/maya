@@ -70,20 +70,16 @@ func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 		return nil, errors.Wrapf(err, "failed to build CSP object for node selector {%v}", poolSpec.NodeSelector)
 	}
 
-	annotations := map[string]string{}
-
+	// check for OpenEBSDisableDependantsReconcileKey annotation which implies
+	// the CSPI should have OpenEBSDisableReconcileKey enabled
 	if ac.CSPC.GetAnnotations()[string(apis.OpenEBSDisableDependantsReconcileKey)] == "false" {
-		annotations[string(apis.OpenEBSDisableReconcileKey)] = "true"
+		cspObj.Object.Annotations[string(apis.OpenEBSDisableReconcileKey)] = "true"
 	}
-
+	// if old CSP has the pool with its name add annotation for renaming while importing
 	if poolSpec.OldCSPUID != "" {
-		annotations[string(apis.OldCSPUID)] = poolSpec.OldCSPUID
+		cspObj.Object.Annotations[string(apis.OldCSPUID)] = poolSpec.OldCSPUID
 	}
-
-	if len(annotations) != 0 {
-		cspObj.Object.SetAnnotations(annotations)
-	}
-
+	// if old CSP is present, it implies the BDs are already claimed for the pool
 	if poolSpec.OldCSPUID == "" {
 		err = ac.ClaimBDsForNode(ac.GetBDListForNode(poolSpec))
 		if err != nil {

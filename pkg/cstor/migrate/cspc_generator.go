@@ -90,6 +90,7 @@ func getCSPCSpec(spc *apis.StoragePoolClaim) (*apis.CStorPoolCluster, error) {
 	return cspcObj, nil
 }
 
+// generateCSPC creates an equivalent cspc for the given spc object
 func generateCSPC(spcObj *apis.StoragePoolClaim, openebsNamespace string) (
 	*apis.CStorPoolCluster, error) {
 	cspcObj, err := cspc.NewKubeClient().
@@ -137,6 +138,10 @@ func generateCSPC(spcObj *apis.StoragePoolClaim, openebsNamespace string) (
 	if err != nil {
 		return nil, err
 	}
+	// after all the cspi come up which reconcilation disabled delete the
+	// OpenEBSDisableDependantsReconcileKey annotation so that in future when
+	// a cspi is delete and it comes back on reconciliation it should not have
+	// reconciliation disabled
 	delete(cspcObj.Annotations, string(apis.OpenEBSDisableDependantsReconcileKey))
 	cspcObj, err = cspc.NewKubeClient().
 		WithNamespace(openebsNamespace).

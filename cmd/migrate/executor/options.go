@@ -41,6 +41,5 @@ func (u *MigrateOptions) RunPreFlightChecks(cmd *cobra.Command) error {
 	if len(strings.TrimSpace(u.openebsNamespace)) == 0 {
 		return errors.Errorf("Cannot execute migrate job: namespace is missing")
 	}
-
 	return nil
 }

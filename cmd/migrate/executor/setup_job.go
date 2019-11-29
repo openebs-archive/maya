@@ -18,11 +18,7 @@ package executor
 
 import (
 	"flag"
-	//"fmt"
-	//"os"
 	"strings"
-
-	//"k8s.io/klog"
 
 	"github.com/spf13/cobra"
 )

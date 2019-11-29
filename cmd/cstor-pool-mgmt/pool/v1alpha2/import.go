@@ -31,6 +31,8 @@ import (
 // It will return -
 // - If pool is imported or not
 // - If any error occurred during import operation
+// The oldName argument is used to rename the old CSP
+// uid name to the current PoolName(cspi) format
 func Import(cspi *apis.CStorPoolInstance, oldName string) (bool, error) {
 	if poolExist := checkIfPoolPresent(PoolName(cspi)); poolExist {
 		return true, nil

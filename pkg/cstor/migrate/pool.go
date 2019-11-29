@@ -55,11 +55,12 @@ const (
 	cspcFinalizer          = "cstorpoolcluster.openebs.io/finalizer"
 )
 
-// Pool ...
+// Pool migrates the pool from SPC schema to CSPC schema
 func Pool(spcName, openebsNamespace string) error {
 
 	spcObj, err := spc.NewKubeClient().
 		Get(spcName, metav1.GetOptions{})
+	// verify if the spc is already migrated.
 	if k8serrors.IsNotFound(err) {
 		klog.Infof("spc %s not found.", spcName)
 		_, err = cspc.NewKubeClient().
@@ -78,7 +79,7 @@ func Pool(spcName, openebsNamespace string) error {
 	if err != nil {
 		return err
 	}
-
+	// List all cspi created with reconcile off
 	cspiList, err := cspi.NewKubeClient().
 		WithNamespace(openebsNamespace).
 		List(metav1.ListOptions{
@@ -88,7 +89,11 @@ func Pool(spcName, openebsNamespace string) error {
 		return err
 	}
 
+	// For each cspi perform the migration from csp that present was on
+	// node on which cspi came up.
 	for _, cspiObj := range cspiList.Items {
+		// Skip the migration if cspi is already in ONLINE state,
+		// which implies the migration is done and makes it idempotent
 		if cspiObj.Status.Phase != "ONLINE" {
 			err = csptocspi(&cspiObj, cspcObj, openebsNamespace)
 			if err != nil {
@@ -99,6 +104,8 @@ func Pool(spcName, openebsNamespace string) error {
 			if err != nil {
 				return err
 			}
+			// remove the OldCSPUID name to avoid renaming in case
+			// cspi is deleted and comes up after reconciliation.
 			for i, poolspec := range cspcObj.Spec.Pools {
 				if poolspec.NodeSelector[string(apis.HostNameCPK)] ==
 					cspiObj.Labels[string(apis.HostNameCPK)] {
@@ -112,6 +119,7 @@ func Pool(spcName, openebsNamespace string) error {
 			}
 		}
 	}
+	// Clean up old SPC resources after the migration is complete
 	err = spc.NewKubeClient().
 		Delete(spcName, &metav1.DeleteOptions{})
 	if err != nil {
@@ -120,6 +128,7 @@ func Pool(spcName, openebsNamespace string) error {
 	return nil
 }
 
+// csptocspi migrates a CSP to CSPI based on hostname
 func csptocspi(cspiObj *apis.CStorPoolInstance, cspcObj *apis.CStorPoolCluster, openebsNamespace string) error {
 	hostnameLabel := string(apis.HostNameCPK) + "=" + cspiObj.Labels[string(apis.HostNameCPK)]
 	spcLabel := string(apis.StoragePoolClaimCPK) + "=" + cspcObj.Name
@@ -140,6 +149,8 @@ func csptocspi(cspiObj *apis.CStorPoolInstance, cspcObj *apis.CStorPoolCluster, 
 			return err
 		}
 	}
+	// once the old pool pod is scaled down and bdcs are patched
+	// bring up the cspi pod so that the old pool can be renamed and imported.
 	delete(cspiObj.Annotations, string(apis.OpenEBSDisableReconcileKey))
 	cspiObj, err = cspi.NewKubeClient().
 		WithNamespace(openebsNamespace).
@@ -173,6 +184,8 @@ func csptocspi(cspiObj *apis.CStorPoolInstance, cspcObj *apis.CStorPoolCluster, 
 	return nil
 }
 
+// get csp for cspi on the basis of cspLabel, which is the combination of
+// hostname label on which cspi came up and the spc label.
 func getCSP(cspLabel string) (*apis.CStorPool, error) {
 	cspClient := csp.KubeClient()
 	cspList, err := cspClient.List(metav1.ListOptions{
@@ -188,6 +201,8 @@ func getCSP(cspLabel string) (*apis.CStorPool, error) {
 	return &cspObj, nil
 }
 
+// The old pool pod should be scaled down before the new cspi pod comes up
+// to avoid importing the pool at two places at the same time.
 func scaleDownDeployment(cspObj *apis.CStorPool, openebsNamespace string) error {
 	klog.Infof("Scaling down deployemnt %s", cspObj.Name)
 	cspPod, err := pod.NewKubeClient().
@@ -227,6 +242,8 @@ func scaleDownDeployment(cspObj *apis.CStorPool, openebsNamespace string) error 
 	return nil
 }
 
+// Update the bdc with the cspc labels instead of spc labels to allow
+// filtering of bds claimed by the migrated cspc.
 func updateBDC(bdName apis.CspBlockDevice, cspcObj *apis.CStorPoolCluster, openebsNamespace string) error {
 	bdObj, err := bd.NewKubeClient().
 		WithNamespace(openebsNamespace).
@@ -259,6 +276,8 @@ func updateBDC(bdName apis.CspBlockDevice, cspcObj *apis.CStorPoolCluster, opene
 	return nil
 }
 
+// Update the cvrs on the old csp with the migrated cspi labels and annotations
+// to allow backward compatibility with old external provisioned volumes.
 func updateCVRsLabels(cspName, openebsNamespace string, cspiObj *apis.CStorPoolInstance) error {
 	cvrList, err := cvr.NewKubeclient().
 		WithNamespace(openebsNamespace).List(metav1.ListOptions{
