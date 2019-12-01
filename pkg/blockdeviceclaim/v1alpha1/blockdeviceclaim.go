@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
@@ -131,27 +132,28 @@ func (bdc *BlockDeviceClaim) AddFinalizer(finalizer string) (*ndm.BlockDeviceCla
 }
 
 // RemoveFinalizer removes the given finalizer from the object.
-func (bdc *BlockDeviceClaim) RemoveFinalizer(finalizer string) error {
+func (bdc *BlockDeviceClaim) RemoveFinalizer(
+	finalizer string) (*ndm.BlockDeviceClaim, error) {
 	if len(bdc.Object.Finalizers) == 0 {
 		klog.V(2).Infof("no finalizer present on BDC %s", bdc.Object.Name)
-		return nil
+		return bdc.Object, nil
 	}
 
 	if !bdc.HasFinalizer(finalizer) {
 		klog.V(2).Infof("finalizer %s is already removed on BDC %s", finalizer, bdc.Object.Name)
-		return nil
+		return bdc.Object, nil
 	}
 
 	bdc.Object.Finalizers = util.RemoveString(bdc.Object.Finalizers, finalizer)
 
-	_, err := NewKubeClient(WithKubeConfigPath(bdc.configPath)).
+	newBDC, err := NewKubeClient(WithKubeConfigPath(bdc.configPath)).
 		WithNamespace(bdc.Object.Namespace).
 		Update(bdc.Object)
 	if err != nil {
-		return errors.Wrap(err, "failed to update object while removing finalizer")
+		return nil, errors.Wrap(err, "failed to update object while removing finalizer")
 	}
 	klog.Infof("Finalizer %s removed successfully from BDC %s", finalizer, bdc.Object.Name)
-	return nil
+	return newBDC, nil
 }
 
 // IsStatus is predicate to filter out BDC instances based on argument provided
@@ -208,4 +210,18 @@ func (bdcl *BlockDeviceClaimList) GetBlockDeviceNamesByNode() map[string][]strin
 		)
 	}
 	return newNodeBDList
+}
+
+// GetBlockDeviceClaimFromBDName return block device claim if claim exists for
+// provided blockdevice name in claim list else return error
+func (bdcl *BlockDeviceClaimList) GetBlockDeviceClaimFromBDName(
+	bdName string) (*apis.BlockDeviceClaim, error) {
+	for _, bdc := range bdcl.ObjectList.Items {
+		// pin it
+		bdc := bdc
+		if bdc.Spec.BlockDeviceName == bdName {
+			return &bdc, nil
+		}
+	}
+	return nil, errors.Errorf("claim doesn't exist for blockdevice %s", bdName)
 }

@@ -45,6 +45,11 @@ const (
 	// This environment variable is set via kubernetes downward API
 	OpenEBSNamespace ENVKey = "OPENEBS_NAMESPACE"
 
+	// Namespace is the environment variable to get resource namespace
+	//
+	// This environment variable is set via kubernetes downward API
+	Namespace ENVKey = "NAMESPACE"
+
 	// OpenEBSMayaPodName is the environment variable to get maya-apiserver pod
 	// name
 	//

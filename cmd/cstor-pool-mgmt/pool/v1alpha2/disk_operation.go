@@ -97,15 +97,17 @@ func addNewVdevFromCSP(csp *apis.CStorPoolInstance) error {
 			if er := addRaidGroup(csp, raidGroup); er != nil {
 				err = ErrorWrapf(err, "Failed to add raidGroup{%#v}.. %s", raidGroup, er.Error())
 			}
-		} else if len(devlist) != 0 {
-			if _, er := zfs.NewPoolExpansion().
-				WithDeviceType(getDeviceType(raidGroup)).
-				WithVdevList(devlist).
-				WithPool(PoolName(csp)).
-				Execute(); er != nil {
-				err = ErrorWrapf(err, "Failed to add devlist %v.. err {%s}", devlist, er.Error())
-			}
 		}
+		/* Pool expansion adding in same raidGroup is invalid operation */
+		//else if len(devlist) != 0 {
+		//	if _, er := zfs.NewPoolExpansion().
+		//		WithDeviceType(getDeviceType(raidGroup)).
+		//		WithVdevList(devlist).
+		//		WithPool(PoolName(csp)).
+		//		Execute(); er != nil {
+		//		err = ErrorWrapf(err, "Failed to add devlist %v.. err {%s}", devlist, er.Error())
+		//	}
+		//}
 	}
 
 	return err
@@ -139,45 +141,50 @@ func removePoolVdev(csp *apis.CStorPoolInstance, bdev apis.CStorPoolClusterBlock
 // Note, if a new disk is already being used then we will
 // not perform disk replacement and function will return
 // the used disk path from given path(npath[])
-func replacePoolVdev(csp *apis.CStorPoolInstance, bdev apis.CStorPoolClusterBlockDevice, npath []string) (string, error) {
+func replacePoolVdev(cspi *apis.CStorPoolInstance, oldPaths, npath []string) (string, error) {
+	var usedPath string
+	var isUsed bool
 	if len(npath) == 0 {
 		return "", errors.Errorf("Empty path for bdev")
 	}
 
-	// Wait! Device patch may got changed due after import
+	// Wait! Device path may got changed due to import
 	// Let's check if a device, having path `npath`, is already present in pool
 	poolTopology, err := zfs.
 		NewPoolDump().
 		WithStripVdevPath().
-		WithPool(PoolName(csp)).
+		WithPool(PoolName(cspi)).
 		Execute()
 	if err != nil {
 		return "", errors.Errorf("Failed to fetch pool topology.. %s", err.Error())
 	}
 
-	if usedPath, isUsed := checkIfDeviceUsed(npath, poolTopology); isUsed {
+	if usedPath, isUsed = checkIfDeviceUsed(npath, poolTopology); isUsed {
 		return usedPath, nil
 	}
 
-	_ = bdev
+	// Device path may got changed after imports. So let's get the path used by
+	// pool and trigger replace
+	if usedPath, isUsed = checkIfDeviceUsed(oldPaths, poolTopology); !isUsed {
+		// Might be a case where paths in the old blockdevice are not up to date
+		return "", errors.Errorf("Old device links are not in use by pool")
+	}
+
 	// Replace the disk
-	/*
-		_, err = zfs.NewPoolDiskReplace().
-			WithOldVdev(bdev.DevLink).
-			WithNewVdev(npath[0]).
-			WithPool(PoolName(csp)).
-			WithForcefully(true).
-			Execute()
-				if err == nil {
-					if _, err := zfs.NewPoolLabelClear().
-						WithForceFully(true).
-						WithVdev(bdev.DevLink).
-						Execute(); err != nil {
-						// Let's log the error
-						klog.Errorf("Failed to perform label clear for disk {%s}", bdev.DevLink)
-					}
-					return npath[0], nil
-				}
-	*/
-	return "", err
+	_, err = zfs.NewPoolDiskReplace().
+		WithOldVdev(usedPath).
+		WithNewVdev(npath[0]).
+		WithPool(PoolName(cspi)).
+		Execute()
+		//if err == nil {
+		//	if _, err := zfs.NewPoolLabelClear().
+		//		WithForceFully(true).
+		//		WithVdev(bdev.DevLink).
+		//		Execute(); err != nil {
+		//		// Let's log the error
+		//		klog.Errorf("Failed to perform label clear for disk {%s}", bdev.DevLink)
+		//	}
+		//	return npath[0], nil
+		//}
+	return npath[0], err
 }

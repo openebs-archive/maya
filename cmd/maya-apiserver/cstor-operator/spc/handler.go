@@ -281,7 +281,7 @@ func removeSPCFinalizerOnAssociatedBDC(spc *apis.StoragePoolClaim) error {
 
 	for _, bdcObj := range bdcList.Items {
 		bdcObj := bdcObj
-		err := bdc.BuilderForAPIObject(&bdcObj).BDC.RemoveFinalizer(spcv1alpha1.SPCFinalizer)
+		_, err := bdc.BuilderForAPIObject(&bdcObj).BDC.RemoveFinalizer(spcv1alpha1.SPCFinalizer)
 		if err != nil {
 			return errors.Wrapf(err, "failed to remove SPC finalizer on BDC %s", bdcObj.Name)
 		}
