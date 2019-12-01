@@ -36,8 +36,31 @@ func (pc *PoolConfig) handleOperations() {
 }
 
 // replaceBlockDevice replaces block devices in cStor pools as specified in CSPC.
-func (pc *PoolConfig) replaceBlockDevice() {
-	klog.V(2).Info("block device replacement is not supported yet")
+func (pc *PoolConfig) replaceBlockDevice() error {
+	for _, pool := range pc.AlgorithmConfig.CSPC.Spec.Pools {
+		pool := pool
+		var cspiObj *apis.CStorPoolInstance
+		nodeName, err := nodeselect.GetNodeFromLabelSelector(pool.NodeSelector)
+		if err != nil {
+			return errors.Wrapf(err,
+				"could not get node name for node selector {%v} "+
+					"from cspc %s", pool.NodeSelector, pc.AlgorithmConfig.CSPC.Name)
+		}
+
+		cspiObj, err = pc.getCSPIWithNodeName(nodeName)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get cspi with node name %s", nodeName)
+		}
+
+		pc.updateExistingCSPI(&pool, cspiObj)
+		_, err = apiscsp.NewKubeClient().
+			WithNamespace(pc.AlgorithmConfig.Namespace).
+			Update(cspiObj)
+		if err != nil {
+			klog.Errorf("could not replace block device in cspi %s: %s", cspiObj.Name, err.Error())
+		}
+	}
+	return nil
 }
 
 // expandPool expands the required cStor pools as specified in CSPC
@@ -70,7 +93,6 @@ func (pc *PoolConfig) expandPool() error {
 			klog.Errorf("could not update cspi %s: %s", cspiObj.Name, err.Error())
 		}
 	}
-
 	return nil
 }
 
@@ -101,6 +123,26 @@ func (pc *PoolConfig) addGroupToPool(cspcPoolSpec *apis.PoolSpec, cspi *apis.CSt
 			}
 			if validGroup {
 				cspi.Spec.RaidGroups = append(cspi.Spec.RaidGroups, cspcRaidGroup)
+			}
+		}
+	}
+	return cspi
+}
+
+func (pc *PoolConfig) updateExistingCSPI(
+	cspcPoolSpec *apis.PoolSpec, cspi *apis.CStorPoolInstance) *apis.CStorPoolInstance {
+	var err error
+	for _, cspcRaidGroup := range cspcPoolSpec.RaidGroups {
+		cspcRaidGroup := cspcRaidGroup
+		cspiRaidGroup, isValidReplacement := getCSPIRaidGroup(&cspcRaidGroup, cspi)
+		if isValidReplacement {
+			cspiRaidGroup, err = pc.replaceExistingBlockDevice(cspcRaidGroup, cspiRaidGroup)
+			if err != nil {
+				klog.Infof(
+					"failed to replace block device in raid group type: {%v} error: %v",
+					cspcRaidGroup.Type,
+					err,
+				)
 			}
 		}
 	}
@@ -174,6 +216,60 @@ func isRaidGroupPresentOnCSPI(group *apis.RaidGroup, cspi *apis.CStorPoolInstanc
 		}
 	}
 	return false
+}
+
+func (pc *PoolConfig) replaceExistingBlockDevice(
+	cspcRaidGroup apis.RaidGroup,
+	cspiRaidGroup *apis.RaidGroup) (*apis.RaidGroup, error) {
+	blockDeviceMap := make(map[string]bool)
+	var replacedBlockDeviceName string
+	replacedBlockDeviceIndex := -1
+
+	for _, bd := range cspiRaidGroup.BlockDevices {
+		blockDeviceMap[bd.BlockDeviceName] = true
+	}
+	for i, bd := range cspcRaidGroup.BlockDevices {
+		if !blockDeviceMap[bd.BlockDeviceName] {
+			replacedBlockDeviceName = bd.BlockDeviceName
+			replacedBlockDeviceIndex = i
+			break
+		}
+	}
+	if replacedBlockDeviceIndex == -1 {
+		return cspiRaidGroup, errors.Errorf("blockdevice doesn't exist in raidgroup")
+	}
+	err := pc.isBDUsable(replacedBlockDeviceName)
+	if err != nil {
+		return cspiRaidGroup, errors.Wrapf(
+			err,
+			"could not use bd %s for replacement",
+			replacedBlockDeviceName)
+	}
+	cspiRaidGroup.
+		BlockDevices[replacedBlockDeviceIndex].
+		BlockDeviceName = replacedBlockDeviceName
+	return cspiRaidGroup, nil
+}
+
+func getCSPIRaidGroup(
+	cspcRaidGroup *apis.RaidGroup,
+	cspi *apis.CStorPoolInstance) (*apis.RaidGroup, bool) {
+	blockDeviceMap := make(map[string]bool)
+	for _, bd := range cspcRaidGroup.BlockDevices {
+		blockDeviceMap[bd.BlockDeviceName] = true
+	}
+	for _, cspiRaidGroup := range cspi.Spec.RaidGroups {
+		misMatchedBDCount := 0
+		for _, cspiBD := range cspiRaidGroup.BlockDevices {
+			if !blockDeviceMap[cspiBD.BlockDeviceName] {
+				misMatchedBDCount++
+			}
+		}
+		if misMatchedBDCount == 1 {
+			return &cspiRaidGroup, true
+		}
+	}
+	return nil, false
 }
 
 // getAddedBlockDevicesInGroup returns the added block device list
