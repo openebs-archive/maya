@@ -77,7 +77,7 @@ func Update(cspi *apis.CStorPoolInstance) (*apis.CStorPoolInstance, error) {
 			// If current blockdevice is replaced blockdevice then get the
 			// predecesor from claim of current blockdevice and if current
 			// blockdevice is not replaced then predecesorBDName will be empty
-			predecesorBDName := bdClaim.GetAnnotations()[string(apis.ReplacementBlockDeviceCPK)]
+			predecesorBDName := bdClaim.GetAnnotations()[string(apis.PredecessorBlockDeviceCPK)]
 			oldPath := []string{}
 			if predecesorBDName != "" {
 				// Get device links from old block device

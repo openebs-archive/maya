@@ -34,31 +34,44 @@ import (
 *} dsl_scan_state_t;
  */
 
+//TODO: Improve comments during review process
+
 //PoolScanState states various pool scan states
 type PoolScanState uint64
 
 const (
+	// PoolScanNone represents pool scanning is not yet started
 	PoolScanNone PoolScanState = iota
+	// PoolScanScanning represents pool is undergoing scanning
 	PoolScanScanning
+	// PoolScanFinished represents pool scanning is finished
 	PoolScanFinished
+	// PoolScanCanceled represents pool scan is aborted
 	PoolScanCanceled
+	// PoolScanNumOfStates holds value 4
 	PoolScanNumOfStates
 )
 
+// PoolScanFunc holds various scanning functions
 type PoolScanFunc uint64
 
 const (
+	// PoolScanFuncNone holds value 0
 	PoolScanFuncNone PoolScanFunc = iota
+	// PoolScanFuncScrub holds value 1
 	PoolScanFuncScrub
+	// PoolScanFuncResilver holds value 2 which states device under went resilvering
 	PoolScanFuncResilver
+	// PoolScanFuncStates holds value 3
 	PoolScanFuncStates
 )
 
 const (
 	// PoolOperator is the name of the tool that makes pool-related operations.
 	PoolOperator = "zpool"
-	// VdevScanProcessedIndex is the index of scan processed bytes on disk
-	VdevScanProcessedIndex  = 25
+	// VdevScanProcessedIndex is index of scaned bytes on disk
+	VdevScanProcessedIndex = 25
+	// VdevScanStatsStateIndex represents the index of dataset scan state
 	VdevScanStatsStateIndex = 1
 	// VdevScanStatsScanFuncIndex point to index which inform whether device
 	// under went resilvering or not

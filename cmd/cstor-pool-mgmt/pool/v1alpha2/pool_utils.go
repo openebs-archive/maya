@@ -280,6 +280,12 @@ func cleanUpReplacementMarks(oldBDClaimAPI, currentBDClaimAPI *ndmapis.BlockDevi
 	if oldBDClaimAPI != nil {
 		oldBDClaimAPI, err = blockdeviceclaim.
 			BuilderForAPIObject(oldBDClaimAPI).BDC.RemoveFinalizer(apiscspc.CSPCFinalizer)
+		if err != nil {
+			return errors.Wrapf(err,
+				"failed to remove finalizer on blockdeviceclaim {%s}",
+				oldBDClaimAPI.Name,
+			)
+		}
 		err = bdcClient.Delete(oldBDClaimAPI.Name, &metav1.DeleteOptions{})
 		if err != nil {
 			return errors.Wrapf(
@@ -290,14 +296,14 @@ func cleanUpReplacementMarks(oldBDClaimAPI, currentBDClaimAPI *ndmapis.BlockDevi
 		}
 	}
 	bdAnnotations := currentBDClaimAPI.GetAnnotations()
-	delete(bdAnnotations, string(apis.ReplacementBlockDeviceCPK))
+	delete(bdAnnotations, string(apis.PredecessorBlockDeviceCPK))
 	currentBDClaimAPI.SetAnnotations(bdAnnotations)
 	_, err = bdcClient.Update(currentBDClaimAPI)
 	if err != nil {
 		return errors.Wrapf(
 			err,
 			"Failed to remove annotation {%s} from blockdeviceclaim {%s}",
-			string(apis.ReplacementBlockDeviceCPK),
+			string(apis.PredecessorBlockDeviceCPK),
 			currentBDClaimAPI.Name,
 		)
 	}

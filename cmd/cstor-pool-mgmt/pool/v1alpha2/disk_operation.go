@@ -163,6 +163,10 @@ func replacePoolVdev(cspi *apis.CStorPoolInstance, oldPaths, npath []string) (st
 		return usedPath, nil
 	}
 
+	if len(oldPaths) == 0 {
+		return "", nil
+	}
+
 	// Device path may got changed after imports. So let's get the path used by
 	// pool and trigger replace
 	if usedPath, isUsed = checkIfDeviceUsed(oldPaths, poolTopology); !isUsed {

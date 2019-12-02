@@ -55,13 +55,13 @@ func TestGetPathForBDevFromBlockDevice(t *testing.T) {
 			bd: &ndmapis.BlockDevice{
 				Spec: ndmapis.DeviceSpec{
 					DevLinks: []ndmapis.DeviceDevLink{
-						ndmapis.DeviceDevLink{"one",
-							[]string{
+						ndmapis.DeviceDevLink{Kind: "one",
+							Links: []string{
 								"/dev/by-uid/path1",
 								"/dev/by-uid/path2",
 							},
 						},
-						ndmapis.DeviceDevLink{"two", []string{"/dev/by-uid/path1"}},
+						ndmapis.DeviceDevLink{Kind: "two", Links: []string{"/dev/by-uid/path1"}},
 					},
 					Path: "/dev/sda",
 				},
