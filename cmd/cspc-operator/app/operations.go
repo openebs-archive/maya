@@ -52,12 +52,14 @@ func (pc *PoolConfig) replaceBlockDevice() error {
 			return errors.Wrapf(err, "failed to get cspi with node name %s", nodeName)
 		}
 
-		pc.updateExistingCSPI(&pool, cspiObj)
-		_, err = apiscsp.NewKubeClient().
-			WithNamespace(pc.AlgorithmConfig.Namespace).
-			Update(cspiObj)
-		if err != nil {
-			klog.Errorf("could not replace block device in cspi %s: %s", cspiObj.Name, err.Error())
+		if isPoolSpecBlockDevicesGotReplaced(&pool, cspiObj) {
+			pc.updateExistingCSPI(&pool, cspiObj)
+			_, err = apiscsp.NewKubeClient().
+				WithNamespace(pc.AlgorithmConfig.Namespace).
+				Update(cspiObj)
+			if err != nil {
+				klog.Errorf("could not replace block device in cspi %s: %s", cspiObj.Name, err.Error())
+			}
 		}
 	}
 	return nil
@@ -221,33 +223,57 @@ func isRaidGroupPresentOnCSPI(group *apis.RaidGroup, cspi *apis.CStorPoolInstanc
 func (pc *PoolConfig) replaceExistingBlockDevice(
 	cspcRaidGroup apis.RaidGroup,
 	cspiRaidGroup *apis.RaidGroup) error {
-	blockDeviceMap := make(map[string]bool)
-	var replacedBlockDeviceName string
-	replacedBlockDeviceIndex := -1
+	cspcBlockDeviceMap := make(map[string]bool)
+	cspiBlockDeviceMap := make(map[string]bool)
+	var oldBlockDeviceName string
+	var newBlockDeviceName string
 
+	// Form CSPI Block Device Map
 	for _, bd := range cspiRaidGroup.BlockDevices {
-		blockDeviceMap[bd.BlockDeviceName] = true
+		cspiBlockDeviceMap[bd.BlockDeviceName] = true
 	}
-	for i, bd := range cspcRaidGroup.BlockDevices {
-		if !blockDeviceMap[bd.BlockDeviceName] {
-			replacedBlockDeviceName = bd.BlockDeviceName
-			replacedBlockDeviceIndex = i
+	// Form CSPC Block Device Map
+	for _, bd := range cspcRaidGroup.BlockDevices {
+		cspcBlockDeviceMap[bd.BlockDeviceName] = true
+	}
+	// Find Old Block Device Name
+	for bdName := range cspiBlockDeviceMap {
+		if !cspcBlockDeviceMap[bdName] {
+			oldBlockDeviceName = bdName
 			break
 		}
 	}
-	if replacedBlockDeviceIndex == -1 {
-		return errors.Errorf("blockdevice doesn't exist in raidgroup")
+	// Find New Block Device Name
+	for bdName := range cspcBlockDeviceMap {
+		if !cspiBlockDeviceMap[bdName] {
+			newBlockDeviceName = bdName
+			break
+		}
 	}
-	err := pc.isBDUsable(replacedBlockDeviceName)
+
+	if oldBlockDeviceName == "" || newBlockDeviceName == "" {
+		return errors.Errorf(
+			"failed to find new block device {%s} or old block device {%s}",
+			oldBlockDeviceName,
+			newBlockDeviceName,
+		)
+	}
+
+	// Verify is that new block device is usable
+	err := pc.isBDUsable(newBlockDeviceName)
 	if err != nil {
 		return errors.Wrapf(
 			err,
 			"could not use bd %s for replacement",
-			replacedBlockDeviceName)
+			newBlockDeviceName)
 	}
-	cspiRaidGroup.
-		BlockDevices[replacedBlockDeviceIndex].
-		BlockDeviceName = replacedBlockDeviceName
+	//Replace old block device with new block device in CSPI
+	for index, bd := range cspiRaidGroup.BlockDevices {
+		if bd.BlockDeviceName == oldBlockDeviceName {
+			cspiRaidGroup.BlockDevices[index].BlockDeviceName = newBlockDeviceName
+			return nil
+		}
+	}
 	return nil
 }
 
@@ -352,4 +378,28 @@ func (pc *PoolConfig) ClaimBD(bdName string) error {
 
 	}
 	return nil
+}
+
+func isPoolSpecBlockDevicesGotReplaced(
+	cspcPoolSpec *apis.PoolSpec, cspi *apis.CStorPoolInstance) bool {
+	cspcBlockDeviceMap := getBlockDeviceMapFromRaidGroups(cspcPoolSpec.RaidGroups)
+	for _, rg := range cspi.Spec.RaidGroups {
+		for _, bd := range rg.BlockDevices {
+			if !cspcBlockDeviceMap[bd.BlockDeviceName] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func getBlockDeviceMapFromRaidGroups(
+	raidGroups []apis.RaidGroup) map[string]bool {
+	blockDeviceMap := make(map[string]bool)
+	for _, rg := range raidGroups {
+		for _, bd := range rg.BlockDevices {
+			blockDeviceMap[bd.BlockDeviceName] = true
+		}
+	}
+	return blockDeviceMap
 }
