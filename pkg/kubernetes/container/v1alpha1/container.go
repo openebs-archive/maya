@@ -254,6 +254,27 @@ func (b *Builder) WithVolumeMountsNew(volumeMounts []corev1.VolumeMount) *Builde
 	return b
 }
 
+func (b *Builder) WithVolumeDevices(volumeDevices []corev1.VolumeDevice) *Builder {
+	if volumeDevices == nil {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: nil volumedevices"),
+		)
+		return b
+	}
+	if len(volumeDevices) == 0 {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build container object: missing volumedevices"),
+		)
+		return b
+	}
+	newVolumeDevices := []corev1.VolumeDevice{}
+	newVolumeDevices = append(newVolumeDevices, volumeDevices...)
+	b.con.VolumeDevices = newVolumeDevices
+	return b
+}
+
 // WithImagePullPolicy sets the image pull policy of the container
 func (b *Builder) WithImagePullPolicy(policy corev1.PullPolicy) *Builder {
 	if len(policy) == 0 {
