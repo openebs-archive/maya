@@ -75,8 +75,35 @@ func (bdc *BlockDeviceClaim) HasAnnotation(key, value string) bool {
 	return false
 }
 
+// HasAnnotationKey is predicate to filter out based on
+// annotation key in BDC instances
+func HasAnnotationKey(key string) Predicate {
+	return func(bdc *BlockDeviceClaim) bool {
+		return bdc.HasAnnotationKey(key)
+	}
+}
+
+// HasAnnotationKey return true if provided annotation
+// key is present in the the provided BDC instance.
+func (bdc *BlockDeviceClaim) HasAnnotationKey(key string) bool {
+	_, ok := bdc.Object.GetAnnotations()[key]
+	return ok
+}
+
+// HasBD is predicate to filter out based on BD.
+func HasBD(bdName string) Predicate {
+	return func(bdc *BlockDeviceClaim) bool {
+		return bdc.HasBD(bdName)
+	}
+}
+
+// HasBD return true if provided BD belongs to the BDC instance.
+func (bdc *BlockDeviceClaim) HasBD(bdName string) bool {
+	return bdc.Object.Spec.BlockDeviceName == bdName
+}
+
 // HasLabel is predicate to filter out labeled
-// BDC instances
+// BDC instances.
 func HasLabel(key, value string) Predicate {
 	return func(bdc *BlockDeviceClaim) bool {
 		return bdc.HasLabel(key, value)

@@ -20,8 +20,10 @@ import (
 	"encoding/json"
 	"fmt"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	cspcv1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	"github.com/pkg/errors"
 	"k8s.io/api/admission/v1beta1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 	"net/http"
 )
@@ -137,8 +139,43 @@ func blockDeviceValidation(bd *apis.CStorPoolClusterBlockDevice) (bool, string) 
 }
 
 // validateCSPCUpdateRequest validates CSPC update request
-// Note : Validation aspects for CSPC create and update are the same.
+// ToDo: Remove repetitive code.
 func (wh *webhook) validateCSPCUpdateRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
-	// TODO : Add more validations for update case.
-	return wh.validateCSPCCreateRequest(req)
+	response := NewAdmissionResponse().SetAllowed().WithResultAsSuccess(http.StatusAccepted).AR
+	var cspcNew apis.CStorPoolCluster
+	err := json.Unmarshal(req.Object.Raw, &cspcNew)
+	if err != nil {
+		klog.Errorf("Could not unmarshal raw object: %v, %v", err, req.Object.Raw)
+		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusBadRequest).AR
+		return response
+	}
+	if ok, msg := cspcValidation(&cspcNew); !ok {
+		err = errors.Errorf("invalid cspc specification: %s", msg)
+		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusUnprocessableEntity).AR
+		return response
+	}
+
+	cspcOld, err := cspcv1alpha1.NewKubeClient().WithNamespace(cspcNew.Namespace).Get(cspcNew.Name, v1.GetOptions{})
+	if err != nil {
+		err = errors.Errorf("could not fetch existing cspc for validation: %s", err.Error())
+		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusInternalServerError).AR
+		return response
+	}
+
+	bdr := NewBlockDeviceReplacement().WithNewCSPC(&cspcNew).WithOldCSPC(cspcOld)
+	commonPoolSpec, err := getCommonPoolSpecs(&cspcNew, cspcOld)
+
+	if err != nil {
+		err = errors.Errorf("could not find common pool specs for validation: %s", err.Error())
+		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusInternalServerError).AR
+		return response
+	}
+
+	if ok, msg := ValidateForBDReplacementCase(commonPoolSpec, bdr); !ok {
+		err = errors.Errorf("invalid cspc specification: %s", msg)
+		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusUnprocessableEntity).AR
+		return response
+	}
+
+	return response
 }
