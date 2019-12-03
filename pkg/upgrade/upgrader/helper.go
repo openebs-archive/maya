@@ -22,6 +22,7 @@ import (
 	"time"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
+	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 	utask "github.com/openebs/maya/pkg/upgrade/v1alpha2"
 	retry "github.com/openebs/maya/pkg/util/retry"
@@ -44,7 +45,7 @@ func getDeployment(labels, namespace string) (*appsv1.Deployment, error) {
 	if len(deployList.Items) == 0 {
 		return nil, errors.Errorf("no deployments found for %s in %s", labels, namespace)
 	}
-	err = verifyDeploymentReplicaStatus(&(deployList.Items[0]))
+	err = deploy.NewForAPIObject(&(deployList.Items[0])).VerifyReplicaStatus()
 	if err != nil {
 		return nil, err
 	}
@@ -310,11 +311,4 @@ func buildUpgradeTask(kind, name, openebsNamespace string) *apis.UpgradeTask {
 		}
 	}
 	return utaskObj
-}
-
-func verifyDeploymentReplicaStatus(d *appsv1.Deployment) error {
-	if d.Status.ReadyReplicas != *d.Spec.Replicas {
-		return errors.New(d.Name + " deployment pod is not in running state.")
-	}
-	return nil
 }

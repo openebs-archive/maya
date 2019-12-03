@@ -554,3 +554,12 @@ func IsNotSyncSpec() Predicate {
 func (d *Deploy) IsNotSyncSpec() bool {
 	return d.object.Generation > d.object.Status.ObservedGeneration
 }
+
+// VerifyReplicaStatus verifies whether all the replicas
+// of the deployment are up and running
+func (d *Deploy) VerifyReplicaStatus() error {
+	if d.object.Status.ReadyReplicas != *d.object.Spec.Replicas {
+		return errors.New(d.object.Name + " deployment pods are not in running state.")
+	}
+	return nil
+}
