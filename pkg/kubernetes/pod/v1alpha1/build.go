@@ -175,6 +175,20 @@ func (b *Builder) WithVolume(volume corev1.Volume) *Builder {
 	return b.WithVolumes([]corev1.Volume{volume})
 }
 
+// WithServiceAccountName sets the ServiceAccountName of Pod spec with
+// the provided value
+func (b *Builder) WithServiceAccountName(serviceAccountName string) *Builder {
+	if len(serviceAccountName) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build Pod object: missing Pod service account name"),
+		)
+		return b
+	}
+	b.pod.object.Spec.ServiceAccountName = serviceAccountName
+	return b
+}
+
 // Build returns the Pod API instance
 func (b *Builder) Build() (*corev1.Pod, error) {
 	if len(b.errs) > 0 {
