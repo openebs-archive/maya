@@ -22,10 +22,11 @@ import (
 	"time"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 	utask "github.com/openebs/maya/pkg/upgrade/v1alpha2"
 	retry "github.com/openebs/maya/pkg/util/retry"
+	errors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,6 +44,10 @@ func getDeployment(labels, namespace string) (*appsv1.Deployment, error) {
 	}
 	if len(deployList.Items) == 0 {
 		return nil, errors.Errorf("no deployments found for %s in %s", labels, namespace)
+	}
+	err = deploy.NewForAPIObject(&(deployList.Items[0])).VerifyReplicaStatus()
+	if err != nil {
+		return nil, err
 	}
 	return &(deployList.Items[0]), nil
 }

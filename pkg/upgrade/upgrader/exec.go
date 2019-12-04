@@ -27,13 +27,13 @@ import (
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	job "github.com/openebs/maya/pkg/kubernetes/job"
 	pv "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	utask "github.com/openebs/maya/pkg/upgrade/v1alpha2"
+	errors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

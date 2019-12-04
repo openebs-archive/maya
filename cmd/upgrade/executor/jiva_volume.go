@@ -24,8 +24,8 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	upgrader "github.com/openebs/maya/pkg/upgrade/upgrader"
+	errors "github.com/pkg/errors"
 )
 
 // JivaVolumeOptions stores information required for jiva volume upgrade

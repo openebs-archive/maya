@@ -18,13 +18,9 @@ package executor
 
 import (
 	"flag"
-	//"fmt"
-	//"os"
 	"strings"
 
-	//"k8s.io/klog"
 	"github.com/spf13/cobra"
-	//errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 )
 
 // NewJob will setup a new upgrade job
