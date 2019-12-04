@@ -558,6 +558,9 @@ func (d *Deploy) IsNotSyncSpec() bool {
 // VerifyReplicaStatus verifies whether all the replicas
 // of the deployment are up and running
 func (d *Deploy) VerifyReplicaStatus() error {
+	if d.object.Spec.Replicas == nil {
+		return errors.New("failed to verify replica status for deployment: nil replicas")
+	}
 	if d.object.Status.ReadyReplicas != *d.object.Spec.Replicas {
 		return errors.New(d.object.Name + " deployment pods are not in running state.")
 	}
