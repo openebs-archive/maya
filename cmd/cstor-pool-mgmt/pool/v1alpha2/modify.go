@@ -76,12 +76,12 @@ func Update(cspi *apis.CStorPoolInstance) (*apis.CStorPoolInstance, error) {
 			}
 			// If current blockdevice is replaced blockdevice then get the
 			// predecessor from claim of current blockdevice and if current
-			// blockdevice is not replaced then predecesorBDName will be empty
-			predecesorBDName := bdClaim.GetAnnotations()[string(apis.PredecessorBlockDeviceCPK)]
+			// blockdevice is not replaced then predecessorBDName will be empty
+			predecessorBDName := bdClaim.GetAnnotations()[string(apis.PredecessorBlockDeviceCPK)]
 			oldPath := []string{}
-			if predecesorBDName != "" {
+			if predecessorBDName != "" {
 				// Get device links from old block device
-				oldPath, er = getPathForBDev(predecesorBDName)
+				oldPath, er = getPathForBDev(predecessorBDName)
 				if er != nil {
 					err = ErrorWrapf(err, "Failed to check bdev change {%s}.. %s", bdev.BlockDeviceName, er.Error())
 					continue
@@ -111,9 +111,9 @@ func Update(cspi *apis.CStorPoolInstance) (*apis.CStorPoolInstance, error) {
 			//   2.1 Unclaim the old blockdevice which was used by pool
 			//   2.2 Remove the annotation from blockdeviceclaim which is
 			//       inuse by cstor pool
-			if predecesorBDName != "" && !isResilveringInProgress(executeZpoolDump, cspi, diskPath) {
+			if predecessorBDName != "" && !isResilveringInProgress(executeZpoolDump, cspi, diskPath) {
 				olbdClaim, _ := bdClaimList.GetBlockDeviceClaimFromBDName(
-					predecesorBDName)
+					predecessorBDName)
 				if er := cleanUpReplacementMarks(olbdClaim, bdClaim); er != nil {
 					err = ErrorWrapf(
 						err,
