@@ -112,9 +112,9 @@ func Update(cspi *apis.CStorPoolInstance) (*apis.CStorPoolInstance, error) {
 			//   2.2 Remove the annotation from blockdeviceclaim which is
 			//       inuse by cstor pool
 			if predecessorBDName != "" && !isResilveringInProgress(executeZpoolDump, cspi, diskPath) {
-				olbdClaim, _ := bdClaimList.GetBlockDeviceClaimFromBDName(
+				oldBDClaim, _ := bdClaimList.GetBlockDeviceClaimFromBDName(
 					predecessorBDName)
-				if er := cleanUpReplacementMarks(olbdClaim, bdClaim); er != nil {
+				if er := cleanUpReplacementMarks(oldBDClaim, bdClaim); er != nil {
 					err = ErrorWrapf(
 						err,
 						"Failed cleanup replacement marks of replaced blockdevice {%s}.. %s",

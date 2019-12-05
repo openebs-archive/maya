@@ -98,6 +98,14 @@ func addNewVdevFromCSP(csp *apis.CStorPoolInstance) error {
 			if er := addRaidGroup(csp, raidGroup); er != nil {
 				err = ErrorWrapf(err, "Failed to add raidGroup{%#v}.. %s", raidGroup, er.Error())
 			}
+		} else if len(devlist) != 0 && raidGroup.Type == string(apis.PoolStriped) {
+			if _, er := zfs.NewPoolExpansion().
+				WithDeviceType(getDeviceType(raidGroup)).
+				WithVdevList(devlist).
+				WithPool(PoolName(csp)).
+				Execute(); er != nil {
+				err = ErrorWrapf(err, "Failed to add devlist %v.. err {%s}", devlist, er.Error())
+			}
 		}
 	}
 	return err
@@ -135,7 +143,7 @@ func replacePoolVdev(cspi *apis.CStorPoolInstance, oldPaths, npath []string) (st
 	var usedPath string
 	var isUsed bool
 	if len(npath) == 0 {
-		return "", errors.Errorf("Empty path for bdev")
+		return "", errors.Errorf("Empty path for vdev")
 	}
 
 	// Wait! Device path may got changed due to import
