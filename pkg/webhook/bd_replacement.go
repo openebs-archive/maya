@@ -141,12 +141,12 @@ func (bdr *BlockDeviceReplacement) IsReplacementValid(oldPoolSpec, newPoolSpec *
 // IsRaidGroupCommon returns true if the provided raid groups are the same raid groups.
 func IsRaidGroupCommon(rgOld, rgNew apis.RaidGroup) bool {
 	oldBdMap := make(map[string]bool)
-	for _, bd := range rgOld.BlockDevices {
-		oldBdMap[bd.BlockDeviceName] = true
+	for _, oldBD := range rgOld.BlockDevices {
+		oldBdMap[oldBD.BlockDeviceName] = true
 	}
 
-	for _, bd := range rgNew.BlockDevices {
-		if oldBdMap[bd.BlockDeviceName] {
+	for _, newBD := range rgNew.BlockDevices {
+		if oldBdMap[newBD.BlockDeviceName] {
 			return true
 		}
 	}
