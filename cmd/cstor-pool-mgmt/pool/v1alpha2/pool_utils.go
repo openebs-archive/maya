@@ -279,10 +279,9 @@ func getVdevFromPath(path string, topology zpool.Topology) (zpool.Vdev, bool) {
 // newObj is block device claim of current block device object which is in use
 // by pool
 func cleanUpReplacementMarks(oldObj, newObj *ndmapis.BlockDeviceClaim) error {
-	var err error
 	bdcClient := blockdeviceclaim.NewKubeClient().WithNamespace(newObj.Namespace)
 	if oldObj != nil {
-		oldObj, err = blockdeviceclaim.
+		updatedOldObj, err := blockdeviceclaim.
 			BuilderForAPIObject(oldObj).BDC.RemoveFinalizer(apiscspc.CSPCFinalizer)
 		if err != nil {
 			return errors.Wrapf(err,
@@ -290,7 +289,7 @@ func cleanUpReplacementMarks(oldObj, newObj *ndmapis.BlockDeviceClaim) error {
 				oldObj.Name,
 			)
 		}
-		err = bdcClient.Delete(oldObj.Name, &metav1.DeleteOptions{})
+		err = bdcClient.Delete(updatedOldObj.Name, &metav1.DeleteOptions{})
 		if err != nil {
 			return errors.Wrapf(
 				err,
@@ -302,7 +301,7 @@ func cleanUpReplacementMarks(oldObj, newObj *ndmapis.BlockDeviceClaim) error {
 	bdAnnotations := newObj.GetAnnotations()
 	delete(bdAnnotations, string(apis.PredecessorBlockDeviceCPK))
 	newObj.SetAnnotations(bdAnnotations)
-	_, err = bdcClient.Update(newObj)
+	_, err := bdcClient.Update(newObj)
 	if err != nil {
 		return errors.Wrapf(
 			err,
