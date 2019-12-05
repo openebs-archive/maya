@@ -187,7 +187,7 @@ func (bdr *BlockDeviceReplacement) IsBDReplacementValid(newRG, oldRG *apis.RaidG
 		return false, "cannot replace more than one blockdevice in a raid group"
 	}
 
-	// The incoming BD for replacement should not pe present in the current CSPC.
+	// The incoming BD for replacement should not be present in the current CSPC.
 	if bdr.IsNewBDPresentOnCurrentCSPC(newRG, oldRG) {
 		return false, "the new blockdevice intended to use for replacement is already a part of the current cspc"
 	}
@@ -340,7 +340,8 @@ func ClaimBD(newBdObj *ndmapis.BlockDevice, oldBD string, cspcOld *apis.CStorPoo
 	newBDCObj, err := bdc.NewBuilder().
 		WithName("bdc-cstor-" + string(newBdObj.UID)).
 		WithNamespace(newBdObj.Namespace).
-		WithLabels(map[string]string{string(apis.CStorPoolClusterCPK): cspcOld.Name, apis.PredecessorBDKey: oldBD}).
+		WithLabels(map[string]string{string(apis.CStorPoolClusterCPK): cspcOld.Name}).
+		WithAnnotations(map[string]string{apis.PredecessorBDKey: oldBD}).
 		WithBlockDeviceName(newBdObj.Name).
 		WithHostName(newBdObj.Labels[string(apis.HostNameCPK)]).
 		WithCapacity(volume.ByteCount(newBdObj.Spec.Capacity.Storage)).
