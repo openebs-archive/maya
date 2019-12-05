@@ -359,6 +359,7 @@ func ClaimBD(newBdObj *ndmapis.BlockDevice, oldBD string, cspcOld *apis.CStorPoo
 		if err != nil {
 			return errors.Wrapf(err, "failed to create block device claim for bd {%s}", newBdObj.Name)
 		}
+		return nil
 	} else if err != nil {
 		return errors.Wrapf(err, "failed to get block device claim for bd {%s}", newBdObj.Name)
 	}
