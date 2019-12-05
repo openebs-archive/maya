@@ -274,37 +274,41 @@ func getVdevFromPath(path string, topology zpool.Topology) (zpool.Vdev, bool) {
 // 1. RemoveFinalizer on old block device claim exists and delete the old block
 //   device claim.
 // 2. Remove link of old block device in new block device claim
-func cleanUpReplacementMarks(oldBDClaimObj, currentBDClaimObj *ndmapis.BlockDeviceClaim) error {
+// oldObj is block device claim of replaced block device object which is
+// detached from pool
+// newObj is block device claim of current block device object which is in use
+// by pool
+func cleanUpReplacementMarks(oldObj, newObj *ndmapis.BlockDeviceClaim) error {
 	var err error
-	bdcClient := blockdeviceclaim.NewKubeClient().WithNamespace(currentBDClaimObj.Namespace)
-	if oldBDClaimObj != nil {
-		oldBDClaimObj, err = blockdeviceclaim.
-			BuilderForAPIObject(oldBDClaimObj).BDC.RemoveFinalizer(apiscspc.CSPCFinalizer)
+	bdcClient := blockdeviceclaim.NewKubeClient().WithNamespace(newObj.Namespace)
+	if oldObj != nil {
+		oldObj, err = blockdeviceclaim.
+			BuilderForAPIObject(oldObj).BDC.RemoveFinalizer(apiscspc.CSPCFinalizer)
 		if err != nil {
 			return errors.Wrapf(err,
 				"failed to remove finalizer on blockdeviceclaim {%s}",
-				oldBDClaimObj.Name,
+				oldObj.Name,
 			)
 		}
-		err = bdcClient.Delete(oldBDClaimObj.Name, &metav1.DeleteOptions{})
+		err = bdcClient.Delete(oldObj.Name, &metav1.DeleteOptions{})
 		if err != nil {
 			return errors.Wrapf(
 				err,
 				"Failed to unclaim old blockdevice {%s}",
-				oldBDClaimObj.Spec.BlockDeviceName,
+				oldObj.Spec.BlockDeviceName,
 			)
 		}
 	}
-	bdAnnotations := currentBDClaimObj.GetAnnotations()
+	bdAnnotations := newObj.GetAnnotations()
 	delete(bdAnnotations, string(apis.PredecessorBlockDeviceCPK))
-	currentBDClaimObj.SetAnnotations(bdAnnotations)
-	_, err = bdcClient.Update(currentBDClaimObj)
+	newObj.SetAnnotations(bdAnnotations)
+	_, err = bdcClient.Update(newObj)
 	if err != nil {
 		return errors.Wrapf(
 			err,
 			"Failed to remove annotation {%s} from blockdeviceclaim {%s}",
 			string(apis.PredecessorBlockDeviceCPK),
-			currentBDClaimObj.Name,
+			newObj.Name,
 		)
 	}
 	return nil
