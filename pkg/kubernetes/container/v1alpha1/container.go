@@ -254,6 +254,7 @@ func (b *Builder) WithVolumeMountsNew(volumeMounts []corev1.VolumeMount) *Builde
 	return b
 }
 
+// WithVolumeDevices builds the containers with the appropriate volumeDevices
 func (b *Builder) WithVolumeDevices(volumeDevices []corev1.VolumeDevice) *Builder {
 	if volumeDevices == nil {
 		b.errors = append(
