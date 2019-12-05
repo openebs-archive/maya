@@ -131,13 +131,15 @@ func (pc *PoolConfig) addGroupToPool(cspcPoolSpec *apis.PoolSpec, cspi *apis.CSt
 	return cspi
 }
 
+// updateExistingCSPI updates the CSPI object with new block devices only when
+// there are changes in block devices between raid groups of CSPI and CSPC
 func (pc *PoolConfig) updateExistingCSPI(
 	cspcPoolSpec *apis.PoolSpec, cspi *apis.CStorPoolInstance) *apis.CStorPoolInstance {
 	var err error
 	for _, cspcRaidGroup := range cspcPoolSpec.RaidGroups {
 		cspcRaidGroup := cspcRaidGroup
-		cspiRaidGroup, isValidReplacement := getCSPIRaidGroup(&cspcRaidGroup, cspi)
-		if isValidReplacement {
+		cspiRaidGroup := getReplacedCSPIRaidGroup(&cspcRaidGroup, cspi)
+		if cspiRaidGroup != nil {
 			err = pc.replaceExistingBlockDevice(cspcRaidGroup, cspiRaidGroup)
 			if err != nil {
 				klog.Infof(
@@ -277,9 +279,12 @@ func (pc *PoolConfig) replaceExistingBlockDevice(
 	return nil
 }
 
-func getCSPIRaidGroup(
+// getReplacedCSPIRaidGroup returns the corresponding CSPI raid group for provided CSPC
+// raid group only if there is one block device replacement or else it will return
+// nil
+func getReplacedCSPIRaidGroup(
 	cspcRaidGroup *apis.RaidGroup,
-	cspi *apis.CStorPoolInstance) (*apis.RaidGroup, bool) {
+	cspi *apis.CStorPoolInstance) *apis.RaidGroup {
 	blockDeviceMap := make(map[string]bool)
 	for _, bd := range cspcRaidGroup.BlockDevices {
 		blockDeviceMap[bd.BlockDeviceName] = true
@@ -293,10 +298,10 @@ func getCSPIRaidGroup(
 			}
 		}
 		if misMatchedBDCount == 1 {
-			return &cspiRaidGroup, true
+			return &cspiRaidGroup
 		}
 	}
-	return nil, false
+	return nil
 }
 
 // getAddedBlockDevicesInGroup returns the added block device list
@@ -380,6 +385,9 @@ func (pc *PoolConfig) ClaimBD(bdName string) error {
 	return nil
 }
 
+// isPoolSpecBlockDevicesGotReplaced return true if any block device in CSPC pool
+// spec got replaced. If no block device changes are detected then it will
+// return false
 func isPoolSpecBlockDevicesGotReplaced(
 	cspcPoolSpec *apis.PoolSpec, cspi *apis.CStorPoolInstance) bool {
 	cspcBlockDeviceMap := getBlockDeviceMapFromRaidGroups(cspcPoolSpec.RaidGroups)
@@ -393,6 +401,8 @@ func isPoolSpecBlockDevicesGotReplaced(
 	return false
 }
 
+// getBlockDeviceMapFromRaidGroups will return map of block devices that are in
+// use by raid groups
 func getBlockDeviceMapFromRaidGroups(
 	raidGroups []apis.RaidGroup) map[string]bool {
 	blockDeviceMap := make(map[string]bool)
