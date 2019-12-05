@@ -93,23 +93,13 @@ func addNewVdevFromCSP(csp *apis.CStorPoolInstance) error {
 				wholeGroup = false
 			}
 		}
+		/* Perform vertical Pool expansion only if entier raid group is added */
 		if wholeGroup {
 			if er := addRaidGroup(csp, raidGroup); er != nil {
 				err = ErrorWrapf(err, "Failed to add raidGroup{%#v}.. %s", raidGroup, er.Error())
 			}
 		}
-		/* Pool expansion adding in same raidGroup is invalid operation */
-		//else if len(devlist) != 0 {
-		//	if _, er := zfs.NewPoolExpansion().
-		//		WithDeviceType(getDeviceType(raidGroup)).
-		//		WithVdevList(devlist).
-		//		WithPool(PoolName(csp)).
-		//		Execute(); er != nil {
-		//		err = ErrorWrapf(err, "Failed to add devlist %v.. err {%s}", devlist, er.Error())
-		//	}
-		//}
 	}
-
 	return err
 }
 
@@ -180,15 +170,5 @@ func replacePoolVdev(cspi *apis.CStorPoolInstance, oldPaths, npath []string) (st
 		WithNewVdev(npath[0]).
 		WithPool(PoolName(cspi)).
 		Execute()
-		//if err == nil {
-		//	if _, err := zfs.NewPoolLabelClear().
-		//		WithForceFully(true).
-		//		WithVdev(bdev.DevLink).
-		//		Execute(); err != nil {
-		//		// Let's log the error
-		//		klog.Errorf("Failed to perform label clear for disk {%s}", bdev.DevLink)
-		//	}
-		//	return npath[0], nil
-		//}
 	return npath[0], err
 }

@@ -274,37 +274,37 @@ func getVdevFromPath(path string, topology zpool.Topology) (zpool.Vdev, bool) {
 // 1. RemoveFinalizer on old block device claim exists and delete the old block
 //   device claim.
 // 2. Remove link of old block device in new block device claim
-func cleanUpReplacementMarks(oldBDClaimAPI, currentBDClaimAPI *ndmapis.BlockDeviceClaim) error {
+func cleanUpReplacementMarks(oldBDClaimAPIObj, currentBDClaimAPIObj *ndmapis.BlockDeviceClaim) error {
 	var err error
-	bdcClient := blockdeviceclaim.NewKubeClient().WithNamespace(currentBDClaimAPI.Namespace)
-	if oldBDClaimAPI != nil {
-		oldBDClaimAPI, err = blockdeviceclaim.
-			BuilderForAPIObject(oldBDClaimAPI).BDC.RemoveFinalizer(apiscspc.CSPCFinalizer)
+	bdcClient := blockdeviceclaim.NewKubeClient().WithNamespace(currentBDClaimAPIObj.Namespace)
+	if oldBDClaimAPIObj != nil {
+		oldBDClaimAPIObj, err = blockdeviceclaim.
+			BuilderForAPIObject(oldBDClaimAPIObj).BDC.RemoveFinalizer(apiscspc.CSPCFinalizer)
 		if err != nil {
 			return errors.Wrapf(err,
 				"failed to remove finalizer on blockdeviceclaim {%s}",
-				oldBDClaimAPI.Name,
+				oldBDClaimAPIObj.Name,
 			)
 		}
-		err = bdcClient.Delete(oldBDClaimAPI.Name, &metav1.DeleteOptions{})
+		err = bdcClient.Delete(oldBDClaimAPIObj.Name, &metav1.DeleteOptions{})
 		if err != nil {
 			return errors.Wrapf(
 				err,
 				"Failed to unclaim old blockdevice {%s}",
-				oldBDClaimAPI.Spec.BlockDeviceName,
+				oldBDClaimAPIObj.Spec.BlockDeviceName,
 			)
 		}
 	}
-	bdAnnotations := currentBDClaimAPI.GetAnnotations()
+	bdAnnotations := currentBDClaimAPIObj.GetAnnotations()
 	delete(bdAnnotations, string(apis.PredecessorBlockDeviceCPK))
-	currentBDClaimAPI.SetAnnotations(bdAnnotations)
-	_, err = bdcClient.Update(currentBDClaimAPI)
+	currentBDClaimAPIObj.SetAnnotations(bdAnnotations)
+	_, err = bdcClient.Update(currentBDClaimAPIObj)
 	if err != nil {
 		return errors.Wrapf(
 			err,
 			"Failed to remove annotation {%s} from blockdeviceclaim {%s}",
 			string(apis.PredecessorBlockDeviceCPK),
-			currentBDClaimAPI.Name,
+			currentBDClaimAPIObj.Name,
 		)
 	}
 	return nil
