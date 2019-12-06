@@ -65,6 +65,62 @@ func (b *Builder) WithHostDirectory(path string) *Builder {
 	return b
 }
 
+//WithSecret sets the VolumeSource field of Volume with provided Secret
+func (b *Builder) WithSecret(secret *corev1.Secret, defaultMode int32) *Builder {
+	dM := defaultMode
+	if secret == nil {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build volume object: nil ConfigMap"),
+		)
+		return b
+	}
+	if defaultMode == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build volume object: missing defaultmode"),
+		)
+	}
+	volumeSource := corev1.VolumeSource{
+		Secret: &corev1.SecretVolumeSource{
+			DefaultMode: &dM,
+			SecretName:  secret.Name,
+		},
+	}
+	b.volume.object.VolumeSource = volumeSource
+	b.volume.object.Name = secret.Name
+	return b
+}
+
+//WithConfigMap sets the VolumeSource field of Volume with provided ConfigMap
+func (b *Builder) WithConfigMap(configMap *corev1.ConfigMap, defaultMode int32) *Builder {
+	dM := defaultMode
+	if configMap == nil {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build volume object: nil ConfigMap"),
+		)
+		return b
+	}
+	if defaultMode == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build volume object: missing defaultmode"),
+		)
+	}
+	volumeSource := corev1.VolumeSource{
+		ConfigMap: &corev1.ConfigMapVolumeSource{
+			DefaultMode: &dM,
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: configMap.Name,
+			},
+		},
+	}
+	b.volume.object.VolumeSource = volumeSource
+	b.volume.object.Name = configMap.Name
+	return b
+}
+
 // WithHostPathAndType sets the VolumeSource field of Volume with provided
 // hostpath as directory path and type as directory type
 func (b *Builder) WithHostPathAndType(
