@@ -65,12 +65,6 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 		klog.Infof("Using block device{%v} with fs{%v}", blkPath, fsType)
 	}
 
-	// VolumeMode will always be specified as Filesystem for host path volume,
-	// and the value passed in from the PVC spec will be ignored.
-	volumeMode := v1.PersistentVolumeFilesystem
-	if *opts.PVC.Spec.VolumeMode == v1.PersistentVolumeBlock {
-		volumeMode = v1.PersistentVolumeBlock
-	}
 	// It is possible that the HostPath doesn't already exist on the node.
 	// Set the Local PV to create it.
 	//hostPathType := v1.HostPathDirectoryOrCreate
@@ -99,8 +93,8 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 
 	// If volumeMode set to "Block", then provide the appropriate volumeMode, to pvObj
 	if *opts.PVC.Spec.VolumeMode == v1.PersistentVolumeBlock {
-		volumeMode = v1.PersistentVolumeBlock
-		pvObjBuilder.WithVolumeMode(volumeMode)
+		//volumeMode = v1.PersistentVolumeBlock
+		pvObjBuilder.WithVolumeMode(v1.PersistentVolumeBlock)
 	}
 
 	//Build the pvObject
