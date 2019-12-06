@@ -81,6 +81,10 @@ const (
 	// StorageClassHeaderKey is the key to fetch name of StorageClass
 	// This key is present only in get request headers
 	StorageClassHeaderKey CASKey = "storageclass"
+
+	// PredecessorBDKey is the key to fetch the predecessor BD in case of
+	// block device replacement.
+	PredecessorBDKey = "openebs.io/bd-predecessor"
 )
 
 // CASPlainKey represents a openebs key used either in resource annotation
