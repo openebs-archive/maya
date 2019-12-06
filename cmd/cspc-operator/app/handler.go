@@ -358,7 +358,7 @@ func (pc *PoolConfig) removeSPCFinalizerOnAssociatedBDC() error {
 
 	for _, bdcObj := range bdcList.Items {
 		bdcObj := bdcObj
-		err := bdc.BuilderForAPIObject(&bdcObj).BDC.RemoveFinalizer(apiscspc.CSPCFinalizer)
+		_, err := bdc.BuilderForAPIObject(&bdcObj).BDC.RemoveFinalizer(apiscspc.CSPCFinalizer)
 		if err != nil {
 			return errors.Wrapf(err, "failed to remove CSPC finalizer on BDC %s", bdcObj.Name)
 		}

@@ -23,6 +23,7 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
+	"github.com/pkg/errors"
 )
 
 //TODO: While using these packages UnitTest must be written to corresponding function
@@ -47,6 +48,10 @@ type getFn func(cli *clientset.Clientset, namespace, name string, opts metav1.Ge
 // abstracts deleting of block deivce
 type delFn func(cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error
 
+// updateFn is a typed function that abstracts to update
+// block device
+type updateFn func(cli *clientset.Clientset, namespace string, bd *apis.BlockDevice) (*apis.BlockDevice, error)
+
 // Kubeclient enables kubernetes API operations
 // on block device instance
 type Kubeclient struct {
@@ -63,6 +68,7 @@ type Kubeclient struct {
 	list                listFn
 	get                 getFn
 	del                 delFn
+	update              updateFn
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -105,6 +111,11 @@ func (k *Kubeclient) WithDefaults() {
 	if k.del == nil {
 		k.del = func(cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error {
 			return cli.OpenebsV1alpha1().BlockDevices(namespace).Delete(name, opts)
+		}
+	}
+	if k.update == nil {
+		k.update = func(cli *clientset.Clientset, namespace string, bd *apis.BlockDevice) (*apis.BlockDevice, error) {
+			return cli.OpenebsV1alpha1().BlockDevices(namespace).Update(bd)
 		}
 	}
 }
@@ -190,4 +201,16 @@ func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
 		return err
 	}
 	return k.del(cli, k.namespace, name, opts)
+}
+
+// Update updates the block device claim if present in kubernetes cluster
+func (k *Kubeclient) Update(bd *apis.BlockDevice) (*apis.BlockDevice, error) {
+	if bd == nil {
+		return nil, errors.New("failed to udpate bdc: nil bdc object")
+	}
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update bdc {%s} in namespace {%s}", bd.Name, bd.Namespace)
+	}
+	return k.update(cli, k.namespace, bd)
 }

@@ -18,6 +18,7 @@ package app
 
 import (
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha2"
+	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apisbd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
@@ -248,6 +249,10 @@ func (pc *PoolConfig) ClaimBD(bdName string) error {
 		Get(bdName, metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "could not get bd object %s", bdName)
+	}
+	// If blockdevice is already claimed no need of creating claim
+	if bdObj.Status.ClaimState == ndmapis.BlockDeviceClaimed {
+		return nil
 	}
 	err = pc.AlgorithmConfig.ClaimBD(bdObj)
 	if err != nil {

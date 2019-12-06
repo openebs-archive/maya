@@ -20,13 +20,18 @@ import (
 	"strings"
 
 	pool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
+	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
+	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
+	apiscspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 func getPathForBdevList(bdevs []apis.CStorPoolClusterBlockDevice) (map[string][]string, error) {
@@ -50,24 +55,26 @@ func getPathForBDev(bdev string) ([]string, error) {
 	// TODO
 	// replace `NAMESPACE` with env variable from CSP deployment
 	bd, err := blockdevice.NewKubeClient().
-		WithNamespace(env.Get("NAMESPACE")).
+		WithNamespace(env.Get(env.Namespace)).
 		Get(bdev, metav1.GetOptions{})
 	if err != nil {
 		return path, err
 	}
+	return getPathForBDevFromBlockDevice(bd), nil
+}
 
+func getPathForBDevFromBlockDevice(bd *ndmapis.BlockDevice) []string {
+	var paths []string
 	if len(bd.Spec.DevLinks) != 0 {
 		for _, v := range bd.Spec.DevLinks {
-			path = append(path, v.Links...)
+			paths = append(paths, v.Links...)
 		}
 	}
 
 	if len(bd.Spec.Path) != 0 {
-		path = append(path, bd.Spec.Path)
-
+		paths = append(paths, bd.Spec.Path)
 	}
-
-	return path, nil
+	return paths
 }
 
 func checkIfPoolPresent(name string) bool {
@@ -172,4 +179,136 @@ func getDeviceType(r apis.RaidGroup) string {
 		return DeviceTypeWriteCache
 	}
 	return DeviceTypeEmpty
+}
+
+// getBlockDeviceClaimList returns list of block device claims based on the
+// label passed to the function
+func getBlockDeviceClaimList(key, value string) (
+	*blockdeviceclaim.BlockDeviceClaimList, error) {
+	namespace := env.Get(env.Namespace)
+	bdcClient := blockdeviceclaim.NewKubeClient().
+		WithNamespace(namespace)
+	bdcAPIList, err := bdcClient.List(metav1.ListOptions{
+		LabelSelector: key + "=" + value,
+	})
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"failed to list bdc related to key: %s value: %s",
+			key,
+			value,
+		)
+	}
+	return &blockdeviceclaim.BlockDeviceClaimList{ObjectList: bdcAPIList}, nil
+}
+
+func executeZpoolDump(cspi *apis.CStorPoolInstance) (zpool.Topology, error) {
+	return zfs.NewPoolDump().
+		WithPool(PoolName(cspi)).
+		WithStripVdevPath().
+		Execute()
+}
+
+// isResilveringInProgress returns true if resilvering is inprogress at cstor
+// pool
+func isResilveringInProgress(
+	executeCommand func(cspi *apis.CStorPoolInstance) (zpool.Topology, error),
+	cspi *apis.CStorPoolInstance,
+	path string) bool {
+	poolTopology, err := executeCommand(cspi)
+	if err != nil {
+		// log error
+		klog.Errorf("Failed to get pool topology error: %v", err)
+		return true
+	}
+	vdev, isVdevExist := getVdevFromPath(path, poolTopology)
+	if !isVdevExist {
+		return true
+	}
+	// If device in raid group didn't got replaced then there won't be any info
+	// related to scan stats
+	if len(vdev.ScanStats) == 0 {
+		return false
+	}
+	// If device didn't underwent resilvering then no.of scaned bytes will be
+	// zero
+	if vdev.VdevStats[zpool.VdevScanProcessedIndex] == 0 {
+		return false
+	}
+	// To decide whether resilvering is completed then check following steps
+	// 1. Current device should be child device.
+	// 2. Device Scan State should be completed
+	if len(vdev.Children) == 0 &&
+		vdev.ScanStats[zpool.VdevScanStatsStateIndex] == uint64(zpool.PoolScanFinished) &&
+		vdev.ScanStats[zpool.VdevScanStatsScanFuncIndex] == uint64(zpool.PoolScanFuncResilver) {
+		return false
+	}
+	return true
+}
+
+func getVdevFromPath(path string, topology zpool.Topology) (zpool.Vdev, bool) {
+	var vdev zpool.Vdev
+	var isVdevExist bool
+
+	if vdev, isVdevExist = zpool.
+		VdevList(topology.VdevTree.Topvdev).
+		GetVdevFromPath(path); isVdevExist {
+		return vdev, isVdevExist
+	}
+
+	if vdev, isVdevExist = zpool.
+		VdevList(topology.VdevTree.Spares).
+		GetVdevFromPath(path); isVdevExist {
+		return vdev, isVdevExist
+	}
+
+	if vdev, isVdevExist = zpool.
+		VdevList(topology.VdevTree.Readcache).
+		GetVdevFromPath(path); isVdevExist {
+		return vdev, isVdevExist
+	}
+	return vdev, isVdevExist
+}
+
+//cleanUpReplacementMarks should be called only after resilvering is completed.
+//It does the following work
+// 1. RemoveFinalizer on old block device claim exists and delete the old block
+//   device claim.
+// 2. Remove link of old block device in new block device claim
+// oldObj is block device claim of replaced block device object which is
+// detached from pool
+// newObj is block device claim of current block device object which is in use
+// by pool
+func cleanUpReplacementMarks(oldObj, newObj *ndmapis.BlockDeviceClaim) error {
+	bdcClient := blockdeviceclaim.NewKubeClient().WithNamespace(newObj.Namespace)
+	if oldObj != nil {
+		updatedOldObj, err := blockdeviceclaim.
+			BuilderForAPIObject(oldObj).BDC.RemoveFinalizer(apiscspc.CSPCFinalizer)
+		if err != nil {
+			return errors.Wrapf(err,
+				"failed to remove finalizer on blockdeviceclaim {%s}",
+				oldObj.Name,
+			)
+		}
+		err = bdcClient.Delete(updatedOldObj.Name, &metav1.DeleteOptions{})
+		if err != nil {
+			return errors.Wrapf(
+				err,
+				"Failed to unclaim old blockdevice {%s}",
+				oldObj.Spec.BlockDeviceName,
+			)
+		}
+	}
+	bdAnnotations := newObj.GetAnnotations()
+	delete(bdAnnotations, string(apis.PredecessorBlockDeviceCPK))
+	newObj.SetAnnotations(bdAnnotations)
+	_, err := bdcClient.Update(newObj)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"Failed to remove annotation {%s} from blockdeviceclaim {%s}",
+			string(apis.PredecessorBlockDeviceCPK),
+			newObj.Name,
+		)
+	}
+	return nil
 }

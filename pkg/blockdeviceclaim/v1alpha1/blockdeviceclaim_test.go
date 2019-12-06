@@ -17,18 +17,17 @@ package v1alpha1
 import (
 	"testing"
 
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
-	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func fakeAPIBDCList(bdcNames []string) *apis.BlockDeviceClaimList {
+func fakeAPIBDCList(bdcNames []string) *ndmapis.BlockDeviceClaimList {
 	if len(bdcNames) == 0 {
 		return nil
 	}
-	list := &apis.BlockDeviceClaimList{}
+	list := &ndmapis.BlockDeviceClaimList{}
 	for _, name := range bdcNames {
-		bdc := apis.BlockDeviceClaim{}
+		bdc := ndmapis.BlockDeviceClaim{}
 		bdc.SetName(name)
 		list.Items = append(list.Items, bdc)
 	}
@@ -43,15 +42,15 @@ func TestGetBDList(t *testing.T) {
 	}{
 		"blockDeviceClaimList1": {
 			bdcList: &BlockDeviceClaimList{
-				ObjectList: &apis.BlockDeviceClaimList{
+				ObjectList: &ndmapis.BlockDeviceClaimList{
 					TypeMeta: metav1.TypeMeta{},
 					ListMeta: metav1.ListMeta{},
-					Items: []ndm.BlockDeviceClaim{
+					Items: []ndmapis.BlockDeviceClaim{
 						{
 							TypeMeta:   metav1.TypeMeta{},
 							ObjectMeta: metav1.ObjectMeta{},
-							Spec: ndm.DeviceClaimSpec{
-								BlockDeviceNodeAttributes: ndm.BlockDeviceNodeAttributes{
+							Spec: ndmapis.DeviceClaimSpec{
+								BlockDeviceNodeAttributes: ndmapis.BlockDeviceNodeAttributes{
 									HostName: "openebs-1234",
 								},
 								BlockDeviceName: "blockdevice1",
@@ -60,8 +59,8 @@ func TestGetBDList(t *testing.T) {
 						{
 							TypeMeta:   metav1.TypeMeta{},
 							ObjectMeta: metav1.ObjectMeta{},
-							Spec: ndm.DeviceClaimSpec{
-								BlockDeviceNodeAttributes: ndm.BlockDeviceNodeAttributes{
+							Spec: ndmapis.DeviceClaimSpec{
+								BlockDeviceNodeAttributes: ndmapis.BlockDeviceNodeAttributes{
 									HostName: "openebs-1234",
 								},
 								BlockDeviceName: "blockdevice2",
@@ -70,8 +69,8 @@ func TestGetBDList(t *testing.T) {
 						{
 							TypeMeta:   metav1.TypeMeta{},
 							ObjectMeta: metav1.ObjectMeta{},
-							Spec: ndm.DeviceClaimSpec{
-								BlockDeviceNodeAttributes: ndm.BlockDeviceNodeAttributes{
+							Spec: ndmapis.DeviceClaimSpec{
+								BlockDeviceNodeAttributes: ndmapis.BlockDeviceNodeAttributes{
 									HostName: "openebs-1234",
 								},
 								BlockDeviceName: "blockdevice3",
@@ -102,9 +101,9 @@ func TestGetHostName(t *testing.T) {
 	}{
 		"Test with blockdevice attribute hostname": {
 			bdc: &BlockDeviceClaim{
-				Object: &ndm.BlockDeviceClaim{
-					Spec: ndm.DeviceClaimSpec{
-						BlockDeviceNodeAttributes: ndm.BlockDeviceNodeAttributes{
+				Object: &ndmapis.BlockDeviceClaim{
+					Spec: ndmapis.DeviceClaimSpec{
+						BlockDeviceNodeAttributes: ndmapis.BlockDeviceNodeAttributes{
 							HostName: "fakeNode1",
 						},
 					},
@@ -114,8 +113,8 @@ func TestGetHostName(t *testing.T) {
 		},
 		"Test with spec hostName": {
 			bdc: &BlockDeviceClaim{
-				Object: &ndm.BlockDeviceClaim{
-					Spec: ndm.DeviceClaimSpec{
+				Object: &ndmapis.BlockDeviceClaim{
+					Spec: ndmapis.DeviceClaimSpec{
 						HostName: "fakeNode2",
 					},
 				},
@@ -124,7 +123,7 @@ func TestGetHostName(t *testing.T) {
 		},
 		"Test with empty": {
 			bdc: &BlockDeviceClaim{
-				Object: &ndm.BlockDeviceClaim{},
+				Object: &ndmapis.BlockDeviceClaim{},
 			},
 			expectedOutput: "",
 		},
@@ -136,6 +135,65 @@ func TestGetHostName(t *testing.T) {
 			if hostName != test.expectedOutput {
 				t.Errorf("Test %q failed: expected hostName %s but got hostName %s", name, test.expectedOutput, hostName)
 			}
+		})
+	}
+}
+
+func TestGetBlockDeviceClaimFromBDName(t *testing.T) {
+	tests := map[string]struct {
+		bdcList       BlockDeviceClaimList
+		bdName        string
+		expectedError bool
+	}{
+		"When block device claim list exists": {
+			bdcList: BlockDeviceClaimList{
+				ObjectList: &ndmapis.BlockDeviceClaimList{
+					Items: []ndmapis.BlockDeviceClaim{
+						ndmapis.BlockDeviceClaim{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "blockdevice1",
+							},
+							Spec: ndmapis.DeviceClaimSpec{
+								BlockDeviceName: "blockdevice1",
+							},
+						},
+						ndmapis.BlockDeviceClaim{
+							Spec: ndmapis.DeviceClaimSpec{
+								BlockDeviceName: "blockdevice2",
+							},
+						},
+						ndmapis.BlockDeviceClaim{
+							Spec: ndmapis.DeviceClaimSpec{
+								BlockDeviceName: "blockdevice3",
+							},
+						},
+					},
+				},
+			},
+			bdName:        "blockdevice3",
+			expectedError: false,
+		},
+		"when block device doesn't exist": {
+			bdcList: BlockDeviceClaimList{
+				ObjectList: &ndmapis.BlockDeviceClaimList{
+					Items: []ndmapis.BlockDeviceClaim{},
+				},
+			},
+			bdName:        "blockdevice2",
+			expectedError: true,
+		},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			_, err := test.bdcList.GetBlockDeviceClaimFromBDName(test.bdName)
+			if test.expectedError && err == nil {
+				t.Errorf("test %s failed expected error but got nil", name)
+			}
+			if !test.expectedError && err != nil {
+				t.Errorf("test %s failed expected not to get error but got error :%v", name, err)
+			}
+
 		})
 	}
 }
