@@ -684,7 +684,7 @@ var _ = Describe("[-ve] TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK ", fun
 		})
 	})
 	When("existing deployment with busybox image is created", func() {
-		It("should create a deployment and a running pod, with PVC volumeMode set to Block,but added as volumeMount in Deployment", func() {
+		It("should create a deployment but should be unable to get a running pod, with PVC volumeMode set to Block,but added as volumeMount in Deployment", func() {
 
 			By("building a deployment, with volume Mount for a Block volumeMode PVC")
 			existingDeployObj, err = deploy.NewBuilder().

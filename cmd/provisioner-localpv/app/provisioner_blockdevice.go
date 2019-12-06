@@ -92,16 +92,15 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 		WithAnnotations(volAnnotations).
 		WithReclaimPolicy(opts.PersistentVolumeReclaimPolicy).
 		WithAccessModes(pvc.Spec.AccessModes).
-		WithVolumeMode(volumeMode).
+		//WithVolumeMode(volumeMode).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
-		//WithLocalHostPathFormat(path, fsType).
+		WithLocalHostPathFormat(path, fsType).
 		WithNodeAffinity(nodeHostname)
 
-	// If volumeMode set to "Block", then provide the blockDevicePath
+	// If volumeMode set to "Block", then provide the appropriate volumeMode, to pvObj
 	if *opts.PVC.Spec.VolumeMode == v1.PersistentVolumeBlock {
-		pvObjBuilder.WithLocalHostPathFormat(blkPath, "")
-	} else {
-		pvObjBuilder.WithLocalHostPathFormat(path, fsType)
+		volumeMode = v1.PersistentVolumeBlock
+		pvObjBuilder.WithVolumeMode(volumeMode)
 	}
 
 	//Build the pvObject
