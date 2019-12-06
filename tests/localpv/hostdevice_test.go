@@ -311,7 +311,7 @@ var _ = Describe("TEST HOSTDEVICE LOCAL PV WITH VOLUMEMODE AS BLOCK", func() {
 				metav1.GetOptions{})
 			Expect(err).To(BeNil())
 
-			err = blockdeviceclaim.BuilderForAPIObject(bdcObj).WithConfigPath(ops.KubeConfigPath).
+			_, err = blockdeviceclaim.BuilderForAPIObject(bdcObj).WithConfigPath(ops.KubeConfigPath).
 				BDC.RemoveFinalizer(localpv_app.LocalPVFinalizer)
 			Expect(err).To(BeNil())
 

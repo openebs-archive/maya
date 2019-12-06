@@ -60,6 +60,8 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 		return nil, err
 	}
 	klog.Infof("Creating volume %v on %v at %v(%v)", name, nodeHostname, path, blkPath)
+
+	// Over-ride the path, with the blockPath, when path is empty.
 	if path == "" {
 		path = blkPath
 		klog.Infof("Using block device{%v} with fs{%v}", blkPath, fsType)
