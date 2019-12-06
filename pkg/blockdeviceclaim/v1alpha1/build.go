@@ -307,3 +307,19 @@ func (b *Builder) WithFinalizer(finalizers ...string) *Builder {
 	b.BDC.Object.Finalizers = append(b.BDC.Object.Finalizers, finalizers...)
 	return b
 }
+
+// WithBlockVolumeMode sets the volumeMode as volumeModeBlock,
+// if persistentVolumeMode is set to "Block"
+func (b *Builder) WithBlockVolumeMode(mode corev1.PersistentVolumeMode) *Builder {
+	if len(mode) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: missing PersistentVolumeMode"),
+		)
+	}
+	if mode == corev1.PersistentVolumeBlock {
+		b.BDC.Object.Spec.Details.BlockVolumeMode = ndm.VolumeModeBlock
+	}
+
+	return b
+}

@@ -172,6 +172,13 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 	return b
 }
 
+// WithVolumeMode sets the volumeMode field in PVC with provided arguments
+func (b *Builder) WithVolumeMode(vM corev1.PersistentVolumeMode) *Builder {
+
+	b.pvc.object.Spec.VolumeMode = &vM
+	return b
+}
+
 // Build returns the PVC API instance
 func (b *Builder) Build() (*corev1.PersistentVolumeClaim, error) {
 	if len(b.errs) > 0 {
