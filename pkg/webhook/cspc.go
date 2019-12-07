@@ -19,14 +19,77 @@ package webhook
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
+	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha2"
+	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
+	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	cspcv1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
 	"k8s.io/api/admission/v1beta1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
-	"net/http"
 )
+
+// TODO: Get better naming convertion from review comments
+
+// PoolValidator is build to validate pool spec, raid groups and blockdevices
+type PoolValidator struct {
+	poolSpec  *apis.PoolSpec
+	namespace string
+	nodeName  string
+	cspcName  string
+}
+
+// Builder is the builder object for Builder
+type Builder struct {
+	object *PoolValidator
+}
+
+// NewPoolSpecValidator returns new instance of poolValidator
+func NewPoolSpecValidator() *PoolValidator {
+	return &PoolValidator{}
+}
+
+// NewBuilder returns new instance of builder
+func NewBuilder() *Builder {
+	return &Builder{object: NewPoolSpecValidator()}
+}
+
+// build returns built instance of PoolValidator
+func (b *Builder) build() *PoolValidator {
+	return b.object
+}
+
+// withPoolSpec sets the poolSpec field of PoolValidator with provided values
+func (b *Builder) withPoolSpec(poolSpec apis.PoolSpec) *Builder {
+	b.object.poolSpec = &poolSpec
+	return b
+}
+
+// withPoolNamespace sets the namespace field of poolValidator with provided
+// values
+func (b *Builder) withPoolNamespace() *Builder {
+	b.object.namespace = env.Get(env.OpenEBSNamespace)
+	return b
+}
+
+// withPoolNodeName sets the node name field of poolValidator with provided
+// values
+func (b *Builder) withPoolNodeName(nodeName string) *Builder {
+	b.object.nodeName = nodeName
+	return b
+}
+
+// withCSPCName sets the cspc name field of poolValidator with provided argument
+func (b *Builder) withCSPCName(cspcName string) *Builder {
+	b.object.cspcName = cspcName
+	return b
+}
 
 // validateCSPC validates CSPC spec for Create, Update and Delete operation of the object.
 func (wh *webhook) validateCSPC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
@@ -65,13 +128,37 @@ func (wh *webhook) validateCSPCCreateRequest(req *v1beta1.AdmissionRequest) *v1b
 }
 
 func cspcValidation(cspc *apis.CStorPoolCluster) (bool, string) {
+	usedNodes := map[string]bool{}
 	if len(cspc.Spec.Pools) == 0 {
 		return false, fmt.Sprintf("pools in cspc should have at least one item")
 	}
 
+	repeatedBlockDevices := getDuplicateBlockDeviceList(cspc)
+	if len(repeatedBlockDevices) > 0 {
+		return false, fmt.Sprintf("invalid cspc: cspc has duplicate blockdevices: {%v} entries",
+			repeatedBlockDevices)
+	}
+
+	buildPoolValidator := NewBuilder().
+		withPoolNamespace().
+		withCSPCName(cspc.Name)
 	for _, pool := range cspc.Spec.Pools {
 		pool := pool // pin it
-		ok, msg := poolSpecValidation(&pool)
+		nodeName, err := nodeselect.GetNodeFromLabelSelector(pool.NodeSelector)
+		if err != nil {
+			return false, fmt.Sprintf(
+				"failed to get node from pool nodeSelector: {%v} error: {%v}",
+				pool.NodeSelector,
+				err,
+			)
+		}
+		if usedNodes[nodeName] {
+			return false, fmt.Sprintf("invalid cspc pool spec: duplicate node %s entry", nodeName)
+		}
+		usedNodes[nodeName] = true
+		pValidate := buildPoolValidator.withPoolSpec(pool).
+			withPoolNodeName(nodeName).build()
+		ok, msg := pValidate.poolSpecValidation()
 		if !ok {
 			return false, fmt.Sprintf("invalid pool spec: %s", msg)
 		}
@@ -79,18 +166,45 @@ func cspcValidation(cspc *apis.CStorPoolCluster) (bool, string) {
 	return true, ""
 }
 
-func poolSpecValidation(pool *apis.PoolSpec) (bool, string) {
-	if pool.NodeSelector == nil || len(pool.NodeSelector) == 0 {
-		return false, "nodeselector should not be empty"
+// getDuplicateBlockDeviceList returns list of block devices that are duplicate in
+// blockdevices
+func getDuplicateBlockDeviceList(cspc *apis.CStorPoolCluster) []string {
+	duplicateBlockDeviceList := []string{}
+	blockDeviceMap := map[string]bool{}
+	addedBlockDevices := map[string]bool{}
+	for _, poolSpec := range cspc.Spec.Pools {
+		for _, raidGroup := range poolSpec.RaidGroups {
+			for _, bd := range raidGroup.BlockDevices {
+				// update duplicateBlockDeviceList only if block device is
+				// repeated in CSPC and doesn't exist in duplicate block device
+				// list.
+				if blockDeviceMap[bd.BlockDeviceName] &&
+					!addedBlockDevices[bd.BlockDeviceName] {
+					duplicateBlockDeviceList = append(
+						duplicateBlockDeviceList,
+						bd.BlockDeviceName)
+					addedBlockDevices[bd.BlockDeviceName] = true
+				} else if !blockDeviceMap[bd.BlockDeviceName] {
+					blockDeviceMap[bd.BlockDeviceName] = true
+				}
+			}
+		}
 	}
-	if len(pool.RaidGroups) == 0 {
+	return duplicateBlockDeviceList
+}
+
+func (poolValidator *PoolValidator) poolSpecValidation() (bool, string) {
+	//if pool.NodeSelector == nil || len(pool.NodeSelector) == 0 {
+	//	return false, "nodeselector should not be empty"
+	//}
+	if len(poolValidator.poolSpec.RaidGroups) == 0 {
 		return false, "at least one raid group should be present on pool spec"
 	}
 	// TODO : Add validation for pool config
 	// Pool config will require mutating webhooks also.
-	for _, raidGroup := range pool.RaidGroups {
+	for _, raidGroup := range poolValidator.poolSpec.RaidGroups {
 		raidGroup := raidGroup // pin it
-		ok, msg := raidGroupValidation(&raidGroup, &pool.PoolConfig)
+		ok, msg := poolValidator.raidGroupValidation(&raidGroup)
 		if !ok {
 			return false, msg
 		}
@@ -99,8 +213,10 @@ func poolSpecValidation(pool *apis.PoolSpec) (bool, string) {
 	return true, ""
 }
 
-func raidGroupValidation(raidGroup *apis.RaidGroup, pool *apis.PoolConfig) (bool, string) {
-	if raidGroup.Type == "" && pool.DefaultRaidGroupType == "" {
+func (poolValidator *PoolValidator) raidGroupValidation(
+	raidGroup *apis.RaidGroup) (bool, string) {
+	if raidGroup.Type == "" &&
+		poolValidator.poolSpec.PoolConfig.DefaultRaidGroupType == "" {
 		return false, fmt.Sprintf("any one type at raid group or default raid group type be specified ")
 	}
 	if _, ok := apis.SupportedPRaidType[apis.PoolType(raidGroup.Type)]; !ok {
@@ -123,7 +239,7 @@ func raidGroupValidation(raidGroup *apis.RaidGroup, pool *apis.PoolConfig) (bool
 
 	for _, bd := range raidGroup.BlockDevices {
 		bd := bd
-		ok, msg := blockDeviceValidation(&bd)
+		ok, msg := poolValidator.blockDeviceValidation(&bd)
 		if !ok {
 			return false, msg
 		}
@@ -131,11 +247,60 @@ func raidGroupValidation(raidGroup *apis.RaidGroup, pool *apis.PoolConfig) (bool
 	return true, ""
 }
 
-func blockDeviceValidation(bd *apis.CStorPoolClusterBlockDevice) (bool, string) {
+// blockDeviceValidation validates following steps:
+// 1. block device name shouldn't be empty.
+// 2. If block device has claim it verifies whether claim is created by this CSPC
+func (poolValidator *PoolValidator) blockDeviceValidation(
+	bd *apis.CStorPoolClusterBlockDevice) (bool, string) {
 	if bd.BlockDeviceName == "" {
 		return false, fmt.Sprint("block device name cannot be empty")
 	}
+	bdObj, err := blockdevice.NewKubeClient().
+		WithNamespace(poolValidator.namespace).
+		Get(bd.BlockDeviceName, metav1.GetOptions{})
+	if err != nil {
+		return false, fmt.Sprintf(
+			"failed to get block device: {%s} details error: %v",
+			bd.BlockDeviceName,
+			err,
+		)
+	}
+	if bdObj.Name != poolValidator.nodeName {
+		return false, fmt.Sprintf(
+			"pool validation failed: block device %s doesn't belongs to pool node %s",
+			bd.BlockDeviceName,
+			poolValidator.nodeName,
+		)
+	}
+	if bdObj.Status.ClaimState == ndmapis.BlockDeviceClaimed {
+		// TODO: Need to check how NDM
+		if bdObj.Spec.ClaimRef != nil {
+			bdcName := bdObj.Spec.ClaimRef.Name
+			if err := poolValidator.blockDeviceClaimValidation(bdcName, bdObj.Name); err != nil {
+				return false, fmt.Sprintf("error: %v", err)
+			}
+		}
+	}
 	return true, ""
+}
+
+func (poolValidator *PoolValidator) blockDeviceClaimValidation(bdcName, bdName string) error {
+	bdcObject, err := blockdeviceclaim.NewKubeClient().
+		WithNamespace(poolValidator.namespace).
+		Get(bdcName, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(err,
+			"could not get block device claim for block device {%s}", bdName)
+	}
+	cspcName := bdcObject.
+		GetAnnotations()[string(apis.CStorPoolClusterCPK)]
+	if cspcName != cspcName {
+		return errors.Wrapf(err,
+			"cann't use claimed blockdevice %s",
+			bdName,
+		)
+	}
+	return nil
 }
 
 // validateCSPCUpdateRequest validates CSPC update request

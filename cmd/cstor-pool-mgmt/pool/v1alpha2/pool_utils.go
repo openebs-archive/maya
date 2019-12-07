@@ -299,14 +299,14 @@ func cleanUpReplacementMarks(oldObj, newObj *ndmapis.BlockDeviceClaim) error {
 		}
 	}
 	bdAnnotations := newObj.GetAnnotations()
-	delete(bdAnnotations, string(apis.PredecessorBlockDeviceCPK))
+	delete(bdAnnotations, apis.PredecessorBDKey)
 	newObj.SetAnnotations(bdAnnotations)
 	_, err := bdcClient.Update(newObj)
 	if err != nil {
 		return errors.Wrapf(
 			err,
 			"Failed to remove annotation {%s} from blockdeviceclaim {%s}",
-			string(apis.PredecessorBlockDeviceCPK),
+			apis.PredecessorBDKey,
 			newObj.Name,
 		)
 	}
