@@ -19,6 +19,7 @@ package v1alpha2
 import (
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/pkg/errors"
 )
 
 //TODO: While using these packages UnitTest
@@ -70,6 +71,10 @@ func (l predicateList) all(c *BlockDevice) bool {
 	}
 	return true
 }
+
+// Validate defines an abstraction to determine conditional check against the
+// provided block device
+type Validate func(*BlockDevice) error
 
 // HasAnnotation is predicate to filter out based on
 // annotation in BDC instances
@@ -138,6 +143,11 @@ func (bd *BlockDevice) IsClaimed() bool {
 	return bd.Object.Status.ClaimState == ndm.BlockDeviceClaimed
 }
 
+// HasFileSystem returns true if the block device has filesystem
+func (bd *BlockDevice) HasFileSystem() bool {
+	return bd.Object.Spec.FileSystem.Type != ""
+}
+
 // IsUsable filters the block device based on usage of disk
 func IsUsable(usedBlockDevices map[string]int) Predicate {
 	return func(bd *BlockDevice) bool {
@@ -190,7 +200,78 @@ func IsValidPoolTopology(poolType string, bdCount int) bool {
 
 // GetNodeName returns the node name to which the block device is attached
 func (bd *BlockDevice) GetNodeName() string {
-	return bd.Object.GetLabels()[string(apis.HostNameCPK)]
+	return bd.Object.Spec.NodeAttributes.NodeName
+}
+
+// IsActiveWithMsg validates the block device based on status
+func IsActiveWithMsg() Validate {
+	return func(bd *BlockDevice) error {
+		return bd.IsActiveWithMsg()
+	}
+}
+
+// IsActiveWithMsg returns error only when block device presents in other than
+// active state or else return nil
+func (bd *BlockDevice) IsActiveWithMsg() error {
+	if !bd.IsActive() {
+		return errors.Errorf(
+			"block device is in not in active state",
+		)
+	}
+	return nil
+}
+
+// IsBelongsToNodeWithMsg validates the block device based on nodeName provided
+// via argument
+func IsBelongsToNodeWithMsg(nodeName string) Validate {
+	return func(bd *BlockDevice) error {
+		return bd.IsBelongsToNodeWithMsg(nodeName)
+	}
+}
+
+// IsBelongsToNodeWithMsg returns error only when the block device node name
+// doesn't matched with provided node name
+func (bd *BlockDevice) IsBelongsToNodeWithMsg(nodeName string) error {
+	if !bd.IsBelongToNode(nodeName) {
+		return errors.Errorf(
+			"block device doesn't belongs to node %s",
+			bd.Object.Spec.NodeAttributes.NodeName,
+		)
+	}
+	return nil
+}
+
+// IsNonFSTypeWithMsg validates the block device based on filesystem type
+func IsNonFSTypeWithMsg() Validate {
+	return func(bd *BlockDevice) error {
+		return bd.IsNonFSTypeWithMsg()
+	}
+}
+
+// IsNonFSTypeWithMsg return error only when the block device has filesystem
+func (bd *BlockDevice) IsNonFSTypeWithMsg() error {
+	if bd.HasFileSystem() {
+		return errors.Errorf("block device has file system {%s}",
+			bd.Object.Spec.FileSystem.Type,
+		)
+	}
+	return nil
+}
+
+// ValidateBlockDevice validates the block device based on the arguments
+// provided and returns error if validation fails
+func (bd *BlockDevice) ValidateBlockDevice(v ...Validate) error {
+	var err error
+	for _, validate := range v {
+		if err = validate(bd); err != nil {
+			return errors.Wrapf(
+				err,
+				"block device %s validation failed",
+				bd.Object.Name,
+			)
+		}
+	}
+	return nil
 }
 
 // Filter will filter the block device instances if all the predicates succeed

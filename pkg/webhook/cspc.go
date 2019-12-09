@@ -264,7 +264,17 @@ func (poolValidator *PoolValidator) blockDeviceValidation(
 			err,
 		)
 	}
-	if bdObj.Name != poolValidator.nodeName {
+	err = blockdevice.
+		BuilderForAPIObject(bdObj).
+		BlockDevice.
+		ValidateBlockDevice(
+			blockdevice.IsActiveWithMsg(),
+			blockdevice.IsNonFSTypeWithMsg(),
+			blockdevice.IsBelongsToNodeWithMsg(poolValidator.nodeName))
+	if err != nil {
+		return false, fmt.Sprintf("%v", err)
+	}
+	if bdObj.Spec.NodeAttributes.NodeName != poolValidator.nodeName {
 		return false, fmt.Sprintf(
 			"pool validation failed: block device %s doesn't belongs to pool node %s",
 			bd.BlockDeviceName,
