@@ -33,7 +33,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//TODO: Update to generic name
+//TODO: Update BlockDeviceReplacemen to generic name
+
 // BlockDeviceReplacement contains old and new CSPC to validate for block device replacement
 type BlockDeviceReplacement struct {
 	// OldCSPC is the persisted CSPC in etcd.
@@ -117,10 +118,13 @@ func getCommonPoolSpecs(cspcNew, cspcOld *apis.CStorPoolCluster) (*poolspecs, er
 // devices(for other than strip type) to existing raid group or else it will
 // return nil
 func validateRaidGroupChanges(oldRg, newRg *apis.RaidGroup) error {
+	// return error when block devices are removed from new raid group
 	if len(newRg.BlockDevices) < len(oldRg.BlockDevices) {
 		return errors.Errorf("removing block device from %s raid group is not valid operation",
 			oldRg.Type)
 	}
+	// return error when block device are added to new raid group other than
+	// stripe
 	if apis.PoolType(oldRg.Type) != apis.PoolStriped &&
 		len(newRg.BlockDevices) > len(oldRg.BlockDevices) {
 		return errors.Errorf("adding block devices to existing %s raid group is "+

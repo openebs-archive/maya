@@ -695,3 +695,74 @@ func TestBlockDeviceReplacement_IsNewBDPresentOnCurrentCSPC(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateRaidGroupChanges(t *testing.T) {
+	tests := map[string]struct {
+		oldRG         *apis.RaidGroup
+		newRG         *apis.RaidGroup
+		expectedError bool
+	}{
+		"removing block devices": {
+			oldRG: &apis.RaidGroup{
+				BlockDevices: []apis.CStorPoolClusterBlockDevice{
+					{BlockDeviceName: "bd-1"},
+					{BlockDeviceName: "bd-2"},
+				},
+			},
+			newRG: &apis.RaidGroup{
+				BlockDevices: []apis.CStorPoolClusterBlockDevice{
+					{BlockDeviceName: "bd-1"},
+				},
+			},
+			expectedError: true,
+		},
+		"adding block devices for raid groups": {
+			oldRG: &apis.RaidGroup{
+				Type: "raidz",
+				BlockDevices: []apis.CStorPoolClusterBlockDevice{
+					{BlockDeviceName: "bd-1"},
+					{BlockDeviceName: "bd-2"},
+				},
+			},
+			newRG: &apis.RaidGroup{
+				Type: "raidz",
+				BlockDevices: []apis.CStorPoolClusterBlockDevice{
+					{BlockDeviceName: "bd-1"},
+					{BlockDeviceName: "bd-2"},
+					{BlockDeviceName: "bd-3"},
+				},
+			},
+			expectedError: true,
+		},
+		"adding block devices for stripe raid groups": {
+			oldRG: &apis.RaidGroup{
+				Type: "stripe",
+				BlockDevices: []apis.CStorPoolClusterBlockDevice{
+					{BlockDeviceName: "bd-1"},
+					{BlockDeviceName: "bd-2"},
+				},
+			},
+			newRG: &apis.RaidGroup{
+				Type: "stripe",
+				BlockDevices: []apis.CStorPoolClusterBlockDevice{
+					{BlockDeviceName: "bd-1"},
+					{BlockDeviceName: "bd-2"},
+					{BlockDeviceName: "bd-3"},
+				},
+			},
+			expectedError: false,
+		},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			err := validateRaidGroupChanges(test.oldRG, test.newRG)
+			if test.expectedError && err == nil {
+				t.Errorf("test %s failed expectedError to be error but got nil", name)
+			}
+			if !test.expectedError && err != nil {
+				t.Errorf("test %s failed expectedError not to be error but got error %v", name, err)
+			}
+		})
+	}
+}

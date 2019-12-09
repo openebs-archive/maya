@@ -303,7 +303,7 @@ func (poolValidator *PoolValidator) blockDeviceClaimValidation(bdcName, bdName s
 	}
 	cspcName := bdcObject.
 		GetAnnotations()[string(apis.CStorPoolClusterCPK)]
-	if cspcName != cspcName {
+	if cspcName != poolValidator.cspcName {
 		return errors.Wrapf(err,
 			"cann't use claimed blockdevice %s",
 			bdName,
@@ -335,7 +335,8 @@ func (wh *webhook) validateCSPCUpdateRequest(req *v1beta1.AdmissionRequest) *v1b
 		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusInternalServerError).AR
 		return response
 	}
-	if !reflect.DeepEqual(cspcNew.Spec, cspcOld.Spec) {
+	// return success from here when there is no change in spec
+	if reflect.DeepEqual(cspcNew.Spec, cspcOld.Spec) {
 		return response
 	}
 
