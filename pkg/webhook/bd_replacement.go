@@ -18,6 +18,8 @@ package webhook
 
 import (
 	"fmt"
+	"reflect"
+
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha2"
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -27,9 +29,11 @@ import (
 	"github.com/openebs/maya/pkg/volume"
 	"github.com/pkg/errors"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+//TODO: Update to generic name
 // BlockDeviceReplacement contains old and new CSPC to validate for block device replacement
 type BlockDeviceReplacement struct {
 	// OldCSPC is the persisted CSPC in etcd.
@@ -64,12 +68,17 @@ type poolspecs struct {
 	newSpec []apis.PoolSpec
 }
 
-// ValidateForBDReplacementCase validates the changes in CSPC for block device replacement in a raid group only if the
-// update/edit of CSPC can trigger a block device replacement.
-func ValidateForBDReplacementCase(commonPoolSpecs *poolspecs, bdr *BlockDeviceReplacement) (bool, string) {
+// ValidateSpecChanges validates the changes in CSPC for changes in a raid group only if the
+// update/edit of CSPC can trigger a block device replacement/pool expansion
+// scenarios.
+func ValidateSpecChanges(commonPoolSpecs *poolspecs, bdr *BlockDeviceReplacement) (bool, string) {
 	for i, oldPoolSpec := range commonPoolSpecs.oldSpec {
 		oldPoolSpec := oldPoolSpec
-		if ok, msg := bdr.IsReplacementValid(&oldPoolSpec, &commonPoolSpecs.newSpec[i]); !ok {
+		// process only when there is change in pool specs
+		if reflect.DeepEqual(&oldPoolSpec, &commonPoolSpecs.newSpec[i]) {
+			continue
+		}
+		if ok, msg := bdr.IsPoolSpecChangeValid(&oldPoolSpec, &commonPoolSpecs.newSpec[i]); !ok {
 			return false, msg
 		}
 	}
@@ -104,17 +113,40 @@ func getCommonPoolSpecs(cspcNew, cspcOld *apis.CStorPoolCluster) (*poolspecs, er
 	return commonPoolSpecs, nil
 }
 
-// IsReplacementValid validates the pool specs on CSPC for block device replacement case.
-func (bdr *BlockDeviceReplacement) IsReplacementValid(oldPoolSpec, newPoolSpec *apis.PoolSpec) (bool, string) {
+// validateRaidGroupChanges returns error when user removes or add block
+// devices(for other than strip type) to existing raid group or else it will
+// return nil
+func validateRaidGroupChanges(oldRg, newRg *apis.RaidGroup) error {
+	if len(newRg.BlockDevices) < len(oldRg.BlockDevices) {
+		return errors.Errorf("removing block device from %s raid group is not valid operation",
+			oldRg.Type)
+	}
+	if apis.PoolType(oldRg.Type) != apis.PoolStriped &&
+		len(newRg.BlockDevices) > len(oldRg.BlockDevices) {
+		return errors.Errorf("adding block devices to existing %s raid group is "+
+			"not valid operation",
+			oldRg.Type)
+	}
+	return nil
+}
+
+// IsPoolSpecChangeValid validates the pool specs on CSPC for raid groups
+// changes case
+func (bdr *BlockDeviceReplacement) IsPoolSpecChangeValid(oldPoolSpec, newPoolSpec *apis.PoolSpec) (bool, string) {
 	newToOldBd := make(map[string]string)
 	for _, oldRg := range oldPoolSpec.RaidGroups {
 		oldRg := oldRg // pin it
+		isRaidGroupExist := false
 		if oldRg.Type == "" {
 			oldRg.Type = oldPoolSpec.PoolConfig.DefaultRaidGroupType
 		}
 		for _, newRg := range newPoolSpec.RaidGroups {
 			newRg := newRg // pin it
 			if IsRaidGroupCommon(oldRg, newRg) {
+				isRaidGroupExist = true
+				if err := validateRaidGroupChanges(&oldRg, &newRg); err != nil {
+					return false, fmt.Sprintf("raid group validation failed: %v", err)
+				}
 				if IsBlockDeviceReplacementCase(&oldRg, &newRg) {
 					if ok, msg := bdr.IsBDReplacementValid(&newRg, &oldRg); !ok {
 						return false, msg
@@ -126,6 +158,10 @@ func (bdr *BlockDeviceReplacement) IsReplacementValid(oldPoolSpec, newPoolSpec *
 				}
 				break
 			}
+		}
+		// Old raid group should exist on new pool spec changes
+		if !isRaidGroupExist {
+			return false, fmt.Sprintf("removing raid group from pool spec is invalid operation")
 		}
 	}
 
@@ -206,7 +242,35 @@ func (bdr *BlockDeviceReplacement) IsBDReplacementValid(newRG, oldRG *apis.RaidG
 		return false, "the new blockdevice intended to use for replacement in invalid"
 	}
 
+	if err := bdr.validateNewBDCapacity(newRG, oldRG); err != nil {
+		return false, fmt.Sprintf("error: %v", err)
+	}
+
 	return true, ""
+}
+
+// validateNewBDCapacity returns error only when new block device has less capacity
+// than existing block device
+func (bdr *BlockDeviceReplacement) validateNewBDCapacity(newRG, oldRG *apis.RaidGroup) error {
+	newToOldBlockDeviceMap := GetNewBDFromRaidGroups(newRG, oldRG)
+	bdClient := bd.NewKubeClient().WithNamespace(bdr.OldCSPC.Namespace)
+	for newBDName, oldBDName := range newToOldBlockDeviceMap {
+		newBDObj, err := bdClient.Get(newBDName, metav1.GetOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "failed to get capacity of replaced block device: %s", newBDName)
+		}
+		oldBDObj, err := bdClient.Get(oldBDName, metav1.GetOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "failed to get capacity of existing block device: %s", oldBDName)
+		}
+		if newBDObj.Spec.Capacity.Storage < oldBDObj.Spec.Capacity.Storage {
+			return errors.Errorf("capacity of replacing block device {%s:%d} "+
+				"should be greater than or equal to existing block device {%s:%d}",
+				newBDName, newBDObj.Spec.Capacity.Storage,
+				oldBDName, oldBDObj.Spec.Capacity.Storage)
+		}
+	}
+	return nil
 }
 
 // IsMoreThanOneDiskReplaced returns true if more than one disk is replaced in the same raid group.

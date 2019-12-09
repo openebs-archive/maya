@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha2"
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
@@ -135,7 +136,8 @@ func cspcValidation(cspc *apis.CStorPoolCluster) (bool, string) {
 
 	repeatedBlockDevices := getDuplicateBlockDeviceList(cspc)
 	if len(repeatedBlockDevices) > 0 {
-		return false, fmt.Sprintf("invalid cspc: cspc has duplicate blockdevices: {%v} entries",
+		return false, fmt.Sprintf("invalid cspc: cspc {%s} has duplicate blockdevices entries %v",
+			cspc.Name,
 			repeatedBlockDevices)
 	}
 
@@ -153,7 +155,7 @@ func cspcValidation(cspc *apis.CStorPoolCluster) (bool, string) {
 			)
 		}
 		if usedNodes[nodeName] {
-			return false, fmt.Sprintf("invalid cspc pool spec: duplicate node %s entry", nodeName)
+			return false, fmt.Sprintf("invalid cspc: duplicate node %s entry", nodeName)
 		}
 		usedNodes[nodeName] = true
 		pValidate := buildPoolValidator.withPoolSpec(pool).
@@ -166,8 +168,8 @@ func cspcValidation(cspc *apis.CStorPoolCluster) (bool, string) {
 	return true, ""
 }
 
-// getDuplicateBlockDeviceList returns list of block devices that are duplicate in
-// blockdevices
+// getDuplicateBlockDeviceList returns list of block devices that are
+// duplicated in CSPC
 func getDuplicateBlockDeviceList(cspc *apis.CStorPoolCluster) []string {
 	duplicateBlockDeviceList := []string{}
 	blockDeviceMap := map[string]bool{}
@@ -194,9 +196,6 @@ func getDuplicateBlockDeviceList(cspc *apis.CStorPoolCluster) []string {
 }
 
 func (poolValidator *PoolValidator) poolSpecValidation() (bool, string) {
-	//if pool.NodeSelector == nil || len(pool.NodeSelector) == 0 {
-	//	return false, "nodeselector should not be empty"
-	//}
 	if len(poolValidator.poolSpec.RaidGroups) == 0 {
 		return false, "at least one raid group should be present on pool spec"
 	}
@@ -326,6 +325,9 @@ func (wh *webhook) validateCSPCUpdateRequest(req *v1beta1.AdmissionRequest) *v1b
 		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusInternalServerError).AR
 		return response
 	}
+	if !reflect.DeepEqual(cspcNew.Spec, cspcOld.Spec) {
+		return response
+	}
 
 	bdr := NewBlockDeviceReplacement().WithNewCSPC(&cspcNew).WithOldCSPC(cspcOld)
 	commonPoolSpec, err := getCommonPoolSpecs(&cspcNew, cspcOld)
@@ -336,7 +338,7 @@ func (wh *webhook) validateCSPCUpdateRequest(req *v1beta1.AdmissionRequest) *v1b
 		return response
 	}
 
-	if ok, msg := ValidateForBDReplacementCase(commonPoolSpec, bdr); !ok {
+	if ok, msg := ValidateSpecChanges(commonPoolSpec, bdr); !ok {
 		err = errors.Errorf("invalid cspc specification: %s", msg)
 		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusUnprocessableEntity).AR
 		return response

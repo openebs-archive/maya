@@ -58,7 +58,7 @@ func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 		WithDependentsUpgraded().
 		Build()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to build CSP object for node selector {%v}", poolSpec.NodeSelector)
+		return nil, errors.Wrapf(err, "failed to build CSPI object for node selector {%v}", poolSpec.NodeSelector)
 	}
 
 	err = ac.ClaimBDsForNode(ac.GetBDListForNode(poolSpec))
