@@ -44,7 +44,7 @@ func Import(cspi *apis.CStorPoolInstance) (bool, error) {
 	common.SyncResources.IsImported = false
 	var poolImported, poolNotImported bool
 
-	_, poolNotImported, err = checkIfPoolIsImportable(cspi)
+	_, poolNotImported, _ = checkIfPoolIsImportable(cspi)
 	if poolNotImported {
 		// if the pool is renamed but not imported remove the
 		// annotation to avoid not found errors
