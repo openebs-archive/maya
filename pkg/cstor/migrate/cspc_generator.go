@@ -82,7 +82,6 @@ func getCSPCSpec(spc *apis.StoragePoolClaim) (*apis.CStorPoolCluster, error) {
 					DefaultRaidGroupType: typeMap[cspObj.Spec.PoolSpec.PoolType],
 					OverProvisioning:     cspObj.Spec.PoolSpec.OverProvisioning,
 				},
-				OldCSPUID: string(cspObj.UID),
 			},
 		)
 

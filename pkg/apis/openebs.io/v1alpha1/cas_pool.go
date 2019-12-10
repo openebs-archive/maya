@@ -66,8 +66,8 @@ const (
 	RaidzBlockDeviceCountCPV CasPoolValInt = 3
 	// Raidz2BlockDeviceCountCPV is the count for raidz2 type pool
 	Raidz2BlockDeviceCountCPV CasPoolValInt = 6
-	// OldCSPUID is the uid of the csp that is being migrated to cspi
-	OldCSPUID CasPoolKey = "cspuid"
+	// OldPoolName is the old pool that needs to be imported and renamed
+	OldPoolName CasPoolKey = "cstorpoolinstance.openebs.io/oldname"
 )
 
 // CasPool is a type which will be utilised by CAS engine to perform

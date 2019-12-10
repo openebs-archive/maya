@@ -33,7 +33,7 @@ import (
 // - If any error occurred during import operation
 // The oldName argument is used to rename the old CSP
 // uid name to the current PoolName(cspi) format
-func Import(cspi *apis.CStorPoolInstance, oldName string) (bool, error) {
+func Import(cspi *apis.CStorPoolInstance) (bool, error) {
 	if poolExist := checkIfPoolPresent(PoolName(cspi)); poolExist {
 		return true, nil
 	}
@@ -42,7 +42,14 @@ func Import(cspi *apis.CStorPoolInstance, oldName string) (bool, error) {
 	var cmdOut []byte
 	var err error
 	common.SyncResources.IsImported = false
-	var poolImported bool
+	var poolImported, poolNotImported bool
+
+	_, poolNotImported, err = checkIfPoolIsImportable(cspi)
+	if poolNotImported {
+		// if the pool is renamed but not imported remove the
+		// annotation to avoid not found errors
+		delete(cspi.Annotations, string(apis.OldPoolName))
+	}
 
 	bdPath, err := getPathForBDev(cspi.Spec.RaidGroups[0].BlockDevices[0].BlockDeviceName)
 	if err != nil {
@@ -51,14 +58,19 @@ func Import(cspi *apis.CStorPoolInstance, oldName string) (bool, error) {
 
 	klog.Infof("Importing pool %s %s", string(cspi.GetUID()), PoolName(cspi))
 	devID := pool.GetDevPathIfNotSlashDev(bdPath[0])
+	cmd := zfs.NewPoolImport().
+		WithCachefile(cspi.Spec.PoolConfig.CacheFile).
+		WithProperty("cachefile", cspi.Spec.PoolConfig.CacheFile).
+		WithDirectory(devID).
+		WithNewPool(PoolName(cspi))
+	// oldName denotes the pool name that may be present
+	// from previous version and needs to be imported with new name
+	oldName := cspi.Annotations[string(apis.OldPoolName)]
+	if oldName != "" {
+		cmd.WithPool(oldName)
+	}
 	if len(devID) != 0 {
-		cmdOut, err = zfs.NewPoolImport().
-			WithCachefile(cspi.Spec.PoolConfig.CacheFile).
-			WithProperty("cachefile", cspi.Spec.PoolConfig.CacheFile).
-			WithDirectory(devID).
-			WithPool(oldName).
-			WithNewPool(PoolName(cspi)).
-			Execute()
+		cmdOut, err = cmd.Execute()
 		if err == nil {
 			poolImported = true
 		} else {
@@ -83,6 +95,10 @@ func Import(cspi *apis.CStorPoolInstance, oldName string) (bool, error) {
 	}
 
 	klog.Infof("Pool Import successful: %v", string(PoolName(cspi)))
+	// after successful import of pool the annotation needs to be deleted
+	// to avoid renaming of pool that is already renamed which will cause
+	// pool not found errors
+	delete(cspi.Annotations, string(apis.OldPoolName))
 	return true, nil
 }
 

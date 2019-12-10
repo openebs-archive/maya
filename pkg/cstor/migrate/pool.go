@@ -23,7 +23,6 @@ import (
 	"k8s.io/klog"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
@@ -43,7 +42,7 @@ const (
 	replicaPatch = `{
 	"spec": {
 		"replicas": 0
-	}	
+	}
 }`
 	cspNameLabel           = "cstorpool.openebs.io/name"
 	cspUIDLabel            = "cstorpool.openebs.io/uid"
@@ -58,24 +57,24 @@ const (
 // Pool migrates the pool from SPC schema to CSPC schema
 func Pool(spcName, openebsNamespace string) error {
 
-	spcObj, err := spc.NewKubeClient().
-		Get(spcName, metav1.GetOptions{})
-	// verify if the spc is already migrated.
-	if k8serrors.IsNotFound(err) {
-		klog.Infof("spc %s not found.", spcName)
-		_, err = cspc.NewKubeClient().
-			WithNamespace(openebsNamespace).Get(spcName, metav1.GetOptions{})
-		if err != nil {
-			return errors.Wrapf(err, "failed to get equivalent cspc for spc %s", spcName)
-		}
+	spcObj, migrated, err := getSPC(spcName, openebsNamespace)
+	if migrated {
 		klog.Infof("spc %s is already migrated to cspc", spcName)
 		return nil
 	}
 	if err != nil {
 		return err
 	}
+	err = updateBDCLabels(spcName, openebsNamespace)
+	if err != nil {
+		return err
+	}
 	klog.Infof("Creating equivalent cspc for spc %s", spcName)
 	cspcObj, err := generateCSPC(spcObj, openebsNamespace)
+	if err != nil {
+		return err
+	}
+	err = updateBDCOwnerRef(cspcObj, openebsNamespace)
 	if err != nil {
 		return err
 	}
@@ -99,24 +98,6 @@ func Pool(spcName, openebsNamespace string) error {
 			if err != nil {
 				return err
 			}
-			cspcObj, err = cspc.NewKubeClient().
-				WithNamespace(openebsNamespace).Get(cspcObj.Name, metav1.GetOptions{})
-			if err != nil {
-				return err
-			}
-			// remove the OldCSPUID name to avoid renaming in case
-			// cspi is deleted and comes up after reconciliation.
-			for i, poolspec := range cspcObj.Spec.Pools {
-				if poolspec.NodeSelector[string(apis.HostNameCPK)] ==
-					cspiObj.Labels[string(apis.HostNameCPK)] {
-					cspcObj.Spec.Pools[i].OldCSPUID = ""
-				}
-			}
-			cspcObj, err = cspc.NewKubeClient().
-				WithNamespace(openebsNamespace).Update(cspcObj)
-			if err != nil {
-				return err
-			}
 		}
 	}
 	// Clean up old SPC resources after the migration is complete
@@ -128,8 +109,33 @@ func Pool(spcName, openebsNamespace string) error {
 	return nil
 }
 
+// getSPC gets the spc by name and verifies if the spc is already
+// migrated or not
+func getSPC(spcName, openebsNamespace string) (*apis.StoragePoolClaim, bool, error) {
+	spcObj, err := spc.NewKubeClient().
+		Get(spcName, metav1.GetOptions{})
+	// verify if the spc is already migrated.
+	if k8serrors.IsNotFound(err) {
+		klog.Infof("spc %s not found.", spcName)
+		_, err = cspc.NewKubeClient().
+			WithNamespace(openebsNamespace).Get(spcName, metav1.GetOptions{})
+		if err != nil {
+			return nil, false, errors.Wrapf(err, "failed to get equivalent cspc for spc %s", spcName)
+		}
+		return nil, true, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return spcObj, false, nil
+}
+
 // csptocspi migrates a CSP to CSPI based on hostname
-func csptocspi(cspiObj *apis.CStorPoolInstance, cspcObj *apis.CStorPoolCluster, openebsNamespace string) error {
+func csptocspi(
+	cspiObj *apis.CStorPoolInstance,
+	cspcObj *apis.CStorPoolCluster,
+	openebsNamespace string,
+) error {
 	hostnameLabel := string(apis.HostNameCPK) + "=" + cspiObj.Labels[string(apis.HostNameCPK)]
 	spcLabel := string(apis.StoragePoolClaimCPK) + "=" + cspcObj.Name
 	cspLabel := hostnameLabel + "," + spcLabel
@@ -143,14 +149,9 @@ func csptocspi(cspiObj *apis.CStorPoolInstance, cspcObj *apis.CStorPoolCluster, 
 	if err != nil {
 		return err
 	}
-	for _, bdName := range cspObj.Spec.Group[0].Item {
-		err = updateBDC(bdName, cspcObj, openebsNamespace)
-		if err != nil {
-			return err
-		}
-	}
 	// once the old pool pod is scaled down and bdcs are patched
 	// bring up the cspi pod so that the old pool can be renamed and imported.
+	cspiObj.Annotations[string(apis.OldPoolName)] = "cstor-" + string(cspObj.UID)
 	delete(cspiObj.Annotations, string(apis.OpenEBSDisableReconcileKey))
 	cspiObj, err = cspi.NewKubeClient().
 		WithNamespace(openebsNamespace).
@@ -244,34 +245,53 @@ func scaleDownDeployment(cspObj *apis.CStorPool, openebsNamespace string) error 
 
 // Update the bdc with the cspc labels instead of spc labels to allow
 // filtering of bds claimed by the migrated cspc.
-func updateBDC(bdName apis.CspBlockDevice, cspcObj *apis.CStorPoolCluster, openebsNamespace string) error {
-	bdObj, err := bd.NewKubeClient().
-		WithNamespace(openebsNamespace).
-		Get(bdName.Name, metav1.GetOptions{})
+func updateBDCLabels(cspcName, openebsNamespace string) error {
+	bdcList, err := bdc.NewKubeClient().List(metav1.ListOptions{
+		LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + cspcName,
+	})
 	if err != nil {
 		return err
 	}
-	bdcObj, err := bdc.NewKubeClient().
-		WithNamespace(openebsNamespace).
-		Get(bdObj.Spec.ClaimRef.Name, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	klog.Infof("Updating bdc %s with cspc %s info.", bdcObj.Name, cspcObj.Name)
-	delete(bdcObj.Labels, string(apis.StoragePoolClaimCPK))
-	bdcObj.Labels[string(apis.CStorPoolClusterCPK)] = cspcObj.Name
-	for i, finalizer := range bdcObj.Finalizers {
-		if finalizer == spcFinalizer {
-			bdcObj.Finalizers[i] = cspcFinalizer
+	for _, bdcObj := range bdcList.Items {
+		klog.Infof("Updating bdc %s with cspc labels & finalizer.", bdcObj.Name)
+		delete(bdcObj.Labels, string(apis.StoragePoolClaimCPK))
+		bdcObj.Labels[string(apis.CStorPoolClusterCPK)] = cspcName
+		for i, finalizer := range bdcObj.Finalizers {
+			if finalizer == spcFinalizer {
+				bdcObj.Finalizers[i] = cspcFinalizer
+			}
+		}
+		// bdcObj.OwnerReferences[0].Kind = "CStorPoolCluster"
+		// bdcObj.OwnerReferences[0].UID = cspcObj.UID
+		_, err := bdc.NewKubeClient().
+			WithNamespace(openebsNamespace).
+			Update(&bdcObj)
+		if err != nil {
+			return errors.Wrapf(err, "failed to update bdc %s with cspc label & finalizer", bdcObj.Name)
 		}
 	}
-	bdcObj.OwnerReferences[0].Kind = "CStorPoolCluster"
-	bdcObj.OwnerReferences[0].UID = cspcObj.UID
-	_, err = bdc.NewKubeClient().
-		WithNamespace(openebsNamespace).
-		Update(bdcObj)
+	return nil
+}
+
+// Update the bdc with the cspc OwnerReferences instead of spc OwnerReferences
+// to allow clean up of bdcs on deletion of cspc.
+func updateBDCOwnerRef(cspcObj *apis.CStorPoolCluster, openebsNamespace string) error {
+	bdcList, err := bdc.NewKubeClient().List(metav1.ListOptions{
+		LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + cspcObj.Name,
+	})
 	if err != nil {
 		return err
+	}
+	for _, bdcObj := range bdcList.Items {
+		klog.Infof("Updating bdc %s with cspc ownerRef.", bdcObj.Name)
+		bdcObj.OwnerReferences[0].Kind = "CStorPoolCluster"
+		bdcObj.OwnerReferences[0].UID = cspcObj.UID
+		_, err := bdc.NewKubeClient().
+			WithNamespace(openebsNamespace).
+			Update(&bdcObj)
+		if err != nil {
+			return errors.Wrapf(err, "failed to update bdc %s with cspc onwerRef", bdcObj.Name)
+		}
 	}
 	return nil
 }
@@ -297,7 +317,7 @@ func updateCVRsLabels(cspName, openebsNamespace string, cspiObj *apis.CStorPoolI
 		_, err = cvr.NewKubeclient().WithNamespace(openebsNamespace).
 			Update(&cvrObj)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to update cvr %s with cspc info", cvrObj.Name)
 		}
 	}
 	return nil

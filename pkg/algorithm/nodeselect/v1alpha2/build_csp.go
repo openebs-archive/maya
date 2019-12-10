@@ -53,7 +53,7 @@ func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 	}
 
 	csplabels := ac.buildLabelsForCSPI(nodeName)
-	cspObj, err := apiscsp.NewBuilder().
+	cspBuilder := apiscsp.NewBuilder().
 		WithName(ac.CSPC.Name + "-" + rand.String(4)).
 		WithNamespace(ac.Namespace).
 		WithNodeSelectorByReference(poolSpec.NodeSelector).
@@ -64,27 +64,21 @@ func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 		WithLabelsNew(csplabels).
 		WithFinalizer(apicspsc.CSPCFinalizer).
 		WithNewVersion(version.GetVersion()).
-		WithDependentsUpgraded().
-		Build()
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to build CSP object for node selector {%v}", poolSpec.NodeSelector)
-	}
-
+		WithDependentsUpgraded()
 	// check for OpenEBSDisableDependantsReconcileKey annotation which implies
 	// the CSPI should have OpenEBSDisableReconcileKey enabled
 	if ac.CSPC.GetAnnotations()[string(apis.OpenEBSDisableDependantsReconcileKey)] == "false" {
-		cspObj.Object.Annotations[string(apis.OpenEBSDisableReconcileKey)] = "true"
+		cspBuilder.WithAnnotationsNew(map[string]string{
+			string(apis.OpenEBSDisableReconcileKey): "true",
+		})
 	}
-	// if old CSP has the pool with its name add annotation for renaming while importing
-	if poolSpec.OldCSPUID != "" {
-		cspObj.Object.Annotations[string(apis.OldCSPUID)] = poolSpec.OldCSPUID
+	cspObj, err := cspBuilder.Build()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to build CSP object for node selector {%v}", poolSpec.NodeSelector)
 	}
-	// if old CSP is present, it implies the BDs are already claimed for the pool
-	if poolSpec.OldCSPUID == "" {
-		err = ac.ClaimBDsForNode(ac.GetBDListForNode(poolSpec))
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to claim block devices for node {%s}", nodeName)
-		}
+	err = ac.ClaimBDsForNode(ac.GetBDListForNode(poolSpec))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to claim block devices for node {%s}", nodeName)
 	}
 	return cspObj.Object, nil
 }
