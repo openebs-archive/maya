@@ -268,9 +268,9 @@ func (poolValidator *PoolValidator) blockDeviceValidation(
 		BuilderForAPIObject(bdObj).
 		BlockDevice.
 		ValidateBlockDevice(
-			blockdevice.IsActiveWithMsg(),
-			blockdevice.IsNonFSTypeWithMsg(),
-			blockdevice.IsBelongsToNodeWithMsg(poolValidator.nodeName))
+			blockdevice.CheckIfBDIsActive(),
+			blockdevice.CheckIfBDIsNonFsType(),
+			blockdevice.CheckIfBDBelongsToNode(poolValidator.nodeName))
 	if err != nil {
 		return false, fmt.Sprintf("%v", err)
 	}

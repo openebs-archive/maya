@@ -203,16 +203,16 @@ func (bd *BlockDevice) GetNodeName() string {
 	return bd.Object.Spec.NodeAttributes.NodeName
 }
 
-// IsActiveWithMsg validates the block device based on status
-func IsActiveWithMsg() Validate {
+// CheckIfBDIsActive validates the block device based on status
+func CheckIfBDIsActive() Validate {
 	return func(bd *BlockDevice) error {
-		return bd.IsActiveWithMsg()
+		return bd.CheckIfBDIsActive()
 	}
 }
 
-// IsActiveWithMsg returns error only when block device presents in other than
+// CheckIfBDIsActive returns error only when block device presents in other than
 // active state or else return nil
-func (bd *BlockDevice) IsActiveWithMsg() error {
+func (bd *BlockDevice) CheckIfBDIsActive() error {
 	if !bd.IsActive() {
 		return errors.Errorf(
 			"block device is in not in active state",
@@ -221,17 +221,17 @@ func (bd *BlockDevice) IsActiveWithMsg() error {
 	return nil
 }
 
-// IsBelongsToNodeWithMsg validates the block device based on nodeName provided
+// CheckIfBDBelongsToNode validates the block device based on nodeName provided
 // via argument
-func IsBelongsToNodeWithMsg(nodeName string) Validate {
+func CheckIfBDBelongsToNode(nodeName string) Validate {
 	return func(bd *BlockDevice) error {
-		return bd.IsBelongsToNodeWithMsg(nodeName)
+		return bd.CheckIfBDBelongsToNode(nodeName)
 	}
 }
 
-// IsBelongsToNodeWithMsg returns error only when the block device node name
+// CheckIfBDBelongsToNode returns error only when the block device node name
 // doesn't matched with provided node name
-func (bd *BlockDevice) IsBelongsToNodeWithMsg(nodeName string) error {
+func (bd *BlockDevice) CheckIfBDBelongsToNode(nodeName string) error {
 	if !bd.IsBelongToNode(nodeName) {
 		return errors.Errorf(
 			"block device doesn't belongs to node %s",
@@ -241,15 +241,15 @@ func (bd *BlockDevice) IsBelongsToNodeWithMsg(nodeName string) error {
 	return nil
 }
 
-// IsNonFSTypeWithMsg validates the block device based on filesystem type
-func IsNonFSTypeWithMsg() Validate {
+// CheckIfBDIsNonFsType validates the block device based on filesystem type
+func CheckIfBDIsNonFsType() Validate {
 	return func(bd *BlockDevice) error {
-		return bd.IsNonFSTypeWithMsg()
+		return bd.CheckIfBDIsNonFsType()
 	}
 }
 
-// IsNonFSTypeWithMsg return error only when the block device has filesystem
-func (bd *BlockDevice) IsNonFSTypeWithMsg() error {
+// CheckIfBDIsNonFsType return error only when the block device has filesystem
+func (bd *BlockDevice) CheckIfBDIsNonFsType() error {
 	if bd.HasFileSystem() {
 		return errors.Errorf("block device has file system {%s}",
 			bd.Object.Spec.FileSystem.Type,

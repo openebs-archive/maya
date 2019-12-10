@@ -39,7 +39,7 @@ func TestValidateBlockDevice(t *testing.T) {
 				},
 			},
 			expectedError: true,
-			validateList:  []Validate{IsNonFSTypeWithMsg()},
+			validateList:  []Validate{CheckIfBDIsNonFsType()},
 		},
 		"BlockDevice with different node name": {
 			bd: &BlockDevice{
@@ -52,7 +52,7 @@ func TestValidateBlockDevice(t *testing.T) {
 				},
 			},
 			expectedError: true,
-			validateList:  []Validate{IsBelongsToNodeWithMsg("node2")},
+			validateList:  []Validate{CheckIfBDBelongsToNode("node2")},
 		},
 		"BlockDevice with InActive state": {
 			bd: &BlockDevice{
@@ -63,7 +63,7 @@ func TestValidateBlockDevice(t *testing.T) {
 				},
 			},
 			expectedError: true,
-			validateList:  []Validate{IsActiveWithMsg()},
+			validateList:  []Validate{CheckIfBDIsActive()},
 		},
 		"Validate all the changes": {
 			bd: &BlockDevice{
@@ -79,7 +79,7 @@ func TestValidateBlockDevice(t *testing.T) {
 				},
 			},
 			expectedError: false,
-			validateList:  []Validate{IsNonFSTypeWithMsg(), IsBelongsToNodeWithMsg("node1"), IsActiveWithMsg()},
+			validateList:  []Validate{CheckIfBDIsNonFsType(), CheckIfBDBelongsToNode("node1"), CheckIfBDIsActive()},
 		},
 	}
 	for name, test := range tests {
