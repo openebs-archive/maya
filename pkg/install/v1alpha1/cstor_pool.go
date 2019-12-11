@@ -260,6 +260,8 @@ spec:
                 command:
                 - /bin/sh
                 - -c
+                ## timeout 30 is added to exit the command forcefully with non-zero exit code if command takes
+                ## more than 30 seconds
                 - timeout 30 zfs set io.openebs:livenesstimestamp="$(date +%s)" cstor-$OPENEBS_IO_CSTOR_ID
               failureThreshold: 3
               initialDelaySeconds: 300
