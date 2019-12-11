@@ -22,7 +22,10 @@ var (
 		"metadata": {
 		   "labels": {
 			  "openebs.io/version": "{{.UpgradeVersion}}"
-		   }
+			},
+			 "annotations":{
+				 "cluster-autoscaler.kubernetes.io/safe-to-evict": "false"
+			 }
 		},
 		"spec": {
 		   "template": {
