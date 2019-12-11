@@ -22,7 +22,10 @@ var (
 		"metadata": {
 		   "labels": {
 			  "openebs.io/version": "{{.UpgradeVersion}}"
-		   }
+			},
+			 "annotations":{
+				 "cluster-autoscaler.kubernetes.io/safe-to-evict": "false"
+			 }
 		},
 		"spec": {
 		   "template": {
@@ -41,9 +44,14 @@ var (
                                 "command": [
                                     "/bin/sh",
                                     "-c",
-                                    "zfs set io.openebs:livenesstimestamp=\"$(date +%s)\" cstor-$OPENEBS_IO_CSTOR_ID"
+                                    "timeout 120 zfs set io.openebs:livenesstimestamp=\"$(date +%s)\" cstor-$OPENEBS_IO_CSTOR_ID"
                                 ]
-                            }
+                            },
+                            "failureThreshold": 3,
+                            "initialDelaySeconds": 300,
+                            "periodSeconds": 60,
+                            "successThreshold": 1,
+                            "timeoutSeconds": 150
                         }
 					},
 					{
