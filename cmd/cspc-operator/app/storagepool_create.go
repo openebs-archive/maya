@@ -103,22 +103,23 @@ func (pc *PoolConfig) createPoolDeployment(deployObj *appsv1.Deployment) error {
 }
 
 // GetPoolDeploySpec returns the pool deployment spec.
-func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.CStorPoolInstance) (*appsv1.Deployment, error) {
+func (pc *PoolConfig) GetPoolDeploySpec(cspi *apis.CStorPoolInstance) (*appsv1.Deployment, error) {
 	deployObj, err := deploy.NewBuilder().
-		WithName(csp.Name).
-		WithNamespace(csp.Namespace).
+		WithName(cspi.Name).
+		WithNamespace(cspi.Namespace).
 		WithAnnotationsNew(getDeployAnnotations()).
-		WithLabelsNew(getDeployLabels(csp)).
-		WithOwnerReferenceNew(getDeployOwnerReference(csp)).
+		WithLabelsNew(getDeployLabels(cspi)).
+		WithOwnerReferenceNew(getDeployOwnerReference(cspi)).
 		WithReplicas(getReplicaCount()).
 		WithStrategyType(appsv1.RecreateDeploymentStrategyType).
 		WithSelectorMatchLabelsNew(getDeployMatchLabels()).
 		WithPodTemplateSpecBuilder(
 			pts.NewBuilder().
-				WithLabelsNew(getPodLabels(csp)).
-				WithNodeSelector(csp.Spec.NodeSelector).
+				WithLabelsNew(getPodLabels(cspi)).
+				WithNodeSelector(cspi.Spec.NodeSelector).
 				WithAnnotationsNew(getPodAnnotations()).
 				WithServiceAccountName(OpenEBSServiceAccount).
+				WithTolerationsByValue(getPoolPodToleration(cspi)...).
 				// For CStor-Pool-Mgmt container
 				WithContainerBuilders(
 					container.NewBuilder().
@@ -126,20 +127,20 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.CStorPoolInstance) (*appsv1.De
 						WithName(PoolMgmtContainerName).
 						WithImagePullPolicy(corev1.PullIfNotPresent).
 						WithPrivilegedSecurityContext(&privileged).
-						WithEnvsNew(getPoolMgmtEnv(csp)).
+						WithEnvsNew(getPoolMgmtEnv(cspi)).
 						WithEnvs(getPoolUIDAsEnv(pc.AlgorithmConfig.CSPC)).
-						WithResourcesByValue(getAuxResourceRequirement(csp)).
+						WithResourcesByValue(getAuxResourceRequirement(cspi)).
 						WithVolumeMountsNew(getPoolMgmtMounts()),
 					// For CStor-Pool container
 					container.NewBuilder().
 						WithImage(getPoolImage()).
 						WithName(PoolContainerName).
-						WithResources(getResourceRequirementForCStorPool(csp)).
+						WithResources(getResourceRequirementForCStorPool(cspi)).
 						WithImagePullPolicy(corev1.PullIfNotPresent).
 						WithPrivilegedSecurityContext(&privileged).
 						WithPortsNew(getContainerPort(12000, 3232, 3233)).
 						WithLivenessProbe(getPoolLivenessProbe()).
-						WithEnvsNew(getPoolEnv(csp)).
+						WithEnvsNew(getPoolEnv(cspi)).
 						WithEnvs(getPoolUIDAsEnv(pc.AlgorithmConfig.CSPC)).
 						WithLifeCycle(getPoolLifeCycle()).
 						WithVolumeMountsNew(getPoolMounts()),
@@ -147,7 +148,7 @@ func (pc *PoolConfig) GetPoolDeploySpec(csp *apis.CStorPoolInstance) (*appsv1.De
 					container.NewBuilder().
 						WithImage(getMayaExporterImage()).
 						WithName(PoolExporterContainerName).
-						WithResourcesByValue(getAuxResourceRequirement(csp)).
+						WithResourcesByValue(getAuxResourceRequirement(cspi)).
 						// TODO : Resource and Limit
 						WithImagePullPolicy(corev1.PullIfNotPresent).
 						WithPrivilegedSecurityContext(&privileged).
@@ -395,4 +396,15 @@ func getResourceRequirementForCStorPool(cspi *apis.CStorPoolInstance) *corev1.Re
 
 func getAuxResourceRequirement(cspi *apis.CStorPoolInstance) corev1.ResourceRequirements {
 	return cspi.Spec.AuxResources
+}
+
+// getPoolPodToleration returns pool pod tolerations.
+func getPoolPodToleration(cspi *apis.CStorPoolInstance) []corev1.Toleration {
+	var tolerations []corev1.Toleration
+	if len(cspi.Spec.PoolConfig.Tolerations) == 0 {
+		tolerations = []corev1.Toleration{}
+	} else {
+		tolerations = cspi.Spec.PoolConfig.Tolerations
+	}
+	return tolerations
 }

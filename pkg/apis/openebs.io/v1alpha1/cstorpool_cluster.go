@@ -76,6 +76,10 @@ type CStorPoolClusterSpec struct {
 	// AuxResources are the compute resources required by the cstor-pool pod
 	// side car containers.
 	AuxResources v1.ResourceRequirements `json:"auxResources"`
+	// Tolerations, if specified, are the pool pod's tolerations
+	// If tolerations at PoolConfig is empty, this is written to
+	// CSPI PoolConfig.
+	Tolerations []v1.Toleration `json:"tolerations"`
 }
 
 //PoolSpec is the spec for pool on node where it should be created.
@@ -113,6 +117,9 @@ type PoolConfig struct {
 	// Resources are the compute resources required by the cstor-pool
 	// container.
 	Resources *v1.ResourceRequirements `json:"resources"`
+
+	// Tolerations, if specified, the pool pod's tolerations.
+	Tolerations []v1.Toleration `json:"tolerations"`
 }
 
 // RaidGroup contains the details of a raid group for the pool

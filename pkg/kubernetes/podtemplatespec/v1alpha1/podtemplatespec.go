@@ -243,6 +243,22 @@ func (b *Builder) WithAffinity(affinity *corev1.Affinity) *Builder {
 	return b
 }
 
+// WithTolerationsByValue sets pod toleration.
+// If provided tolerations argument is empty it does not complain.
+func (b *Builder) WithTolerationsByValue(tolerations ...corev1.Toleration) *Builder {
+	if len(b.podtemplatespec.Object.Spec.Tolerations) == 0 {
+		b.podtemplatespec.Object.Spec.Tolerations = tolerations
+		return b
+	}
+
+	b.podtemplatespec.Object.Spec.Tolerations = append(
+		b.podtemplatespec.Object.Spec.Tolerations,
+		tolerations...,
+	)
+
+	return b
+}
+
 // WithTolerations merges the existing tolerations
 // with the provided arguments
 func (b *Builder) WithTolerations(tolerations ...corev1.Toleration) *Builder {

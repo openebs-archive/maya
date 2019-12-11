@@ -564,6 +564,13 @@ func (in *CStorPoolClusterSpec) DeepCopyInto(out *CStorPoolClusterSpec) {
 		(*in).DeepCopyInto(*out)
 	}
 	in.AuxResources.DeepCopyInto(&out.AuxResources)
+	if in.Tolerations != nil {
+		in, out := &in.Tolerations, &out.Tolerations
+		*out = make([]v1.Toleration, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	return
 }
 
@@ -1454,6 +1461,13 @@ func (in *PoolConfig) DeepCopyInto(out *PoolConfig) {
 		in, out := &in.Resources, &out.Resources
 		*out = new(v1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.Tolerations != nil {
+		in, out := &in.Tolerations, &out.Tolerations
+		*out = make([]v1.Toleration, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 	return
 }
