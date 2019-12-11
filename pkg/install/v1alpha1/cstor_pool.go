@@ -228,6 +228,7 @@ spec:
             prometheus.io/path: /metrics
             prometheus.io/port: "9500"
             prometheus.io/scrape: "true"
+            cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
         spec:
           serviceAccountName: {{ .Config.ServiceAccountName.value }}
           nodeSelector:

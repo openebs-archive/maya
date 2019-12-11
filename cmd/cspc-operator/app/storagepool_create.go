@@ -345,13 +345,13 @@ func getPoolLivenessProbe() *corev1.Probe {
 	probe := &corev1.Probe{
 		Handler: corev1.Handler{
 			Exec: &corev1.ExecAction{
-				Command: []string{"/bin/sh", "-c", "zfs set io.openebs:livenesstimestamp=\"$(date +%s)\" cstor-$OPENEBS_IO_POOL_NAME"},
+				Command: []string{"/bin/sh", "-c", "timeout 120 zfs set io.openebs:livenesstimestamp=\"$(date +%s)\" cstor-$OPENEBS_IO_POOL_NAME"},
 			},
 		},
 		FailureThreshold:    3,
 		InitialDelaySeconds: 300,
-		PeriodSeconds:       10,
-		TimeoutSeconds:      300,
+		PeriodSeconds:       60,
+		TimeoutSeconds:      150,
 	}
 	return probe
 }
