@@ -41,7 +41,7 @@ var (
                                 "command": [
                                     "/bin/sh",
                                     "-c",
-                                    "zfs set io.openebs:livenesstimestamp=\"$(date +%s)\" cstor-$OPENEBS_IO_CSTOR_ID"
+                                    "timeout 30 zfs set io.openebs:livenesstimestamp=\"$(date +%s)\" cstor-$OPENEBS_IO_CSTOR_ID"
                                 ]
                             }
                         }
