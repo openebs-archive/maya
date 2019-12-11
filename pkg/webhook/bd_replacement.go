@@ -90,7 +90,7 @@ func getCommonPoolSpecs(cspcNew, cspcOld *apis.CStorPoolCluster) (*poolspecs, er
 		}
 
 		for _, newPool := range cspcNew.Spec.Pools {
-			newNodeName, err := nodeselect.GetNodeFromLabelSelector(oldPool.NodeSelector)
+			newNodeName, err := nodeselect.GetNodeFromLabelSelector(newPool.NodeSelector)
 			if err != nil {
 				return nil, err
 			}
