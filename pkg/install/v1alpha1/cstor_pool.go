@@ -261,11 +261,17 @@ spec:
                 command:
                 - /bin/sh
                 - -c
-                - zfs set io.openebs:livenesstimestamp="$(date +%s)" cstor-$OPENEBS_IO_CSTOR_ID
+                ## timeout 120 is added to exit the command forcefully with non-zero exit code if command takes
+                ## more than 120 seconds.
+                - timeout 120 zfs set io.openebs:livenesstimestamp="$(date +%s)" cstor-$OPENEBS_IO_CSTOR_ID
               failureThreshold: 3
               initialDelaySeconds: 300
-              periodSeconds: 10
-              timeoutSeconds: 30
+              ## how often (in seconds) to perform the probe
+              periodSeconds: 60
+              ## Number of seconds after which the probe times out. i.e informing
+              ## to kubelet probe should timeout after 150 seconds(Note: It will
+              ## not honour because of timeout 120 value before command)
+              timeoutSeconds: 150
             securityContext:
               privileged: true
             volumeMounts:
