@@ -31,7 +31,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/ugorji/go/codec"

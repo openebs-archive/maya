@@ -28,7 +28,6 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	"github.com/openebs/maya/pkg/debug"
-	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	pkg_errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -92,7 +91,7 @@ func (c *CStorVolumeReplicaController) syncHandler(
 		return err
 	}
 	if cvrGot == nil {
-		return merrors.Errorf(
+		return pkg_errors.Errorf(
 			"failed to reconcile cvr {%s}: object not found",
 			key,
 		)
@@ -148,14 +147,14 @@ func (c *CStorVolumeReplicaController) syncHandler(
 	// need to update cvr before returning this error
 	if err != nil {
 		if debug.EI.IsCVRUpdateErrorInjected() {
-			return merrors.Errorf("CVR update error via injection")
+			return pkg_errors.Errorf("CVR update error via injection")
 		}
 		_, err1 := c.clientset.
 			OpenebsV1alpha1().
 			CStorVolumeReplicas(cvrGot.Namespace).
 			Update(cvrGot)
 		if err1 != nil {
-			return merrors.Wrapf(
+			return pkg_errors.Wrapf(
 				err,
 				"failed to reconcile cvr {%s}: failed to update cvr with phase {%s}: {%s}",
 				key,
@@ -163,7 +162,7 @@ func (c *CStorVolumeReplicaController) syncHandler(
 				err1.Error(),
 			)
 		}
-		return merrors.Wrapf(err, "failed to reconcile cvr {%s}", key)
+		return pkg_errors.Wrapf(err, "failed to reconcile cvr {%s}", key)
 	}
 
 	// Synchronize cstor volume total allocated and
@@ -176,7 +175,7 @@ func (c *CStorVolumeReplicaController) syncHandler(
 		CStorVolumeReplicas(cvrGot.Namespace).
 		Update(cvrGot)
 	if err != nil {
-		return merrors.Wrapf(
+		return pkg_errors.Wrapf(
 			err,
 			"failed to reconcile cvr {%s}: failed to update cvr with phase {%s}",
 			key,
@@ -212,7 +211,7 @@ func (c *CStorVolumeReplicaController) cVREventHandler(
 	// particular number of attempts.
 	var noOfAttempts = 2
 	if !common.PoolNameHandler(cvrObj, noOfAttempts) {
-		return string(cvrObj.Status.Phase), merrors.New("pool not found")
+		return string(cvrObj.Status.Phase), pkg_errors.New("pool not found")
 	}
 
 	// cvr is created at zfs in the form poolname/volname
@@ -299,7 +298,7 @@ func (c *CStorVolumeReplicaController) removeFinalizer(
 
 	cvrPatchBytes, err := json.Marshal(cvrPatch)
 	if err != nil {
-		return merrors.Wrapf(
+		return pkg_errors.Wrapf(
 			err,
 			"failed to remove finalizers from cvr {%s}",
 			cvrObj.Name,
@@ -311,7 +310,7 @@ func (c *CStorVolumeReplicaController) removeFinalizer(
 		CStorVolumeReplicas(cvrObj.Namespace).
 		Patch(cvrObj.Name, types.JSONPatchType, cvrPatchBytes)
 	if err != nil {
-		return merrors.Wrapf(
+		return pkg_errors.Wrapf(
 			err,
 			"failed to remove finalizers from cvr {%s}",
 			cvrObj.Name,
@@ -427,7 +426,7 @@ func (c *CStorVolumeReplicaController) createVolumeReplica(
 		}
 	}
 	if len(cVR.Spec.ReplicaID) == 0 {
-		return string(cVR.Status.Phase), merrors.New("ReplicaID is not set")
+		return string(cVR.Status.Phase), pkg_errors.New("ReplicaID is not set")
 	}
 
 	err := volumereplica.CreateVolumeReplica(cVR, fullVolName, quorum)

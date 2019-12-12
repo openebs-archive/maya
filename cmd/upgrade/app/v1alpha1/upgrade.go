@@ -22,8 +22,8 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	upgrade "github.com/openebs/maya/pkg/upgrade/v1alpha1"
+	errors "github.com/pkg/errors"
 )
 
 // Upgrade contains configurations to perform upgrade

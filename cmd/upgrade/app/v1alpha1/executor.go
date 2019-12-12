@@ -21,9 +21,9 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	upgrade "github.com/openebs/maya/pkg/upgrade/v1alpha1"
+	errors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

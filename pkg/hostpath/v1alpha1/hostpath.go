@@ -18,7 +18,7 @@ package v1alpha1
 
 import (
 	"fmt"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 	"path/filepath"
 	"strings"
 )
