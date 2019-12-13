@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
 	"strings"
 	"text/template"
 	"time"
@@ -134,27 +135,8 @@ func patchTargetDeploy(d *appsv1.Deployment, ns string) error {
 	return nil
 }
 
-func patchCV(pvLabel, namespace string) error {
-	cvObject, err := cvClient.WithNamespace(namespace).List(
-		metav1.ListOptions{
-			LabelSelector: pvLabel,
-		},
-	)
-	if err != nil {
-		return err
-	}
-	if len(cvObject.Items) == 0 {
-		return errors.Errorf("cstorvolume not found")
-	}
-	version := cvObject.Items[0].Labels["openebs.io/version"]
-	if (version != currentVersion) && (version != upgradeVersion) {
-		return errors.Errorf(
-			"cstorvolume version %s is neither %s nor %s",
-			version,
-			currentVersion,
-			upgradeVersion,
-		)
-	}
+func (c *cstorVolumeOptions) patchCV() error {
+	version := c.cv.Labels["openebs.io/version"]
 	if version == currentVersion {
 		tmpl, err := template.New("cvPatch").
 			Parse(templates.VersionDetailsPatch)
@@ -167,16 +149,16 @@ func patchCV(pvLabel, namespace string) error {
 		}
 		cvPatch := buffer.String()
 		buffer.Reset()
-		_, err = cvClient.WithNamespace(namespace).Patch(
-			cvObject.Items[0].Name,
-			namespace,
+		_, err = cvClient.WithNamespace(c.ns).Patch(
+			c.cv.Name,
+			c.ns,
 			types.MergePatchType,
 			[]byte(cvPatch),
 		)
 		if err != nil {
-			return errors.Wrapf(err, "failed to patch cstorvolume %s", cvObject.Items[0].Name)
+			return errors.Wrapf(err, "failed to patch cstorvolume %s", c.cv.Name)
 		}
-		klog.Infof("cstorvolume %s patched", cvObject.Items[0].Name)
+		klog.Infof("cstorvolume %s patched", c.cv.Name)
 	} else {
 		klog.Infof("cstorvolume already in %s version", upgradeVersion)
 	}
@@ -299,6 +281,17 @@ func (c *cstorVolumeOptions) preUpgrade(pvName, openebsNamespace string) error {
 		}
 		return err
 	}
+	c.cv, err = c.getCV(pvLabel)
+	if err != nil {
+		statusObj.Message = "failed to get cstorvolume"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		c.utaskObj, uerr = updateUpgradeDetailedStatus(c.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
+		return err
+	}
+
 	statusObj.Phase = utask.StepCompleted
 	statusObj.Message = "Pre-upgrade steps were successful"
 	statusObj.Reason = ""
@@ -309,8 +302,8 @@ func (c *cstorVolumeOptions) preUpgrade(pvName, openebsNamespace string) error {
 	return nil
 }
 
-func getCV(pvLabel, namespace string) (*apis.CStorVolume, error) {
-	cvList, err := cvClient.WithNamespace(namespace).List(
+func (c *cstorVolumeOptions) getCV(pvLabel string) (*apis.CStorVolume, error) {
+	cvList, err := cvClient.WithNamespace(c.ns).List(
 		metav1.ListOptions{
 			LabelSelector: pvLabel,
 		},
@@ -320,6 +313,15 @@ func getCV(pvLabel, namespace string) (*apis.CStorVolume, error) {
 	}
 	if len(cvList.Items) == 0 {
 		return nil, errors.Errorf("cstorvolume not found")
+	}
+	version := cvList.Items[0].Labels["openebs.io/version"]
+	if (version != currentVersion) && (version != upgradeVersion) {
+		return nil, errors.Errorf(
+			"cstorvolume version %s is neither %s nor %s",
+			version,
+			currentVersion,
+			upgradeVersion,
+		)
 	}
 	return &cvList.Items[0], nil
 }
@@ -353,13 +355,14 @@ func (c *cstorVolumeOptions) verifyCVVersionReconcile(openebsNamespace string) e
 			klog.Errorf("failed to reconcile version : %s", obj.VersionDetails.Status.Reason)
 		}
 		c.cv = obj
+		printCVStatus(c.cv.Status)
 	}
 	return nil
 }
 
 func (c *cstorVolumeOptions) waitForCVCurrentVersion(pvLabel, namespace string) error {
 	var err error
-	c.cv, err = getCV(pvLabel, namespace)
+	c.cv, err = c.getCV(pvLabel)
 	if err != nil {
 		return err
 	}
@@ -389,7 +392,7 @@ func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) erro
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
-
+	printCVStatus(c.cv.Status)
 	statusObj.Phase = utask.StepErrored
 	err = patchTargetDeploy(c.targetDeployObj, c.ns)
 	if err != nil {
@@ -424,7 +427,7 @@ func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) erro
 		return err
 	}
 
-	err = patchCV(pvLabel, c.ns)
+	err = c.patchCV()
 	if err != nil {
 		statusObj.Message = "failed to patch cstor volume"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
@@ -486,7 +489,8 @@ func (c *cstorVolumeOptions) verifyCVRVersionReconcile(name, openebsNamespace st
 	}
 	// waiting for the current version to be equal to desired version
 	for cvrObj.VersionDetails.Status.Current != upgradeVersion {
-		klog.Infof("Verifying the reconciliation of version for %s", cvrObj.Name)
+		klog.Infof("Verifying the reconciliation of %s {id:%s phase:%s}",
+			cvrObj.Name, cvrObj.Spec.ReplicaID, string(cvrObj.Status.Phase))
 		// Sleep equal to the default sync time
 		time.Sleep(10 * time.Second)
 		cvrObj, err = cvrClient.WithNamespace(openebsNamespace).
@@ -552,6 +556,19 @@ func (c *cstorVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 		return uerr
 	}
 	return nil
+}
+
+func printCVStatus(s apis.CStorVolumeStatus) {
+	replicaStatusFormat := "{ id:%s mode:%s chckIOSeq:%s r/w/s:%s/%s/%s uptime:%d quorum:%s }"
+	status := "CStor volume { phase:" + string(s.Phase) + " } replicaStatuses: "
+	for _, r := range s.ReplicaStatuses {
+		status = status + "\n\t\t" + fmt.Sprintf(
+			replicaStatusFormat,
+			r.ID, r.Mode, r.CheckpointedIOSeq, r.InflightRead, r.InflightWrite,
+			r.InflightSync, r.UpTime, r.Quorum,
+		)
+	}
+	klog.Info(status)
 }
 
 func cstorVolumeUpgrade(pvName, openebsNamespace string, utaskObj *utask.UpgradeTask) (*utask.UpgradeTask, error) {

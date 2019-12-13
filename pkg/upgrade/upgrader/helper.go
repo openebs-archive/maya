@@ -65,6 +65,7 @@ func patchDelpoyment(
 	pt types.PatchType,
 	data []byte,
 ) error {
+	klog.Infof("Patching deployment %s", deployName)
 	_, err := deployClient.WithNamespace(namespace).Patch(
 		deployName,
 		pt,
@@ -91,6 +92,7 @@ func patchDelpoyment(
 	if err != nil {
 		return err
 	}
+	klog.Infof("Deployment %s rolled out successfully", deployName)
 	return nil
 }
 

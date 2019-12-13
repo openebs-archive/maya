@@ -258,7 +258,8 @@ func (c *cstorCSPOptions) verifyCSPVersionReconcile(openebsNamespace string) err
 	statusObj.Phase = utask.StepErrored
 	// waiting for the current version to be equal to desired version
 	for c.cspObj.VersionDetails.Status.Current != upgradeVersion {
-		klog.Infof("Verifying the reconciliation of version for %s", c.cspObj.Name)
+		klog.Infof("Verifying the reconciliation of version for %s { phase:%s }",
+			c.cspObj.Name, string(c.cspObj.Status.Phase))
 		// Sleep equal to the default sync time
 		time.Sleep(10 * time.Second)
 		obj, err := cspClient.Get(c.cspObj.Name, metav1.GetOptions{})
