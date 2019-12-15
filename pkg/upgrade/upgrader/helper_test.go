@@ -81,6 +81,7 @@ func Test_getBaseImage(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt // pin it
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := getBaseImage(tt.args.deployObj, tt.args.name)
 			if (err != nil) != tt.wantErr {
