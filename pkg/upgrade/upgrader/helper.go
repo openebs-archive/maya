@@ -112,6 +112,9 @@ func getBaseImage(deployObj *appsv1.Deployment, name string) (string, error) {
 	for _, con := range deployObj.Spec.Template.Spec.Containers {
 		if con.Name == name {
 			lastIndex := strings.LastIndex(con.Image, ":")
+			if lastIndex == -1 {
+				return "", errors.Errorf("no version tag found on image %s", con.Image)
+			}
 			baseImage := con.Image[:lastIndex]
 			if urlPrefix != "" {
 				// urlPrefix is the url to the directory where the images are present

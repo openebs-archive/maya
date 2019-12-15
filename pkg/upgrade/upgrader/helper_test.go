@@ -79,6 +79,28 @@ func Test_getBaseImage(t *testing.T) {
 				name: "cstor-pool",
 			},
 		},
+		{
+			name:    "With no image tag",
+			want:    "",
+			wantErr: true,
+			args: args{
+				deployObj: &appsv1.Deployment{
+					Spec: appsv1.DeploymentSpec{
+						Template: corev1.PodTemplateSpec{
+							Spec: corev1.PodSpec{
+								Containers: []corev1.Container{
+									corev1.Container{
+										Name:  "cstor-pool",
+										Image: "quay.io/openebs/cstor-pool",
+									},
+								},
+							},
+						},
+					},
+				},
+				name: "cstor-pool",
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt // pin it
