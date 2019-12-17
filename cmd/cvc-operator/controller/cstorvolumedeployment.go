@@ -281,7 +281,7 @@ func getOrCreateCStorTargetDeployment(
 	vol *apis.CStorVolume,
 ) (*appsv1.Deployment, error) {
 
-	deployObj, err := deploy.NewKubeClient(deploy.WithNamespace("openebs")).
+	deployObj, err := deploy.NewKubeClient(deploy.WithNamespace(getNamespace())).
 		Get(vol.Name + "-target")
 
 	if err != nil && !k8serror.IsNotFound(err) {
@@ -357,7 +357,7 @@ func getOrCreateCStorTargetDeployment(
 			return nil, errors.Wrapf(err, "failed to build deployment object")
 		}
 
-		deployObj, err = deploy.NewKubeClient(deploy.WithNamespace("openebs")).Create(deployObj)
+		deployObj, err = deploy.NewKubeClient(deploy.WithNamespace(getNamespace())).Create(deployObj)
 
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to create deployment object")

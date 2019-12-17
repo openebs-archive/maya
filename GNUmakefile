@@ -75,6 +75,7 @@ HUB_USER?=openebs
 ADMISSION_SERVER_REPO_NAME?=admission-server
 M_UPGRADE_REPO_NAME?=m-upgrade
 CSPC_OPERATOR_REPO_NAME?=cspc-operator
+CVC_OPERATOR_REPO_NAME?=cvc-operator
 
 ifeq (${IMAGE_TAG}, )
   IMAGE_TAG = ci
@@ -108,6 +109,7 @@ endif
 WEBHOOK=admission-server
 CSPC_OPERATOR=cspc-operator
 CSPC_OPERATOR_DEBUG=cspc-operator-debug
+CVC_OPERATOR=cvc-operator
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
@@ -123,7 +125,9 @@ include ./buildscripts/cstor-volume-mgmt/Makefile.mk
 include ./buildscripts/cspi-mgmt/Makefile.mk
 
 .PHONY: all
-all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image cspc-operator-image cspc-operator-debug-image cspi-mgmt-image upgrade-image provisioner-localpv-image
+all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image \
+	   admission-server-image cspc-operator-image cspc-operator-debug-image \
+	   cvc-operator-image cspi-mgmt-image upgrade-image provisioner-localpv-image
 
 .PHONY: all.arm64
 all.arm64: apiserver-image.arm64 provisioner-localpv-image.arm64 exporter-image.arm64 pool-mgmt-image.arm64 volume-mgmt-image.arm64 cspi-mgmt-image.arm64
@@ -328,6 +332,17 @@ cspc-operator-debug-image:
 	@cp bin/${CSPC_OPERATOR_DEBUG}/${CSPC_OPERATOR} buildscripts/cspc-operator-debug/
 	@cd buildscripts/${CSPC_OPERATOR_DEBUG} && sudo docker build -t ${HUB_USER}/${CSPC_OPERATOR_REPO_NAME}:inject --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/${CSPC_OPERATOR_DEBUG}/${CSPC_OPERATOR}
+
+.PHONY: cvc-operator-image
+cvc-operator-image:
+	@echo "----------------------------"
+	@echo -n "--> cvc-operator image "
+	@echo "${HUB_USER}/${CVC_OPERATOR_REPO_NAME}:${IMAGE_TAG}"
+	@echo "----------------------------"
+	@PNAME=${CVC_OPERATOR} CTLNAME=${CVC_OPERATOR} sh -c "'$(PWD)/buildscripts/build.sh'"
+	@cp bin/${CVC_OPERATOR}/${CVC_OPERATOR} buildscripts/cvc-operator/
+	@cd buildscripts/${CVC_OPERATOR} && sudo docker build -t ${HUB_USER}/${CVC_OPERATOR_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/${CVC_OPERATOR}/${CVC_OPERATOR}
 
 # Push images
 .PHONY: deploy-images
