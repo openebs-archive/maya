@@ -32,7 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("[cstor] TEST BULK VOLUME PROVISIONING", func() {
+var _ = Describe("[Cstor Volume Provisioning Positive] TEST BULK VOLUME PROVISIONING", func() {
 	var (
 		err           error
 		pvcNamePrefix = "cstor-volume-claim-"

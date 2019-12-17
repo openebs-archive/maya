@@ -52,9 +52,16 @@ var (
 	targetLabel        = "openebs.io/target=cstor-target"
 	pvLabel            = "openebs.io/persistent-volume="
 	pvcLabel           = "openebs.io/persistent-volume-claim="
+	SPCLabel           = "openebs.io/storage-pool-claim"
 	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	capacity           = "5G"
 	annotations        = map[string]string{}
+	svcName            = "volume-provision-svc-injector"
+	serviceObj         *corev1.Service
+	pvcName            = "volume-claim1"
+	hostIPPort         string
+	hostLabel          = "kubernetes.io/hostname"
+	poolPodList        *corev1.PodList
 )
 
 func TestSource(t *testing.T) {

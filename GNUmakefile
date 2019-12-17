@@ -108,6 +108,7 @@ VOLUME_MGMT=cstor-volume-mgmt
 EXPORTER=maya-exporter
 CSPC_OPERATOR=cspc-operator
 CSPC_OPERATOR_DEBUG=cspc-operator-debug
+CSP_OPERATOR_DEBUG=cstor-pool-mgmt-debug
 
 
 # Specify the date o build
@@ -310,6 +311,18 @@ pool-mgmt-image: cstor-pool-mgmt
 	@cp bin/cstor-pool-mgmt/${POOL_MGMT} buildscripts/cstor-pool-mgmt/
 	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t ${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
 	@rm buildscripts/cstor-pool-mgmt/${POOL_MGMT}
+
+#Use this to build debug image of cstor-pool-mgmt
+.PHONY: pool-mgmt-debug-image
+pool-mgmt-debug-image:
+	@echo "----------------------------"
+	@echo -n "--> cstor-pool-mgmt debug image "
+	@echo "${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME}:inject"
+	@echo "----------------------------"
+	@PNAME=${CSP_OPERATOR_DEBUG} CTLNAME=${POOL_MGMT} BUILD_TAG="-tags=debug" sh -c "'$(PWD)/buildscripts/build.sh'"
+	@cp bin/${CSP_OPERATOR_DEBUG}/${POOL_MGMT} buildscripts/${CSP_OPERATOR_DEBUG}/
+	@cd buildscripts/${CSP_OPERATOR_DEBUG} && sudo docker build -t ${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME}:inject --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
+	@rm buildscripts/${CSP_OPERATOR_DEBUG}/${POOL_MGMT}
 
 #Use this to build cspi-mgmt
 .PHONY: cspi-mgmt

@@ -128,3 +128,45 @@ func (ei *ErrorInjection) IsDeploymentUpdateErrorInjected() bool {
 func (ei *ErrorInjection) IsDeploymentPatchErrorInjected() bool {
 	return false
 }
+
+// IsZFSGetErrorInjected is production alternative for the same function that
+// exists in debug build
+func (ei *ErrorInjection) IsZFSGetErrorInjected() bool {
+	return false
+}
+
+// IsZFSCreateErrorInjected is production alternative for the same function that
+// exists in debug build
+func (ei *ErrorInjection) IsZFSCreateErrorInjected() bool {
+	return false
+}
+
+// IsZFSDeleteErrorInjected is production alternative for the same function that
+// exists in debug build
+func (ei *ErrorInjection) IsZFSDeleteErrorInjected() bool {
+	return false
+}
+
+// IsCVRCreateErrorInjected is production alternative for the same function that
+// exists in debug build
+func (ei *ErrorInjection) IsCVRCreateErrorInjected() bool {
+	return false
+}
+
+// IsCVRDeleteErrorInjected is production alternative for the same function that
+// exists in debug build
+func (ei *ErrorInjection) IsCVRDeleteErrorInjected() bool {
+	return false
+}
+
+// IsCVRGetErrorInjected is production alternative for the same function that
+// exists in debug build
+func (ei *ErrorInjection) IsCVRGetErrorInjected() bool {
+	return false
+}
+
+// IsCVRUpdateErrorInjected is production alternative for the same function that
+// exists in debug build
+func (ei *ErrorInjection) IsCVRUpdateErrorInjected() bool {
+	return false
+}

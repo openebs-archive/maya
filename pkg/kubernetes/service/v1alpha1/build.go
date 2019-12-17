@@ -240,6 +240,21 @@ func (b *Builder) WithPorts(ports []corev1.ServicePort) *Builder {
 	return b
 }
 
+// WithType sets the Type field of Service with provided arguments
+func (b *Builder) WithType(svcType corev1.ServiceType) *Builder {
+	if len(svcType) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.
+				New("failed to build service object: missing service type"),
+		)
+		return b
+	}
+
+	b.service.object.Spec.Type = svcType
+	return b
+}
+
 // Build returns the Service API instance
 func (b *Builder) Build() (*corev1.Service, error) {
 	if len(b.errs) > 0 {
