@@ -72,10 +72,7 @@ HUB_USER?=openebs
 # Repository name
 # format of docker image name is <hub-user>/<repo-name>[:<tag>].
 # so final name will be ${HUB_USER}/${*_REPO_NAME}:${IMAGE_TAG}
-CSTOR_POOL_MGMT_REPO_NAME?=cstor-pool-mgmt
 CSPI_MGMT_REPO_NAME?=cspi-mgmt
-CSTOR_VOLUME_MGMT_REPO_NAME?=cstor-volume-mgmt
-M_EXPORTER_REPO_NAME?=m-exporter
 ADMISSION_SERVER_REPO_NAME?=admission-server
 M_UPGRADE_REPO_NAME?=m-upgrade
 CSPC_OPERATOR_REPO_NAME?=cspc-operator
@@ -93,8 +90,16 @@ else
   export BASE_TAG
 endif
 
+# Specify the name of cstor-base image
 CSTOR_BASE_IMAGE= openebs/cstor-base:${BASE_TAG}
+export CSTOR_BASE_IMAGE
 
+ifeq (${CSTOR_BASE_IMAGE_ARM64}, )
+  CSTOR_BASE_IMAGE_ARM64= openebs/cstor-base-arm64:${BASE_TAG}
+  export CSTOR_BASE_IMAGE_ARM64
+endif
+
+# Specify the name of base image for ARM64
 ifeq (${BASE_DOCKER_IMAGEARM64}, )
   BASE_DOCKER_IMAGEARM64 = "arm64v8/ubuntu:18.04"
   export BASE_DOCKER_IMAGEARM64
@@ -102,14 +107,9 @@ endif
 
 # Specify the name for the binaries
 WEBHOOK=admission-server
-POOL_MGMT=cstor-pool-mgmt
 CSPI_MGMT=cspi-mgmt
-VOLUME_MGMT=cstor-volume-mgmt
-EXPORTER=maya-exporter
 CSPC_OPERATOR=cspc-operator
 CSPC_OPERATOR_DEBUG=cspc-operator-debug
-CSP_OPERATOR_DEBUG=cstor-pool-mgmt-debug
-
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
@@ -119,12 +119,15 @@ include ./buildscripts/apiserver/Makefile.mk
 include ./buildscripts/provisioner-localpv/Makefile.mk
 include ./buildscripts/upgrade/Makefile.mk
 include ./buildscripts/upgrade-082090/Makefile.mk
+include ./buildscripts/exporter/Makefile.mk
+include ./buildscripts/cstor-pool-mgmt/Makefile.mk
+include ./buildscripts/cstor-volume-mgmt/Makefile.mk
 
 .PHONY: all
 all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image cspc-operator-image cspc-operator-debug-image cspi-mgmt-image upgrade-image provisioner-localpv-image
 
 .PHONY: all.arm64
-all.arm64: apiserver-image.arm64 provisioner-localpv-image.arm64
+all.arm64: apiserver-image.arm64 provisioner-localpv-image.arm64 exporter-image.arm64 pool-mgmt-image.arm64 volume-mgmt-image.arm64
 
 .PHONY: initialize
 initialize: bootstrap
@@ -294,36 +297,6 @@ informer2:
 install: bin/maya/${MAYACTL}
 	install -o root -g root -m 0755 ./bin/maya/${MAYACTL} /usr/local/bin/${MAYACTL}
 
-#Use this to build cstor-pool-mgmt
-.PHONY: cstor-pool-mgmt
-cstor-pool-mgmt:
-	@echo "----------------------------"
-	@echo "--> cstor-pool-mgmt           "
-	@echo "----------------------------"
-	@PNAME="cstor-pool-mgmt" CTLNAME=${POOL_MGMT} sh -c "'$(PWD)/buildscripts/build.sh'"
-
-.PHONY: pool-mgmt-image
-pool-mgmt-image: cstor-pool-mgmt
-	@echo "----------------------------"
-	@echo -n "--> cstor-pool-mgmt image "
-	@echo "${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME}:${IMAGE_TAG}"
-	@echo "----------------------------"
-	@cp bin/cstor-pool-mgmt/${POOL_MGMT} buildscripts/cstor-pool-mgmt/
-	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t ${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
-	@rm buildscripts/cstor-pool-mgmt/${POOL_MGMT}
-
-#Use this to build debug image of cstor-pool-mgmt
-.PHONY: pool-mgmt-debug-image
-pool-mgmt-debug-image:
-	@echo "----------------------------"
-	@echo -n "--> cstor-pool-mgmt debug image "
-	@echo "${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME}:inject"
-	@echo "----------------------------"
-	@PNAME=${CSP_OPERATOR_DEBUG} CTLNAME=${POOL_MGMT} BUILD_TAG="-tags=debug" sh -c "'$(PWD)/buildscripts/build.sh'"
-	@cp bin/${CSP_OPERATOR_DEBUG}/${POOL_MGMT} buildscripts/${CSP_OPERATOR_DEBUG}/
-	@cd buildscripts/${CSP_OPERATOR_DEBUG} && sudo docker build -t ${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME}:inject --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
-	@rm buildscripts/${CSP_OPERATOR_DEBUG}/${POOL_MGMT}
-
 #Use this to build cspi-mgmt
 .PHONY: cspi-mgmt
 cspi-mgmt:
@@ -341,53 +314,6 @@ cspi-mgmt-image: cspi-mgmt
 	@cp bin/cspi-mgmt/${CSPI_MGMT} buildscripts/cspi-mgmt/
 	@cd buildscripts/cspi-mgmt && sudo docker build -t ${HUB_USER}/${CSPI_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
 	@rm buildscripts/cspi-mgmt/${CSPI_MGMT}
-
-#Use this to build cstor-volume-mgmt
-.PHONY: cstor-volume-mgmt
-cstor-volume-mgmt:
-	@echo "----------------------------"
-	@echo "--> cstor-volume-mgmt           "
-	@echo "----------------------------"
-	@PNAME="cstor-volume-mgmt" CTLNAME=${VOLUME_MGMT} sh -c "'$(PWD)/buildscripts/build.sh'"
-
-.PHONY: protobuf
-protobuf:
-	@echo "----------------------------"
-	@echo "--> protobuf           "
-	@echo "----------------------------"
-	@protoc -I $(PWD)/pkg/apis/openebs.io/v1alpha1/ \
-    -I${GOPATH}/src \
-    --go_out=plugins=grpc:$(PWD)/pkg/client/generated/cstor-volume-mgmt/v1alpha1 \
-    $(PWD)/pkg/apis/openebs.io/v1alpha1/cstorvolume.proto
-
-.PHONY: volume-mgmt-image
-volume-mgmt-image: cstor-volume-mgmt
-	@echo "----------------------------"
-	@echo -n "--> cstor-volume-mgmt image "
-	@echo "${HUB_USER}/${CSTOR_VOLUME_MGMT_REPO_NAME}:${IMAGE_TAG}"
-	@echo "----------------------------"
-	@cp bin/cstor-volume-mgmt/${VOLUME_MGMT} buildscripts/cstor-volume-mgmt/
-	@cd buildscripts/cstor-volume-mgmt && sudo docker build -t ${HUB_USER}/${CSTOR_VOLUME_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
-	@rm buildscripts/cstor-volume-mgmt/${VOLUME_MGMT}
-
-# Use this to build only the maya-exporter.
-.PHONY: exporter
-exporter:
-	@echo "----------------------------"
-	@echo "--> maya-exporter              "
-	@echo "----------------------------"
-	@PNAME="exporter" CTLNAME=${EXPORTER} sh -c "'$(PWD)/buildscripts/build.sh'"
-
-# m-exporter image. This is going to be decoupled soon.
-.PHONY: exporter-image
-exporter-image: exporter
-	@echo "----------------------------"
-	@echo -n "--> m-exporter image "
-	@echo "${HUB_USER}/${M_EXPORTER_REPO_NAME}:${IMAGE_TAG}"
-	@echo "----------------------------"
-	@cp bin/exporter/${EXPORTER} buildscripts/exporter/
-	@cd buildscripts/exporter && sudo docker build -t ${HUB_USER}/${M_EXPORTER_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} .
-	@rm buildscripts/exporter/${EXPORTER}
 
 .PHONY: admission-server-image
 admission-server-image:
