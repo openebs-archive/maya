@@ -79,6 +79,7 @@ M_EXPORTER_REPO_NAME?=m-exporter
 ADMISSION_SERVER_REPO_NAME?=admission-server
 M_UPGRADE_REPO_NAME?=m-upgrade
 CSPC_OPERATOR_REPO_NAME?=cspc-operator
+M_MIGRATE_REPO_NAME?=migrate
 
 ifeq (${IMAGE_TAG}, )
   IMAGE_TAG = ci
@@ -119,6 +120,7 @@ include ./buildscripts/apiserver/Makefile.mk
 include ./buildscripts/provisioner-localpv/Makefile.mk
 include ./buildscripts/upgrade/Makefile.mk
 include ./buildscripts/upgrade-082090/Makefile.mk
+include ./buildscripts/migrate/Makefile.mk
 
 .PHONY: all
 all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image cspc-operator-image cspc-operator-debug-image cspi-mgmt-image upgrade-image provisioner-localpv-image

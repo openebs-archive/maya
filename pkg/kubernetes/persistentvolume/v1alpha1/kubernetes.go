@@ -18,7 +18,7 @@ import (
 	"strings"
 
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -60,6 +60,10 @@ type deleteCollectionFn func(cli *kubernetes.Clientset, listOpts metav1.ListOpti
 // creation of pv
 type createFn func(cli *kubernetes.Clientset, pv *corev1.PersistentVolume) (*corev1.PersistentVolume, error)
 
+// updateFn is a typed function that abstracts
+// updation of pv
+type updateFn func(cli *kubernetes.Clientset, pv *corev1.PersistentVolume) (*corev1.PersistentVolume, error)
+
 // Kubeclient enables kubernetes API operations
 // on pv instance
 type Kubeclient struct {
@@ -79,6 +83,7 @@ type Kubeclient struct {
 	create              createFn
 	del                 deleteFn
 	delCollection       deleteCollectionFn
+	update              updateFn
 }
 
 // KubeclientBuildOption abstracts creating an
@@ -121,6 +126,11 @@ func (k *Kubeclient) withDefaults() {
 	if k.create == nil {
 		k.create = func(cli *kubernetes.Clientset, pv *corev1.PersistentVolume) (*corev1.PersistentVolume, error) {
 			return cli.CoreV1().PersistentVolumes().Create(pv)
+		}
+	}
+	if k.update == nil {
+		k.update = func(cli *kubernetes.Clientset, pv *corev1.PersistentVolume) (*corev1.PersistentVolume, error) {
+			return cli.CoreV1().PersistentVolumes().Update(pv)
 		}
 	}
 }
@@ -226,4 +236,13 @@ func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *m
 		return errors.Wrapf(err, "failed to delete the collection of pvs")
 	}
 	return k.delCollection(cli, listOpts, deleteOpts)
+}
+
+// Update updates a pv in kubernetes cluster
+func (k *Kubeclient) Update(pv *corev1.PersistentVolume) (*corev1.PersistentVolume, error) {
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update pv: %s", pv.Name)
+	}
+	return k.update(cli, pv)
 }
