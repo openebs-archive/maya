@@ -42,6 +42,10 @@ func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 		poolSpec.PoolConfig.Resources = ac.CSPC.Spec.DefaultResources
 	}
 
+	if len(poolSpec.PoolConfig.Tolerations) == 0 {
+		poolSpec.PoolConfig.Tolerations = ac.CSPC.Spec.Tolerations
+	}
+
 	csplabels := ac.buildLabelsForCSPI(nodeName)
 	cspObj, err := apiscsp.NewBuilder().
 		WithName(ac.CSPC.Name + "-" + rand.String(4)).
