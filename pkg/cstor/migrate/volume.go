@@ -24,6 +24,7 @@ import (
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	cvc "github.com/openebs/maya/pkg/cstorvolumeclaim/v1alpha1"
+	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pv "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
@@ -51,34 +52,45 @@ var (
 
 // Volume migrates the volume from non-CSI schema to CSI schema
 func Volume(pvName, openebsNS string) error {
-	if openebsNS != "" {
-		openebsNamespace = openebsNS
-	}
-	klog.Infof("Checking volume is not mounted on any application")
-	pvObj, err := migrate.IsVolumeMounted(pvName)
+	var pvObj *corev1.PersistentVolume
+	openebsNamespace = openebsNS
+	pvcObj, pvPresent, err := validatePVName(pvName)
 	if err != nil {
-		return errors.Wrapf(err, "failed to verify mount status for pv {%s}", pvName)
+		return errors.Wrapf(err, "failed to validate pvname")
 	}
-	if pvObj.Spec.PersistentVolumeSource.CSI == nil {
-		klog.Infof("Retaining PV to migrate into csi volume")
-		err := migrate.RetainPV(pvObj)
+	err = populateCVNamespace(pvName)
+	if err != nil {
+		return errors.Wrapf(err, "failed to cv namespace")
+	}
+	if pvPresent {
+		klog.Infof("Checking volume is not mounted on any application")
+		pvObj, err = migrate.IsVolumeMounted(pvName)
 		if err != nil {
-			return errors.Wrapf(err, "failed to retain pv {%s}", pvName)
+			return errors.Wrapf(err, "failed to verify mount status for pv {%s}", pvName)
 		}
+		if pvObj.Spec.PersistentVolumeSource.CSI == nil {
+			klog.Infof("Retaining PV to migrate into csi volume")
+			err = migrate.RetainPV(pvObj)
+			if err != nil {
+				return errors.Wrapf(err, "failed to retain pv {%s}", pvName)
+			}
+		}
+		err = updateStorageClass(pvObj.Name, pvObj.Spec.StorageClassName)
+		if err != nil {
+			return errors.Wrapf(err, "failed to update storageclass {%s}", pvObj.Spec.StorageClassName)
+		}
+		pvcObj, err = migratePVC(pvObj)
+		if err != nil {
+			return err
+		}
+	} else {
+		klog.Infof("PVC and storageclass already migrated to csi format")
 	}
-	err = populateCVNamespace(pvObj)
+	storageClass, err = sc.NewKubeClient().Get(*pvcObj.Spec.StorageClassName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
-	err = updateStorageClass(pvObj.Name, pvObj.Spec.StorageClassName)
-	if err != nil {
-		return errors.Wrapf(err, "failed to update storageclass {%s}", pvObj.Spec.StorageClassName)
-	}
-	pvcObj, err := migratePVC(pvObj)
-	if err != nil {
-		return err
-	}
-	pvObj, err = migratePV(pvcObj)
+	_, err = migratePV(pvcObj)
 	if err != nil {
 		return err
 	}
@@ -139,16 +151,17 @@ func generateCSIPVC(pvName string) (*corev1.PersistentVolumeClaim, bool, error) 
 	}
 	if pvcObj.Annotations["volume.beta.kubernetes.io/storage-provisioner"] != cstorCSIDriver {
 		csiPVC := &corev1.PersistentVolumeClaim{}
-		csiPVC.Name = pvcObj.Name
-		csiPVC.Namespace = pvcObj.Namespace
+		csiPVC.Name = pvcName
+		csiPVC.Namespace = pvcNamespace
 		csiPVC.Annotations = map[string]string{
 			"volume.beta.kubernetes.io/storage-provisioner": cstorCSIDriver,
 		}
-		csiPVC.Spec.AccessModes = pvcObj.Spec.AccessModes
-		csiPVC.Spec.Resources = pvcObj.Spec.Resources
-		csiPVC.Spec.StorageClassName = pvcObj.Spec.StorageClassName
-		csiPVC.Spec.VolumeMode = pvcObj.Spec.VolumeMode
-		csiPVC.Spec.VolumeName = pvcObj.Spec.VolumeName
+		csiPVC.Spec.AccessModes = pvObj.Spec.AccessModes
+		csiPVC.Spec.Resources.Requests = pvObj.Spec.Capacity
+		csiPVC.Spec.StorageClassName = &pvObj.Spec.StorageClassName
+		csiPVC.Spec.VolumeMode = pvObj.Spec.VolumeMode
+		csiPVC.Spec.VolumeName = pvObj.Name
+
 		return csiPVC, true, nil
 	}
 	klog.Infof("pvc already migrated")
@@ -166,7 +179,7 @@ func generateCSIPV(
 			return nil, false, err
 		}
 		if k8serrors.IsNotFound(err) {
-			pvObj, err := generateCSIPVFromCV(pvName, pvcObj)
+			pvObj, err = generateCSIPVFromCV(pvName, pvcObj)
 			if err != nil {
 				return nil, false, err
 			}
@@ -295,16 +308,37 @@ func updateStorageClass(pvName, scName string) error {
 			return err
 		}
 	}
-	replicaCount, err := getReplicaCount(pvName)
-	if err != nil {
-		return err
-	}
-	cspcName, err := getCSPCName(pvName)
-	if err != nil {
-		return err
-	}
 	if scObj == nil || scObj.Provisioner != cstorCSIDriver {
-		csiSC := &storagev1.StorageClass{}
+		tmpSCName := "tmp-migrate-" + scName
+		tmpSCObj, err := sc.NewKubeClient().Get(tmpSCName, metav1.GetOptions{})
+		if err != nil {
+			if !k8serrors.IsNotFound(err) {
+				return err
+			}
+			tmpSCObj = scObj.DeepCopy()
+			tmpSCObj.ResourceVersion = ""
+			tmpSCObj.SelfLink = ""
+			tmpSCObj.UID = ""
+			tmpSCObj.Name = tmpSCName
+			tmpSCObj.CreationTimestamp = metav1.Time{}
+			tmpSCObj, err = sc.NewKubeClient().Create(tmpSCObj)
+			if err != nil {
+				return errors.Wrapf(err, "failed to create temporary storageclass")
+			}
+		}
+		replicaCount, err := getReplicaCount(pvName)
+		if err != nil {
+			return err
+		}
+		cspcName, err := getCSPCName(pvName)
+		if err != nil {
+			return err
+		}
+		csiSC := tmpSCObj.DeepCopy()
+		csiSC.ResourceVersion = ""
+		csiSC.SelfLink = ""
+		csiSC.UID = ""
+		csiSC.CreationTimestamp = metav1.Time{}
 		csiSC.Name = scName
 		csiSC.Provisioner = cstorCSIDriver
 		csiSC.AllowVolumeExpansion = &trueBool
@@ -323,8 +357,12 @@ func updateStorageClass(pvName, scName string) error {
 		if err != nil {
 			return err
 		}
+		storageClass = scObj
+		err = sc.NewKubeClient().Delete(tmpSCName, &metav1.DeleteOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "failed to delete temporary storageclass")
+		}
 	}
-	storageClass = scObj
 	return nil
 }
 
@@ -337,26 +375,19 @@ func getReplicaCount(pvName string) (string, error) {
 	return strconv.Itoa(cvObj.Spec.ReplicationFactor), nil
 }
 
-func populateCVNamespace(pvObj *corev1.PersistentVolume) error {
-	_, err := cv.NewKubeclient().WithNamespace(openebsNamespace).
-		Get(pvObj.Name, metav1.GetOptions{})
+func populateCVNamespace(cvName string) error {
+	cvList, err := cv.NewKubeclient().WithNamespace("").
+		List(metav1.ListOptions{})
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			_, err = cv.NewKubeclient().WithNamespace(pvObj.Spec.ClaimRef.Namespace).
-				Get(pvObj.Name, metav1.GetOptions{})
-			if err != nil {
-				if !k8serrors.IsNotFound(err) {
-					return err
-				}
-				return errors.Errorf("cv not found in pvc namespace or openebs namespace")
-			}
-			cvNamespace = pvObj.Spec.ClaimRef.Namespace
-			return nil
-		}
 		return err
 	}
-	cvNamespace = openebsNamespace
-	return nil
+	for _, cvObj := range cvList.Items {
+		if cvObj.Name == cvName {
+			cvNamespace = cvObj.Namespace
+			return nil
+		}
+	}
+	return errors.Errorf("cv %s not found for given pv", cvName)
 }
 
 func getCSPCName(pvName string) (string, error) {
@@ -392,6 +423,10 @@ func updateOwnerRefs(cvcObj *apis.CStorVolumeClaim) error {
 	cvOwnerRef := *metav1.NewControllerRef(cvObj,
 		apis.SchemeGroupVersion.WithKind(cvKind))
 	err = updateCVROwnerRef(cvOwnerRef)
+	if err != nil {
+		return err
+	}
+	err = updateTargetDeployOwnerRef(cvOwnerRef)
 	return err
 }
 
@@ -460,4 +495,45 @@ func updateCVROwnerRef(cvOwnerRef metav1.OwnerReference) error {
 		}
 	}
 	return nil
+}
+
+func updateTargetDeployOwnerRef(cvOwnerRef metav1.OwnerReference) error {
+	targetName := cvOwnerRef.Name + "-target"
+	targetObj, err := deploy.NewKubeClient().WithNamespace(cvNamespace).
+		Get(targetName)
+	if err != nil {
+		return err
+	}
+	newTargetObj := targetObj.DeepCopy()
+	newTargetObj.OwnerReferences = []metav1.OwnerReference{
+		cvOwnerRef,
+	}
+	patchBytes, err := util.GetPatchData(targetObj, newTargetObj)
+	if err != nil {
+		return err
+	}
+	_, err = deploy.NewKubeClient().WithNamespace(cvNamespace).
+		Patch(targetObj.Name, types.MergePatchType, patchBytes)
+	return err
+}
+
+func validatePVName(pvName string) (*corev1.PersistentVolumeClaim, bool, error) {
+	_, err := pv.NewKubeClient().Get(pvName, metav1.GetOptions{})
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return nil, false, err
+		}
+		pvcList, err := pvc.NewKubeClient().WithNamespace("").
+			List(metav1.ListOptions{})
+		if err != nil {
+			return nil, false, err
+		}
+		for _, pvcObj := range pvcList.Items {
+			if pvcObj.Spec.VolumeName == pvName {
+				return &pvcObj, false, nil
+			}
+		}
+		return nil, false, errors.Errorf("No PVC found for the given PV")
+	}
+	return nil, true, nil
 }

@@ -24,7 +24,6 @@ import (
 	pv "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
-	"github.com/openebs/maya/pkg/util/retry"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -78,7 +77,7 @@ func RetainPV(pvObj *corev1.PersistentVolume) error {
 // as previous PV except for the uid to avoid any other PVC to claim it.
 func RecreatePV(pvObj *corev1.PersistentVolume) (*corev1.PersistentVolume, error) {
 	err := pv.NewKubeClient().Delete(pvObj.Name, &metav1.DeleteOptions{})
-	if err != nil {
+	if err != nil && !k8serrors.IsNotFound(err) {
 		return nil, err
 	}
 	err = isPVDeletedEventually(pvObj)
@@ -97,7 +96,7 @@ func RecreatePV(pvObj *corev1.PersistentVolume) (*corev1.PersistentVolume, error
 func RecreatePVC(pvcObj *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
 	err := pvc.NewKubeClient().WithNamespace(pvcObj.Namespace).
 		Delete(pvcObj.Name, &metav1.DeleteOptions{})
-	if err != nil {
+	if err != nil && !k8serrors.IsNotFound(err) {
 		return nil, err
 	}
 	err = isPVCDeletedEventually(pvcObj)
@@ -116,34 +115,28 @@ func RecreatePVC(pvcObj *corev1.PersistentVolumeClaim) (*corev1.PersistentVolume
 // and returns true if pvc is not found
 // else returns false
 func isPVCDeletedEventually(pvcObj *corev1.PersistentVolumeClaim) error {
-	err := retry.
-		Times(60).
-		Wait(5 * time.Second).
-		Try(func(attempt uint) error {
-			_, err1 := pvc.NewKubeClient().
-				WithNamespace(pvcObj.Namespace).Get(pvcObj.Name, metav1.GetOptions{})
-			if !k8serrors.IsNotFound(err1) {
-				return err1
-			}
-			return errors.Errorf("PVC %s still present", pvcObj.Name)
-		})
-	return err
+	for i := 1; i < 60; i++ {
+		_, err := pvc.NewKubeClient().
+			WithNamespace(pvcObj.Namespace).Get(pvcObj.Name, metav1.GetOptions{})
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return errors.Errorf("PVC %s still present", pvcObj.Name)
 }
 
 // IsPVDeletedEventually tries to get the deleted pv
 // and returns true if pv is not found
 // else returns false
 func isPVDeletedEventually(pvObj *corev1.PersistentVolume) error {
-	err := retry.
-		Times(60).
-		Wait(5 * time.Second).
-		Try(func(attempt uint) error {
-			_, err1 := pv.NewKubeClient().
-				Get(pvObj.Name, metav1.GetOptions{})
-			if !k8serrors.IsNotFound(err1) {
-				return err1
-			}
-			return errors.Errorf("PV %s still present", pvObj.Name)
-		})
-	return err
+	for i := 1; i < 60; i++ {
+		_, err := pv.NewKubeClient().
+			Get(pvObj.Name, metav1.GetOptions{})
+		if k8serrors.IsNotFound(err) {
+			return nil
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return errors.Errorf("PVC %s still present", pvObj.Name)
 }
