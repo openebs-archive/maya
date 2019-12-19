@@ -72,7 +72,6 @@ HUB_USER?=openebs
 # Repository name
 # format of docker image name is <hub-user>/<repo-name>[:<tag>].
 # so final name will be ${HUB_USER}/${*_REPO_NAME}:${IMAGE_TAG}
-CSPI_MGMT_REPO_NAME?=cspi-mgmt
 ADMISSION_SERVER_REPO_NAME?=admission-server
 M_UPGRADE_REPO_NAME?=m-upgrade
 CSPC_OPERATOR_REPO_NAME?=cspc-operator
@@ -107,7 +106,6 @@ endif
 
 # Specify the name for the binaries
 WEBHOOK=admission-server
-CSPI_MGMT=cspi-mgmt
 CSPC_OPERATOR=cspc-operator
 CSPC_OPERATOR_DEBUG=cspc-operator-debug
 
@@ -122,6 +120,7 @@ include ./buildscripts/upgrade-082090/Makefile.mk
 include ./buildscripts/exporter/Makefile.mk
 include ./buildscripts/cstor-pool-mgmt/Makefile.mk
 include ./buildscripts/cstor-volume-mgmt/Makefile.mk
+include ./buildscripts/cspi-mgmt/Makefile.mk
 
 .PHONY: all
 all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image cspc-operator-image cspc-operator-debug-image cspi-mgmt-image upgrade-image provisioner-localpv-image
@@ -296,24 +295,6 @@ informer2:
 .PHONY: install
 install: bin/maya/${MAYACTL}
 	install -o root -g root -m 0755 ./bin/maya/${MAYACTL} /usr/local/bin/${MAYACTL}
-
-#Use this to build cspi-mgmt
-.PHONY: cspi-mgmt
-cspi-mgmt:
-	@echo "----------------------------"
-	@echo "--> cspi-mgmt           "
-	@echo "----------------------------"
-	@PNAME="cspi-mgmt" CTLNAME=${CSPI_MGMT} sh -c "'$(PWD)/buildscripts/build.sh'"
-
-.PHONY: cspi-mgmt-image
-cspi-mgmt-image: cspi-mgmt
-	@echo "----------------------------"
-	@echo -n "--> cspi-mgmt image "
-	@echo "${HUB_USER}/${CSPI_MGMT_REPO_NAME}:${IMAGE_TAG}"
-	@echo "----------------------------"
-	@cp bin/cspi-mgmt/${CSPI_MGMT} buildscripts/cspi-mgmt/
-	@cd buildscripts/cspi-mgmt && sudo docker build -t ${HUB_USER}/${CSPI_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
-	@rm buildscripts/cspi-mgmt/${CSPI_MGMT}
 
 .PHONY: admission-server-image
 admission-server-image:
