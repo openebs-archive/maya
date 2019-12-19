@@ -43,7 +43,7 @@ func (c *RestoreController) Run(threadiness int, stopCh <-chan struct{}) error {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
-	klog.Info("Starting CStorRestore workers")
+	klog.V(1).Info("Starting CStorRestore workers")
 
 	// Launch two workers to process CStorRestore resources
 	for i := 0; i < threadiness; i++ {

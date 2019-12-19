@@ -172,7 +172,7 @@ func (c *RestoreController) handleRSTAddEvent(rst *apis.CStorRestore, q *common.
 }
 
 func (c *RestoreController) handleRSTUpdateEvent(oldrst, newrst *apis.CStorRestore, q *common.QueueLoad) {
-	klog.Infof("Received Update for restore:%s", oldrst.ObjectMeta.Name)
+	klog.V(2).Infof("Received Update for restore:%s", oldrst.ObjectMeta.Name)
 
 	// If there is no change in status then we will ignore the event
 	if newrst.Status == oldrst.Status {

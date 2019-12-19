@@ -134,7 +134,7 @@ func (c *BackupController) syncEventHandler(bkp *apis.CStorBackup) (string, erro
 // getCStorBackupResource returns a backup object corresponding to the resource key
 func (c *BackupController) getCStorBackupResource(key string) (*apis.CStorBackup, error) {
 	// Convert the key(namespace/name) string into a distinct name
-	klog.Infof("Finding backup for key:%s", key)
+	klog.V(1).Infof("Finding backup for key:%s", key)
 	ns, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))

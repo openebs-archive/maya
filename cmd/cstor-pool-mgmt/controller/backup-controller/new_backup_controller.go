@@ -227,7 +227,7 @@ func (c *BackupController) handleBKPAddEvent(bkp *apis.CStorBackup, q *common.Qu
 
 // handleBKPUpdateEvent is to handle add operation of backup controller
 func (c *BackupController) handleBKPUpdateEvent(oldbkp, newbkp *apis.CStorBackup, q *common.QueueLoad) {
-	klog.Infof("Received Update for backup:%s", oldbkp.ObjectMeta.Name)
+	klog.V(2).Infof("Received Update for backup:%s", oldbkp.ObjectMeta.Name)
 
 	if newbkp.ResourceVersion == oldbkp.ResourceVersion {
 		return
