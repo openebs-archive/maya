@@ -306,6 +306,10 @@ func createCVC(pvName string) error {
 	return err
 }
 
+// updateStorageClass recreates a new storageclass with the csi provisioner
+// the older annotations with the casconfig are also preserved for information
+// as the information about the storageclass cannot be gathered from other
+// resources a temporary storageclass is created before deleting the original
 func updateStorageClass(pvName, scName string) error {
 	scObj, err := sc.NewKubeClient().Get(scName, metav1.GetOptions{})
 	if err != nil {
@@ -314,22 +318,9 @@ func updateStorageClass(pvName, scName string) error {
 		}
 	}
 	if scObj == nil || scObj.Provisioner != cstorCSIDriver {
-		tmpSCName := "tmp-migrate-" + scName
-		tmpSCObj, err := sc.NewKubeClient().Get(tmpSCName, metav1.GetOptions{})
+		tmpSCObj, err := createTmpSC(scName)
 		if err != nil {
-			if !k8serrors.IsNotFound(err) {
-				return err
-			}
-			tmpSCObj = scObj.DeepCopy()
-			tmpSCObj.ResourceVersion = ""
-			tmpSCObj.SelfLink = ""
-			tmpSCObj.UID = ""
-			tmpSCObj.Name = tmpSCName
-			tmpSCObj.CreationTimestamp = metav1.Time{}
-			tmpSCObj, err = sc.NewKubeClient().Create(tmpSCObj)
-			if err != nil {
-				return errors.Wrapf(err, "failed to create temporary storageclass")
-			}
+			return err
 		}
 		replicaCount, err := getReplicaCount(pvName)
 		if err != nil {
@@ -340,11 +331,10 @@ func updateStorageClass(pvName, scName string) error {
 			return err
 		}
 		csiSC := tmpSCObj.DeepCopy()
-		csiSC.ResourceVersion = ""
-		csiSC.SelfLink = ""
-		csiSC.UID = ""
-		csiSC.CreationTimestamp = metav1.Time{}
-		csiSC.Name = scName
+		csiSC.ObjectMeta = metav1.ObjectMeta{
+			Name:        scName,
+			Annotations: tmpSCObj.Annotations,
+		}
 		csiSC.Provisioner = cstorCSIDriver
 		csiSC.AllowVolumeExpansion = &trueBool
 		csiSC.Parameters = map[string]string{
@@ -363,12 +353,36 @@ func updateStorageClass(pvName, scName string) error {
 			return err
 		}
 		storageClass = scObj
-		err = sc.NewKubeClient().Delete(tmpSCName, &metav1.DeleteOptions{})
+		err = sc.NewKubeClient().Delete(tmpSCObj.Name, &metav1.DeleteOptions{})
 		if err != nil {
 			return errors.Wrapf(err, "failed to delete temporary storageclass")
 		}
 	}
 	return nil
+}
+
+func createTmpSC(scName string) (*storagev1.StorageClass, error) {
+	tmpSCName := "tmp-migrate-" + scName
+	tmpSCObj, err := sc.NewKubeClient().Get(tmpSCName, metav1.GetOptions{})
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return nil, err
+		}
+		scObj, err := sc.NewKubeClient().Get(scName, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		tmpSCObj = scObj.DeepCopy()
+		tmpSCObj.ObjectMeta = metav1.ObjectMeta{
+			Name:        tmpSCName,
+			Annotations: scObj.Annotations,
+		}
+		tmpSCObj, err = sc.NewKubeClient().Create(tmpSCObj)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to create temporary storageclass")
+		}
+	}
+	return tmpSCObj, nil
 }
 
 func getReplicaCount(pvName string) (string, error) {
@@ -380,6 +394,7 @@ func getReplicaCount(pvName string) (string, error) {
 	return strconv.Itoa(cvObj.Spec.ReplicationFactor), nil
 }
 
+// the cv can be in the pvc namespace or openebs namespace
 func populateCVNamespace(cvName string) error {
 	cvList, err := cv.NewKubeclient().WithNamespace("").
 		List(metav1.ListOptions{})
@@ -522,6 +537,8 @@ func updateTargetDeployOwnerRef(cvOwnerRef metav1.OwnerReference) error {
 	return err
 }
 
+// validatePVName checks whether there exist any pvc for given pv name
+// this is required in case the pv gets deleted and only pvc is left
 func validatePVName(pvName string) (*corev1.PersistentVolumeClaim, bool, error) {
 	var pvcObj *corev1.PersistentVolumeClaim
 	_, err := pv.NewKubeClient().Get(pvName, metav1.GetOptions{})
