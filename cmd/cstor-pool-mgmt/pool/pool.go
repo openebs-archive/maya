@@ -18,9 +18,10 @@ package pool
 
 import (
 	"fmt"
-	"github.com/openebs/maya/pkg/alertlog"
 	"strings"
 	"time"
+
+	"github.com/openebs/maya/pkg/alertlog"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
@@ -83,7 +84,7 @@ var RunnerVar util.Runner
 func ImportPool(cStorPool *apis.CStorPool, importOptions *ImportOptions) (string, error) {
 	importAttr := importPoolBuilder(cStorPool, importOptions)
 
-	stdoutStderr, err2 := RunnerVar.RunCombinedOutput(zpool.PoolOperator, importAttr...)
+	stdoutStderr, err2 := RunnerVar.RunCommandWithLog(zpool.PoolOperator, importAttr...)
 	if err2 != nil {
 		klog.Errorf("Unable to import pool: %v, %v devpath: %v cacheflag: %v importAttr: %v",
 			err2.Error(), string(stdoutStderr), importOptions.DevPath,

@@ -15,6 +15,7 @@
 package util
 
 import (
+	"io"
 	"io/ioutil"
 	"os/exec"
 	"time"
@@ -32,6 +33,7 @@ type Runner interface {
 	RunCombinedOutput(string, ...string) ([]byte, error)
 	RunStdoutPipe(string, ...string) ([]byte, error)
 	RunCommandWithTimeoutContext(time.Duration, string, ...string) ([]byte, error)
+	RunCommandWithLog(string, ...string) ([]byte, error)
 }
 
 // RealRunner is the real runner for the program that actually execs the command.
@@ -68,6 +70,56 @@ func (r RealRunner) RunStdoutPipe(command string, args ...string) ([]byte, error
 	return data, nil
 }
 
+// RunCommandWithLog triggers command passed as arguments and it also does the
+// following things
+// 1. Logs the stdout of command using klog.Info()
+// 2. Capture the stderr of the command and return in array of bytes.
+func (r RealRunner) RunCommandWithLog(command string, args ...string) ([]byte, error) {
+	cmd := exec.Command(command, args...)
+	// Get a pipe that will be connected to commands output
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		klog.Errorf(err.Error())
+		return []byte{}, err
+	}
+	// Get a pipe that will be connected to commands error
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		klog.Errorf(err.Error())
+		return []byte{}, err
+	}
+	// Start the command
+	if err := cmd.Start(); err != nil {
+		klog.Errorf(err.Error())
+		return []byte{}, err
+	}
+	// Log only stdout
+	logStdoutFromPipe(stdout)
+	// read stderror until EOF
+	data, _ := ioutil.ReadAll(stderr)
+	// below will return error when command exit with return code 1
+	if err := cmd.Wait(); err != nil {
+		return data, err
+	}
+	return data, nil
+}
+
+// logStdoutFromPipe will log the data after reading from Reader
+func logStdoutFromPipe(r io.Reader) {
+	buf := make([]byte, 1024)
+	for {
+		_, err := r.Read(buf[:])
+		if err != nil {
+			if err == io.EOF {
+				return
+			}
+			klog.Errorf("failed to read stdout error: %v", err)
+			return
+		}
+		klog.Infof("%s", string(buf))
+	}
+}
+
 // RunCommandWithTimeoutContext executes command provides and returns stdout
 // error. If command does not returns within given timout interval command will
 // be killed and return "Context time exceeded"
@@ -102,5 +154,10 @@ func (r TestRunner) RunStdoutPipe(command string, args ...string) ([]byte, error
 
 // RunCommandWithTimeoutContext is to mock Real runner exec.
 func (r TestRunner) RunCommandWithTimeoutContext(timeout time.Duration, command string, args ...string) ([]byte, error) {
+	return []byte("success"), nil
+}
+
+// RunStdoutPipe is to mock real runner exec with stdoutpipe.
+func (r TestRunner) RunCommandWithLog(command string, args ...string) ([]byte, error) {
 	return []byte("success"), nil
 }
