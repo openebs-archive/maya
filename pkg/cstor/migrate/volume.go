@@ -259,11 +259,16 @@ func generateCSIPVFromCV(
 }
 
 func createCVC(pvName string) error {
-	cvcObj, err := cvc.NewKubeclient().WithNamespace(openebsNamespace).
+	var (
+		err    error
+		cvcObj *apis.CStorVolumeClaim
+		cvObj  *apis.CStorVolume
+	)
+	cvcObj, err = cvc.NewKubeclient().WithNamespace(openebsNamespace).
 		Get(pvName, metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			cvObj, err := cv.NewKubeclient().WithNamespace(cvNamespace).
+			cvObj, err = cv.NewKubeclient().WithNamespace(cvNamespace).
 				Get(pvName, metav1.GetOptions{})
 			if err != nil {
 				return err
@@ -518,22 +523,25 @@ func updateTargetDeployOwnerRef(cvOwnerRef metav1.OwnerReference) error {
 }
 
 func validatePVName(pvName string) (*corev1.PersistentVolumeClaim, bool, error) {
+	var pvcObj *corev1.PersistentVolumeClaim
 	_, err := pv.NewKubeClient().Get(pvName, metav1.GetOptions{})
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
-			return nil, false, err
+			return pvcObj, false, err
 		}
 		pvcList, err := pvc.NewKubeClient().WithNamespace("").
 			List(metav1.ListOptions{})
 		if err != nil {
-			return nil, false, err
+			return pvcObj, false, err
 		}
-		for _, pvcObj := range pvcList.Items {
-			if pvcObj.Spec.VolumeName == pvName {
-				return &pvcObj, false, nil
+		for _, pvcItem := range pvcList.Items {
+			pvcItem := pvcItem // pin it
+			if pvcItem.Spec.VolumeName == pvName {
+				pvcObj = &pvcItem
+				return pvcObj, false, nil
 			}
 		}
-		return nil, false, errors.Errorf("No PVC found for the given PV")
+		return pvcObj, false, errors.Errorf("No PVC found for the given PV")
 	}
-	return nil, true, nil
+	return pvcObj, true, nil
 }

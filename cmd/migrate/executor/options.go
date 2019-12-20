@@ -27,7 +27,6 @@ import (
 // MigrateOptions stores information required for migrate
 type MigrateOptions struct {
 	openebsNamespace string
-	spcName          string
 	pvName           string
 }
 
