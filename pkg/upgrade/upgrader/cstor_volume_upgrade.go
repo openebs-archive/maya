@@ -311,8 +311,8 @@ func (c *cstorVolumeOptions) getCV(pvLabel string) (*apis.CStorVolume, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(cvList.Items) == 0 {
-		return nil, errors.Errorf("cstorvolume not found")
+	if len(cvList.Items) != 1 {
+		return nil, errors.Errorf("invalid number of cstorvolume found : %d", len(cvList.Items))
 	}
 	version := cvList.Items[0].Labels["openebs.io/version"]
 	if (version != currentVersion) && (version != upgradeVersion) {
