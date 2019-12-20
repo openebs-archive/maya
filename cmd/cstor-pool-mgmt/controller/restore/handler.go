@@ -129,7 +129,7 @@ func (c *RestoreController) syncEventHandler(rst *apis.CStorRestore) (string, er
 // getCStorRestoreResource returns a restore object corresponding to the resource key
 func (c *RestoreController) getCStorRestoreResource(key string) (*apis.CStorRestore, error) {
 	// Convert the key(namespace/name) string into a distinct name
-	klog.Infof("Finding restore for key:%s", key)
+	klog.V(1).Infof("Finding restore for key:%s", key)
 	ns, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
