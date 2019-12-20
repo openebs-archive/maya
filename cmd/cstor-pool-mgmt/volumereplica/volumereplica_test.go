@@ -73,6 +73,11 @@ func (r TestRunner) RunCommandWithTimeoutContext(timeout time.Duration, command 
 	return []byte("success"), nil
 }
 
+// RunCommandWithLog is to mock real runner exec with stdoutpipe.
+func (r TestRunner) RunCommandWithLog(command string, args ...string) ([]byte, error) {
+	return []byte("success"), nil
+}
+
 // RunStdoutPipe is to mock real runner exec with stdoutpipe.
 func (r TestRunner) RunStdoutPipe(command string, args ...string) ([]byte, error) {
 	var cs []string

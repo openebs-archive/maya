@@ -75,6 +75,7 @@ func (r RealRunner) RunStdoutPipe(command string, args ...string) ([]byte, error
 // 1. Logs the stdout of command using klog.Info()
 // 2. Capture the stderr of the command and return in array of bytes.
 func (r RealRunner) RunCommandWithLog(command string, args ...string) ([]byte, error) {
+	// #nosec
 	cmd := exec.Command(command, args...)
 	// Get a pipe that will be connected to commands output
 	stdout, err := cmd.StdoutPipe()
@@ -154,7 +155,7 @@ func (r TestRunner) RunCommandWithTimeoutContext(timeout time.Duration, command 
 	return []byte("success"), nil
 }
 
-// RunStdoutPipe is to mock real runner exec with stdoutpipe.
+// RunCommandWithLog is to mock real runner exec with stdoutpipe.
 func (r TestRunner) RunCommandWithLog(command string, args ...string) ([]byte, error) {
 	return []byte("success"), nil
 }

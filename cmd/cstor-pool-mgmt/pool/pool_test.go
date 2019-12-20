@@ -119,6 +119,11 @@ func (r TestRunner) RunStdoutPipe(command string, args ...string) ([]byte, error
 	return data, nil
 }
 
+// RunCommandWithLog is to mock real runner exec with stdoutpipe
+func (r TestRunner) RunCommandWithLog(common string, args ...string) ([]byte, error) {
+	return []byte("success"), nil
+}
+
 // TestCreaterProcess mocks zpool create.
 func TestCreaterProcess(*testing.T) {
 	if os.Getenv("createErr") != "nil" {
