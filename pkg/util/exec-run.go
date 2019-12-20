@@ -79,18 +79,15 @@ func (r RealRunner) RunCommandWithLog(command string, args ...string) ([]byte, e
 	// Get a pipe that will be connected to commands output
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		klog.Errorf(err.Error())
 		return []byte{}, err
 	}
 	// Get a pipe that will be connected to commands error
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		klog.Errorf(err.Error())
 		return []byte{}, err
 	}
 	// Start the command
 	if err := cmd.Start(); err != nil {
-		klog.Errorf(err.Error())
 		return []byte{}, err
 	}
 	// Log only stdout

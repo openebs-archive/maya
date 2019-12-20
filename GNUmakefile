@@ -93,8 +93,7 @@ else
   export BASE_TAG
 endif
 
-#CSTOR_BASE_IMAGE= openebs/cstor-base:${BASE_TAG}
-CSTOR_BASE_IMAGE= mittachaitu/cstor-pool:logs_import
+CSTOR_BASE_IMAGE= openebs/cstor-base:${BASE_TAG}
 
 ifeq (${BASE_DOCKER_IMAGEARM64}, )
   BASE_DOCKER_IMAGEARM64 = "arm64v8/ubuntu:18.04"
