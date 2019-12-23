@@ -19,10 +19,10 @@ package v1alpha1
 import (
 	upgrade "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	objectmeta "github.com/openebs/maya/pkg/kubernetes/objectmeta/v1alpha1"
 	typemeta "github.com/openebs/maya/pkg/kubernetes/typemeta/v1alpha1"
 	upgraderesult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
-	errors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

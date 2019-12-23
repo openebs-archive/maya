@@ -22,7 +22,7 @@ import (
 
 	upgrade "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	errors "github.com/pkg/errors"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 )
 
 func TestNewCASTEngineBuilder(t *testing.T) {
