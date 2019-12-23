@@ -489,8 +489,8 @@ func (c *cstorVolumeOptions) verifyCVRVersionReconcile(name, openebsNamespace st
 	}
 	// waiting for the current version to be equal to desired version
 	for cvrObj.VersionDetails.Status.Current != upgradeVersion {
-		klog.Infof("Verifying the reconciliation of %s {id:%s phase:%s}",
-			cvrObj.Name, cvrObj.Spec.ReplicaID, string(cvrObj.Status.Phase))
+		klog.Infof("Verifying the reconciliation of %s { id:%s phase:%s lastTransition:%s }",
+			cvrObj.Name, cvrObj.Spec.ReplicaID, string(cvrObj.Status.Phase), cvrObj.Status.LastTransitionTime.String())
 		// Sleep equal to the default sync time
 		time.Sleep(10 * time.Second)
 		cvrObj, err = cvrClient.WithNamespace(openebsNamespace).
@@ -560,7 +560,7 @@ func (c *cstorVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 
 func printCVStatus(s apis.CStorVolumeStatus) {
 	replicaStatusFormat := "{ id:%s mode:%s chckIOSeq:%s r/w/s:%s/%s/%s uptime:%d quorum:%s }"
-	status := "CStor volume { phase:" + string(s.Phase) + " } replicaStatuses: "
+	status := "CStor volume { phase:" + string(s.Phase) + " lastTransition:"+s.LastTransitionTime.String()+" } replicaStatuses: "
 	for _, r := range s.ReplicaStatuses {
 		status = status + "\n\t\t" + fmt.Sprintf(
 			replicaStatusFormat,
