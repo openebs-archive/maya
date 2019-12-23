@@ -560,7 +560,7 @@ func (c *cstorVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 
 func printCVStatus(s apis.CStorVolumeStatus) {
 	replicaStatusFormat := "{ id:%s mode:%s chckIOSeq:%s r/w/s:%s/%s/%s uptime:%d quorum:%s }"
-	status := "CStor volume { phase:" + string(s.Phase) + " lastTransition:"+s.LastTransitionTime.String()+" } replicaStatuses: "
+	status := "CStor volume { phase:" + string(s.Phase) + " lastTransition:" + s.LastTransitionTime.String() + " } replicaStatuses: "
 	for _, r := range s.ReplicaStatuses {
 		status = status + "\n\t\t" + fmt.Sprintf(
 			replicaStatusFormat,
