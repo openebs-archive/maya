@@ -116,6 +116,7 @@ func (pc *PoolConfig) GetPoolDeploySpec(cspi *apis.CStorPoolInstance) (*appsv1.D
 		WithPodTemplateSpecBuilder(
 			pts.NewBuilder().
 				WithLabelsNew(getPodLabels(cspi)).
+				WithPriorityClassName(getPriorityClass(cspi)).
 				WithNodeSelector(cspi.Spec.NodeSelector).
 				WithAnnotationsNew(getPodAnnotations()).
 				WithServiceAccountName(OpenEBSServiceAccount).
@@ -407,4 +408,8 @@ func getPoolPodToleration(cspi *apis.CStorPoolInstance) []corev1.Toleration {
 		tolerations = cspi.Spec.PoolConfig.Tolerations
 	}
 	return tolerations
+}
+
+func getPriorityClass(cspi *apis.CStorPoolInstance) string {
+	return cspi.Spec.PoolConfig.PriorityClassName
 }

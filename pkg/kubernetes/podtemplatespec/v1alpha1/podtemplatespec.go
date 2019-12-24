@@ -184,6 +184,12 @@ func (b *Builder) WithNodeSelector(nodeselectors map[string]string) *Builder {
 	return b
 }
 
+// WithPriorityClassName sets the PriorityClassName field of podtemplatespec
+func (b *Builder) WithPriorityClassName(prorityClassName string) *Builder {
+	b.podtemplatespec.Object.Spec.PriorityClassName = prorityClassName
+	return b
+}
+
 // WithNodeSelectorNew resets the nodeselector field of podtemplatespec
 // with provided arguments
 func (b *Builder) WithNodeSelectorNew(nodeselectors map[string]string) *Builder {
