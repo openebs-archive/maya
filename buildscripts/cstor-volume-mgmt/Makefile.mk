@@ -43,5 +43,5 @@ volume-mgmt-image.arm64: cstor-volume-mgmt
 	@echo "${HUB_USER}/${CSTOR_VOLUME_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/cstor-volume-mgmt/${VOLUME_MGMT} buildscripts/cstor-volume-mgmt/
-	@cd buildscripts/cstor-volume-mgmt && sudo docker build -t ${HUB_USER}/${CSTOR_VOLUME_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG} -f Dockerfile.arm64 --build-arg BUILD_DATE=${BUILD_DATE} --build-arg BASE_IMAGE=${BASE_DOCKER_IMAGEARM64} .
+	@cd buildscripts/cstor-volume-mgmt && sudo docker build -t ${HUB_USER}/${CSTOR_VOLUME_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG} -f Dockerfile.arm64 --build-arg BUILD_DATE=${BUILD_DATE} --build-arg BASE_IMAGE=${BASE_DOCKER_IMAGE_ARM64} .
 	@rm buildscripts/cstor-volume-mgmt/${VOLUME_MGMT}

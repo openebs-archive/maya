@@ -1,7 +1,7 @@
 
 # Specify the name for the binaries
 POOL_MGMT=cstor-pool-mgmt
-CSP_OPERATOR_DEBUG=csotr-pool-mgmt-debug
+CSP_OPERATOR_DEBUG=cstor-pool-mgmt-debug
 
 #Specify the name of the docker repo for amd64
 CSTOR_POOL_MGMT_REPO_NAME?=cstor-pool-mgmt

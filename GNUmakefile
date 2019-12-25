@@ -99,9 +99,9 @@ ifeq (${CSTOR_BASE_IMAGE_ARM64}, )
 endif
 
 # Specify the name of base image for ARM64
-ifeq (${BASE_DOCKER_IMAGEARM64}, )
-  BASE_DOCKER_IMAGEARM64 = "arm64v8/ubuntu:18.04"
-  export BASE_DOCKER_IMAGEARM64
+ifeq (${BASE_DOCKER_IMAGE_ARM64}, )
+  BASE_DOCKER_IMAGE_ARM64 = "arm64v8/ubuntu:18.04"
+  export BASE_DOCKER_IMAGE_ARM64
 endif
 
 # Specify the name for the binaries
@@ -126,7 +126,7 @@ include ./buildscripts/cspi-mgmt/Makefile.mk
 all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image cspc-operator-image cspc-operator-debug-image cspi-mgmt-image upgrade-image provisioner-localpv-image
 
 .PHONY: all.arm64
-all.arm64: apiserver-image.arm64 provisioner-localpv-image.arm64 exporter-image.arm64 pool-mgmt-image.arm64 volume-mgmt-image.arm64
+all.arm64: apiserver-image.arm64 provisioner-localpv-image.arm64 exporter-image.arm64 pool-mgmt-image.arm64 volume-mgmt-image.arm64 cspi-mgmt-image.arm64
 
 .PHONY: initialize
 initialize: bootstrap
