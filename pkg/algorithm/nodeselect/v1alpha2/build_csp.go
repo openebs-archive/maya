@@ -46,6 +46,10 @@ func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 		poolSpec.PoolConfig.Tolerations = ac.CSPC.Spec.Tolerations
 	}
 
+	if poolSpec.PoolConfig.PriorityClassName == "" {
+		poolSpec.PoolConfig.PriorityClassName = ac.CSPC.Spec.DefaultPriorityClassName
+	}
+
 	csplabels := ac.buildLabelsForCSPI(nodeName)
 	cspObj, err := apiscsp.NewBuilder().
 		WithName(ac.CSPC.Name + "-" + rand.String(4)).

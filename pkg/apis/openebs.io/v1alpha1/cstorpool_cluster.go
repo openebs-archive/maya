@@ -80,6 +80,11 @@ type CStorPoolClusterSpec struct {
 	// If tolerations at PoolConfig is empty, this is written to
 	// CSPI PoolConfig.
 	Tolerations []v1.Toleration `json:"tolerations"`
+
+	// DefaultPriorityClassName if specified applies to all the pool pods
+	// in the pool spec if the priorityClass at the pool level is
+	// not specified.
+	DefaultPriorityClassName string `json:"priorityClassName"`
 }
 
 //PoolSpec is the spec for pool on node where it should be created.
@@ -120,6 +125,12 @@ type PoolConfig struct {
 
 	// Tolerations, if specified, the pool pod's tolerations.
 	Tolerations []v1.Toleration `json:"tolerations"`
+
+	// PriorityClassName if specified applies to this pool pod
+	// If left empty, DefaultPriorityClassName is applied.
+	// (See CStorPoolClusterSpec.DefaultPriorityClassName)
+	// If both are empty, not priority class is applied.
+	PriorityClassName string `json:"priorityClassName"`
 }
 
 // RaidGroup contains the details of a raid group for the pool
