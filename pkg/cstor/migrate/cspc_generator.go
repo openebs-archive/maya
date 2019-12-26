@@ -23,8 +23,11 @@ import (
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
+	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	"github.com/openebs/maya/pkg/util/retry"
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -38,7 +41,7 @@ var (
 	}
 )
 
-func getBDCList(cspObj apis.CStorPool) []apis.CStorPoolClusterBlockDevice {
+func getBDList(cspObj apis.CStorPool) []apis.CStorPoolClusterBlockDevice {
 	list := []apis.CStorPoolClusterBlockDevice{}
 	for _, bdcObj := range cspObj.Spec.Group[0].Item {
 		list = append(list,
@@ -50,7 +53,7 @@ func getBDCList(cspObj apis.CStorPool) []apis.CStorPoolClusterBlockDevice {
 	return list
 }
 
-func getCSPCSpec(spc *apis.StoragePoolClaim) (*apis.CStorPoolCluster, error) {
+func getCSPCSpecForSPC(spc *apis.StoragePoolClaim, openebsNamespace string) (*apis.CStorPoolCluster, error) {
 	cspClient := csp.KubeClient()
 	cspList, err := cspClient.List(metav1.ListOptions{
 		LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name,
@@ -63,31 +66,65 @@ func getCSPCSpec(spc *apis.StoragePoolClaim) (*apis.CStorPoolCluster, error) {
 	cspcObj.Annotations = map[string]string{
 		// This label will be used to disable reconciliation on the dependants
 		// In this case that will be CSPI
-		string(apis.OpenEBSDisableDependantsReconcileKey): "false",
+		string(apis.OpenEBSDisableDependantsReconcileKey): "true",
 	}
 	for _, cspObj := range cspList.Items {
-		cspcObj.Spec.Pools = append(cspcObj.Spec.Pools,
-			apis.PoolSpec{
-				NodeSelector: map[string]string{
-					string(apis.HostNameCPK): cspObj.Labels[string(apis.HostNameCPK)],
-				},
-				RaidGroups: []apis.RaidGroup{
-					apis.RaidGroup{
-						Type:         typeMap[cspObj.Spec.PoolSpec.PoolType],
-						BlockDevices: getBDCList(cspObj),
-					},
-				},
-				PoolConfig: apis.PoolConfig{
-					CacheFile:            cspObj.Spec.PoolSpec.CacheFile,
-					DefaultRaidGroupType: typeMap[cspObj.Spec.PoolSpec.PoolType],
-					OverProvisioning:     cspObj.Spec.PoolSpec.OverProvisioning,
+		cspDeployList, err := deploy.NewKubeClient().WithNamespace(openebsNamespace).
+			List(&metav1.ListOptions{
+				LabelSelector: "openebs.io/cstor-pool=" + cspObj.Name,
+			})
+		if err != nil {
+			return nil, err
+		}
+		if len(cspDeployList.Items) != 1 {
+			return nil, errors.Errorf("invalid number of csp deployment found: %d", len(cspDeployList.Items))
+		}
+		poolSpec := apis.PoolSpec{
+			NodeSelector: map[string]string{
+				string(apis.HostNameCPK): cspObj.Labels[string(apis.HostNameCPK)],
+			},
+			RaidGroups: []apis.RaidGroup{
+				apis.RaidGroup{
+					Type:         typeMap[cspObj.Spec.PoolSpec.PoolType],
+					BlockDevices: getBDList(cspObj),
 				},
 			},
-		)
-
+			PoolConfig: apis.PoolConfig{
+				CacheFile:            cspObj.Spec.PoolSpec.CacheFile,
+				DefaultRaidGroupType: typeMap[cspObj.Spec.PoolSpec.PoolType],
+				OverProvisioning:     cspObj.Spec.PoolSpec.OverProvisioning,
+				Resources:            getCSPResources(cspDeployList.Items[0]),
+				Tolerations:          cspDeployList.Items[0].Spec.Template.Spec.Tolerations,
+				// AuxResources:         getCSPAuxResources(cspDeployList.Items[0]),
+				// PriorityClassName:    cspDeployList.Items[0].Spec.Template.Spec.PriorityClassName,
+			},
+		}
+		// if the csp does not have a cachefile then add cachefile
+		if poolSpec.PoolConfig.CacheFile == "" {
+			poolSpec.PoolConfig.CacheFile = "/tmp/pool1.cache"
+		}
+		cspcObj.Spec.Pools = append(cspcObj.Spec.Pools, poolSpec)
 	}
 	return cspcObj, nil
 }
+
+func getCSPResources(cspDeploy appsv1.Deployment) *corev1.ResourceRequirements {
+	for _, con := range cspDeploy.Spec.Template.Spec.Containers {
+		if con.Name == "cstor-pool" {
+			return &con.Resources
+		}
+	}
+	return nil
+}
+
+// func getCSPAuxResources(cspDeploy appsv1.Deployment) *corev1.ResourceRequirements {
+// 	for _, con := range cspDeploy.Spec.Template.Spec.Containers {
+// 		if con.Name == "cstor-pool-mgmt" {
+// 			return &con.Resources
+// 		}
+// 	}
+// 	return nil
+// }
 
 // generateCSPC creates an equivalent cspc for the given spc object
 func generateCSPC(spcObj *apis.StoragePoolClaim, openebsNamespace string) (
@@ -100,7 +137,7 @@ func generateCSPC(spcObj *apis.StoragePoolClaim, openebsNamespace string) (
 	if !k8serrors.IsNotFound(err) {
 		return nil, err
 	}
-	cspcObj, err = getCSPCSpec(spcObj)
+	cspcObj, err = getCSPCSpecForSPC(spcObj, openebsNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +146,7 @@ func generateCSPC(spcObj *apis.StoragePoolClaim, openebsNamespace string) (
 	if err != nil {
 		return nil, err
 	}
+	// verify the number of cspi created is correct
 	err = retry.
 		Times(60).
 		Wait(5 * time.Second).

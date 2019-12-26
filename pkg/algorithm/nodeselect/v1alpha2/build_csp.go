@@ -67,7 +67,7 @@ func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 		WithDependentsUpgraded()
 	// check for OpenEBSDisableDependantsReconcileKey annotation which implies
 	// the CSPI should have OpenEBSDisableReconcileKey enabled
-	if ac.CSPC.GetAnnotations()[string(apis.OpenEBSDisableDependantsReconcileKey)] == "false" {
+	if ac.CSPC.GetAnnotations()[string(apis.OpenEBSDisableDependantsReconcileKey)] == "true" {
 		cspBuilder.WithAnnotationsNew(map[string]string{
 			string(apis.OpenEBSDisableReconcileKey): "true",
 		})

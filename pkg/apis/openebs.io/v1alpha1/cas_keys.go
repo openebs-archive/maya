@@ -50,7 +50,7 @@ const (
 
 	// OpenEBSDisableDependantsReconcileKey is the annotation key that decides to create
 	// children objects with OpenEBSDisableReconcileKey as true or false
-	OpenEBSDisableDependantsReconcileKey CASKey = "reconcile.openebs.io/dependants"
+	OpenEBSDisableDependantsReconcileKey CASKey = "reconcile.openebs.io/disable-dependants"
 
 	// CASConfigKey is the key to fetch configurations w.r.t a CAS entity
 	CASConfigKey CASKey = "cas.openebs.io/config"

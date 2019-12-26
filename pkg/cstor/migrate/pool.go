@@ -29,7 +29,6 @@ import (
 	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
-	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/openebs/maya/pkg/util/retry"
 	"github.com/pkg/errors"
@@ -56,12 +55,15 @@ const (
 
 // Pool migrates the pool from SPC schema to CSPC schema
 func Pool(spcName, openebsNamespace string) error {
-
-	spcObj, migrated, err := getSPC(spcName, openebsNamespace)
+	spcObj, migrated, err := getSPCWithMigrationStatus(spcName, openebsNamespace)
 	if migrated {
 		klog.Infof("spc %s is already migrated to cspc", spcName)
 		return nil
 	}
+	if err != nil {
+		return err
+	}
+	err = validateSPC(spcObj)
 	if err != nil {
 		return err
 	}
@@ -90,11 +92,13 @@ func Pool(spcName, openebsNamespace string) error {
 
 	// For each cspi perform the migration from csp that present was on
 	// node on which cspi came up.
-	for _, cspiObj := range cspiList.Items {
+	for _, cspiItem := range cspiList.Items {
 		// Skip the migration if cspi is already in ONLINE state,
 		// which implies the migration is done and makes it idempotent
+		cspiItem := cspiItem // pin it
+		cspiObj := &cspiItem
 		if cspiObj.Status.Phase != "ONLINE" {
-			err = csptocspi(&cspiObj, cspcObj, openebsNamespace)
+			err = csptocspi(cspiObj, cspcObj, openebsNamespace)
 			if err != nil {
 				return err
 			}
@@ -109,12 +113,50 @@ func Pool(spcName, openebsNamespace string) error {
 	return nil
 }
 
-// getSPC gets the spc by name and verifies if the spc is already
-// migrated or not
-func getSPC(spcName, openebsNamespace string) (*apis.StoragePoolClaim, bool, error) {
+// validateSPC determines that if the spc is allowed to migrate or not.
+// If the max pool count does not match the number of csp for auto spc, or
+// the bd list in spc does not match bds from the csp migration should not be done.
+func validateSPC(spcObj *apis.StoragePoolClaim) error {
+	cspClient := csp.KubeClient()
+	cspList, err := cspClient.List(metav1.ListOptions{
+		LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcObj.Name,
+	})
+	if err != nil {
+		return err
+	}
+	if spcObj.Spec.MaxPools != nil {
+		if *spcObj.Spec.MaxPools != len(cspList.Items) {
+			return errors.Errorf("maxpool count does not match csp count")
+		}
+		return nil
+	}
+	bdMap := map[string]int{}
+	for _, bdName := range spcObj.Spec.BlockDevices.BlockDeviceList {
+		bdMap[bdName]++
+	}
+	for _, cspObj := range cspList.Items {
+		for _, bdObj := range cspObj.Spec.Group[0].Item {
+			bdMap[bdObj.Name]++
+		}
+	}
+	for bdName, count := range bdMap {
+		// if bd is configured properly it should occur exactly twice
+		// one in spc spec and one in csp spec
+		if count != 2 {
+			return errors.Errorf("bd %s is not configured properly", bdName)
+		}
+	}
+	return nil
+}
+
+// getSPCWithMigrationStatus gets the spc by name and verifies if the spc is already
+// migrated or not. The spc will not be present in the cluster as the last step
+// of migration deletes the spc.
+func getSPCWithMigrationStatus(spcName, openebsNamespace string) (*apis.StoragePoolClaim, bool, error) {
 	spcObj, err := spc.NewKubeClient().
 		Get(spcName, metav1.GetOptions{})
-	// verify if the spc is already migrated.
+	// verify if the spc is already migrated. IF an equivalent cspc exists then
+	// spc is already migrated as spc is only deleted as last step.
 	if k8serrors.IsNotFound(err) {
 		klog.Infof("spc %s not found.", spcName)
 		_, err = cspc.NewKubeClient().
@@ -202,45 +244,46 @@ func getCSP(cspLabel string) (*apis.CStorPool, error) {
 	return &cspObj, nil
 }
 
-// The old pool pod should be scaled down before the new cspi pod comes up
-// to avoid importing the pool at two places at the same time.
+// The old pool pod should be scaled down before the new cspi pod reconcile is
+// enabled to avoid importing the pool at two places at the same time.
 func scaleDownDeployment(cspObj *apis.CStorPool, openebsNamespace string) error {
 	klog.Infof("Scaling down deployemnt %s", cspObj.Name)
-	cspPod, err := pod.NewKubeClient().
+	cspDeployList, err := deploy.NewKubeClient().
 		WithNamespace(openebsNamespace).List(
-		metav1.ListOptions{
+		&metav1.ListOptions{
 			LabelSelector: "openebs.io/cstor-pool=" + cspObj.Name,
 		})
 	if err != nil {
 		return err
 	}
-	if len(cspPod.Items) > 0 {
-		_, err = deploy.NewKubeClient().WithNamespace(openebsNamespace).
-			Patch(
-				cspObj.Name,
-				types.StrategicMergePatchType,
-				[]byte(replicaPatch),
-			)
-		if err != nil {
-			return err
-		}
-		err = retry.
-			Times(60).
-			Wait(5 * time.Second).
-			Try(func(attempt uint) error {
-				_, err1 := pod.NewKubeClient().
-					WithNamespace(openebsNamespace).
-					Get(cspPod.Items[0].Name, metav1.GetOptions{})
-				if !k8serrors.IsNotFound(err1) {
-					return errors.Errorf("failed to get csp pod because %s", err1)
-				}
-				return nil
-			})
-		if err != nil {
-			return err
-		}
+	if len(cspDeployList.Items) != 1 {
+		return errors.Errorf("invalid number of csp deployment found: %d", len(cspDeployList.Items))
 	}
-	return nil
+	_, err = deploy.NewKubeClient().WithNamespace(openebsNamespace).
+		Patch(
+			cspDeployList.Items[0].Name,
+			types.StrategicMergePatchType,
+			[]byte(replicaPatch),
+		)
+	if err != nil {
+		return err
+	}
+	err = retry.
+		Times(60).
+		Wait(5 * time.Second).
+		Try(func(attempt uint) error {
+			cspDeploy, err1 := deploy.NewKubeClient().
+				WithNamespace(openebsNamespace).
+				Get(cspDeployList.Items[0].Name)
+			if err1 != nil {
+				return errors.Wrapf(err1, "failed to get csp deploy")
+			}
+			if cspDeploy.Status.ReadyReplicas != 0 {
+				return errors.Errorf("failed to scale down csp deployment")
+			}
+			return nil
+		})
+	return err
 }
 
 // Update the bdc with the cspc labels instead of spc labels to allow
