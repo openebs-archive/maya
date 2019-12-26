@@ -27,6 +27,7 @@ import (
 	"time"
 
 	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
+	apispdb "github.com/openebs/maya/pkg/kubernetes/poddisruptionbudget"
 
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -34,7 +35,9 @@ import (
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	policy "k8s.io/api/policy/v1beta1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
@@ -158,6 +161,9 @@ func (c *Controller) syncCSPC(cspcGot *apis.CStorPoolCluster) error {
 		klog.Errorf("Failed to add finalizer on CSPC %s:%s", cspcGot.Name, err.Error())
 		return nil
 	}
+
+	// Create PDB for cStor pools only if user specified minAvalibility
+	pc.HandlePDBForCSPC(cspc)
 
 	pendingPoolCount, err := pc.AlgorithmConfig.GetPendingPoolCount()
 	if err != nil {
@@ -420,4 +426,81 @@ func (c *Controller) EstimateCSPCVersion(cspc *apis.CStorPoolCluster) (string, e
 		return version.Current(), nil
 	}
 	return cspiList.Items[0].Labels[string(apis.OpenEBSVersionKey)], nil
+}
+
+//TODO: Generate event
+
+// HandlePDBForCSPC will create the PDB for CSPC based on minAvailable.
+// HandlePDBForCSPC will does the following changes
+// 1. If user updates the value to 0 then PDB corresponds to CSPC will be deleted.
+// 2. If user updates the value other then existing PDB will be deleted and PDB
+//    will be created with new value
+func (pc *PoolConfig) HandlePDBForCSPC(cspc *apis.CStorPoolCluster) {
+	pdbClient := apispdb.KubeClient().WithNamespace(cspc.Namespace)
+	pdbList, err := pdbClient.
+		List(metav1.ListOptions{LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + cspc.Name})
+	if err != nil {
+		klog.Errorf("failed to list poddisruptionbudget related to cspc: %s error: %v", cspc.Name, err)
+		return
+	}
+	if len(pdbList.Items) > 1 {
+		klog.Errorf("Invalid count of poddisruptionbudget instances: %d", len(pdbList.Items))
+		return
+	}
+	// If there is any existing PDB and if MinAvailable in cspc got updated then
+	// delete the existing PDB
+	if len(pdbList.Items) == 1 &&
+		cspc.Spec.PodDisruptionBudget.MinAvailable != pdbList.Items[0].Spec.MinAvailable.IntValue() {
+		err = pdbClient.Delete(pdbList.Items[0].Name, &metav1.DeleteOptions{})
+		if err != nil {
+			klog.Errorf(
+				"failed to delete poddisruptionbudget: %s related to cspc: %s error: %v",
+				pdbList.Items[0].Name,
+				cspc.Name,
+				err,
+			)
+			return
+		}
+	}
+	// create poddisruptionbudget with cspc minAvailable value
+	if cspc.Spec.PodDisruptionBudget.MinAvailable > 0 {
+		err = createPDBForCSPC(cspc)
+	}
+}
+
+func createPDBForCSPC(cspc *apis.CStorPoolCluster) error {
+	pdbObj := policy.PodDisruptionBudget{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   cspc.Name + "-" + fmt.Sprintf("%d", time.Now().UnixNano()),
+			Labels: getPDBLabels(cspc),
+		},
+		Spec: policy.PodDisruptionBudgetSpec{
+			MinAvailable: convertIntToIntStr(cspc.Spec.PodDisruptionBudget.MinAvailable),
+			Selector:     getPDBSelector(cspc),
+		},
+	}
+	_, err := apispdb.KubeClient().
+		WithNamespace(cspc.Namespace).
+		Create(&pdbObj)
+	return err
+}
+
+func getPDBLabels(cspc *apis.CStorPoolCluster) map[string]string {
+	return map[string]string{
+		string(apis.CStorPoolClusterCPK): cspc.Name,
+	}
+}
+
+func getPDBSelector(cspc *apis.CStorPoolCluster) *metav1.LabelSelector {
+	return &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			string(apis.CStorPoolClusterCPK): cspc.Name,
+			"app":                            "cstor-pool",
+		},
+	}
+}
+
+func convertIntToIntStr(val int) *intstr.IntOrString {
+	intOrString := intstr.FromInt(val)
+	return &intOrString
 }
