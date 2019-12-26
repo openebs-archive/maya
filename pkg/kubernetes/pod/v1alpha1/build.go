@@ -40,6 +40,19 @@ func NewBuilder() *Builder {
 	return &Builder{pod: &Pod{object: &corev1.Pod{}}}
 }
 
+// WithTolerations sets the Spec.Tolerations withh provided value.
+func (b *Builder) WithTolerations(tolerations ...corev1.Toleration) *Builder {
+	/*if len(tolerations) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build Pod object: missing Tolerations"),
+		)
+		return b
+	}*/
+	b.pod.object.Spec.Tolerations = tolerations
+	return b
+}
+
 // WithName sets the Name field of Pod with provided value.
 func (b *Builder) WithName(name string) *Builder {
 	if len(name) == 0 {
