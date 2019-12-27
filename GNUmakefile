@@ -124,6 +124,10 @@ include ./buildscripts/cstor-volume-mgmt/Makefile.mk
 include ./buildscripts/cspi-mgmt/Makefile.mk
 include ./buildscripts/cvc-operator/Makefile.mk
 include ./buildscripts/migrate/Makefile.mk
+include ./buildscripts/exporter/Makefile.mk
+include ./buildscripts/cstor-pool-mgmt/Makefile.mk
+include ./buildscripts/cstor-volume-mgmt/Makefile.mk
+include ./buildscripts/cspi-mgmt/Makefile.mk
 
 .PHONY: all
 all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image \

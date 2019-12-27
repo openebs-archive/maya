@@ -64,7 +64,7 @@ func getCSPCSpecForSPC(spc *apis.StoragePoolClaim, openebsNamespace string) (*ap
 	cspcObj := &apis.CStorPoolCluster{}
 	cspcObj.Name = spc.Name
 	cspcObj.Annotations = map[string]string{
-		// This label will be used to disable reconciliation on the dependants
+		// This label will be used to disable reconciliation on the dependants.
 		// In this case that will be CSPI
 		string(apis.OpenEBSDisableDependantsReconcileKey): "true",
 	}
@@ -95,8 +95,8 @@ func getCSPCSpecForSPC(spc *apis.StoragePoolClaim, openebsNamespace string) (*ap
 				OverProvisioning:     cspObj.Spec.PoolSpec.OverProvisioning,
 				Resources:            getCSPResources(cspDeployList.Items[0]),
 				Tolerations:          cspDeployList.Items[0].Spec.Template.Spec.Tolerations,
+				PriorityClassName:    cspDeployList.Items[0].Spec.Template.Spec.PriorityClassName,
 				// AuxResources:         getCSPAuxResources(cspDeployList.Items[0]),
-				// PriorityClassName:    cspDeployList.Items[0].Spec.Template.Spec.PriorityClassName,
 			},
 		}
 		// if the csp does not have a cachefile then add cachefile

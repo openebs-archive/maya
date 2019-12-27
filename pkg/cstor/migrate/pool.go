@@ -295,7 +295,9 @@ func updateBDCLabels(cspcName, openebsNamespace string) error {
 	if err != nil {
 		return err
 	}
-	for _, bdcObj := range bdcList.Items {
+	for _, bdcItem := range bdcList.Items {
+		bdcItem := bdcItem // pin it
+		bdcObj := &bdcItem
 		klog.Infof("Updating bdc %s with cspc labels & finalizer.", bdcObj.Name)
 		delete(bdcObj.Labels, string(apis.StoragePoolClaimCPK))
 		bdcObj.Labels[string(apis.CStorPoolClusterCPK)] = cspcName
@@ -308,7 +310,7 @@ func updateBDCLabels(cspcName, openebsNamespace string) error {
 		// bdcObj.OwnerReferences[0].UID = cspcObj.UID
 		_, err := bdc.NewKubeClient().
 			WithNamespace(openebsNamespace).
-			Update(&bdcObj)
+			Update(bdcObj)
 		if err != nil {
 			return errors.Wrapf(err, "failed to update bdc %s with cspc label & finalizer", bdcObj.Name)
 		}
@@ -325,13 +327,15 @@ func updateBDCOwnerRef(cspcObj *apis.CStorPoolCluster, openebsNamespace string) 
 	if err != nil {
 		return err
 	}
-	for _, bdcObj := range bdcList.Items {
+	for _, bdcItem := range bdcList.Items {
+		bdcItem := bdcItem // pin it
+		bdcObj := &bdcItem
 		klog.Infof("Updating bdc %s with cspc ownerRef.", bdcObj.Name)
 		bdcObj.OwnerReferences[0].Kind = "CStorPoolCluster"
 		bdcObj.OwnerReferences[0].UID = cspcObj.UID
 		_, err := bdc.NewKubeClient().
 			WithNamespace(openebsNamespace).
-			Update(&bdcObj)
+			Update(bdcObj)
 		if err != nil {
 			return errors.Wrapf(err, "failed to update bdc %s with cspc onwerRef", bdcObj.Name)
 		}
@@ -349,7 +353,9 @@ func updateCVRsLabels(cspName, openebsNamespace string, cspiObj *apis.CStorPoolI
 	if err != nil {
 		return err
 	}
-	for _, cvrObj := range cvrList.Items {
+	for _, cvrItem := range cvrList.Items {
+		cvrItem := cvrItem // pin it
+		cvrObj := &cvrItem
 		klog.Infof("Updating cvr %s with cspi %s info.", cvrObj.Name, cspiObj.Name)
 		delete(cvrObj.Labels, cspNameLabel)
 		delete(cvrObj.Labels, cspUIDLabel)
@@ -358,7 +364,7 @@ func updateCVRsLabels(cspName, openebsNamespace string, cspiObj *apis.CStorPoolI
 		delete(cvrObj.Annotations, cspHostnameAnnotation)
 		cvrObj.Annotations[cspiHostnameAnnotation] = cspiObj.Spec.HostName
 		_, err = cvr.NewKubeclient().WithNamespace(openebsNamespace).
-			Update(&cvrObj)
+			Update(cvrObj)
 		if err != nil {
 			return errors.Wrapf(err, "failed to update cvr %s with cspc info", cvrObj.Name)
 		}
