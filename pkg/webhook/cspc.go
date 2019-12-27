@@ -323,20 +323,22 @@ func (wh *webhook) validateCSPCUpdateRequest(req *v1beta1.AdmissionRequest) *v1b
 		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusBadRequest).AR
 		return response
 	}
-	if ok, msg := cspcValidation(&cspcNew); !ok {
-		err = errors.Errorf("invalid cspc specification: %s", msg)
-		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusUnprocessableEntity).AR
-		return response
-	}
-
+	// Get CSPC old object
 	cspcOld, err := cspcv1alpha1.NewKubeClient().WithNamespace(cspcNew.Namespace).Get(cspcNew.Name, v1.GetOptions{})
 	if err != nil {
 		err = errors.Errorf("could not fetch existing cspc for validation: %s", err.Error())
 		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusInternalServerError).AR
 		return response
 	}
-	// return success from here when there is no change in spec
+
+	// return success from here when there is no change in old and new spec
 	if reflect.DeepEqual(cspcNew.Spec, cspcOld.Spec) {
+		return response
+	}
+
+	if ok, msg := cspcValidation(&cspcNew); !ok {
+		err = errors.Errorf("invalid cspc specification: %s", msg)
+		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusUnprocessableEntity).AR
 		return response
 	}
 
