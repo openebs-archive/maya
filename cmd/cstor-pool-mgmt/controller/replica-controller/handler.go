@@ -30,7 +30,7 @@ import (
 	"github.com/openebs/maya/pkg/debug"
 	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -483,7 +483,7 @@ func (c *CStorVolumeReplicaController) getVolumeReplicaResource(
 	if err != nil {
 		// The cStorPool resource may no longer exist, in which case we stop
 		// processing.
-		if errors.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			runtime.HandleError(
 				fmt.Errorf(
 					"cStorVolumeReplicaUpdated '%s' in work queue no longer exists",
