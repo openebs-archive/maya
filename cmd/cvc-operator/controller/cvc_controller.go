@@ -22,7 +22,10 @@ import (
 	"time"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	apispdb "github.com/openebs/maya/pkg/kubernetes/poddisruptionbudget"
+	errors "github.com/pkg/errors"
 	merrors "github.com/pkg/errors"
+	policy "k8s.io/api/policy/v1beta1"
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -31,6 +34,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -63,6 +68,8 @@ const (
 	// CStorVolumeClaimFinalizer name of finalizer on CStorVolumeClaim that
 	// are bound by CStorVolume
 	CStorVolumeClaimFinalizer = "cvc.openebs.io/finalizer"
+	// SyncFailed failed to handle corresponding handler
+	SyncFailed = "SyncFailed"
 )
 
 var knownResizeConditions = map[apis.CStorVolumeClaimConditionType]bool{
@@ -194,6 +201,12 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 		return err
 	}
 
+	//  HandlePDBForVolume creates/updates/delete podDisruptionBudget for
+	//  current volume
+	err = c.HandlePDBForVolume(cvc)
+	if err != nil {
+		c.recorder.Eventf(cvc, corev1.EventTypeWarning, SyncFailed, err.Error())
+	}
 	return nil
 }
 
@@ -565,4 +578,105 @@ func (c *CVCController) resizeCV(cv *apis.CStorVolume, newCapacity resource.Quan
 		return updateErr
 	}
 	return nil
+}
+
+// HandlePDBForVolume will handle the PDB for volume based on podDisruptionBudget
+// flag on cStorVolumeClaim
+// HandlePDBForVolume does the following changes to PDB
+// 1. If user sets the flag of podDisruptionBudget to false then PDB will not be
+//    created/ existing PDB will be deleted.
+// 2. If user sets the flag of podDisruptionBudget to true then PDB will be
+//    created with minAvailable as 51% of replica count.
+// 3. If user scaleup/scaledown/migrated the replica then minAvailable and pools
+//    in PDB will be updated accordingly.
+func (c *CVCController) HandlePDBForVolume(cvc *apis.CStorVolumeClaim) error {
+	pdbClient := apispdb.KubeClient().WithNamespace(cvc.Namespace)
+	volumeLabelSelector := string(apis.PersistentVolumeCPK) + "=" + cvc.Name
+
+	pdbList, err := pdbClient.
+		List(metav1.ListOptions{LabelSelector: volumeLabelSelector})
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to list podDisruptionBudget of volume: %s",
+			cvc.Name,
+			err)
+	}
+	if len(pdbList.Items) > 1 {
+		return errors.Errorf(
+			"invalid count of poddisruptionbudget instances: %d of volume %s",
+			len(pdbList.Items),
+			cvc.Name)
+	}
+
+	// Get cStorVolume for pv label to know current replica count
+	cvObj, err := getCStorVolumeFromCVC(cvc)
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to get cstorvolume: %s error: %v", cvc.Name, err)
+	}
+
+	// If there is any existing PDB and if podDisruptionBudget flag updated to
+	// false or if any scale up/scale down performed by user then delete the
+	// existing PDB and create new PDB with updated value(Only if flag is enabled).
+	if len(pdbList.Items) == 1 {
+		// Calculate minAvailable value from cStorVolume replica count
+		minAvailable := (cvObj.Spec.ReplicationFactor >> 1) + 1
+		pools := pdbList.Items[0].Spec.Selector.MatchExpressions[0].Values
+
+		if !cvc.Spec.PodDisruptionBudget ||
+			minAvailable != pdbList.Items[0].Spec.MinAvailable.IntValue() ||
+			isReplicaPoolsModified(cvObj, pools) {
+			err = pdbClient.Delete(pdbList.Items[0].Name, &metav1.DeleteOptions{})
+			if err != nil {
+				errors.Wrapf(err,
+					"failed to delete poddisruptionbudget: %s of volume: %s",
+					pdbList.Items[0].Name,
+					cvc.Name,
+				)
+			}
+		}
+	}
+	// create poddisruptionbudget with 51% of replica count as minAvailable
+	// value
+	if len(pdbList.Items) == 0 && cvc.Spec.PodDisruptionBudget {
+		err = createPDBForVolume(cvObj)
+		if err != nil {
+			return errors.Wrapf(err,
+				"failed to create podDisruptionBudget for volume: %s",
+				cvc.Name)
+		}
+	}
+	return nil
+}
+
+// createPDBForVolume creates PDB for cStorVolume
+func createPDBForVolume(cvObj *apis.CStorVolume) error {
+	pvName := cvObj.Labels[string(apis.PersistentVolumeCPK)]
+	selector, err := getPDBSelector(cvObj)
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to get label selector to create podDisruptionBudget for volume %s",
+			pvName)
+	}
+	// Calculate minAvailable value from cStorVolume replica count
+	minAvailable := (cvObj.Spec.ReplicationFactor >> 1) + 1
+	minAvailableIntStr := intstr.FromInt(minAvailable)
+
+	//build podDisruptionBudget for volume
+	pdbObj := policy.PodDisruptionBudget{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName:    pvName,
+			Labels:          getPDBLabels(cvObj),
+			OwnerReferences: getPDBOwnerReference(cvObj),
+		},
+		Spec: policy.PodDisruptionBudgetSpec{
+			MinAvailable: &minAvailableIntStr,
+			Selector:     selector,
+		},
+	}
+	// Create podDisruptionBudget
+	_, err = apispdb.KubeClient().
+		WithNamespace(cvObj.Namespace).
+		Create(&pdbObj)
+	return err
 }

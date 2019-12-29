@@ -34,6 +34,7 @@ import (
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/klog"
 )
 
 const (
@@ -521,6 +522,128 @@ func randomizePoolList(list *apis.CStorPoolInstanceList) *apis.CStorPoolInstance
 	for _, randomIdx := range perm {
 		res.Items = append(res.Items, list.Items[randomIdx])
 	}
-
 	return res
+}
+
+// getCVRList returns list of volume replicas related to provided volume
+func getCVRList(cvObj *apis.CStorVolume) (*apis.CStorVolumeReplicaList, error) {
+	pvName := cvObj.Labels[string(apis.PersistentVolumeCPK)]
+	pvLabel := string(apis.PersistentVolumeCPK) + "=" + pvName
+	return cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).
+		List(metav1.ListOptions{
+			LabelSelector: pvLabel,
+		})
+}
+
+// getPoolNames returns list of quorum replica pool names from cStorVolume and
+// cStor volume replcia objects
+func getPoolNames(cvObj *apis.CStorVolume,
+	cvrList *apis.CStorVolumeReplicaList) []string {
+	poolNames := []string{}
+	for _, cvrObj := range cvrList.Items {
+		replicaID := cvrObj.Spec.ReplicaID
+		_, ok := cvObj.Status.ReplicaDetails.KnownReplicas[apis.ReplicaID(replicaID)]
+		if ok {
+			poolNames = append(poolNames, cvrObj.Labels[cstorpoolInstanceLabel])
+		}
+	}
+	return poolNames
+}
+
+// getReplicaPoolNames return list of quorum replicas pool names by taking cStor
+// volume as a argument and return error(if any error occured)
+func getReplicaPoolNames(cvObj *apis.CStorVolume) ([]string, error) {
+	pvName := cvObj.Labels[string(apis.PersistentVolumeCPK)]
+	minAvailable := (cvObj.Spec.ReplicationFactor >> 1) + 1
+	if len(cvObj.Status.ReplicaDetails.KnownReplicas) < minAvailable {
+		return []string{}, errors.Errorf(
+			"required no.of replicas are not yet connected to the target for volume %s",
+			pvName,
+		)
+	}
+	cvrList, err := getCVRList(cvObj)
+	if err != nil {
+		return []string{}, errors.Wrapf(err,
+			"failed to list cStorVolumeReplicas related to volume %s",
+			pvName)
+	}
+	return getPoolNames(cvObj, cvrList), nil
+}
+
+// getCStorVolumeFromCVC returns cStor Volume object by taking cstor volume
+// claim as argument
+func getCStorVolumeFromCVC(cvc *apis.CStorVolumeClaim) (*apis.CStorVolume, error) {
+	return cv.NewKubeclient().
+		WithNamespace(cvc.Namespace).
+		Get(cvc.Name, metav1.GetOptions{})
+}
+
+// getPDBOwnerReference returns PDB ownerReference by building from cStor Volume
+func getPDBOwnerReference(cv *apis.CStorVolume) []metav1.OwnerReference {
+	return []metav1.OwnerReference{
+		*metav1.NewControllerRef(cv,
+			apis.SchemeGroupVersion.WithKind(cvKind)),
+	}
+}
+
+// getPDBLabels return pod disruption budget required labels
+func getPDBLabels(cvObj *apis.CStorVolume) map[string]string {
+	pvName := cvObj.Labels[string(apis.PersistentVolumeCPK)]
+	return map[string]string{
+		string(apis.PersistentVolumeCPK): pvName,
+	}
+}
+
+func getPDBMatchExpressions(
+	cvObj *apis.CStorVolume) ([]metav1.LabelSelectorRequirement, error) {
+	selectorRequirements := []metav1.LabelSelectorRequirement{}
+	pools, err := getReplicaPoolNames(cvObj)
+	if err != nil {
+		return selectorRequirements, errors.Wrapf(err,
+			"failed to get volume replica pool names")
+	}
+	selectorRequirements = append(
+		selectorRequirements,
+		metav1.LabelSelectorRequirement{
+			Key:      cstorpoolInstanceLabel,
+			Operator: metav1.LabelSelectorOpIn,
+			Values:   pools,
+		})
+	return selectorRequirements, nil
+}
+
+func getPDBSelector(cvObj *apis.CStorVolume) (*metav1.LabelSelector, error) {
+	matchExpressions, err := getPDBMatchExpressions(cvObj)
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"failed to get matchExpressions for volume %s",
+			cvObj.Name)
+	}
+	return &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": "cstor-pool",
+		},
+		MatchExpressions: matchExpressions,
+	}, nil
+}
+
+func isReplicaPoolsModified(cvObj *apis.CStorVolume, existingPoolNames []string) bool {
+	currentPoolNames, err := getReplicaPoolNames(cvObj)
+	if err != nil {
+		klog.Errorf("failed to get replicas pool names of volume: %s error: %v", cvObj.Name, err)
+		return false
+	}
+	if len(currentPoolNames) != len(existingPoolNames) {
+		return true
+	}
+	mapExistingPools := map[string]bool{}
+	for _, poolName := range existingPoolNames {
+		mapExistingPools[poolName] = true
+	}
+	for _, poolName := range currentPoolNames {
+		if !mapExistingPools[poolName] {
+			return true
+		}
+	}
+	return false
 }

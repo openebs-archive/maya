@@ -66,6 +66,9 @@ const (
 	RaidzBlockDeviceCountCPV CasPoolValInt = 3
 	// Raidz2BlockDeviceCountCPV is the count for raidz2 type pool
 	Raidz2BlockDeviceCountCPV CasPoolValInt = 6
+	// PersistentVolume is a key on the various resources to identify it belongs
+	// to particular volume
+	PersistentVolumeCPK CasPoolKey = "openebs.io/persistent-volume"
 )
 
 // CasPool is a type which will be utilised by CAS engine to perform

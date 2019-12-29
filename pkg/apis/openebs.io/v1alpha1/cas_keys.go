@@ -55,7 +55,7 @@ const (
 	NamespaceKey CASKey = "openebs.io/namespace"
 
 	// PersistentVolumeClaimKey is the key to fetch name of PersistentVolumeClaim
-	PersistentVolumeClaimKey CASKey = "openebs.io/persistentvolumeclaim"
+	PersistentVolumeClaimKey CASKey = "openebs.io/persistent-volume"
 
 	// CASKeyIsPatchJivaReplicaNodeAffinityHeader is the key to fetch value of IsPatchKey
 	// its value is "enabled".
