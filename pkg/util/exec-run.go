@@ -15,8 +15,8 @@
 package util
 
 import (
-	"io"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"time"
 
@@ -71,51 +71,25 @@ func (r RealRunner) RunStdoutPipe(command string, args ...string) ([]byte, error
 }
 
 // RunCommandWithLog triggers command passed as arguments and it also does the
-// following things
-// 1. Logs the stdout of command using klog.Info()
-// 2. Capture the stderr of the command and return in array of bytes.
+// following things before command completion
+// 1. Logs the stdout of command to stdout(standard output)
+// 2. Logs stderr of the command to standard error
 func (r RealRunner) RunCommandWithLog(command string, args ...string) ([]byte, error) {
 	// #nosec
 	cmd := exec.Command(command, args...)
-	// Get a pipe that will be connected to commands output
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return []byte{}, err
-	}
-	// Get a pipe that will be connected to commands error
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return []byte{}, err
-	}
+	// Redirect the command output to stdout
+	cmd.Stdout = os.Stdout
+	// Redirect the command output to stderr
+	cmd.Stderr = os.Stderr
 	// Start the command
 	if err := cmd.Start(); err != nil {
 		return []byte{}, err
 	}
-	// Log only stdout
-	logStdoutFromPipe(stdout)
-	// read stderror until EOF
-	data, _ := ioutil.ReadAll(stderr)
 	// below will return error when command exit with return code 1
 	if err := cmd.Wait(); err != nil {
-		return data, err
+		return []byte{}, err
 	}
-	return data, nil
-}
-
-// logStdoutFromPipe will log the data after reading from Reader
-func logStdoutFromPipe(r io.Reader) {
-	buf := make([]byte, 1024)
-	for {
-		_, err := r.Read(buf[:])
-		if err != nil {
-			if err == io.EOF {
-				return
-			}
-			klog.Errorf("failed to read stdout error: %v", err)
-			return
-		}
-		klog.Infof("%s", string(buf))
-	}
+	return []byte{}, nil
 }
 
 // RunCommandWithTimeoutContext executes command provides and returns stdout
