@@ -149,8 +149,7 @@ func (pc *PoolConfig) GetPoolDeploySpec(cspi *apis.CStorPoolInstance) (*appsv1.D
 					container.NewBuilder().
 						WithImage(getMayaExporterImage()).
 						WithName(PoolExporterContainerName).
-						WithResources(getAuxResourceRequirement(cspi)).
-						// TODO : Resource and Limit
+						// TODO: add default values for resources
 						WithImagePullPolicy(corev1.PullIfNotPresent).
 						WithPrivilegedSecurityContext(&privileged).
 						WithPortsNew(getContainerPort(9500)).
@@ -392,6 +391,7 @@ func getResourceRequirementForCStorPool(cspi *apis.CStorPoolInstance) *corev1.Re
 	} else {
 		resourceRequirements = cspi.Spec.PoolConfig.Resources
 	}
+	// TODO: add default values for resources if both are nil
 	return resourceRequirements
 }
 
@@ -403,6 +403,7 @@ func getAuxResourceRequirement(cspi *apis.CStorPoolInstance) *corev1.ResourceReq
 	} else {
 		auxResourceRequirements = cspi.Spec.PoolConfig.AuxResources
 	}
+	// TODO: add default values for resources if both are nil
 	return auxResourceRequirements
 }
 

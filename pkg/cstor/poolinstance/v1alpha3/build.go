@@ -19,7 +19,6 @@ package v1alpha3
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -191,12 +190,6 @@ func (b *Builder) WithNodeName(nodeName string) *Builder {
 		return b
 	}
 	b.CSPI.Object.Spec.HostName = nodeName
-	return b
-}
-
-// WithAuxResourceRequirement sets the AuxResources field of CSPI with the provided argument.
-func (b *Builder) WithAuxResourceRequirement(resource corev1.ResourceRequirements) *Builder {
-	b.CSPI.Object.Spec.AuxResources = resource
 	return b
 }
 

@@ -678,7 +678,6 @@ func (in *CStorPoolInstanceSpec) DeepCopyInto(out *CStorPoolInstanceSpec) {
 		}
 	}
 	in.PoolConfig.DeepCopyInto(&out.PoolConfig)
-	in.AuxResources.DeepCopyInto(&out.AuxResources)
 	if in.RaidGroups != nil {
 		in, out := &in.RaidGroups, &out.RaidGroups
 		*out = make([]RaidGroup, len(*in))
