@@ -605,7 +605,7 @@ func getPDBMatchExpressions(
 	selectorRequirements = append(
 		selectorRequirements,
 		metav1.LabelSelectorRequirement{
-			Key:      apis.CStorPoolInstanceCPK,
+			Key:      string(apis.CStorPoolInstanceCPK),
 			Operator: metav1.LabelSelectorOpIn,
 			Values:   pools,
 		})
