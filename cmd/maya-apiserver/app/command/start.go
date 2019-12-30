@@ -28,7 +28,6 @@ import (
 	"syscall"
 	"time"
 
-	cvc "github.com/openebs/maya/cmd/cstorvolumeclaim"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/server"
 	"github.com/openebs/maya/cmd/maya-apiserver/cstor-operator/spc"
@@ -211,13 +210,6 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 			klog.Errorf("Failed to start storage pool controller: %s", err.Error())
 		}
 
-	}()
-
-	go func() {
-		err := cvc.Start(&ControllerMutex)
-		if err != nil {
-			klog.Errorf("Failed to start cstorvolume claim controller: %s", err.Error())
-		}
 	}()
 
 	if env.Truthy(env.OpenEBSEnableAnalytics) {

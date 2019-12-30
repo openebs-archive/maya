@@ -247,24 +247,24 @@ func (c *CVCController) Run(threadiness int, stopCh <-chan struct{}) {
 	defer c.workqueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches
-	klog.Info("Starting CVC controller")
+	klog.Info("Starting CstorVolumeClaim controller")
 
 	// Wait for the k8s caches to be synced before starting workers
 	klog.Info("Waiting for informer caches to sync")
 	if ok := cache.WaitForCacheSync(stopCh, c.cvcSynced); !ok {
-		klog.Errorf("failed to sync cvc caches")
+		klog.Errorf("failed to sync CstorVolumeClaim caches")
 		return
 	}
-	klog.Info("Starting CVC workers")
+	klog.Info("Starting CstorVolumeClaim workers")
 	// Launch worker to process CVC resources
 	// Threadiness will decide the number of workers you want to launch to process work items from queue
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
 
-	klog.Info("Started CVC workers")
+	klog.Info("Started CstorVolumeClaim workers")
 	<-stopCh
-	klog.Info("Shutting down CVC workers")
+	klog.Info("Shutting down CstorVolumeClaim workers")
 }
 
 // runWorker is a long-running function that will continually call the

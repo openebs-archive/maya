@@ -121,12 +121,17 @@ include ./buildscripts/exporter/Makefile.mk
 include ./buildscripts/cstor-pool-mgmt/Makefile.mk
 include ./buildscripts/cstor-volume-mgmt/Makefile.mk
 include ./buildscripts/cspi-mgmt/Makefile.mk
+include ./buildscripts/cvc-operator/Makefile.mk
 
 .PHONY: all
-all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image cspc-operator-image cspc-operator-debug-image cspi-mgmt-image upgrade-image provisioner-localpv-image
+all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image \
+	   admission-server-image cspc-operator-image cspc-operator-debug-image \
+	   cvc-operator-image cspi-mgmt-image upgrade-image provisioner-localpv-image
 
 .PHONY: all.arm64
-all.arm64: apiserver-image.arm64 provisioner-localpv-image.arm64 exporter-image.arm64 pool-mgmt-image.arm64 volume-mgmt-image.arm64 cspi-mgmt-image.arm64
+all.arm64: apiserver-image.arm64 provisioner-localpv-image.arm64 exporter-image.arm64 \
+	         pool-mgmt-image.arm64 volume-mgmt-image.arm64 cspi-mgmt-image.arm64 \
+           cvc-operator-image-arm64
 
 .PHONY: initialize
 initialize: bootstrap
@@ -341,3 +346,4 @@ deploy-images:
 	@DIMAGE="openebs/cspc-operator" ./buildscripts/push
 	@DIMAGE="${HUB_USER}/${M_UPGRADE_REPO_NAME}" ./buildscripts/push
 	@DIMAGE="openebs/provisioner-localpv" ./buildscripts/push
+	@DIMAGE="openebs/cvc-operator" ./buildscripts/push

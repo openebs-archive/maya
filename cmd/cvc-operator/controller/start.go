@@ -21,7 +21,6 @@ import (
 	"flag"
 	"os"
 	"os/signal"
-	"sync"
 
 	"github.com/pkg/errors"
 	"k8s.io/klog"
@@ -47,12 +46,20 @@ var (
 
 // Command line flags
 var (
-	leaderElection          = flag.Bool("leader-election", true, "Enables leader election.")
+	leaderElection          = flag.Bool("leader-election", false, "Enables leader election.")
 	leaderElectionNamespace = flag.String("leader-election-namespace", "", "The namespace where the leader election resource exists. Defaults to the pod namespace if not set.")
 )
 
 // Start starts the cstorvolumeclaim controller.
-func Start(controllerMtx *sync.RWMutex) error {
+func Start() error {
+
+	klog.InitFlags(nil)
+	err := flag.Set("logtostderr", "true")
+	if err != nil {
+		return errors.Wrap(err, "failed to set logtostderr flag")
+	}
+	flag.Parse()
+
 	// Get in cluster config
 	cfg, err := getClusterConfig(kubeconfig)
 	if err != nil {
@@ -85,7 +92,6 @@ func Start(controllerMtx *sync.RWMutex) error {
 	// If multiple controllers happen to call this AddToScheme same time,
 	// it causes panic with error saying concurrent map access.
 	// This lock is used to serialize the AddToScheme call of all controllers.
-	controllerMtx.Lock()
 	controller, err := NewCVCControllerBuilder().
 		withKubeClient(kubeClient).
 		withOpenEBSClient(openebsClient).
@@ -100,8 +106,6 @@ func Start(controllerMtx *sync.RWMutex) error {
 		withEventHandler(cvcInformerFactory).
 		withWorkqueueRateLimiting().Build()
 
-	// blocking call, can't use defer to release the lock
-	controllerMtx.Unlock()
 	if err != nil {
 		return errors.Wrapf(err, "error building controller instance")
 	}
