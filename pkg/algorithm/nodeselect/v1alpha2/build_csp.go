@@ -41,7 +41,9 @@ func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 	if poolSpec.PoolConfig.Resources == nil {
 		poolSpec.PoolConfig.Resources = ac.CSPC.Spec.DefaultResources
 	}
-
+	if poolSpec.PoolConfig.AuxResources == nil {
+		poolSpec.PoolConfig.AuxResources = ac.CSPC.Spec.DefaultAuxResources
+	}
 	if len(poolSpec.PoolConfig.Tolerations) == 0 {
 		poolSpec.PoolConfig.Tolerations = ac.CSPC.Spec.Tolerations
 	}
@@ -56,7 +58,6 @@ func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 		WithNamespace(ac.Namespace).
 		WithNodeSelectorByReference(poolSpec.NodeSelector).
 		WithNodeName(nodeName).
-		WithAuxResourceRequirement(ac.CSPC.Spec.AuxResources).
 		WithPoolConfig(&poolSpec.PoolConfig).
 		WithRaidGroups(poolSpec.RaidGroups).
 		WithCSPCOwnerReference(ac.CSPC).

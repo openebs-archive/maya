@@ -563,7 +563,11 @@ func (in *CStorPoolClusterSpec) DeepCopyInto(out *CStorPoolClusterSpec) {
 		*out = new(v1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}
-	in.AuxResources.DeepCopyInto(&out.AuxResources)
+	if in.DefaultAuxResources != nil {
+		in, out := &in.DefaultAuxResources, &out.DefaultAuxResources
+		*out = new(v1.ResourceRequirements)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
 		*out = make([]v1.Toleration, len(*in))
@@ -674,7 +678,6 @@ func (in *CStorPoolInstanceSpec) DeepCopyInto(out *CStorPoolInstanceSpec) {
 		}
 	}
 	in.PoolConfig.DeepCopyInto(&out.PoolConfig)
-	in.AuxResources.DeepCopyInto(&out.AuxResources)
 	if in.RaidGroups != nil {
 		in, out := &in.RaidGroups, &out.RaidGroups
 		*out = make([]RaidGroup, len(*in))
@@ -1459,6 +1462,11 @@ func (in *PoolConfig) DeepCopyInto(out *PoolConfig) {
 	*out = *in
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
+		*out = new(v1.ResourceRequirements)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.AuxResources != nil {
+		in, out := &in.AuxResources, &out.AuxResources
 		*out = new(v1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}

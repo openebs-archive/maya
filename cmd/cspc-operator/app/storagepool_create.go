@@ -130,7 +130,7 @@ func (pc *PoolConfig) GetPoolDeploySpec(cspi *apis.CStorPoolInstance) (*appsv1.D
 						WithPrivilegedSecurityContext(&privileged).
 						WithEnvsNew(getPoolMgmtEnv(cspi)).
 						WithEnvs(getPoolUIDAsEnv(pc.AlgorithmConfig.CSPC)).
-						WithResourcesByValue(getAuxResourceRequirement(cspi)).
+						WithResources(getAuxResourceRequirement(cspi)).
 						WithVolumeMountsNew(getPoolMgmtMounts()),
 					// For CStor-Pool container
 					container.NewBuilder().
@@ -149,8 +149,7 @@ func (pc *PoolConfig) GetPoolDeploySpec(cspi *apis.CStorPoolInstance) (*appsv1.D
 					container.NewBuilder().
 						WithImage(getMayaExporterImage()).
 						WithName(PoolExporterContainerName).
-						WithResourcesByValue(getAuxResourceRequirement(cspi)).
-						// TODO : Resource and Limit
+						// TODO: add default values for resources
 						WithImagePullPolicy(corev1.PullIfNotPresent).
 						WithPrivilegedSecurityContext(&privileged).
 						WithPortsNew(getContainerPort(9500)).
@@ -384,7 +383,7 @@ func getPoolLifeCycle() *corev1.Lifecycle {
 	return lc
 }
 
-// getResourceRequirementForCStorPool returns resource requirement.
+// getResourceRequirementForCStorPool returns resource requirement for cstor pool container.
 func getResourceRequirementForCStorPool(cspi *apis.CStorPoolInstance) *corev1.ResourceRequirements {
 	var resourceRequirements *corev1.ResourceRequirements
 	if cspi.Spec.PoolConfig.Resources == nil {
@@ -392,11 +391,20 @@ func getResourceRequirementForCStorPool(cspi *apis.CStorPoolInstance) *corev1.Re
 	} else {
 		resourceRequirements = cspi.Spec.PoolConfig.Resources
 	}
+	// TODO: add default values for resources if both are nil
 	return resourceRequirements
 }
 
-func getAuxResourceRequirement(cspi *apis.CStorPoolInstance) corev1.ResourceRequirements {
-	return cspi.Spec.AuxResources
+// getAuxResourceRequirement returns resource requirement for cstor pool side car containers.
+func getAuxResourceRequirement(cspi *apis.CStorPoolInstance) *corev1.ResourceRequirements {
+	var auxResourceRequirements *corev1.ResourceRequirements
+	if cspi.Spec.PoolConfig.AuxResources == nil {
+		auxResourceRequirements = &corev1.ResourceRequirements{}
+	} else {
+		auxResourceRequirements = cspi.Spec.PoolConfig.AuxResources
+	}
+	// TODO: add default values for resources if both are nil
+	return auxResourceRequirements
 }
 
 // getPoolPodToleration returns pool pod tolerations.
