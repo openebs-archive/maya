@@ -557,7 +557,7 @@ func getReplicaPoolNames(cvObj *apis.CStorVolume) ([]string, error) {
 	minAvailable := (cvObj.Spec.ReplicationFactor >> 1) + 1
 	if len(cvObj.Status.ReplicaDetails.KnownReplicas) < minAvailable {
 		return []string{}, errors.Errorf(
-			"required no.of replicas are not yet connected to the target for volume %s",
+			"required no.of replicas are not yet connected to the target of volume %s",
 			pvName,
 		)
 	}
