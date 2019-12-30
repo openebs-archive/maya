@@ -59,10 +59,10 @@ type CStorVolumeClaimSpec struct {
 	// CstorVolumeSource contains the source volumeName@snapShotname
 	// combaination.  This will be filled only if it is a clone creation.
 	CstorVolumeSource string `json:"cstorVolumeSource,omitempty"`
-	// PodDisruptionBudget will handle the podDisruptionBudget per volume
-	// 1. If podDisruptionBudget is set true then controller will create PDB with
+	// PodDisruptionBudget will handle the podDisruptionBudget of volume
+	// 1. If podDisruptionBudget is set true then CVC controller will create PDB with
 	//    minAvailable value as 51% of replica count.
-	// 2. If podDisruptionBudget is set false then controller will delete if there
+	// 2. If podDisruptionBudget is set false then CVC controller will delete if there
 	//    is any existing PDB.
 	PodDisruptionBudget bool `json:"podDisruptionBudget,omitempty"`
 }

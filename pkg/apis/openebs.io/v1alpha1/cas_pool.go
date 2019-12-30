@@ -37,6 +37,8 @@ const (
 	StoragePoolClaimCPK CasPoolKey = "openebs.io/storage-pool-claim"
 	// CStorPoolClusterCPK is the CStorPoolcluster label
 	CStorPoolClusterCPK CasPoolKey = "openebs.io/cstor-pool-cluster"
+	// CStorPoolInstanceCPK is the CStorPoolInstance label
+	CStorPoolInstanceCPK CasPoolKey = "openebs.io/cstor-pool-instance"
 	// PredecessorBlockDeviceCPK is the annotation on the block device claim
 	// holding previous block device name
 	PredecessorBlockDeviceCPK CasPoolKey = "openebs.io/bd-predecessor"
