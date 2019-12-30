@@ -54,10 +54,6 @@ func NewOperation(volume *v1alpha1.CASVolume) (*Operation, error) {
 		return nil, errors.New("failed to instantiate volume operation: nil volume provided")
 	}
 
-	if len(volume.Namespace) == 0 {
-		return nil, errors.Errorf("failed to instantiate volume operation: missing volume namespace: %s", volume)
-	}
-
 	kc, err := m_k8s_client.NewK8sClient(volume.Namespace)
 	if err != nil {
 		return nil, err
