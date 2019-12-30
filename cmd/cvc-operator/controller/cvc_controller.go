@@ -598,8 +598,7 @@ func (c *CVCController) HandlePDBForVolume(cvc *apis.CStorVolumeClaim) error {
 	if err != nil {
 		return errors.Wrapf(err,
 			"failed to list podDisruptionBudget of volume: %s",
-			cvc.Name,
-			err)
+			cvc.Name)
 	}
 	if len(pdbList.Items) > 1 {
 		return errors.Errorf(
@@ -628,7 +627,7 @@ func (c *CVCController) HandlePDBForVolume(cvc *apis.CStorVolumeClaim) error {
 			isReplicaPoolsModified(cvObj, pools) {
 			err = pdbClient.Delete(pdbList.Items[0].Name, &metav1.DeleteOptions{})
 			if err != nil {
-				errors.Wrapf(err,
+				return errors.Wrapf(err,
 					"failed to delete poddisruptionbudget: %s of volume: %s",
 					pdbList.Items[0].Name,
 					cvc.Name,
