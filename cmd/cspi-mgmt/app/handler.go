@@ -58,14 +58,8 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 	// take a lock for common package for updating variables
 	common.SyncResources.Mux.Lock()
 
-	// try to import pool, first check for migration case in which the previous
-	// poolname is CSP uid and should be renamed to CSPC uid. If old CSP uid is
-	// not present then follow the normal code path.
-	if cspi.Annotations[string(apis.OldCSPUID)] != "" {
-		isImported, err = zpool.Import(cspi, "cstor-"+cspi.Annotations[string(apis.OldCSPUID)])
-	} else {
-		isImported, err = zpool.Import(cspi, "")
-	}
+	// try to import pool
+	isImported, err = zpool.Import(cspi)
 	if isImported {
 		if err != nil {
 			common.SyncResources.Mux.Unlock()
@@ -77,7 +71,6 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 		}
 		zpool.CheckImportedPoolVolume()
 		common.SyncResources.Mux.Unlock()
-		delete(cspi.Annotations, string(apis.OldCSPUID))
 		err = c.update(cspi)
 		if err != nil {
 			c.recorder.Event(cspi,
