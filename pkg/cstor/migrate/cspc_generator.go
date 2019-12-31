@@ -96,7 +96,7 @@ func getCSPCSpecForSPC(spc *apis.StoragePoolClaim, openebsNamespace string) (*ap
 				Resources:            getCSPResources(cspDeployList.Items[0]),
 				Tolerations:          cspDeployList.Items[0].Spec.Template.Spec.Tolerations,
 				PriorityClassName:    cspDeployList.Items[0].Spec.Template.Spec.PriorityClassName,
-				// AuxResources:         getCSPAuxResources(cspDeployList.Items[0]),
+				AuxResources:         getCSPAuxResources(cspDeployList.Items[0]),
 			},
 		}
 		// if the csp does not have a cachefile then add cachefile
@@ -117,14 +117,14 @@ func getCSPResources(cspDeploy appsv1.Deployment) *corev1.ResourceRequirements {
 	return nil
 }
 
-// func getCSPAuxResources(cspDeploy appsv1.Deployment) *corev1.ResourceRequirements {
-// 	for _, con := range cspDeploy.Spec.Template.Spec.Containers {
-// 		if con.Name == "cstor-pool-mgmt" {
-// 			return &con.Resources
-// 		}
-// 	}
-// 	return nil
-// }
+func getCSPAuxResources(cspDeploy appsv1.Deployment) *corev1.ResourceRequirements {
+	for _, con := range cspDeploy.Spec.Template.Spec.Containers {
+		if con.Name == "cstor-pool-mgmt" {
+			return &con.Resources
+		}
+	}
+	return nil
+}
 
 // generateCSPC creates an equivalent cspc for the given spc object
 func generateCSPC(spcObj *apis.StoragePoolClaim, openebsNamespace string) (
