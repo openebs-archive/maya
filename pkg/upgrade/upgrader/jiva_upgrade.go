@@ -294,6 +294,7 @@ func getReplicationFactor(ctrlLabel, namespace string) (int, error) {
 		return 0, errors.Errorf("no deployments found for %s in %s", ctrlLabel, namespace)
 	}
 	ctrlPod := ctrlList.Items[0]
+	// the only env in jiva target pod is "REPLICATION_FACTOR"
 	return strconv.Atoi(ctrlPod.Spec.Containers[0].Env[0].Value)
 }
 
@@ -334,8 +335,8 @@ func validateSync(pvLabel, namespace string) error {
 		if err != nil {
 			return err
 		}
-		replicas := jivaClient.ReplicaCollection{}
 		defer resp.Body.Close()
+		replicas := jivaClient.ReplicaCollection{}
 		err = json.NewDecoder(resp.Body).Decode(&replicas)
 		if err != nil {
 			return err
