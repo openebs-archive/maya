@@ -36,7 +36,7 @@ import (
 	"k8s.io/klog"
 )
 
-// TODO: Get better naming convertion from review comments
+// TODO: Make better naming conventions from review comments
 
 // PoolValidator is build to validate pool spec, raid groups and blockdevices
 type PoolValidator struct {

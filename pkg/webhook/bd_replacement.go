@@ -33,7 +33,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//TODO: Update BlockDeviceReplacemen to generic name
+//TODO: Update BlockDeviceReplacement to generic name
 
 // BlockDeviceReplacement contains old and new CSPC to validate for block device replacement
 type BlockDeviceReplacement struct {
