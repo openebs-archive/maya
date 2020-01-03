@@ -24,6 +24,8 @@ import (
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	"github.com/openebs/maya/pkg/volume"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/kubernetes"
@@ -61,11 +63,6 @@ func (rOps *restoreAPIOps) create() (interface{}, error) {
 		return nil, err
 	}
 
-	// namespace is expected
-	if len(strings.TrimSpace(restore.Namespace)) == 0 {
-		return nil, CodedError(400, fmt.Sprintf("failed to create restore '%v': missing namespace", restore.Name))
-	}
-
 	// restore name is expected
 	if len(strings.TrimSpace(restore.Spec.RestoreName)) == 0 {
 		return nil, CodedError(400, fmt.Sprintf("failed to create restore: missing restore name "))
@@ -81,16 +78,32 @@ func (rOps *restoreAPIOps) create() (interface{}, error) {
 		return nil, CodedError(400, fmt.Sprintf("failed to create restore '%v': missing restoreSrc", restore.Name))
 	}
 
+	// storageClass is expected
+	if len(strings.TrimSpace(restore.Spec.StorageClass)) == 0 {
+		return nil, CodedError(400, fmt.Sprintf("failed to create restore '%v': missing storageClass", restore.Name))
+	}
+
+	// size is expected
+	if len(strings.TrimSpace(restore.Spec.Size)) == 0 {
+		return nil, CodedError(400, fmt.Sprintf("failed to create restore '%v': missing size", restore.Name))
+	}
+
 	openebsClient, _, err = loadClientFromServiceAccount()
 	if err != nil {
 		return nil, CodedError(400, fmt.Sprintf("Failed to load openebs client:{%v}", err))
 	}
 
-	return createRestoreResource(openebsClient, restore)
+	cvol, err := createVolumeForRestore(restore)
+	if err != nil {
+		return nil, CodedError(400, fmt.Sprintf("Failed to create resources for volume: {%v}", err))
+	}
+	klog.Infof("Restore volume '%v' created successfully ", cvol.Name)
+
+	return createRestoreResource(openebsClient, restore, cvol)
 }
 
 // createRestoreResource create restore CR for volume's CVR
-func createRestoreResource(openebsClient *versioned.Clientset, rst *v1alpha1.CStorRestore) (interface{}, error) {
+func createRestoreResource(openebsClient *versioned.Clientset, rst *v1alpha1.CStorRestore, cvol *v1alpha1.CASVolume) (interface{}, error) {
 	//Get List of cvr's related to this pvc
 	listOptions := v1.ListOptions{
 		LabelSelector: "openebs.io/persistent-volume=" + rst.Spec.VolumeName,
@@ -137,7 +150,7 @@ func createRestoreResource(openebsClient *versioned.Clientset, rst *v1alpha1.CSt
 		}
 	}
 
-	return "", nil
+	return cvol, nil
 }
 
 // get is http handler which handles backup get request
@@ -254,4 +267,34 @@ func updateRestoreStatus(clientset versioned.Interface, rst v1alpha1.CStorRestor
 		klog.Errorf("Failed to update restore:%s with status:%v", rst.Name, status)
 		return
 	}
+}
+
+func createVolumeForRestore(r *v1alpha1.CStorRestore) (*v1alpha1.CASVolume, error) {
+	vol := &v1alpha1.CASVolume{}
+
+	vol.Name = r.Spec.VolumeName
+	vol.Labels = map[string]string{
+		string(v1alpha1.StorageClassKey): r.Spec.StorageClass,
+	}
+	vol.Spec.Capacity = r.Spec.Size.String()
+
+	vol.Annotations = map[string]string{
+		v1alpha1.PVCreatedByKey: "restore",
+	}
+
+	vOps, err := volume.NewOperation(vol)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to create volume operation")
+	}
+
+	cvol, err := vOps.Read()
+	if err != nil {
+		if !isNotFound(err) {
+			return nil, errors.Wrapf(err, "Failed to get restore volume details")
+		}
+	} else {
+		return cvol, nil
+	}
+
+	return vOps.Create()
 }

@@ -217,13 +217,9 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 	klog.Infof("received volume delete request")
 
 	vol := &v1alpha1.CASVolume{}
-	// hdrNS will store namespace from http header
-	hdrNS := ""
-
 	// get volume related details from http request
 	if v.req != nil {
 		decodeBody(v.req, vol)
-		hdrNS = v.req.Header.Get(NamespaceKey)
 	}
 
 	vol.Name = volumeName
@@ -231,11 +227,6 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 	// volume name is expected
 	if len(vol.Name) == 0 {
 		return nil, CodedErrorf(400, "failed to delete volume: missing volume name: %s", vol)
-	}
-
-	// use namespace from req headers if volume ns is still not set
-	if len(vol.Namespace) == 0 {
-		vol.Namespace = hdrNS
 	}
 
 	vOps, err := volume.NewOperation(vol)
