@@ -278,6 +278,39 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: cstorvolumepolicies.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1alpha1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CStorVolumePolicy
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: cstorvolumepolicies
+    # singular name to be used as an alias on the CLI and for display
+    singular: cstorvolumepolicy
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - cstorvolumepolicies
+    - cvp
+    - policy
+  additionalPrinterColumns:
+  - JSONPath: .status.phase
+    name: Status
+    description: Identifies the current health of the target
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
   name: cstorvolumereplicas.openebs.io
 spec:
   # group name to use for REST API: /apis/<group>/<version>

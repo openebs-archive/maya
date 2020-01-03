@@ -146,9 +146,20 @@ func getDeployTemplateAffinity() *corev1.Affinity {
 	}
 }
 
-// getDeployTemplateTolerations returns the array of toleration
-// for target deployement
-func getDeployTemplateTolerations() []corev1.Toleration {
+// getDeployTolerations returns the array of toleration
+// for target deployement, defaulTolerations will be return if not provided
+func getDeployTolerations(policy *apis.CStorVolumePolicy) []corev1.Toleration {
+
+	var tolerations []corev1.Toleration
+	if len(policy.Spec.Target.Tolerations) == 0 {
+		tolerations = defaulTolerations()
+	} else {
+		tolerations = policy.Spec.Target.Tolerations
+	}
+	return tolerations
+}
+
+func defaulTolerations() []corev1.Toleration {
 	return []corev1.Toleration{
 		corev1.Toleration{
 			Effect:            corev1.TaintEffectNoExecute,
@@ -275,10 +286,40 @@ func getContainerPort(port int32) []corev1.ContainerPort {
 	}
 }
 
+// getResourceRequirementForCStorTarget returns resource requirement for cstor
+// target container.
+func getResourceRequirementForCStorTarget(policy *apis.CStorVolumePolicy) *corev1.ResourceRequirements {
+	var resourceRequirements *corev1.ResourceRequirements
+	if policy.Spec.Target.Resources == nil {
+		resourceRequirements = &corev1.ResourceRequirements{}
+	} else {
+		resourceRequirements = policy.Spec.Target.Resources
+	}
+	// TODO: add default values for resources if both are nil
+	return resourceRequirements
+}
+
+// getAuxResourceRequirement returns resource requirement for cstor target side car containers.
+func getAuxResourceRequirement(policy *apis.CStorVolumePolicy) *corev1.ResourceRequirements {
+	var auxResourceRequirements *corev1.ResourceRequirements
+	if policy.Spec.Target.AuxResources == nil {
+		auxResourceRequirements = &corev1.ResourceRequirements{}
+	} else {
+		auxResourceRequirements = policy.Spec.Target.AuxResources
+	}
+	// TODO: add default values for resources if both are nil
+	return auxResourceRequirements
+}
+
+func getPriorityClass(policy *apis.CStorVolumePolicy) string {
+	return policy.Spec.Target.PriorityClassName
+}
+
 // getOrCreateCStorTargetDeployment get or create the cstor target deployment
 // for a given cstorvolume.
 func getOrCreateCStorTargetDeployment(
 	vol *apis.CStorVolume,
+	policy *apis.CStorVolumePolicy,
 ) (*appsv1.Deployment, error) {
 
 	deployObj, err := deploy.NewKubeClient(deploy.WithNamespace(getNamespace())).
@@ -308,16 +349,18 @@ func getOrCreateCStorTargetDeployment(
 					WithLabelsNew(getDeployTemplateLabels(vol.Name)).
 					WithAnnotationsNew(getDeployTemplateAnnotations()).
 					WithServiceAccountName(OpenEBSServiceAccount).
+					// TODO use of PriorityClass and affinity
 					//WithAffinity(getDeployTemplateAffinity()).
-					// TODO use of selector and affinity
-					//WithNodeSelectorNew().
-					WithTolerationsNew(getDeployTemplateTolerations()...).
+					WithPriorityClassName(getPriorityClass(policy)).
+					WithNodeSelectorByValue(policy.Spec.Target.NodeSelector).
+					WithTolerationsByValue(getDeployTolerations(policy)...).
 					WithContainerBuilders(
 						container.NewBuilder().
 							WithImage(getVolumeTargetImage()).
 							WithName(TargetContainerName).
 							WithImagePullPolicy(corev1.PullIfNotPresent).
 							WithPortsNew(getContainerPort(3260)).
+							WithResources(getResourceRequirementForCStorTarget(policy)).
 							WithPrivilegedSecurityContext(&privileged).
 							WithVolumeMountsNew(getTargetMgmtMounts()),
 						container.NewBuilder().
@@ -325,6 +368,7 @@ func getOrCreateCStorTargetDeployment(
 							WithName(MonitorContainerName).
 							WithCommandNew([]string{"maya-exporter"}).
 							WithArgumentsNew([]string{"-e=cstor"}).
+							WithResources(getAuxResourceRequirement(policy)).
 							WithPortsNew(getContainerPort(9500)).
 							WithVolumeMountsNew(getMonitorMounts()),
 						container.NewBuilder().
@@ -333,6 +377,7 @@ func getOrCreateCStorTargetDeployment(
 							WithImagePullPolicy(corev1.PullIfNotPresent).
 							WithPortsNew(getContainerPort(80)).
 							WithEnvsNew(getDeployTemplateEnvs(string(vol.UID))).
+							WithResources(getAuxResourceRequirement(policy)).
 							WithPrivilegedSecurityContext(&privileged).
 							WithVolumeMountsNew(getTargetMgmtMounts()),
 					).

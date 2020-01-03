@@ -232,7 +232,17 @@ func (c *CVCController) updateCVCObj(
 // 4. Create cstorvolumeclaim resource.
 // 5. Update the cstorvolumeclaim with claimRef info and bound with cstorvolume.
 func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeClaim, error) {
-	_ = cvc.Annotations[string(apis.ConfigClassKey)]
+
+	policyName := cvc.Annotations[string(apis.VolumePolicyKey)]
+	volumePolicy := &apis.CStorVolumePolicy{}
+	var err error
+	if policyName != "" {
+		klog.Infof("uses cstorvolume policy for volume configuration")
+		volumePolicy, err = c.clientset.OpenebsV1alpha1().CStorVolumePolicies(getNamespace()).Get(policyName, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	klog.V(2).Infof("creating cstorvolume service resource")
 	svcObj, err := getOrCreateTargetService(cvc)
@@ -247,7 +257,7 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 	}
 
 	klog.V(2).Infof("creating cstorvolume target deployment")
-	_, err = getOrCreateCStorTargetDeployment(cvObj)
+	_, err = getOrCreateCStorTargetDeployment(cvObj, volumePolicy)
 	if err != nil {
 		return nil, err
 	}
