@@ -27,6 +27,7 @@ import (
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
+	policy "k8s.io/api/policy/v1beta1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -149,7 +150,7 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 	// and remove finalizer.
 	if c.isClaimDeletionCandidate(cvc) {
 		klog.Infof("syncClaim: remove finalizer for CStorVolumeClaimVolume [%s]", cvc.Name)
-		err := c.removeClaimFinalizer(cvc)
+		err = c.removeClaimFinalizer(cvc)
 		if err != nil {
 			c.recorder.Eventf(cvc, corev1.EventTypeWarning, DeProvisioning, err.Error())
 		}
@@ -274,7 +275,8 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 	}
 
 	if isHAVolume(cvc) {
-		pdbObj, err := getOrCreatePodDisruptionBudget(cvObj, getCSPC(cvc))
+		var pdbObj *policy.PodDisruptionBudget
+		pdbObj, err = getOrCreatePodDisruptionBudget(cvObj, getCSPC(cvc))
 		if err != nil {
 			return nil, errors.Wrapf(err,
 				"failed to create PDB for volume: %s", cvc.Name)
@@ -623,6 +625,8 @@ func (c *CVCController) resizeCV(cv *apis.CStorVolume, newCapacity resource.Quan
 	return nil
 }
 
+// deletePDBIfNotInUse deletes the PDB if no volume is refering to the
+// cStorvolumeclaim PDB
 func (c *CVCController) deletePDBIfNotInUse(cvc *apis.CStorVolumeClaim) error {
 	pdbName := getPDBName(cvc)
 	cvcLabelSelector := string(apis.PodDisruptionBudgetKey) + "=" + pdbName
