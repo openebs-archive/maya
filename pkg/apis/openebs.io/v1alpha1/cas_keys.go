@@ -93,6 +93,9 @@ const (
 	// cstorVolumeKey is the key to getch CStorVolume CR of a
 	// CVR. This key is present on CVR label.
 	CStorVolumeKey CASKey = "cstorvolume.openebs.io/name"
+
+	//PodDisruptionBudgetKey is the key used to identify the PDB
+	PodDisruptionBudgetKey = "openebs.io/pod-disruption-budget"
 )
 
 // CASPlainKey represents a openebs key used either in resource annotation

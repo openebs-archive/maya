@@ -37,6 +37,11 @@ const (
 	StoragePoolClaimCPK CasPoolKey = "openebs.io/storage-pool-claim"
 	// CStorPoolClusterCPK is the CStorPoolcluster label
 	CStorPoolClusterCPK CasPoolKey = "openebs.io/cstor-pool-cluster"
+	// CStorPoolInstanceCPK is the CStorPoolInstance label
+	CStorPoolInstanceCPK CasPoolKey = "openebs.io/cstor-pool-instance"
+	// PredecessorBlockDeviceCPK is the annotation on the block device claim
+	// holding previous block device name
+	PredecessorBlockDeviceCPK CasPoolKey = "openebs.io/bd-predecessor"
 	// NdmDiskTypeCPK is the node-disk-manager disk type e.g. 'sparse' or 'disk'
 	NdmDiskTypeCPK CasPoolKey = "ndm.io/disk-type"
 	// NdmBlockDeviceTypeCPK is the node-disk-manager blockdevice type e.g. // 'blockdevice'
@@ -63,6 +68,9 @@ const (
 	RaidzBlockDeviceCountCPV CasPoolValInt = 3
 	// Raidz2BlockDeviceCountCPV is the count for raidz2 type pool
 	Raidz2BlockDeviceCountCPV CasPoolValInt = 6
+	// PersistentVolumeCPK is a key on the various resources to identify it belongs
+	// to particular volume
+	PersistentVolumeCPK CasPoolKey = "openebs.io/persistent-volume"
 )
 
 // CasPool is a type which will be utilised by CAS engine to perform

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	apispdb "github.com/openebs/maya/pkg/kubernetes/poddisruptionbudget"
 	errors "github.com/pkg/errors"
 	"k8s.io/klog"
 
@@ -31,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -63,6 +65,9 @@ const (
 	// CStorVolumeClaimFinalizer name of finalizer on CStorVolumeClaim that
 	// are bound by CStorVolume
 	CStorVolumeClaimFinalizer = "cvc.openebs.io/finalizer"
+	// DeProvisioning is used as part of the event 'reason' during
+	// cstorvolumeclaim deprovisioning stage
+	DeProvisioning = "DeProvisioning"
 )
 
 var knownResizeConditions = map[apis.CStorVolumeClaimConditionType]bool{
@@ -144,7 +149,11 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 	// and remove finalizer.
 	if c.isClaimDeletionCandidate(cvc) {
 		klog.Infof("syncClaim: remove finalizer for CStorVolumeClaimVolume [%s]", cvc.Name)
-		return c.removeClaimFinalizer(cvc)
+		err := c.removeClaimFinalizer(cvc)
+		if err != nil {
+			c.recorder.Eventf(cvc, corev1.EventTypeWarning, DeProvisioning, err.Error())
+		}
+		return nil
 	}
 
 	volName := cvc.Name
@@ -193,7 +202,6 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -230,7 +238,9 @@ func (c *CVCController) updateCVCObj(
 // 2. Create cstorvolume resource with required iscsi information.
 // 3. Create target deployment.
 // 4. Create cstorvolumeclaim resource.
-// 5. Update the cstorvolumeclaim with claimRef info and bound with cstorvolume.
+// 5. Create PDB provisioning volume is HA volume.
+// 5. Update the cstorvolumeclaim with claimRef info, PDB label(only for HA
+//    volumes) and bound with cstorvolume.
 func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeClaim, error) {
 
 	policyName := cvc.Annotations[string(apis.VolumePolicyKey)]
@@ -261,6 +271,15 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 	err = c.distributePendingCVRs(cvc, cvObj, svcObj)
 	if err != nil {
 		return nil, err
+	}
+
+	if isHAVolume(cvc) {
+		pdbObj, err := getOrCreatePodDisruptionBudget(cvObj, getCSPC(cvc))
+		if err != nil {
+			return nil, errors.Wrapf(err,
+				"failed to create PDB for volume: %s", cvc.Name)
+		}
+		cvc = addPDBLabelOnCVC(cvc, pdbObj)
 	}
 
 	volumeRef, err := ref.GetReference(scheme.Scheme, cvObj)
@@ -334,6 +353,15 @@ func (c *CVCController) isClaimDeletionCandidate(cvc *apis.CStorVolumeClaim) boo
 func (c *CVCController) removeClaimFinalizer(
 	cvc *apis.CStorVolumeClaim,
 ) error {
+	if isHAVolume(cvc) {
+		err := c.deletePDBIfNotInUse(cvc)
+		if err != nil {
+			return errors.Wrapf(err,
+				"failed to verify whether PDB %s is in use by other volumes",
+				getPDBName(cvc),
+			)
+		}
+	}
 	cvcPatch := []Patch{
 		Patch{
 			Op:   "remove",
@@ -591,6 +619,28 @@ func (c *CVCController) resizeCV(cv *apis.CStorVolume, newCapacity resource.Quan
 		Patch(cv.Name, types.MergePatchType, patchBytes)
 	if updateErr != nil {
 		return updateErr
+	}
+	return nil
+}
+
+func (c *CVCController) deletePDBIfNotInUse(cvc *apis.CStorVolumeClaim) error {
+	pdbName := getPDBName(cvc)
+	cvcLabelSelector := string(apis.PodDisruptionBudgetKey) + "=" + pdbName
+	cvcList, err := c.clientset.
+		OpenebsV1alpha1().
+		CStorVolumeClaims(cvc.Namespace).
+		List(metav1.ListOptions{LabelSelector: cvcLabelSelector})
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to list volumes refering to PDB %s", pdbName)
+	}
+	if len(cvcList.Items) == 1 {
+		err = apispdb.KubeClient().
+			WithNamespace(cvc.Namespace).
+			Delete(pdbName, &metav1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
