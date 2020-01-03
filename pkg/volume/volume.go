@@ -109,20 +109,6 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 		return nil, errors.Errorf("failed to create volume: missing volume capacity: %s", v.volume)
 	}
 
-	pvcName := v.volume.Labels[string(v1alpha1.PersistentVolumeClaimKey)]
-	if len(pvcName) == 0 {
-		return nil, errors.Errorf("failed to create volume: missing claim label {%s}: %s", string(v1alpha1.PersistentVolumeClaimKey), v.volume)
-	}
-
-	// fetch the pvc specifications
-	pvc, err := v.k8sClient.GetPVC(pvcName, mach_apis_meta_v1.GetOptions{})
-	if err != nil {
-		return nil, errors.Wrapf(errors.WithStack(err), "failed to create volume: %s", v.volume)
-	}
-
-	// extract the cas volume config from pvc
-	casConfigPVC := pvc.Annotations[string(v1alpha1.CASConfigKey)]
-
 	cloneLabels, err := v.getCloneLabels()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create volume")
@@ -159,7 +145,8 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	}
 
 	var isRestoreVol string
-	if pvc.Annotations["openebs.io/created-through"] == "restore" {
+	createdBy := v.volume.Annotations[v1alpha1.PVCreatedByKey]
+	if createdBy == "restore" {
 		isRestoreVol = "true"
 	} else {
 		isRestoreVol = "false"
@@ -169,7 +156,6 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 		string(v1alpha1.OwnerVTP):                   v.volume.Name,
 		string(v1alpha1.CapacityVTP):                capacity,
 		string(v1alpha1.RunNamespaceVTP):            v.volume.Namespace,
-		string(v1alpha1.PersistentVolumeClaimVTP):   pvcName,
 		string(v1alpha1.IsRestoreVolumePropertyVTP): isRestoreVol,
 	}
 
@@ -177,7 +163,7 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 
 	// provision CAS volume via CAS volume specific CAS template engine
 	engine, err := NewVolumeEngine(
-		casConfigPVC,
+		"",
 		casConfigSC,
 		cast,
 		string(v1alpha1.VolumeTLP),
@@ -307,7 +293,7 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	// fetch the sc specification
 	sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(errors.WithStack(err), "failed to read volume {%s}", v.volume.Name)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to read storageClass for volume {%s}", v.volume.Name)
 	}
 
 	// extract read cas template name from sc annotation
@@ -319,7 +305,7 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	// fetch read cas template specifications
 	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(errors.WithStack(err), "failed to read volume {%s}", v.volume.Name)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to read cast for volume {%s}", v.volume.Name)
 	}
 
 	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
@@ -343,20 +329,20 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	)
 
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read volume {%s}", v.volume.Name)
+		return nil, errors.Wrapf(err, "failed to create volumeEngine for volume {%s}", v.volume.Name)
 	}
 
 	// read volume details by executing engine
 	data, err := engine.Run()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read volume {%s}", v.volume.Name)
+		return nil, errors.Wrapf(err, "failed to run volumeEngine for volume {%s}", v.volume.Name)
 	}
 
 	// unmarshall into openebs volume
 	vol := &v1alpha1.CASVolume{}
 	err = yaml.Unmarshal(data, vol)
 	if err != nil {
-		return nil, errors.Wrapf(errors.WithStack(err), "failed to read volume {%s}", v.volume.Name)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to parse casVolume for volume {%s}", v.volume.Name)
 	}
 
 	return vol, nil

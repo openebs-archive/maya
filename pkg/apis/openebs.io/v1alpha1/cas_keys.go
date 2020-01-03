@@ -85,6 +85,9 @@ const (
 	// PredecessorBDKey is the key to fetch the predecessor BD in case of
 	// block device replacement.
 	PredecessorBDKey = "openebs.io/bd-predecessor"
+
+	// PVCreatedByKey is key to fetch the details of pv creation in case of restore
+	PVCreatedByKey = "openebs.io/created-through"
 )
 
 // CASPlainKey represents a openebs key used either in resource annotation
