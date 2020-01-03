@@ -270,9 +270,14 @@ func verifyAppPodRunning() {
 	Expect(status).To(Equal(true), "while checking status of pod {%s}", appPod.Items[0].Name)
 }
 
+func verifyPDB() {
+	ops.VerifyPodDisruptionBudget(pvcObj.Spec.VolumeName, openebsNamespace)
+}
+
 func verifyVolumeComponents() {
 	By("should verify target pod count as 1", func() { verifyTargetPodCount(1) })
 	By("should verify cstorvolume replica count", func() { verifyCstorVolumeReplicaCount(cstor.ReplicaCount) })
+	By("Should verify PodDisruptionBudget for HA volume", func() {verifyPDB()})
 }
 
 func verifyTargetPodCount(count int) {

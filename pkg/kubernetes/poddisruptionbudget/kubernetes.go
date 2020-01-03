@@ -71,6 +71,8 @@ type Kubeclient struct {
 	// make kubernetes API calls
 	clientset *kubernetes.Clientset
 	namespace string
+	// kubeconfig path to get kubernetes clientset
+	kubeConfigPath string
 	// functions useful during mocking
 	getClientset getClientsetFunc
 	list         listFunc
@@ -132,6 +134,14 @@ func (k *Kubeclient) withDefaults() {
 func WithClientset(c *kubernetes.Clientset) KubeclientBuildOption {
 	return func(k *Kubeclient) {
 		k.clientset = c
+	}
+}
+
+// WithKubeConfigPath sets the kubeConfig path
+// against client instance
+func WithKubeConfigPath(path string) KubeclientBuildOption {
+	return func(k *Kubeclient) {
+		k.kubeConfigPath = path
 	}
 }
 

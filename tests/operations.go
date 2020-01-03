@@ -39,6 +39,7 @@ import (
 	node "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
+	pdb "github.com/openebs/maya/pkg/kubernetes/poddisruptionbudget"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
@@ -92,6 +93,7 @@ type Operations struct {
 	DeployClient   *deploy.Kubeclient
 	BDClient       *bd.Kubeclient
 	BDCClient      *bdc.Kubeclient
+	PDBClient      *pdb.Kubeclient
 	KubeConfigPath string
 	NameSpace      string
 	Config         interface{}
@@ -263,6 +265,9 @@ func (ops *Operations) withDefaults() {
 	}
 	if ops.SVCClient == nil {
 		ops.SVCClient = svc.NewKubeClient(svc.WithKubeConfigPath(ops.KubeConfigPath))
+	}
+	if ops.PDBClient == nil {
+		ops.PDBClient = pdb.KubeClient(pdb.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 }
 
@@ -1200,6 +1205,82 @@ func (ops *Operations) VerifyPoolResources(spcName string) {
 	labelSelector := poolLabel + spcName
 	isCSPDeleted := ops.GetCSPCountEventually(labelSelector, 0)
 	Expect(isCSPDeleted).To(Equal(true))
+}
+
+// GetCStorVolume returns cstorvolume belongs to volume
+func (ops *Operations) GetCStorVolume(volName, namespace string) (*apis.CStorVolume, error) {
+	labelSelector := string(apis.PersistentVolumeCPK) + "=" + volName
+	cvListObj, err := ops.CVClient.
+		WithNamespace(namespace).
+		List(metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return nil, err
+	}
+	if len(cvListObj.Items) != 1 {
+		return nil, errors.Errorf(
+			"incorrect CV count %d of volume %s",
+			len(cvListObj.Items),
+			volName,
+		)
+	}
+	return &cvListObj.Items[0], nil
+}
+
+// GetCStorVolumeClaim returns cstor volume claim belongs to volume
+func (ops *Operations) GetCStorVolumeClaim(volName, namespace string) (*apis.CStorVolumeClaim, error) {
+	labelSelector := string(apis.PersistentVolumeCPK) + "=" + volName
+	cvcListObj, err := ops.CVCClient.
+		WithNamespace(namespace).
+		List(metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return nil, err
+	}
+	if len(cvcListObj.Items) != 1 {
+		return nil, errors.Errorf(
+			"incorrect CVC count %d of volume %s",
+			len(cvcListObj.Items),
+			volName,
+		)
+	}
+	return &cvcListObj.Items[0], nil
+}
+
+// GetPodDisruptionBudgetCount returns no.of PDBs' matched to labelSelector
+func (ops *Operations) GetPodDisruptionBudgetCount(namespace, poolLabelSelector string) int {
+	pdbList, err := ops.PDBClient.
+		WithNamespace(namespace).
+		List(metav1.ListOptions{LabelSelector: poolLabelSelector})
+	Expect(err).To(BeNil())
+	return len(pdbList.Items)
+}
+
+// GetPodDisruptionCountEventually returns true if no.of PDBs' matched to
+// labelSelector equal to expectedCount
+func (ops *Operations) GetPodDisruptionCountEventually(
+	namespace, poolLabelSelector string, expectedCount int) bool {
+	return Eventually(func() int {
+		cvCount := ops.GetPodDisruptionBudgetCount(namespace, poolLabelSelector)
+		return cvCount
+	},
+		120, 10).Should(Equal(expectedCount))
+}
+
+// VerifyPodDisruptionBudget verifies the PDB for cStor
+func (ops *Operations) VerifyPodDisruptionBudget(volName, namespace string) {
+	cvObj, err := ops.GetCStorVolume(volName, namespace)
+	Expect(err).To(BeNil(), "error shouldn't occured while listing the cStorVolumes")
+	cvcObj, err := ops.GetCStorVolumeClaim(volName, namespace)
+	Expect(err).To(BeNil())
+	poolNames, err := cvr.GetReplicaPoolNames(cvObj)
+	Expect(err).To(BeNil(), "error shouldn't occured while listing %s volume replica the pool names", volName)
+	pdbLabels := cvc.GetPDBPoolLabels(poolNames)
+	if cvc.IsHAVolume(cvcObj) {
+		_ = ops.GetPodDisruptionCountEventually(
+			namespace, pdb.GetPDBLabelSelector(pdbLabels), 1)
+	} else {
+		_ = ops.GetPodDisruptionCountEventually(
+			namespace, pdb.GetPDBLabelSelector(pdbLabels), 0)
+	}
 }
 
 // VerifyVolumeStatus checks multiple resources related to volume
