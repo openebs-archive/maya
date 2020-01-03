@@ -24,6 +24,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 )
 
+const (
+	// minHAReplicaCount is minimum no.of replicas are required to decide
+	// HighAvailable volume
+	minHAReplicaCount = 3
+)
+
 // CVCKey returns an unique key of a CVC object,
 func CVCKey(cvc *apis.CStorVolumeClaim) string {
 	return fmt.Sprintf("%s/%s", cvc.Namespace, cvc.Name)
@@ -43,4 +49,26 @@ func getPatchData(oldObj, newObj interface{}) ([]byte, error) {
 		return nil, fmt.Errorf("CreateTwoWayMergePatch failed: %v", err)
 	}
 	return patchBytes, nil
+}
+
+// IsHAVolume returns true if replica count is greater than or equal to 3
+func IsHAVolume(cvcObj *apis.CStorVolumeClaim) bool {
+	return cvcObj.Spec.ReplicaCount >= minHAReplicaCount
+}
+
+// GetPDBPoolLabels returns the pool labels from poolNames
+func GetPDBPoolLabels(poolNames []string) map[string]string {
+	pdbLabels := map[string]string{}
+	for _, poolName := range poolNames {
+		key := fmt.Sprintf("openebs.io/%s", poolName)
+		pdbLabels[key] = ""
+	}
+	return pdbLabels
+}
+
+// GetPDBLabels returns the labels required for building PDB based on arguments
+func GetPDBLabels(poolNames []string, cspcName string) map[string]string {
+	pdbLabels := GetPDBPoolLabels(poolNames)
+	pdbLabels[string(apis.CStorPoolClusterCPK)] = cspcName
+	return pdbLabels
 }

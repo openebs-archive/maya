@@ -26,6 +26,7 @@ import (
 	errors "github.com/pkg/errors"
 	"k8s.io/klog"
 
+	cvclaim "github.com/openebs/maya/pkg/cstorvolumeclaim/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	policy "k8s.io/api/policy/v1beta1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -274,7 +275,7 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 		return nil, err
 	}
 
-	if isHAVolume(cvc) {
+	if cvclaim.IsHAVolume(cvc) {
 		var pdbObj *policy.PodDisruptionBudget
 		pdbObj, err = getOrCreatePodDisruptionBudget(cvObj, getCSPC(cvc))
 		if err != nil {
@@ -355,7 +356,7 @@ func (c *CVCController) isClaimDeletionCandidate(cvc *apis.CStorVolumeClaim) boo
 func (c *CVCController) removeClaimFinalizer(
 	cvc *apis.CStorVolumeClaim,
 ) error {
-	if isHAVolume(cvc) {
+	if cvclaim.IsHAVolume(cvc) {
 		err := c.deletePDBIfNotInUse(cvc)
 		if err != nil {
 			return errors.Wrapf(err,
