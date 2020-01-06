@@ -49,7 +49,10 @@ func (b *Builder) WithTolerations(tolerations ...corev1.Toleration) *Builder {
 		)
 		return b
 	}*/
-	b.pod.object.Spec.Tolerations = tolerations
+	b.pod.object.Spec.Tolerations = append(
+		b.pod.object.Spec.Tolerations,
+		tolerations...,
+	)
 	return b
 }
 
