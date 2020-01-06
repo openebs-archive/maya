@@ -16,6 +16,7 @@ package util
 
 import (
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"time"
 
@@ -32,6 +33,7 @@ type Runner interface {
 	RunCombinedOutput(string, ...string) ([]byte, error)
 	RunStdoutPipe(string, ...string) ([]byte, error)
 	RunCommandWithTimeoutContext(time.Duration, string, ...string) ([]byte, error)
+	RunCommandWithLog(string, ...string) ([]byte, error)
 }
 
 // RealRunner is the real runner for the program that actually execs the command.
@@ -68,6 +70,28 @@ func (r RealRunner) RunStdoutPipe(command string, args ...string) ([]byte, error
 	return data, nil
 }
 
+// RunCommandWithLog triggers command passed as arguments and it also does the
+// following things before command completion
+// 1. Logs the stdout of command to stdout(standard output)
+// 2. Logs stderr of the command to standard error
+func (r RealRunner) RunCommandWithLog(command string, args ...string) ([]byte, error) {
+	// #nosec
+	cmd := exec.Command(command, args...)
+	// Redirect the command output to stdout
+	cmd.Stdout = os.Stdout
+	// Redirect the command output to stderr
+	cmd.Stderr = os.Stderr
+	// Start the command
+	if err := cmd.Start(); err != nil {
+		return []byte{}, err
+	}
+	// below will return error when command exit with return code 1
+	if err := cmd.Wait(); err != nil {
+		return []byte{}, err
+	}
+	return []byte{}, nil
+}
+
 // RunCommandWithTimeoutContext executes command provides and returns stdout
 // error. If command does not returns within given timout interval command will
 // be killed and return "Context time exceeded"
@@ -102,5 +126,10 @@ func (r TestRunner) RunStdoutPipe(command string, args ...string) ([]byte, error
 
 // RunCommandWithTimeoutContext is to mock Real runner exec.
 func (r TestRunner) RunCommandWithTimeoutContext(timeout time.Duration, command string, args ...string) ([]byte, error) {
+	return []byte("success"), nil
+}
+
+// RunCommandWithLog is to mock real runner exec with stdoutpipe.
+func (r TestRunner) RunCommandWithLog(command string, args ...string) ([]byte, error) {
 	return []byte("success"), nil
 }
