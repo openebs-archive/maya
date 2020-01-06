@@ -72,8 +72,8 @@ const (
 	// StorageClassKey is the key to fetch name of StorageClass
 	StorageClassKey CASKey = "openebs.io/storageclass"
 
-	// ConfigClassKey is the key to fetch name of CStorVolume ConfigClass
-	ConfigClassKey CASKey = "openebs.io/config-class"
+	// VolumePolicyKey is the key to fetch name of CStorVolume Policies
+	VolumePolicyKey CASKey = "openebs.io/volume-policy"
 
 	// CASTypeKey is the key to fetch storage engine for the volume
 	CASTypeKey CASKey = "openebs.io/cas-type"
