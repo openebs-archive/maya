@@ -22,7 +22,7 @@ import (
 	"time"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	merrors "github.com/pkg/errors"
+	errors "github.com/pkg/errors"
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -234,14 +234,9 @@ func (c *CVCController) updateCVCObj(
 func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeClaim, error) {
 
 	policyName := cvc.Annotations[string(apis.VolumePolicyKey)]
-	volumePolicy := &apis.CStorVolumePolicy{}
-	var err error
-	if policyName != "" {
-		klog.Infof("uses cstorvolume policy for volume configuration")
-		volumePolicy, err = c.clientset.OpenebsV1alpha1().CStorVolumePolicies(getNamespace()).Get(policyName, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		}
+	volumePolicy, err := c.getVolumePolicy(policyName, cvc)
+	if err != nil {
+		return nil, err
 	}
 
 	klog.V(2).Infof("creating cstorvolume service resource")
@@ -286,6 +281,29 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 	return cvc, nil
 }
 
+func (c *CVCController) getVolumePolicy(
+	policyName string,
+	cvc *apis.CStorVolumeClaim,
+) (*apis.CStorVolumePolicy, error) {
+
+	volumePolicy := &apis.CStorVolumePolicy{}
+	var err error
+
+	if policyName != "" {
+		klog.Infof("uses cstorvolume policy %q to configure volume %q", policyName, cvc.Name)
+		volumePolicy, err = c.clientset.OpenebsV1alpha1().CStorVolumePolicies(getNamespace()).Get(policyName, metav1.GetOptions{})
+		if err != nil {
+			return nil, errors.Wrapf(
+				err,
+				"failed to get volume policy %q of volume %q",
+				policyName,
+				cvc.Name,
+			)
+		}
+	}
+	return volumePolicy, nil
+}
+
 // distributePendingCVRs trigers create and distribute pending cstorvolumereplica
 // resource among the available cstor pools
 func (c *CVCController) distributePendingCVRs(
@@ -325,7 +343,7 @@ func (c *CVCController) removeClaimFinalizer(
 
 	cvcPatchBytes, err := json.Marshal(cvcPatch)
 	if err != nil {
-		return merrors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"failed to remove finalizers from cstorvolumeclaim {%s}",
 			cvc.Name,
@@ -337,7 +355,7 @@ func (c *CVCController) removeClaimFinalizer(
 		CStorVolumeClaims(cvc.Namespace).
 		Patch(cvc.Name, types.JSONPatchType, cvcPatchBytes)
 	if err != nil {
-		return merrors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"failed to remove finalizers from cstorvolumeclaim {%s}",
 			cvc.Name,
@@ -376,7 +394,7 @@ func (c *CVCController) getCurrentReplicaCount(cvc *apis.CStorVolumeClaim) (int,
 		List(metav1.ListOptions{LabelSelector: pvLabel})
 
 	if err != nil {
-		return 0, merrors.Errorf("unable to get current replica count: %v", err)
+		return 0, errors.Errorf("unable to get current replica count: %v", err)
 	}
 	return len(cvrList.Items), nil
 }
@@ -389,7 +407,7 @@ func (c *CVCController) IsCVRPending(cvc *apis.CStorVolumeClaim) (bool, error) {
 	CVRs, err := c.cvrLister.CStorVolumeReplicas(cvc.Namespace).
 		List(selector)
 	if err != nil {
-		return false, merrors.Errorf("failed to list cvr : %v", err)
+		return false, errors.Errorf("failed to list cvr : %v", err)
 	}
 	// TODO: check for greater values
 	return cvc.Spec.ReplicaCount != len(CVRs), nil

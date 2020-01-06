@@ -49,27 +49,36 @@ type TargetSpec struct {
 	// QueueDepth sets the queue size at iSCSI target which limits the
 	// ongoing IO count from client
 	QueueDepth string `json:"queueDepth,omitempty"`
+
 	// Luworkers sets the number of threads that are working on above queue
 	LuWorkers int64 `json:"luWorkers,omitempty"`
+
 	// Monitor enables or disables the target exporter sidecar
 	Monitor bool `json:"monitor,omitempty"`
+
 	// ReplicationFactor represents maximum number of replicas
 	// that are allowed to connect to the target
 	ReplicationFactor int64 `json:"replicationFactor,omitempty"`
+
 	// Resources are the compute resources required by the cstor-target
 	// container.
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+
 	// AuxResources are the compute resources required by the cstor-target pod
 	// side car containers.
 	AuxResources *corev1.ResourceRequirements `json:"auxResources,omitempty"`
+
 	// Tolerations, if specified, are the target pod's tolerations
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+
 	// Affinity if specified, are the target pod's affinities
 	Affinity *corev1.PodAffinity `json:"affinity,omitempty"`
+
 	// NodeSelector is the labels that will be used to select
 	// a node for target pod scheduleing
 	// Required field
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
 	// PriorityClassName if specified applies to this target pod
 	// If left empty, no priority class is applied.
 	PriorityClassName string `json:"priorityClassName,omitempty"`
