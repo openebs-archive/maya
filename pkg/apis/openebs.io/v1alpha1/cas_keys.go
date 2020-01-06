@@ -88,6 +88,9 @@ const (
 
 	// PVCreatedByKey is key to fetch the details of pv creation in case of restore
 	PVCreatedByKey = "openebs.io/created-through"
+
+	// AnnPVCASVolKey is key to fetch the name of PV resources for cStor
+	AnnPVCASVolKey = "openebs.io/pv-resource-name"
 )
 
 // CASPlainKey represents a openebs key used either in resource annotation
