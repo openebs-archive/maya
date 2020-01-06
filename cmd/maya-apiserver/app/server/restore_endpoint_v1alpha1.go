@@ -84,7 +84,7 @@ func (rOps *restoreAPIOps) create() (interface{}, error) {
 	}
 
 	// size is expected
-	if len(strings.TrimSpace(restore.Spec.Size)) == 0 {
+	if len(strings.TrimSpace(restore.Spec.Size.String())) == 0 {
 		return nil, CodedError(400, fmt.Sprintf("failed to create restore '%v': missing size", restore.Name))
 	}
 
