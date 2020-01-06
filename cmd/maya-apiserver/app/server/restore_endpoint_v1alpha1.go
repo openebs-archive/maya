@@ -99,6 +99,10 @@ func (rOps *restoreAPIOps) create() (interface{}, error) {
 	}
 	klog.Infof("Restore volume '%v' created successfully ", cvol.Name)
 
+	if restore.Spec.Local {
+		return cvol, nil
+	}
+
 	return createRestoreResource(openebsClient, restore, cvol)
 }
 
@@ -278,8 +282,13 @@ func createVolumeForRestore(r *v1alpha1.CStorRestore) (*v1alpha1.CASVolume, erro
 	}
 	vol.Spec.Capacity = r.Spec.Size.String()
 
-	vol.Annotations = map[string]string{
-		v1alpha1.PVCreatedByKey: "restore",
+	if !r.Spec.Local {
+		vol.Annotations = map[string]string{
+			v1alpha1.PVCreatedByKey: "restore",
+		}
+	} else {
+		vol.CloneSpec.IsClone = true
+		vol.CloneSpec.SourceVolume = r.Spec.RestoreSrc
 	}
 
 	vOps, err := volume.NewOperation(vol)

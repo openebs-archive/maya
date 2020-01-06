@@ -81,7 +81,7 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 	}
 
 	// backupIP is expected
-	if len(strings.TrimSpace(bkp.Spec.BackupDest)) == 0 {
+	if bkp.Spec.LocalSnap != true && len(strings.TrimSpace(bkp.Spec.BackupDest)) == 0 {
 		return nil, CodedError(400, fmt.Sprintf("Failed to create backup '%v': missing backupIP", bkp.Spec.BackupName))
 	}
 
@@ -97,6 +97,10 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 
 	if err = createSnapshotForBackup(bkp); err != nil {
 		return nil, CodedError(400, fmt.Sprintf("Failed to create snapshot '%v'", err))
+	}
+
+	if bkp.Spec.LocalSnap == true {
+		return "", nil
 	}
 
 	bkp.Name = bkp.Spec.SnapName + "-" + bkp.Spec.VolumeName
