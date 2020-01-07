@@ -40,8 +40,22 @@ func NewBuilder() *Builder {
 	return &Builder{pod: &Pod{object: &corev1.Pod{}}}
 }
 
-// WithTolerations sets the Spec.Tolerations withh provided value.
-func (b *Builder) WithTolerations(tolerations ...corev1.Toleration) *Builder {
+// WithTolerationsForTaints sets the Spec.Tolerations with provided taints.
+func (b *Builder) WithTolerationsForTaints(taints ...corev1.Taint) *Builder {
+
+	tolerations := []corev1.Toleration{}
+	for i := range taints {
+		var toleration corev1.Toleration
+		toleration.Key = taints[i].Key
+		toleration.Effect = taints[i].Effect
+		if len(taints[i].Value) == 0 {
+			toleration.Operator = corev1.TolerationOpExists
+		} else {
+			toleration.Value = taints[i].Value
+			toleration.Operator = corev1.TolerationOpEqual
+		}
+		tolerations = append(tolerations, toleration)
+	}
 
 	b.pod.object.Spec.Tolerations = append(
 		b.pod.object.Spec.Tolerations,

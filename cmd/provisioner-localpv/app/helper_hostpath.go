@@ -38,7 +38,7 @@ import (
 type podConfig struct {
 	pOpts                         *HelperPodOptions
 	parentDir, volumeDir, podName string
-	tolerations                   []corev1.Toleration
+	taints                        []corev1.Taint
 }
 
 var (
@@ -96,7 +96,6 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 		return err
 	}
 
-	config.tolerations = pOpts.getTolerations()
 	// Initialize HostPath builder and validate that
 	// volume directory is not directly under root.
 	// Extract the base path and the volume unique path.
@@ -107,6 +106,9 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 	if vErr != nil {
 		return vErr
 	}
+
+	//Pass on the taints, to create tolerations.
+	config.taints = pOpts.selectedNodeTaints
 
 	iPod, err := p.launchPod(config)
 	if err != nil {
@@ -133,7 +135,7 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 		return err
 	}
 
-	config.tolerations = pOpts.getTolerations()
+	config.taints = pOpts.selectedNodeTaints
 	// Initialize HostPath builder and validate that
 	// volume directory is not directly under root.
 	// Extract the base path and the volume unique path.
@@ -167,7 +169,7 @@ func (p *Provisioner) launchPod(config podConfig) (*corev1.Pod, error) {
 		WithRestartPolicy(corev1.RestartPolicyNever).
 		WithNodeSelectorHostnameNew(config.pOpts.nodeHostname).
 		WithServiceAccountName(config.pOpts.serviceAccountName).
-		WithTolerations(config.tolerations...).
+		WithTolerationsForTaints(config.taints...).
 		WithContainerBuilder(
 			container.NewBuilder().
 				WithName("local-path-" + config.podName).
@@ -218,25 +220,4 @@ func (p *Provisioner) exitPod(hPod *corev1.Pod) error {
 		return errors.Errorf("create process timeout after %v seconds", CmdTimeoutCounts)
 	}
 	return nil
-}
-
-// getToleration() returns the tolerations, for the respective taints.
-func (pOpts *HelperPodOptions) getTolerations() []corev1.Toleration {
-	// Convert the taints into pod tolerations
-	// to be passed to pod builder to set appropriate toleration
-	var tolerations []corev1.Toleration
-	nodeTaints := pOpts.selectedNodeTaints
-	for i := range nodeTaints {
-		var toleration corev1.Toleration
-		toleration.Key = nodeTaints[i].Key
-		toleration.Effect = nodeTaints[i].Effect
-		if len(nodeTaints[i].Value) == 0 {
-			toleration.Operator = corev1.TolerationOpExists
-		} else {
-			toleration.Value = nodeTaints[i].Value
-			toleration.Operator = corev1.TolerationOpEqual
-		}
-		tolerations = append(tolerations, toleration)
-	}
-	return tolerations
 }
