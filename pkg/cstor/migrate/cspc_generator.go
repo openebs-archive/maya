@@ -77,7 +77,7 @@ func getCSPCSpecForSPC(spc *apis.StoragePoolClaim, openebsNamespace string) (*ap
 			return nil, err
 		}
 		if len(cspDeployList.Items) != 1 {
-			return nil, errors.Errorf("invalid number of csp deployment found: %d", len(cspDeployList.Items))
+			return nil, errors.Errorf("invalid number of deployments found for csp %s: %d", cspObj.Name, len(cspDeployList.Items))
 		}
 		poolSpec := apis.PoolSpec{
 			NodeSelector: map[string]string{
@@ -131,20 +131,22 @@ func generateCSPC(spcObj *apis.StoragePoolClaim, openebsNamespace string) (
 	*apis.CStorPoolCluster, error) {
 	cspcObj, err := cspc.NewKubeClient().
 		WithNamespace(openebsNamespace).Get(spcObj.Name, metav1.GetOptions{})
-	if err == nil {
-		return cspcObj, nil
-	}
 	if !k8serrors.IsNotFound(err) {
 		return nil, err
 	}
-	cspcObj, err = getCSPCSpecForSPC(spcObj, openebsNamespace)
 	if err != nil {
-		return nil, err
+		cspcObj, err = getCSPCSpecForSPC(spcObj, openebsNamespace)
+		if err != nil {
+			return nil, err
+		}
+		cspcObj, err = cspc.NewKubeClient().
+			WithNamespace(openebsNamespace).Create(cspcObj)
+		if err != nil {
+			return nil, err
+		}
 	}
-	cspcObj, err = cspc.NewKubeClient().
-		WithNamespace(openebsNamespace).Create(cspcObj)
-	if err != nil {
-		return nil, err
+	if cspcObj.Annotations[string(apis.OpenEBSDisableDependantsReconcileKey)] == "" {
+		return cspcObj, nil
 	}
 	// verify the number of cspi created is correct
 	err = retry.

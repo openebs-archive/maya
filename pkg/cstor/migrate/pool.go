@@ -124,9 +124,13 @@ func validateSPC(spcObj *apis.StoragePoolClaim) error {
 	if err != nil {
 		return err
 	}
-	if spcObj.Spec.MaxPools != nil {
+	if spcObj.Spec.BlockDevices.BlockDeviceList == nil {
+		if spcObj.Spec.MaxPools == nil {
+			return errors.Errorf("invalid spc %s neither has bdc list nor maxpools", spcObj.Name)
+		}
 		if *spcObj.Spec.MaxPools != len(cspList.Items) {
-			return errors.Errorf("maxpool count does not match csp count")
+			return errors.Errorf("maxpool count does not match csp count expected: %d got: %d",
+				*spcObj.Spec.MaxPools, len(cspList.Items))
 		}
 		return nil
 	}
@@ -238,7 +242,7 @@ func getCSP(cspLabel string) (*apis.CStorPool, error) {
 		return nil, err
 	}
 	if len(cspList.Items) != 1 {
-		return nil, fmt.Errorf("Invalid number of pools on one node: %d", len(cspList.Items))
+		return nil, fmt.Errorf("Invalid number of pools on one node: %v", cspList.Items)
 	}
 	cspObj := cspList.Items[0]
 	return &cspObj, nil
@@ -289,7 +293,7 @@ func scaleDownDeployment(cspObj *apis.CStorPool, openebsNamespace string) error 
 // Update the bdc with the cspc labels instead of spc labels to allow
 // filtering of bds claimed by the migrated cspc.
 func updateBDCLabels(cspcName, openebsNamespace string) error {
-	bdcList, err := bdc.NewKubeClient().List(metav1.ListOptions{
+	bdcList, err := bdc.NewKubeClient().WithNamespace(openebsNamespace).List(metav1.ListOptions{
 		LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + cspcName,
 	})
 	if err != nil {
@@ -328,16 +332,18 @@ func updateBDCOwnerRef(cspcObj *apis.CStorPoolCluster, openebsNamespace string) 
 		return err
 	}
 	for _, bdcItem := range bdcList.Items {
-		bdcItem := bdcItem // pin it
-		bdcObj := &bdcItem
-		klog.Infof("Updating bdc %s with cspc ownerRef.", bdcObj.Name)
-		bdcObj.OwnerReferences[0].Kind = "CStorPoolCluster"
-		bdcObj.OwnerReferences[0].UID = cspcObj.UID
-		_, err := bdc.NewKubeClient().
-			WithNamespace(openebsNamespace).
-			Update(bdcObj)
-		if err != nil {
-			return errors.Wrapf(err, "failed to update bdc %s with cspc onwerRef", bdcObj.Name)
+		if bdcItem.OwnerReferences[0].Kind != "CStorPoolCluster" {
+			bdcItem := bdcItem // pin it
+			bdcObj := &bdcItem
+			klog.Infof("Updating bdc %s with cspc ownerRef.", bdcObj.Name)
+			bdcObj.OwnerReferences[0].Kind = "CStorPoolCluster"
+			bdcObj.OwnerReferences[0].UID = cspcObj.UID
+			_, err := bdc.NewKubeClient().
+				WithNamespace(openebsNamespace).
+				Update(bdcObj)
+			if err != nil {
+				return errors.Wrapf(err, "failed to update bdc %s with cspc onwerRef", bdcObj.Name)
+			}
 		}
 	}
 	return nil
@@ -354,19 +360,21 @@ func updateCVRsLabels(cspName, openebsNamespace string, cspiObj *apis.CStorPoolI
 		return err
 	}
 	for _, cvrItem := range cvrList.Items {
-		cvrItem := cvrItem // pin it
-		cvrObj := &cvrItem
-		klog.Infof("Updating cvr %s with cspi %s info.", cvrObj.Name, cspiObj.Name)
-		delete(cvrObj.Labels, cspNameLabel)
-		delete(cvrObj.Labels, cspUIDLabel)
-		cvrObj.Labels[cspiNameLabel] = cspiObj.Name
-		cvrObj.Labels[cspiUIDLabel] = string(cspiObj.UID)
-		delete(cvrObj.Annotations, cspHostnameAnnotation)
-		cvrObj.Annotations[cspiHostnameAnnotation] = cspiObj.Spec.HostName
-		_, err = cvr.NewKubeclient().WithNamespace(openebsNamespace).
-			Update(cvrObj)
-		if err != nil {
-			return errors.Wrapf(err, "failed to update cvr %s with cspc info", cvrObj.Name)
+		if cvrItem.Labels[cspiNameLabel] == "" {
+			cvrItem := cvrItem // pin it
+			cvrObj := &cvrItem
+			klog.Infof("Updating cvr %s with cspi %s info.", cvrObj.Name, cspiObj.Name)
+			delete(cvrObj.Labels, cspNameLabel)
+			delete(cvrObj.Labels, cspUIDLabel)
+			cvrObj.Labels[cspiNameLabel] = cspiObj.Name
+			cvrObj.Labels[cspiUIDLabel] = string(cspiObj.UID)
+			delete(cvrObj.Annotations, cspHostnameAnnotation)
+			cvrObj.Annotations[cspiHostnameAnnotation] = cspiObj.Spec.HostName
+			_, err = cvr.NewKubeclient().WithNamespace(openebsNamespace).
+				Update(cvrObj)
+			if err != nil {
+				return errors.Wrapf(err, "failed to update cvr %s with cspc info", cvrObj.Name)
+			}
 		}
 	}
 	return nil
