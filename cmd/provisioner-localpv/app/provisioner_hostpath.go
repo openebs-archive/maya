@@ -126,7 +126,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 	return pvObj, nil
 }
 
-// GetNodeObjectFromHostName returns the Node Object with matching NodeHostName
+// GetNodeObjectFromHostName returns the Node Object with matching NodeHostName.
 func (p *Provisioner) GetNodeObjectFromHostName(hostName string) (*v1.Node, error) {
 	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{persistentvolume.KeyNode: hostName}}
 	listOptions := metav1.ListOptions{
@@ -163,6 +163,8 @@ func (p *Provisioner) DeleteHostPath(pv *v1.PersistentVolume) (err error) {
 		return errors.Errorf("cannot find affinited node hostname")
 	}
 	alertlog.Logger.Infof("Get the Node Object from hostName: %v", hostname)
+
+	//Get the node Object once again to get updated Taints.
 	nodeObject, err := p.GetNodeObjectFromHostName(hostname)
 	if err != nil {
 		return err

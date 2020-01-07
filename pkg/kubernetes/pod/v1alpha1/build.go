@@ -42,13 +42,7 @@ func NewBuilder() *Builder {
 
 // WithTolerations sets the Spec.Tolerations withh provided value.
 func (b *Builder) WithTolerations(tolerations ...corev1.Toleration) *Builder {
-	/*if len(tolerations) == 0 {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build Pod object: missing Tolerations"),
-		)
-		return b
-	}*/
+
 	b.pod.object.Spec.Tolerations = append(
 		b.pod.object.Spec.Tolerations,
 		tolerations...,
