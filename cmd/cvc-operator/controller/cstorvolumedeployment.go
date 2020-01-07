@@ -195,11 +195,6 @@ func getMonitorMounts() []corev1.VolumeMount {
 func getTargetMgmtMounts() []corev1.VolumeMount {
 	return append(
 		defaultMounts,
-		corev1.VolumeMount{
-			Name:             "tmp",
-			MountPath:        "/tmp",
-			MountPropagation: &mountPropagation,
-		},
 	)
 }
 
@@ -388,12 +383,6 @@ func getOrCreateCStorTargetDeployment(
 						volume.NewBuilder().
 							WithName("conf").
 							WithEmptyDir(&corev1.EmptyDirVolumeSource{}),
-						volume.NewBuilder().
-							WithName("tmp").
-							WithHostPathAndType(
-								getTargetDirPath(vol.Name),
-								&hostpathType,
-							),
 					),
 			).
 			Build()
