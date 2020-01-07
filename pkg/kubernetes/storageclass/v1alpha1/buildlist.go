@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 	storagev1 "k8s.io/api/storage/v1"
 )
 

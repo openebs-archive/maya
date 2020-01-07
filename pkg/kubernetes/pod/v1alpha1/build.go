@@ -17,9 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
+	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 )
 
