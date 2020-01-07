@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"time"
 
-	pkg_errors "github.com/pkg/errors"
+	errors "github.com/pkg/errors"
 
 	"strings"
 
@@ -34,7 +34,7 @@ import (
 	cstorvolume_v1alpha1 "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -120,7 +120,7 @@ func (c *CStorVolumeController) syncHandler(
 			CStorVolumes(cStorVolumeGot.Namespace).
 			Update(cStorVolumeGot)
 		if err1 != nil {
-			return pkg_errors.Wrapf(
+			return errors.Wrapf(
 				err1,
 				"failed to update cStorVolume:%v, %v; Status: %v err: %v",
 				cStorVolumeGot.Name,
@@ -135,7 +135,7 @@ func (c *CStorVolumeController) syncHandler(
 		CStorVolumes(cStorVolumeGot.Namespace).
 		Update(cStorVolumeGot)
 	if err != nil {
-		return pkg_errors.Wrapf(
+		return errors.Wrapf(
 			err, "failed to update cStorVolume:%v, %v; Status: %v",
 			cStorVolumeGot.Name,
 			string(cStorVolumeGot.GetUID()),
@@ -430,7 +430,7 @@ func (c *CStorVolumeController) getVolumeResource(
 	if err != nil {
 		// The cStorVolume resource may no longer exist, in which case we stop
 		// processing.
-		if errors.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			runtime.HandleError(
 				fmt.Errorf(
 					"cStorVolumeGot '%s' in work queue no longer exists",
@@ -469,7 +469,7 @@ func (c *CStorVolumeController) addResizeConditions(
 			string(common.FailureUpdate),
 			eventMessage,
 		)
-		return nil, pkg_errors.New(eventMessage)
+		return nil, errors.New(eventMessage)
 	}
 	c.recorder.Event(
 		cvObj,
@@ -506,7 +506,7 @@ func (c *CStorVolumeController) updateCStorVolumeDRF(
 	} else {
 		// entries in spec.ReplicaDetails.KnownReplicas can't be greater than
 		// status.ReplicaDetails.KnownReplicas(unkown changes)
-		err = pkg_errors.Errorf("unkown changes are made to cStorVolume no.of "+
+		err = errors.Errorf("unkown changes are made to cStorVolume no.of "+
 			"entries in spec.ReplicaDetails.knownReplicas are %d and no.of entries "+
 			"in status.ReplicaDetails.KnownReplicas are %d",
 			specKnownReplicaCount,
@@ -554,7 +554,7 @@ func (c *CStorVolumeController) triggerScaleUpProcess(
 	)
 	cstorvolume_v1alpha1.ConfFileMutex.Unlock()
 	if err != nil {
-		return nil, pkg_errors.Wrapf(err, "failed to update conf file with "+
+		return nil, errors.Wrapf(err, "failed to update conf file with "+
 			"desiredReplicationFactor %d", cStorVolume.Spec.DesiredReplicationFactor)
 	}
 	return cStorVolume, nil
@@ -578,15 +578,15 @@ func (c *CStorVolumeController) triggerScaleDownProcess(
 		return nil, err
 	}
 	if common.CStorVolumeStatus(volumeStatus.Status) != common.CVStatusHealthy {
-		return nil, pkg_errors.Errorf("cStorvolume is not in healthy to trigger scaledown")
+		return nil, errors.Errorf("cStorvolume is not in healthy to trigger scaledown")
 	}
 	cStorVolume := cstorvolume_v1alpha1.NewForAPIObject(cStorVolumeAPI)
 	if !cStorVolume.AreSpecReplicasHealthy(volumeStatus) {
-		return nil, pkg_errors.Errorf("spec replicas are not in healthy state")
+		return nil, errors.Errorf("spec replicas are not in healthy state")
 	}
 	replicaID := cStorVolume.GetRemovingReplicaID()
 	if replicaID == "" {
-		return nil, pkg_errors.Errorf("removing replica is not present in volume status")
+		return nil, errors.Errorf("removing replica is not present in volume status")
 	}
 	if cStorVolumeAPI.Spec.DesiredReplicationFactor < cStorVolumeAPI.Spec.ReplicationFactor {
 		configData := cStorVolume.BuildScaleDownConfigData(replicaID)
@@ -598,7 +598,7 @@ func (c *CStorVolumeController) triggerScaleDownProcess(
 			0644)
 		cstorvolume_v1alpha1.ConfFileMutex.Unlock()
 		if err != nil {
-			return nil, pkg_errors.Wrapf(err, "failed to update istgt conf file %v", configData)
+			return nil, errors.Wrapf(err, "failed to update istgt conf file %v", configData)
 		}
 		cStorVolumeAPI.Spec.ReplicationFactor = cStorVolumeAPI.Spec.DesiredReplicationFactor
 		cStorVolumeAPI.Spec.ConsistencyFactor = (cStorVolumeAPI.Spec.ReplicationFactor)/2 + 1
@@ -607,7 +607,7 @@ func (c *CStorVolumeController) triggerScaleDownProcess(
 			CStorVolumes(cStorVolumeAPI.Namespace).
 			Update(cStorVolumeAPI)
 		if err != nil {
-			return nil, pkg_errors.Wrapf(err, "failed to update cstorvolume")
+			return nil, errors.Wrapf(err, "failed to update cstorvolume")
 		}
 	}
 	err = volume.ExecuteDesiredReplicationFactorCommand(
@@ -624,7 +624,7 @@ func (c *CStorVolumeController) triggerScaleDownProcess(
 		CStorVolumes(cStorVolumeAPI.Namespace).
 		Update(cStorVolumeAPI)
 	if err != nil {
-		return nil, pkg_errors.Wrapf(err,
+		return nil, errors.Wrapf(err,
 			"failed to update cstorvolume status with scaledown replica information",
 		)
 	}
@@ -732,10 +732,10 @@ func (c *CStorVolumeController) reconcileVersion(cv *apis.CStorVolume) (*apis.CS
 	// any update call is done so that on failure the last state object can be returned
 	if cv.VersionDetails.Status.Current != cv.VersionDetails.Desired {
 		if !apis.IsCurrentVersionValid(cv.VersionDetails.Status.Current) {
-			return cv, pkg_errors.Errorf("invalid current version %s", cv.VersionDetails.Status.Current)
+			return cv, errors.Errorf("invalid current version %s", cv.VersionDetails.Status.Current)
 		}
 		if !apis.IsDesiredVersionValid(cv.VersionDetails.Desired) {
-			return cv, pkg_errors.Errorf("invalid desired version %s", cv.VersionDetails.Desired)
+			return cv, errors.Errorf("invalid desired version %s", cv.VersionDetails.Desired)
 		}
 		cvObject := cv.DeepCopy()
 		if cv.VersionDetails.Status.State != apis.ReconcileInProgress {

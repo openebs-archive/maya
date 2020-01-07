@@ -18,7 +18,7 @@ package v1alpha1
 
 import (
 	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1alpha1"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 )
 
 // Builder enables building an instance of snapshot
