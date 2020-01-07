@@ -579,9 +579,6 @@ spec:
               mountPath: /var/run
             - name: conf
               mountPath: /usr/local/etc/istgt
-            - name: tmp
-              mountPath: /tmp
-              mountPropagation: Bidirectional
           {{- if eq $isMonitor "true" }}
           - image: {{ .Config.VolumeMonitorImage.value }}
             name: maya-volume-exporter
@@ -648,18 +645,11 @@ spec:
               mountPath: /var/run
             - name: conf
               mountPath: /usr/local/etc/istgt
-            - name: tmp
-              mountPath: /tmp
-              mountPropagation: Bidirectional
           volumes:
           - name: sockfile
             emptyDir: {}
           - name: conf
             emptyDir: {}
-          - name: tmp
-            hostPath:
-              path: {{ .Config.TargetDir.value }}/shared-{{ .Volume.owner }}-target
-              type: DirectoryOrCreate
 ---
 # runTask to create cStorVolumeReplica/(s)
 apiVersion: openebs.io/v1alpha1
