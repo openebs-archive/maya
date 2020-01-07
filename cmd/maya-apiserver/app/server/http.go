@@ -31,7 +31,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/ugorji/go/codec"
@@ -373,7 +373,7 @@ func CodedErrorWrapf(code int, err error, msg string, args ...interface{}) HTTPC
 // CodedErrorWrap is used to provide HTTP error
 // Code and corresponding error
 func CodedErrorWrap(code int, err error) HTTPCodedError {
-	errMsg := fmt.Sprintf("%+v", err)
+	errMsg := fmt.Sprintf("%v", err)
 	return CodedError(code, errMsg)
 }
 

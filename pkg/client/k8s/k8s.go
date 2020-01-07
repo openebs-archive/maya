@@ -21,7 +21,7 @@ import (
 
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	ndm "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"

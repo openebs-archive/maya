@@ -25,8 +25,8 @@ import (
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
+	errors "github.com/pkg/errors"
 	v1_storage "k8s.io/api/storage/v1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
