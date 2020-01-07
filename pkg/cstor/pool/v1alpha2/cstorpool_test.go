@@ -23,8 +23,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func mockAlwaysTrue(*csp) bool  { return true }
-func mockAlwaysFalse(*csp) bool { return false }
+func mockAlwaysTrue(*CSP) bool  { return true }
+func mockAlwaysFalse(*CSP) bool { return false }
 
 func TestCStorPoolAll(t *testing.T) {
 	tests := map[string]struct {
@@ -48,7 +48,7 @@ func TestCStorPoolAll(t *testing.T) {
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			if output := mock.Predicates.all(&csp{}); output != mock.expectedOutput {
+			if output := mock.Predicates.all(&CSP{}); output != mock.expectedOutput {
 				t.Fatalf("test %q failed: expected %v \n got : %v \n", name, mock.expectedOutput, output)
 			}
 		})
@@ -57,7 +57,7 @@ func TestCStorPoolAll(t *testing.T) {
 
 func TestCStorPoolIsNotUID(t *testing.T) {
 	tests := map[string]struct {
-		cspuid         types.UID
+		CSPuid         types.UID
 		uids           []string
 		expectedOutput bool
 	}{
@@ -77,7 +77,7 @@ func TestCStorPoolIsNotUID(t *testing.T) {
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mockCSP := &csp{&apis.CStorPool{ObjectMeta: metav1.ObjectMeta{UID: mock.cspuid}}}
+			mockCSP := &CSP{&apis.CStorPool{ObjectMeta: metav1.ObjectMeta{UID: mock.CSPuid}}}
 			p := IsNotUID(mock.uids...)
 			if output := p(mockCSP); output != mock.expectedOutput {
 				t.Fatalf("test %q failed: expected %v \n got : %v \n", name, mock.expectedOutput, output)
@@ -103,8 +103,8 @@ func TestCStorPoolFilterUIDs(t *testing.T) {
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			cspL := ListBuilder().WithUIDs(mock.UIDs...).List()
-			output := cspL.Filter(mock.Predicates...)
+			CSPL := ListBuilder().WithUIDs(mock.UIDs...).List()
+			output := CSPL.Filter(mock.Predicates...)
 			if len(mock.expectedOutput) != len(output.GetPoolUIDs()) {
 				t.Fatalf("test %q failed: expected %v \n got : %v \n", name, mock.expectedOutput, output.GetPoolUIDs())
 			}
@@ -136,12 +136,12 @@ func TestCStorPoolWithUIDs(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			lb := ListBuilder().WithUIDs(mock.expectedUIDs...)
-			if len(lb.list.items) != len(mock.expectedUIDs) {
-				t.Fatalf("test %q failed: expected %v \n got : %v \n", name, mock.expectedUIDs, lb.list.items)
+			if len(lb.list.Items) != len(mock.expectedUIDs) {
+				t.Fatalf("test %q failed: expected %v \n got : %v \n", name, mock.expectedUIDs, lb.list.Items)
 			}
-			for index, val := range lb.list.items {
-				if string(val.object.GetUID()) != mock.expectedUIDs[index] {
-					t.Fatalf("test %q failed: expected %v \n got : %v \n", name, mock.expectedUIDs[index], string(val.object.GetUID()))
+			for index, val := range lb.list.Items {
+				if string(val.Object.GetUID()) != mock.expectedUIDs[index] {
+					t.Fatalf("test %q failed: expected %v \n got : %v \n", name, mock.expectedUIDs[index], string(val.Object.GetUID()))
 				}
 			}
 		})
@@ -167,12 +167,12 @@ func TestCstorPoolList(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			lb := ListBuilder().WithUIDs(mock.expectedUIDs...).List()
-			if len(lb.items) != len(mock.expectedUIDs) {
-				t.Fatalf("test %q failed: expected %v \n got : %v \n", name, mock.expectedUIDs, lb.items)
+			if len(lb.Items) != len(mock.expectedUIDs) {
+				t.Fatalf("test %q failed: expected %v \n got : %v \n", name, mock.expectedUIDs, lb.Items)
 			}
-			for index, val := range lb.items {
-				if string(val.object.GetUID()) != mock.expectedUIDs[index] {
-					t.Fatalf("test %q failed: expected %v \n got : %v \n", name, mock.expectedUIDs[index], string(val.object.GetUID()))
+			for index, val := range lb.Items {
+				if string(val.Object.GetUID()) != mock.expectedUIDs[index] {
+					t.Fatalf("test %q failed: expected %v \n got : %v \n", name, mock.expectedUIDs[index], string(val.Object.GetUID()))
 				}
 			}
 		})
@@ -208,19 +208,20 @@ func TestBuildWithListUids(t *testing.T) {
 
 func TestNewListFromUIDNode(t *testing.T) {
 	tests := map[string]struct {
-		UIDNodeMap    map[string]string
-		expectedPools []string
+		UIDNodeMap     map[string]string
+		UIDCapacityMap map[string]string
+		expectedPools  []string
 	}{
-		"Test 1": {map[string]string{"Pool 1": "host 1"}, []string{"Pool 1"}},
-		"Test 2": {map[string]string{"Pool 1": "host 1", "Pool 2": "host 2"}, []string{"Pool 1", "Pool 2"}},
-		"Test 3": {map[string]string{"Pool 1": "host 1", "Pool 2": "host 2", "Pool 3": "host 3"}, []string{"Pool 1", "Pool 2", "Pool 3"}},
-		"Test 4": {map[string]string{"Pool 1": "host 1", "Pool 2": "host 2", "Pool 3": "host 3", "Pool 4": "host 4"}, []string{"Pool 1", "Pool 2", "Pool 3", "Pool 4"}},
-		"Test 5": {map[string]string{"Pool 1": "host 1", "Pool 2": "host 2", "Pool 3": "host 3", "Pool 4": "host 4", "Pool 5": "host 5"}, []string{"Pool 1", "Pool 2", "Pool 3", "Pool 4", "Pool 5"}},
+		"Test 1": {map[string]string{"Pool 1": "host 1"}, map[string]string{"Pool 1": "9.40G"}, []string{"Pool 1"}},
+		"Test 2": {map[string]string{"Pool 1": "host 1", "Pool 2": "host 2"}, map[string]string{"Pool 1": "9.40G"}, []string{"Pool 1", "Pool 2"}},
+		"Test 3": {map[string]string{"Pool 1": "host 1", "Pool 2": "host 2", "Pool 3": "host 3"}, map[string]string{"Pool 1": "9.40G"}, []string{"Pool 1", "Pool 2", "Pool 3"}},
+		"Test 4": {map[string]string{"Pool 1": "host 1", "Pool 2": "host 2", "Pool 3": "host 3", "Pool 4": "host 4"}, map[string]string{"Pool 1": "9.40G"}, []string{"Pool 1", "Pool 2", "Pool 3", "Pool 4"}},
+		"Test 5": {map[string]string{"Pool 1": "host 1", "Pool 2": "host 2", "Pool 3": "host 3", "Pool 4": "host 4", "Pool 5": "host 5"}, map[string]string{"Pool 1": "9.40G"}, []string{"Pool 1", "Pool 2", "Pool 3", "Pool 4", "Pool 5"}},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			output := newListFromUIDNode(mock.UIDNodeMap).GetPoolUIDs()
+			output := newListFromUIDNode(mock.UIDNodeMap, mock.UIDCapacityMap).GetPoolUIDs()
 			if len(output) != len(mock.expectedPools) {
 				t.Fatalf("Test %v failed: Expected %v but got %v", name, mock.expectedPools, output)
 			}
@@ -262,7 +263,7 @@ func TestTemplateFunctionsCount(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			p := TemplateFunctions()
 			if len(p) != test.expectedLength {
-				t.Fatalf("test %q failed: expected items %v but got %v", name, test.expectedLength, len(p))
+				t.Fatalf("test %q failed: expected Items %v but got %v", name, test.expectedLength, len(p))
 			}
 		})
 	}
@@ -283,10 +284,10 @@ func TestHasAnnotation(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			fakeCSP := &csp{&apis.CStorPool{ObjectMeta: metav1.ObjectMeta{Annotations: test.availableAnnotations}}}
+			fakeCSP := &CSP{&apis.CStorPool{ObjectMeta: metav1.ObjectMeta{Annotations: test.availableAnnotations}}}
 			ok := HasAnnotation(test.checkForKey, test.checkForValue)(fakeCSP)
 			if ok != test.hasAnnotation {
-				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.availableAnnotations, fakeCSP.object.GetAnnotations())
+				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.availableAnnotations, fakeCSP.Object.GetAnnotations())
 			}
 		})
 	}
@@ -312,9 +313,9 @@ func TestWithAPIList(t *testing.T) {
 			}
 
 			b := ListBuilder().WithAPIList(&apis.CStorPoolList{Items: poolItems})
-			for index, ob := range b.list.items {
-				if !reflect.DeepEqual(*ob.object, poolItems[index]) {
-					t.Fatalf("test %q failed: expected %v \n got : %v \n", name, poolItems[index], ob.object)
+			for index, ob := range b.list.Items {
+				if !reflect.DeepEqual(*ob.Object, poolItems[index]) {
+					t.Fatalf("test %q failed: expected %v \n got : %v \n", name, poolItems[index], ob.Object)
 				}
 			}
 		})

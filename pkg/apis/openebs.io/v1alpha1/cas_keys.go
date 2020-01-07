@@ -85,6 +85,14 @@ const (
 	// PredecessorBDKey is the key to fetch the predecessor BD in case of
 	// block device replacement.
 	PredecessorBDKey = "openebs.io/bd-predecessor"
+
+	// CStorPoolKey is the key to fetch the CVRs on a specific
+	// CStor pool. This key is present on CVR labels
+	CStorPoolKey CASKey = "cstorpool.openebs.io/name"
+
+	// cstorVolumeKey is the key to getch CStorVolume CR of a
+	// CVR. This key is present on CVR label.
+	CStorVolumeKey CASKey = "cstorvolume.openebs.io/name"
 )
 
 // CASPlainKey represents a openebs key used either in resource annotation

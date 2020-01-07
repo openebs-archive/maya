@@ -81,6 +81,7 @@ func fakeCSPListOk(uids ...string) *csp.CSPList {
 
 func fakeCSPListScheduleOnHostOk(hostuid string, uids ...string) *csp.CSPList {
 	fakeMap := map[string]string{}
+	fakeCapacityMap := map[string]string{}
 	for _, uid := range uids {
 		if hostuid == uid {
 			fakeMap[hostuid] = fakeValidHost
@@ -88,7 +89,7 @@ func fakeCSPListScheduleOnHostOk(hostuid string, uids ...string) *csp.CSPList {
 			fakeMap[uid] = fakeinvalidHost
 		}
 	}
-	return csp.ListBuilder().WithUIDNode(fakeMap).List()
+	return csp.ListBuilder().WithUIDNode(fakeMap, fakeCapacityMap).List()
 }
 
 func fakeCVRListOk(uids ...string) cvrListFn {
@@ -528,7 +529,7 @@ func TestTemplateFunctionsCount(t *testing.T) {
 	tests := map[string]struct {
 		expectedLength int
 	}{
-		"Test 1": {5},
+		"Test 1": {6},
 	}
 
 	for name, test := range tests {
@@ -636,10 +637,10 @@ func TestGetPolicies(t *testing.T) {
 		selectors            []string
 		expectedBuildoptions []buildOption
 	}{
-		"Test 1": {selectors: []string{}, expectedBuildoptions: []buildOption{}},
-		"Test 2": {selectors: []string{fakeAntiAffinitySelector}, expectedBuildoptions: []buildOption{AntiAffinityLabel(fakeAntiAffinitySelector)}},
-		"Test 3": {selectors: []string{fakePreferAntiAffinitySelector}, expectedBuildoptions: []buildOption{PreferAntiAffinityLabel(fakePreferAntiAffinitySelector)}},
-		"Test 4": {selectors: []string{fakePreferScheduleOnHostSelector}, expectedBuildoptions: []buildOption{PreferScheduleOnHostAnnotation(fakePreferScheduleOnHostSelector)}},
+		"Test 1": {selectors: []string{}, expectedBuildoptions: []buildOption{CapacityAwareScheduling()}},
+		"Test 2": {selectors: []string{fakeAntiAffinitySelector}, expectedBuildoptions: []buildOption{AntiAffinityLabel(fakeAntiAffinitySelector), CapacityAwareScheduling()}},
+		"Test 3": {selectors: []string{fakePreferAntiAffinitySelector}, expectedBuildoptions: []buildOption{PreferAntiAffinityLabel(fakePreferAntiAffinitySelector), CapacityAwareScheduling()}},
+		"Test 4": {selectors: []string{fakePreferScheduleOnHostSelector}, expectedBuildoptions: []buildOption{PreferScheduleOnHostAnnotation(fakePreferScheduleOnHostSelector), CapacityAwareScheduling()}},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
