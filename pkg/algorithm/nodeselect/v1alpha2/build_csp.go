@@ -54,7 +54,7 @@ func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 
 	csplabels := ac.buildLabelsForCSPI(nodeName)
 	cspObj, err := apiscsp.NewBuilder().
-		WithName(ac.CSPC.Name + "-" + rand.String(4)).
+		WithName(ac.CSPC.Name+"-"+rand.String(4)).
 		WithNamespace(ac.Namespace).
 		WithNodeSelectorByReference(poolSpec.NodeSelector).
 		WithNodeName(nodeName).
@@ -62,7 +62,7 @@ func (ac *Config) GetCSPSpec() (*apis.CStorPoolInstance, error) {
 		WithRaidGroups(poolSpec.RaidGroups).
 		WithCSPCOwnerReference(ac.CSPC).
 		WithLabelsNew(csplabels).
-		WithFinalizer(apicspsc.CSPCFinalizer).
+		WithFinalizer(apicspsc.CSPCFinalizer, apicspsc.PoolProtectionFinalizer).
 		WithNewVersion(version.GetVersion()).
 		WithDependentsUpgraded().
 		Build()

@@ -95,6 +95,10 @@ func (c *Controller) syncHandler(key string) error {
 	// TODO: Deep-copy only when needed.
 	cspcGot := cspc.DeepCopy()
 	err = c.syncCSPC(cspcGot)
+	if err != nil {
+		return err
+	}
+	err = cleanupCSPIResources(cspcGot)
 	return err
 }
 

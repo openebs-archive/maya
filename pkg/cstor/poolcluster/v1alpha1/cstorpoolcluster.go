@@ -24,6 +24,9 @@ import (
 const (
 	// CSPCFinalizer represents finalizer value used by cspc
 	CSPCFinalizer = "cstorpoolcluster.openebs.io/finalizer"
+	// PoolProtectionFinalizer is used to make sure cspi and it's bdcs
+	// are not deleted before destroying the zpool
+	PoolProtectionFinalizer = "openebs.io/pool-protection"
 )
 
 // CSPC is a wrapper over cstorpoolcluster api

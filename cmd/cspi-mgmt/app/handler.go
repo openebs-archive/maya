@@ -25,6 +25,8 @@ import (
 
 	zpool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	apiscspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -241,7 +243,7 @@ func (c *CStorPoolInstanceController) removeFinalizer(cspi *apis.CStorPoolInstan
 	if len(cspi.Finalizers) == 0 {
 		return nil
 	}
-	cspi.Finalizers = []string{}
+	cspi.Finalizers = util.RemoveString(cspi.Finalizers, apiscspc.PoolProtectionFinalizer)
 	_, err := c.clientset.
 		OpenebsV1alpha1().
 		CStorPoolInstances(cspi.Namespace).
