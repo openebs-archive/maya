@@ -20,6 +20,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
 // ENVKey is a typed string to represent various environment keys used by this
@@ -68,6 +70,11 @@ const (
 	// This environment variable is set via kubernetes downward API
 	OpenEBSServiceAccount ENVKey = "OPENEBS_SERVICE_ACCOUNT"
 
+	// OpenEBSBaseDirectory is the environment variable to get openebs base
+	// directory on host machine
+	//
+	// This environment variable is set via users
+	OpenEBSBaseDirectory ENVKey = "OPENEBS_IO_BASE_DIR"
 	// TODO:
 	//
 	// The constants present here should be moved to respective/relevant packages
@@ -251,4 +258,13 @@ func lookupEnv(envKey string) (value string, present bool) {
 	value, present = os.LookupEnv(envKey)
 	value = strings.TrimSpace(value)
 	return
+}
+
+// GetOpenebsBaseDir returns the directory path to store necessary files
+func GetOpenebsBaseDir() string {
+	dir, present := lookupEnv(string(OpenEBSBaseDirectory))
+	if !present {
+		return apis.PersistentStoragePath
+	}
+	return dir
 }

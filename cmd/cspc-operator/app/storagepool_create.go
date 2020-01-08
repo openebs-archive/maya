@@ -21,6 +21,7 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apiscsp "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
@@ -56,8 +57,8 @@ var (
 			MountPath: "/dev",
 		},
 		corev1.VolumeMount{
-			Name:      "tmp",
-			MountPath: "/tmp",
+			Name:      "storagepath",
+			MountPath: apis.PersistentStoragePath,
 		},
 		corev1.VolumeMount{
 			Name:      "udev",
@@ -172,9 +173,9 @@ func (pc *PoolConfig) GetPoolDeploySpec(cspi *apis.CStorPoolInstance) (*appsv1.D
 							&hostpathTypeDirectory,
 						),
 					volume.NewBuilder().
-						WithName("tmp").
+						WithName("storagepath").
 						WithHostPathAndType(
-							getSparseDirPath()+"/shared-"+pc.AlgorithmConfig.CSPC.Name,
+							env.GetOpenebsBaseDir()+"/cstor-pool/"+pc.AlgorithmConfig.CSPC.Name,
 							&hostpathTypeDirectoryOrCreate,
 						),
 					volume.NewBuilder().

@@ -34,6 +34,13 @@ spec:
     value: {{env "OPENEBS_IO_VOLUME_MONITOR_IMAGE" | default "openebs/m-exporter:latest"}}
   - name: ReplicaCount
     value: "3"
+  # PersistentStoragePath is base directory to store core files.
+  # PersistentStoragePath should be used only to as mount in a container.
+  - name: PersistentStoragePath
+    value: "/var/openebs"
+  # OpenebsBaseDir is a hostPath directory to store process files on host machine
+  - name: OpenebsBaseDir
+    value: {{env "OPENEBS_IO_BASE_DIR" | default "/var/openebs"}}
   # Target Dir is a hostPath directory for target pod
   - name: TargetDir
     value: {{env "OPENEBS_IO_CSTOR_TARGET_DIR" | default "/var/openebs"}}
@@ -572,11 +579,6 @@ spec:
             - name: Luworkers
               value: {{ .Config.Luworkers.value }}
             {{- end }}
-            ## PERSISTENT_STORAGE_PATH currently used to store
-            ## core dump of the process in specified path on host
-            ## machine
-            ##- name: PERSISTENT_STORAGE_PATH
-            ##  value: {{ .Config.TargetDir.value }}
             securityContext:
               privileged: true
             volumeMounts:
@@ -585,7 +587,7 @@ spec:
             - name: conf
               mountPath: /usr/local/etc/istgt
             - name: storagepath
-              mountPath: {{ .Config.TargetDir.value }}
+              mountPath: {{ .Config.PersistentStoragePath.value }}
               mountPropagation: Bidirectional
           {{- if eq $isMonitor "true" }}
           - image: {{ .Config.VolumeMonitorImage.value }}
@@ -654,7 +656,7 @@ spec:
             - name: conf
               mountPath: /usr/local/etc/istgt
             - name: storagepath
-              mountPath: {{ .Config.TargetDir.value }}
+              mountPath: {{ .Config.PersistentStoragePath.value }}
               mountPropagation: Bidirectional
           volumes:
           - name: sockfile
@@ -663,7 +665,7 @@ spec:
             emptyDir: {}
           - name: storagepath
             hostPath:
-              path: {{ .Config.TargetDir.value }}/shared-{{ .Volume.owner }}-target
+              path: {{ .Config.OpenebsBaseDir.value }}/cstor-target/{{ .Volume.owner }}-target
               type: DirectoryOrCreate
 ---
 # runTask to create cStorVolumeReplica/(s)

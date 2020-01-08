@@ -85,6 +85,10 @@ const (
 	// PredecessorBDKey is the key to fetch the predecessor BD in case of
 	// block device replacement.
 	PredecessorBDKey = "openebs.io/bd-predecessor"
+
+	// PersistentStoragePath is the key to fetch the persistent storage path for
+	// cStor pool and target pods
+	PersistentStoragePath = "/var/openebs"
 )
 
 // CASPlainKey represents a openebs key used either in resource annotation

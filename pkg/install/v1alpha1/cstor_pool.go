@@ -44,6 +44,13 @@ spec:
   # nothing exists at the given path i.e. an empty directory will be created.
   - name: HostPathType
     value: DirectoryOrCreate
+  # PersistentStoragePath is base directory to store lock, sock and cache and core files.
+  # PersistentStoragePath should be used only to mount inside a container.
+  - name: PersistentStoragePath
+    value: "/var/openebs"
+  # OpenebsBaseDir is a hostPath directory to store process files on host machine
+  - name: OpenebsBaseDir
+    value: {{env "OPENEBS_IO_BASE_DIR" | default "/var/openebs"}}
   # SparseDir is a hostPath directory where to look for sparse files
   - name: SparseDir
     value: {{env "OPENEBS_IO_CSTOR_POOL_SPARSE_DIR" | default "/var/openebs/sparse"}}
@@ -277,18 +284,13 @@ spec:
             volumeMounts:
             - name: device
               mountPath: /dev
-            - name: tmp
-              mountPath: /tmp
+            - name: storagepath
+              mountPath: {{ .Config.PersistentStoragePath.value }}
             - name: sparse
               mountPath: {{ .Config.SparseDir.value }}
             - name: udev
               mountPath: /run/udev
             env:
-            ## PERSISTENT_STORAGE_PATH currently used to store
-            ## core dump of the process in specified path on host
-            ## machine
-            ##- name: PERSISTENT_STORAGE_PATH
-            ##  value: {{ .Config.SparseDir.value }}
               # OPENEBS_IO_CSTOR_ID env has UID of cStorPool CR.
             - name: OPENEBS_IO_CSTOR_ID
               value: {{.TaskResult.putcstorpoolcr.objectUID}}
@@ -318,8 +320,8 @@ spec:
             volumeMounts:
             - name: device
               mountPath: /dev
-            - name: tmp
-              mountPath: /tmp
+            - name: storagepath
+              mountPath: {{ .Config.PersistentStoragePath.value }}
             - name: sparse
               mountPath: {{ .Config.SparseDir.value }}
             - name: udev
@@ -365,8 +367,8 @@ spec:
             volumeMounts:
             - mountPath: /dev
               name: device
-            - mountPath: /tmp
-              name: tmp
+            - name: storagepath
+              mountPath: {{ .Config.PersistentStoragePath.value }}
             - mountPath: {{ .Config.SparseDir.value }}
               name: sparse
             - mountPath: /run/udev
@@ -387,11 +389,11 @@ spec:
               path: /dev
               # this field is optional
               type: Directory
-          - name: tmp
+          - name: storagepath
             hostPath:
-              # host dir {{ .Config.SparseDir.value }}/shared-<uid> is
-              # created to avoid clash if two replicas run on same node.
-              path: {{ .Config.SparseDir.value }}/shared-{{.Storagepool.owner}}
+              # host dir {{ .Config.OpenebsBaseDir.value }}/cstor-pool/<spc_name> is
+              # created to avoid clash if two pool pods run on same node.
+              path: {{ .Config.OpenebsBaseDir.value }}/cstor-pool/{{.Storagepool.owner}}
               type: {{ .Config.HostPathType.value }}
           - name: sparse
             hostPath:

@@ -20,6 +20,7 @@ import (
 	"os"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
@@ -197,7 +198,7 @@ func getTargetMgmtMounts() []corev1.VolumeMount {
 		defaultMounts,
 		corev1.VolumeMount{
 			Name:             "storagepath",
-			MountPath:        getPersistentStoragePath(),
+			MountPath:        apis.PersistentStoragePath,
 			MountPropagation: &mountPropagation,
 		},
 	)
@@ -279,7 +280,7 @@ func getPersistentStoragePath() string {
 // given volume, retrieves the value of the environment variable named
 // by the key.
 func getTargetDirPath(pvName string) string {
-	return getPersistentStoragePath() + "/shared-" + pvName + "-target"
+	return env.GetOpenebsBaseDir() + "/cstor-target/" + pvName
 }
 
 func getContainerPort(port int32) []corev1.ContainerPort {
