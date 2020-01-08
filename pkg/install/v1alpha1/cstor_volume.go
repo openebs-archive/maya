@@ -572,11 +572,11 @@ spec:
             - name: Luworkers
               value: {{ .Config.Luworkers.value }}
             {{- end }}
-              ## PERSISTENT_STORAGE_PATH currently used to store
-              ## core dump of the process in specified path on host
-              ## machine
-            - name: PERSISTENT_STORAGE_PATH
-              value: {{ .Config.TargetDir.value }}
+            ## PERSISTENT_STORAGE_PATH currently used to store
+            ## core dump of the process in specified path on host
+            ## machine
+            ##- name: PERSISTENT_STORAGE_PATH
+            ##  value: {{ .Config.TargetDir.value }}
             securityContext:
               privileged: true
             volumeMounts:

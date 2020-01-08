@@ -284,11 +284,11 @@ spec:
             - name: udev
               mountPath: /run/udev
             env:
-              ## PERSISTENT_STORAGE_PATH currently used to store
-              ## core dump of the process in specified path on host
-              ## machine
-            - name: PERSISTENT_STORAGE_PATH
-              value: {{ .Config.SparseDir.value }}
+            ## PERSISTENT_STORAGE_PATH currently used to store
+            ## core dump of the process in specified path on host
+            ## machine
+            ##- name: PERSISTENT_STORAGE_PATH
+            ##  value: {{ .Config.SparseDir.value }}
               # OPENEBS_IO_CSTOR_ID env has UID of cStorPool CR.
             - name: OPENEBS_IO_CSTOR_ID
               value: {{.TaskResult.putcstorpoolcr.objectUID}}
