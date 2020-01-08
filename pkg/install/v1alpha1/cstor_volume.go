@@ -584,7 +584,7 @@ spec:
               mountPath: /var/run
             - name: conf
               mountPath: /usr/local/etc/istgt
-            - name: storagePath
+            - name: storagepath
               mountPath: {{ .Config.TargetDir.value }}
               mountPropagation: Bidirectional
           {{- if eq $isMonitor "true" }}
@@ -653,7 +653,7 @@ spec:
               mountPath: /var/run
             - name: conf
               mountPath: /usr/local/etc/istgt
-            - name: storagePath
+            - name: storagepath
               mountPath: {{ .Config.TargetDir.value }}
               mountPropagation: Bidirectional
           volumes:
@@ -661,7 +661,7 @@ spec:
             emptyDir: {}
           - name: conf
             emptyDir: {}
-          - name: storagePath
+          - name: storagepath
             hostPath:
               path: {{ .Config.TargetDir.value }}/shared-{{ .Volume.owner }}-target
               type: DirectoryOrCreate

@@ -196,8 +196,8 @@ func getTargetMgmtMounts() []corev1.VolumeMount {
 	return append(
 		defaultMounts,
 		corev1.VolumeMount{
-			Name:             "tmp",
-			MountPath:        "/tmp",
+			Name:             "storagepath",
+			MountPath:        getPersistentStoragePath(),
 			MountPropagation: &mountPropagation,
 		},
 	)
@@ -267,15 +267,19 @@ func getVolumeMgmtImage() string {
 	return image
 }
 
-// getTargetDirPath returns cstor target volume directory for a
-// given volume, retrieves the value of the environment variable named
-// by the key.
-func getTargetDirPath(pvName string) string {
+func getPersistentStoragePath() string {
 	dir, present := os.LookupEnv("OPENEBS_IO_CSTOR_TARGET_DIR")
 	if !present {
 		dir = "/var/openebs"
 	}
-	return dir + "/shared-" + pvName + "-target"
+	return dir
+}
+
+// getTargetDirPath returns cstor target volume directory for a
+// given volume, retrieves the value of the environment variable named
+// by the key.
+func getTargetDirPath(pvName string) string {
+	return getPersistentStoragePath() + "/shared-" + pvName + "-target"
 }
 
 func getContainerPort(port int32) []corev1.ContainerPort {
@@ -389,7 +393,7 @@ func getOrCreateCStorTargetDeployment(
 							WithName("conf").
 							WithEmptyDir(&corev1.EmptyDirVolumeSource{}),
 						volume.NewBuilder().
-							WithName("tmp").
+							WithName("storagepath").
 							WithHostPathAndType(
 								getTargetDirPath(vol.Name),
 								&hostpathType,
