@@ -572,6 +572,11 @@ spec:
             - name: Luworkers
               value: {{ .Config.Luworkers.value }}
             {{- end }}
+              ## PERSISTENT_STORAGE_PATH currently used to store
+              ## core dump of the process in specified path on host
+              ## machine
+            - name: PERSISTENT_STORAGE_PATH
+              value: {{ .Config.TargetDir.value }}
             securityContext:
               privileged: true
             volumeMounts:
@@ -579,8 +584,8 @@ spec:
               mountPath: /var/run
             - name: conf
               mountPath: /usr/local/etc/istgt
-            - name: tmp
-              mountPath: /tmp
+            - name: storagePath
+              mountPath: {{ .Config.TargetDir.value }}
               mountPropagation: Bidirectional
           {{- if eq $isMonitor "true" }}
           - image: {{ .Config.VolumeMonitorImage.value }}
@@ -648,15 +653,15 @@ spec:
               mountPath: /var/run
             - name: conf
               mountPath: /usr/local/etc/istgt
-            - name: tmp
-              mountPath: /tmp
+            - name: storagePath
+              mountPath: {{ .Config.TargetDir.value }}
               mountPropagation: Bidirectional
           volumes:
           - name: sockfile
             emptyDir: {}
           - name: conf
             emptyDir: {}
-          - name: tmp
+          - name: storagePath
             hostPath:
               path: {{ .Config.TargetDir.value }}/shared-{{ .Volume.owner }}-target
               type: DirectoryOrCreate
