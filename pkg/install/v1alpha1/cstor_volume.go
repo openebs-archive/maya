@@ -588,6 +588,8 @@ spec:
               mountPath: /usr/local/etc/istgt
             - name: storagepath
               mountPath: {{ .Config.PersistentStoragePath.value }}
+            - name: tmp
+              mountPath: /tmp
               mountPropagation: Bidirectional
           {{- if eq $isMonitor "true" }}
           - image: {{ .Config.VolumeMonitorImage.value }}
@@ -657,6 +659,8 @@ spec:
               mountPath: /usr/local/etc/istgt
             - name: storagepath
               mountPath: {{ .Config.PersistentStoragePath.value }}
+            - name: tmp
+              mountPath: /tmp
               mountPropagation: Bidirectional
           volumes:
           - name: sockfile
@@ -666,6 +670,10 @@ spec:
           - name: storagepath
             hostPath:
               path: {{ .Config.OpenebsBaseDir.value }}/cstor-target/{{ .Volume.owner }}-target
+              type: DirectoryOrCreate
+          - name: tmp
+            hostPath:
+              path: {{ .Config.TargetDir.value }}/shared-{{ .Volume.owner }}-target
               type: DirectoryOrCreate
 ---
 # runTask to create cStorVolumeReplica/(s)
