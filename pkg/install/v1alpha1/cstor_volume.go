@@ -34,7 +34,7 @@ spec:
     value: {{env "OPENEBS_IO_VOLUME_MONITOR_IMAGE" | default "openebs/m-exporter:latest"}}
   - name: ReplicaCount
     value: "3"
-  # PersistentStoragePath is base directory to store core files.
+  # PersistentStoragePath is base directory currently used to store core files.
   # PersistentStoragePath should be used only to as mount in a container.
   - name: PersistentStoragePath
     value: "/var/openebs"

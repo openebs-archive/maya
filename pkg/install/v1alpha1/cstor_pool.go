@@ -44,7 +44,7 @@ spec:
   # nothing exists at the given path i.e. an empty directory will be created.
   - name: HostPathType
     value: DirectoryOrCreate
-  # PersistentStoragePath is base directory to store lock, sock and cache and core files.
+  # PersistentStoragePath is base directory currently used to store core files.
   # PersistentStoragePath should be used only to mount inside a container.
   - name: PersistentStoragePath
     value: "/var/openebs"
