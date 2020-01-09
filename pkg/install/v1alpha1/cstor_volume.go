@@ -34,6 +34,9 @@ spec:
     value: {{env "OPENEBS_IO_VOLUME_MONITOR_IMAGE" | default "openebs/m-exporter:latest"}}
   - name: ReplicaCount
     value: "3"
+  # OpenebsBaseDir is a hostPath directory to store process files on host machine
+  - name: OpenebsBaseDir
+    value: {{env "OPENEBS_IO_BASE_DIR" | default "/var/openebs"}}
   # Target Dir is a hostPath directory for target pod
   - name: TargetDir
     value: {{env "OPENEBS_IO_CSTOR_TARGET_DIR" | default "/var/openebs"}}
@@ -579,6 +582,8 @@ spec:
               mountPath: /var/run
             - name: conf
               mountPath: /usr/local/etc/istgt
+            - name: storagepath
+              mountPath: /var/openebs
             - name: tmp
               mountPath: /tmp
               mountPropagation: Bidirectional
@@ -648,6 +653,8 @@ spec:
               mountPath: /var/run
             - name: conf
               mountPath: /usr/local/etc/istgt
+            - name: storagepath
+              mountPath: /var/openebs
             - name: tmp
               mountPath: /tmp
               mountPropagation: Bidirectional
@@ -656,6 +663,10 @@ spec:
             emptyDir: {}
           - name: conf
             emptyDir: {}
+          - name: storagepath
+            hostPath:
+              path: {{ .Config.OpenebsBaseDir.value }}/cstor-target/{{ .Volume.owner }}-target
+              type: DirectoryOrCreate
           - name: tmp
             hostPath:
               path: {{ .Config.TargetDir.value }}/shared-{{ .Volume.owner }}-target
