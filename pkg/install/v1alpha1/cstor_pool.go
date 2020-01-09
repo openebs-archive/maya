@@ -44,6 +44,9 @@ spec:
   # nothing exists at the given path i.e. an empty directory will be created.
   - name: HostPathType
     value: DirectoryOrCreate
+  # OpenebsBaseDir is a hostPath directory to store process files on host machine
+  - name: OpenebsBaseDir
+    value: {{env "OPENEBS_IO_BASE_DIR" | default "/var/openebs"}}
   # SparseDir is a hostPath directory where to look for sparse files
   - name: SparseDir
     value: {{env "OPENEBS_IO_CSTOR_POOL_SPARSE_DIR" | default "/var/openebs/sparse"}}
@@ -277,6 +280,8 @@ spec:
             volumeMounts:
             - name: device
               mountPath: /dev
+            - name: storagepath
+              mountPath: /var/openebs
             - name: tmp
               mountPath: /tmp
             - name: sparse
@@ -315,6 +320,8 @@ spec:
               mountPath: /dev
             - name: tmp
               mountPath: /tmp
+            - name: storagepath
+              mountPath: /var/openebs
             - name: sparse
               mountPath: {{ .Config.SparseDir.value }}
             - name: udev
@@ -360,8 +367,10 @@ spec:
             volumeMounts:
             - mountPath: /dev
               name: device
-            - mountPath: /tmp
-              name: tmp
+            - name: tmp
+              mountPath: /tmp
+            - name: storagepath
+              mountPath: /var/openebs
             - mountPath: {{ .Config.SparseDir.value }}
               name: sparse
             - mountPath: /run/udev
@@ -382,10 +391,16 @@ spec:
               path: /dev
               # this field is optional
               type: Directory
+          - name: storagepath
+            hostPath:
+              # host dir {{ .Config.OpenebsBaseDir.value }}/cstor-pool/<spc_name> is
+              # created to avoid clash if two pool pods run on same node.
+              path: {{ .Config.OpenebsBaseDir.value }}/cstor-pool/{{.Storagepool.owner}}
+              type: {{ .Config.HostPathType.value }}
           - name: tmp
             hostPath:
               # host dir {{ .Config.SparseDir.value }}/shared-<uid> is
-              # created to avoid clash if two replicas run on same node.
+              # created to avoid clash if two pool pods run on same node.
               path: {{ .Config.SparseDir.value }}/shared-{{.Storagepool.owner}}
               type: {{ .Config.HostPathType.value }}
           - name: sparse
