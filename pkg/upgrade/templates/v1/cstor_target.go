@@ -35,7 +35,13 @@ var (
 				 "containers": [
 					{
 					   "name": "cstor-istgt",
-					   "image": "{{.IstgtImage}}:{{.ImageTag}}"
+					   "image": "{{.IstgtImage}}:{{.ImageTag}}",
+						 "volumeMounts": [
+ 							{
+ 								"name": "storagepath",
+                 "mountPath": "/var/openebs"
+ 							}
+ 						]
 					},
 					{
 					   "name": "maya-volume-exporter",
@@ -43,10 +49,25 @@ var (
 					},
 					{
 					   "name": "cstor-volume-mgmt",
-					   "image": "{{.VolumeMgmtImage}}:{{.ImageTag}}"
+					   "image": "{{.VolumeMgmtImage}}:{{.ImageTag}}",
+						 "volumeMounts": [
+ 							{
+ 								"name": "storagepath",
+                 "mountPath": "/var/openebs"
+ 							}
+ 						]
 					}
-				 ]
-			  }
+				 ],
+				 "volumes": [
+	 				{
+	 					"name": "storagepath",
+	 					"hostPath": {
+	 						"path": "/var/openebs/cstor-target/{{.PVName}}-target",
+	 						"type": "DirectoryOrCreate"
+	 					}
+	 				}
+	 			]
+			 	}
 		   }
 		}
 	 }`

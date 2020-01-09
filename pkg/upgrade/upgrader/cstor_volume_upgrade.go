@@ -34,8 +34,12 @@ import (
 )
 
 type cstorTargetPatchDetails struct {
-	UpgradeVersion, ImageTag, IstgtImage, MExporterImage, VolumeMgmtImage string
+	UpgradeVersion, ImageTag, IstgtImage, MExporterImage, VolumeMgmtImage, PVName string
 }
+
+const (
+	pvLabelKey = "openebs.io/persistent-volume"
+)
 
 func verifyCSPVersion(cvrList *apis.CStorVolumeReplicaList, namespace string) error {
 	for _, cvrObj := range cvrList.Items {
@@ -86,6 +90,7 @@ func getTargetDeployPatchDetails(
 	} else {
 		patchDetails.ImageTag = upgradeVersion
 	}
+	patchDetails.PVName = d.Labels[pvLabelKey]
 	return patchDetails, nil
 }
 
@@ -242,7 +247,7 @@ type cstorVolumeOptions struct {
 func (c *cstorVolumeOptions) preUpgrade(pvName, openebsNamespace string) error {
 	var (
 		err, uerr   error
-		pvLabel     = "openebs.io/persistent-volume=" + pvName
+		pvLabel     = pvLabelKey + "=" + pvName
 		targetLabel = pvLabel + ",openebs.io/target=cstor-target"
 	)
 
@@ -383,7 +388,7 @@ func (c *cstorVolumeOptions) waitForCVCurrentVersion(pvLabel, namespace string) 
 func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) error {
 	var (
 		err, uerr          error
-		pvLabel            = "openebs.io/persistent-volume=" + pvName
+		pvLabel            = pvLabelKey + "=" + pvName
 		targetServiceLabel = pvLabel + ",openebs.io/target-service=cstor-target-svc"
 	)
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.TargetUpgrade}

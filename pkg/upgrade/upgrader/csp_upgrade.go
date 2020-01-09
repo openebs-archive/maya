@@ -34,7 +34,7 @@ import (
 )
 
 type cspDeployPatchDetails struct {
-	UpgradeVersion, ImageTag, PoolImage, PoolMgmtImage, MExporterImage string
+	UpgradeVersion, ImageTag, PoolImage, PoolMgmtImage, MExporterImage, SPCName string
 }
 
 func getCSPDeployPatchDetails(
@@ -61,6 +61,7 @@ func getCSPDeployPatchDetails(
 	} else {
 		patchDetails.ImageTag = upgradeVersion
 	}
+	patchDetails.SPCName = d.Labels[string(apis.StoragePoolClaimCPK)]
 	return patchDetails, nil
 }
 
