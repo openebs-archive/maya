@@ -44,10 +44,6 @@ spec:
   # nothing exists at the given path i.e. an empty directory will be created.
   - name: HostPathType
     value: DirectoryOrCreate
-  # PersistentStoragePath is base directory currently used to store core files.
-  # PersistentStoragePath should be used only to mount inside a container.
-  - name: PersistentStoragePath
-    value: "/var/openebs"
   # OpenebsBaseDir is a hostPath directory to store process files on host machine
   - name: OpenebsBaseDir
     value: {{env "OPENEBS_IO_BASE_DIR" | default "/var/openebs"}}
@@ -285,7 +281,7 @@ spec:
             - name: device
               mountPath: /dev
             - name: storagepath
-              mountPath: {{ .Config.PersistentStoragePath.value }}
+              mountPath: /var/openebs
             - name: tmp
               mountPath: /tmp
             - name: sparse
@@ -325,7 +321,7 @@ spec:
             - name: tmp
               mountPath: /tmp
             - name: storagepath
-              mountPath: {{ .Config.PersistentStoragePath.value }}
+              mountPath: /var/openebs
             - name: sparse
               mountPath: {{ .Config.SparseDir.value }}
             - name: udev
@@ -374,7 +370,7 @@ spec:
             - name: tmp
               mountPath: /tmp
             - name: storagepath
-              mountPath: {{ .Config.PersistentStoragePath.value }}
+              mountPath: /var/openebs
             - mountPath: {{ .Config.SparseDir.value }}
               name: sparse
             - mountPath: /run/udev
