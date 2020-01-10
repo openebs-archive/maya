@@ -39,11 +39,11 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 	for _, cspiItem := range cspiList.Items {
 		cspiItem := cspiItem // pin it
 		cspiObj := &cspiItem
-		if cspiObj.DeletionTimestamp != nil && hasCSPCFinalizer(cspiObj) {
+		if cspiObj.DeletionTimestamp != nil && performCleanup(cspiObj) {
 			for _, o := range opts {
 				err = o(cspiObj)
 				if err != nil {
-					return errors.Wrapf(err, "failed to cleanup cspi %s resources for cspc %s", cspiObj.Name, cspcObj.Name)
+					return errors.Wrapf(err, "failed to cleanup cspi %s for cspc %s", cspiObj.Name, cspcObj.Name)
 				}
 			}
 			cspiObj.Finalizers = util.RemoveString(cspiObj.Finalizers, apiscspc.CSPCFinalizer)
@@ -56,11 +56,27 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 	return nil
 }
 
-func hasCSPCFinalizer(cspiObj *apis.CStorPoolInstance) bool {
-	if len(cspiObj.Finalizers) != 1 {
-		return false
+func performCleanup(cspiObj *apis.CStorPoolInstance) bool {
+	predicates := []cspiCleanupPredicates{
+		hasCSPCFinalizer,
+		hasNoPoolProtectionFinalizer,
 	}
-	return cspiObj.Finalizers[0] == apiscspc.CSPCFinalizer
+	for _, p := range predicates {
+		if !p(cspiObj) {
+			return false
+		}
+	}
+	return true
+}
+
+type cspiCleanupPredicates func(*apis.CStorPoolInstance) bool
+
+func hasCSPCFinalizer(cspiObj *apis.CStorPoolInstance) bool {
+	return util.ContainsString(cspiObj.Finalizers, apiscspc.CSPCFinalizer)
+}
+
+func hasNoPoolProtectionFinalizer(cspiObj *apis.CStorPoolInstance) bool {
+	return !util.ContainsString(cspiObj.Finalizers, apiscspc.PoolProtectionFinalizer)
 }
 
 type cspiCleanupOptions func(*apis.CStorPoolInstance) error
