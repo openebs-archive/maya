@@ -85,7 +85,7 @@ var (
           {
             "name": "storagepath",
             "hostPath": {
-              "path": "/var/openebs/sparse/cstor-pool/{{.SPCName}}",
+              "path": "/var/openebs/cstor-pool/{{.SPCName}}",
               "type": "DirectoryOrCreate"
             }
           }
