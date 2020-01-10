@@ -19,56 +19,56 @@ package templates
 var (
 	// CstorTargetPatch is used to patch target deployment for cstor volume
 	CstorTargetPatch = `{
-		"metadata": {
-		   "labels": {
-			  "openebs.io/version": "{{.UpgradeVersion}}"
-		   }
-		},
-		"spec": {
-		   "template": {
-			  "metadata": {
-				 "labels": {
-					"openebs.io/version": "{{.UpgradeVersion}}"
-				 }
-			  },
-			  "spec": {
-				 "containers": [
-					{
-					   "name": "cstor-istgt",
-					   "image": "{{.IstgtImage}}:{{.ImageTag}}",
-						 "volumeMounts": [
- 							{
- 								"name": "storagepath",
-                 "mountPath": "/var/openebs"
- 							}
- 						]
-					},
-					{
-					   "name": "maya-volume-exporter",
-					   "image": "{{.MExporterImage}}:{{.ImageTag}}"
-					},
-					{
-					   "name": "cstor-volume-mgmt",
-					   "image": "{{.VolumeMgmtImage}}:{{.ImageTag}}",
-						 "volumeMounts": [
- 							{
- 								"name": "storagepath",
-                 "mountPath": "/var/openebs"
- 							}
- 						]
-					}
-				 ],
-				 "volumes": [
-	 				{
-	 					"name": "storagepath",
-	 					"hostPath": {
-	 						"path": "/var/openebs/cstor-target/{{.PVName}}-target",
-	 						"type": "DirectoryOrCreate"
-	 					}
-	 				}
-	 			]
-			 	}
-		   }
-		}
-	 }`
+  "metadata": {
+    "labels": {
+      "openebs.io/version": "{{.UpgradeVersion}}"
+    }
+  },
+  "spec": {
+    "template": {
+      "metadata": {
+        "labels": {
+          "openebs.io/version": "{{.UpgradeVersion}}"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "cstor-istgt",
+            "image": "{{.IstgtImage}}:{{.ImageTag}}",
+            "volumeMounts": [
+              {
+                "name": "storagepath",
+                "mountPath": "/var/openebs"
+              }
+            ]
+          },
+          {
+            "name": "maya-volume-exporter",
+            "image": "{{.MExporterImage}}:{{.ImageTag}}"
+          },
+          {
+            "name": "cstor-volume-mgmt",
+            "image": "{{.VolumeMgmtImage}}:{{.ImageTag}}",
+            "volumeMounts": [
+              {
+                "name": "storagepath",
+                "mountPath": "/var/openebs"
+              }
+            ]
+          }
+        ],
+        "volumes": [
+          {
+            "name": "storagepath",
+            "hostPath": {
+              "path": "/var/openebs/cstor-target/{{.PVName}}-target",
+              "type": "DirectoryOrCreate"
+            }
+          }
+        ]
+      }
+    }
+  }
+}`
 )

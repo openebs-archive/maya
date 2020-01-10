@@ -19,79 +19,79 @@ package templates
 var (
 	// CSPDeployPatch is used for patching cstor pool deployment
 	CSPDeployPatch = `{
-		"metadata": {
-		   "labels": {
-			  "openebs.io/version": "{{.UpgradeVersion}}"
-			},
-			 "annotations":{
-				 "cluster-autoscaler.kubernetes.io/safe-to-evict": "false"
-			 }
-		},
-		"spec": {
-		   "template": {
-			  "metadata": {
-				 "labels": {
-					"openebs.io/version": "{{.UpgradeVersion}}"
-				 }
-			  },
-			  "spec": {
-				 "containers": [
-					{
-					   "name": "cstor-pool",
-					   "image": "{{.PoolImage}}:{{.ImageTag}}",
-					   "livenessProbe": {
-                            "exec": {
-                                "command": [
-                                    "/bin/sh",
-                                    "-c",
-                                    "timeout 120 zfs set io.openebs:livenesstimestamp=\"$(date +%s)\" cstor-$OPENEBS_IO_CSTOR_ID"
-                                ]
-                            },
-                            "failureThreshold": 3,
-                            "initialDelaySeconds": 300,
-                            "periodSeconds": 60,
-                            "successThreshold": 1,
-                            "timeoutSeconds": 150
-                        },
-						"volumeMounts": [
-							{
-								"name": "storagepath",
+  "metadata": {
+    "labels": {
+      "openebs.io/version": "{{.UpgradeVersion}}"
+    },
+    "annotations": {
+      "cluster-autoscaler.kubernetes.io/safe-to-evict": "false"
+    }
+  },
+  "spec": {
+    "template": {
+      "metadata": {
+        "labels": {
+          "openebs.io/version": "{{.UpgradeVersion}}"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "cstor-pool",
+            "image": "{{.PoolImage}}:{{.ImageTag}}",
+            "livenessProbe": {
+              "exec": {
+                "command": [
+                  "/bin/sh",
+                  "-c",
+                  "timeout 120 zfs set io.openebs:livenesstimestamp=\"$(date +%s)\" cstor-$OPENEBS_IO_CSTOR_ID"
+                ]
+              },
+              "failureThreshold": 3,
+              "initialDelaySeconds": 300,
+              "periodSeconds": 60,
+              "successThreshold": 1,
+              "timeoutSeconds": 150
+            },
+            "volumeMounts": [
+              {
+                "name": "storagepath",
                 "mountPath": "/var/openebs"
-							}
-						]
-					},
-					{
-					  "name": "cstor-pool-mgmt",
-					  "image": "{{.PoolMgmtImage}}:{{.ImageTag}}",
-						"volumeMounts": [
-							{
-								"name": "storagepath",
+              }
+            ]
+          },
+          {
+            "name": "cstor-pool-mgmt",
+            "image": "{{.PoolMgmtImage}}:{{.ImageTag}}",
+            "volumeMounts": [
+              {
+                "name": "storagepath",
                 "mountPath": "/var/openebs"
-							}
-						]
-					},
-					{
-					  "name": "maya-exporter",
-					  "image": "{{.MExporterImage}}:{{.ImageTag}}",
-						"volumeMounts": [
-							{
-								"name": "storagepath",
+              }
+            ]
+          },
+          {
+            "name": "maya-exporter",
+            "image": "{{.MExporterImage}}:{{.ImageTag}}",
+            "volumeMounts": [
+              {
+                "name": "storagepath",
                 "mountPath": "/var/openebs"
-							}
-						]
-					}
-				],
-				"volumes": [
-					{
-						"name": "storagepath",
+              }
+            ]
+          }
+        ],
+        "volumes": [
+          {
+            "name": "storagepath",
             "hostPath": {
               "path": "/var/openebs/sparse/cstor-pool/{{.SPCName}}",
               "type": "DirectoryOrCreate"
-						}
-					}
-				]
-			  }
-		   }
-		}
-	  }`
+            }
+          }
+        ]
+      }
+    }
+  }
+}`
 )
