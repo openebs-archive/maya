@@ -24,6 +24,7 @@ import (
 	util "github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
@@ -33,13 +34,14 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 		},
 	)
 	if err != nil {
-		return err
+		klog.Errorf("failed to cleanup resources for cspc %s: %s", cspcObj.Name, err.Error())
+		return nil
 	}
 	opts := []cspiCleanupOptions{cleanupBDC}
 	for _, cspiItem := range cspiList.Items {
 		cspiItem := cspiItem // pin it
 		cspiObj := &cspiItem
-		if cspiObj.DeletionTimestamp != nil && performCleanup(cspiObj) {
+		if cspiObj.DeletionTimestamp != nil && canPerformCSPICleanup(cspiObj) {
 			for _, o := range opts {
 				err = o(cspiObj)
 				if err != nil {
@@ -56,7 +58,7 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 	return nil
 }
 
-func performCleanup(cspiObj *apis.CStorPoolInstance) bool {
+func canPerformCSPICleanup(cspiObj *apis.CStorPoolInstance) bool {
 	predicates := []cspiCleanupPredicates{
 		hasCSPCFinalizer,
 		hasNoPoolProtectionFinalizer,
@@ -83,14 +85,22 @@ type cspiCleanupOptions func(*apis.CStorPoolInstance) error
 
 func cleanupBDC(cspiObj *apis.CStorPoolInstance) error {
 	bdcList, err := bdc.NewKubeClient().WithNamespace(cspiObj.Namespace).List(
-		metav1.ListOptions{},
+		metav1.ListOptions{
+			LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + cspiObj.Labels[string(apis.CStorPoolClusterCPK)],
+		},
 	)
 	if err != nil {
 		return err
 	}
+	cspiBDMap := map[string]bool{}
+	for _, raidGroup := range cspiObj.Spec.RaidGroups {
+		for _, bdcObj := range raidGroup.BlockDevices {
+			cspiBDMap[bdcObj.BlockDeviceName] = true
+		}
+	}
 	for _, bdcItem := range bdcList.Items {
 		bdcItem := bdcItem // pin it
-		if isBDCForCSPI(bdcItem.Spec.BlockDeviceName, cspiObj) {
+		if cspiBDMap[bdcItem.Spec.BlockDeviceName] {
 			bdcObj := &bdcItem
 			bdcObj.Finalizers = util.RemoveString(bdcObj.Finalizers, apiscspc.CSPCFinalizer)
 			bdcObj, err = bdc.NewKubeClient().WithNamespace(cspiObj.Namespace).Update(bdcObj)
@@ -104,15 +114,4 @@ func cleanupBDC(cspiObj *apis.CStorPoolInstance) error {
 		}
 	}
 	return err
-}
-
-func isBDCForCSPI(bdName string, cspiObj *apis.CStorPoolInstance) bool {
-	for _, raidGroup := range cspiObj.Spec.RaidGroups {
-		for _, bdcObj := range raidGroup.BlockDevices {
-			if bdcObj.BlockDeviceName == bdName {
-				return true
-			}
-		}
-	}
-	return false
 }
