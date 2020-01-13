@@ -34,7 +34,7 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 		},
 	)
 	if err != nil {
-		klog.Errorf("failed to cleanup resources for cspc %s: %s", cspcObj.Name, err.Error())
+		klog.Errorf("failed to list cspi for cspc %s to perform cleanup: %s", cspcObj.Name, err.Error())
 		return nil
 	}
 	opts := []cspiCleanupOptions{cleanupBDC}
