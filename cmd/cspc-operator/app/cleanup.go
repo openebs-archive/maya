@@ -45,13 +45,13 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 			for _, o := range opts {
 				err = o(cspiObj)
 				if err != nil {
-					return errors.Wrapf(err, "failed to cleanup cspi %s for cspc %s", cspiObj.Name, cspcObj.Name)
+					return errors.Wrapf(err, "failed to cleanup cspi %s for cspc %s", cspiItem.Name, cspcObj.Name)
 				}
 			}
 			cspiObj.Finalizers = util.RemoveString(cspiObj.Finalizers, apiscspc.CSPCFinalizer)
-			_, err = cspi.NewKubeClient().WithNamespace(cspiObj.Namespace).Update(cspiObj)
+			_, err = cspi.NewKubeClient().WithNamespace(cspiItem.Namespace).Update(cspiObj)
 			if err != nil {
-				return errors.Wrapf(err, "failed to remove finalizer from cspi %s", cspiObj.Name)
+				return errors.Wrapf(err, "failed to remove finalizer from cspi %s", cspiItem.Name)
 			}
 		}
 	}
@@ -105,7 +105,7 @@ func cleanupBDC(cspiObj *apis.CStorPoolInstance) error {
 			bdcObj.Finalizers = util.RemoveString(bdcObj.Finalizers, apiscspc.CSPCFinalizer)
 			bdcObj, err = bdc.NewKubeClient().WithNamespace(cspiObj.Namespace).Update(bdcObj)
 			if err != nil {
-				return errors.Wrapf(err, "failed to remove finalizers from bdc %s", bdcObj.Name)
+				return errors.Wrapf(err, "failed to remove finalizers from bdc %s", bdcItem.Name)
 			}
 			err = bdc.NewKubeClient().WithNamespace(cspiObj.Namespace).Delete(bdcObj.Name, &metav1.DeleteOptions{})
 			if err != nil {
