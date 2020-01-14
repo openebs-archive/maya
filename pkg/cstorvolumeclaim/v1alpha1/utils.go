@@ -61,7 +61,7 @@ func GetPDBPoolLabels(poolNames []string) map[string]string {
 	pdbLabels := map[string]string{}
 	for _, poolName := range poolNames {
 		key := fmt.Sprintf("openebs.io/%s", poolName)
-		pdbLabels[key] = ""
+		pdbLabels[key] = "true"
 	}
 	return pdbLabels
 }
