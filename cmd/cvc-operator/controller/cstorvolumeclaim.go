@@ -569,8 +569,8 @@ func getOrCreatePodDisruptionBudget(
 func createPDB(cvObj *apis.CStorVolume,
 	poolNames []string, cspcName string) (*policy.PodDisruptionBudget, error) {
 	// Calculate minAvailable value from cStorVolume replica count
-	minAvailable := (cvObj.Spec.ReplicationFactor >> 1) + 1
-	minAvailableIntStr := intstr.FromInt(minAvailable)
+	//minAvailable := (cvObj.Spec.ReplicationFactor >> 1) + 1
+	maxUnavailableIntStr := intstr.FromInt(1)
 
 	//build podDisruptionBudget for volume
 	pdbObj := policy.PodDisruptionBudget{
@@ -579,8 +579,8 @@ func createPDB(cvObj *apis.CStorVolume,
 			Labels:       cvclaim.GetPDBLabels(poolNames, cspcName),
 		},
 		Spec: policy.PodDisruptionBudgetSpec{
-			MinAvailable: &minAvailableIntStr,
-			Selector:     getPDBSelector(poolNames),
+			MaxUnavailable: &maxUnavailableIntStr,
+			Selector:       getPDBSelector(poolNames),
 		},
 	}
 	// Create podDisruptionBudget
