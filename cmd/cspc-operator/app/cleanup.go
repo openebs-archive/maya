@@ -27,6 +27,8 @@ import (
 	"k8s.io/klog"
 )
 
+// cleanupCSPIResources removes the CSPI resources when a CSPI is
+// deleted or downscaled
 func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 	cspiList, err := cspi.NewKubeClient().WithNamespace(cspcObj.Namespace).List(
 		metav1.ListOptions{
@@ -58,6 +60,8 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 	return nil
 }
 
+// canPerformCSPICleanup performs the validation if the cleanup for the
+// CSPI can begin
 func canPerformCSPICleanup(cspiObj *apis.CStorPoolInstance) bool {
 	predicates := []cspiCleanupPredicates{
 		hasCSPCFinalizer,
@@ -73,16 +77,22 @@ func canPerformCSPICleanup(cspiObj *apis.CStorPoolInstance) bool {
 
 type cspiCleanupPredicates func(*apis.CStorPoolInstance) bool
 
+// hasCSPCFinalizer is a predicate which checks whether the CSPC
+// finalizer is presemt on the CSPI or not
 func hasCSPCFinalizer(cspiObj *apis.CStorPoolInstance) bool {
 	return util.ContainsString(cspiObj.Finalizers, apiscspc.CSPCFinalizer)
 }
 
+// hasNoPoolProtectionFinalizer is a predicate which checks whether the pool
+// protection finalizer is removed or not. The pool protection finalizer is
+// used to make sure that the pool is destroyed before BDCs are deleted.
 func hasNoPoolProtectionFinalizer(cspiObj *apis.CStorPoolInstance) bool {
 	return !util.ContainsString(cspiObj.Finalizers, apiscspc.PoolProtectionFinalizer)
 }
 
 type cspiCleanupOptions func(*apis.CStorPoolInstance) error
 
+// cleanupBDC deletes the BDCs for the CSPI which has been deleted or downscaled
 func cleanupBDC(cspiObj *apis.CStorPoolInstance) error {
 	bdcList, err := bdc.NewKubeClient().WithNamespace(cspiObj.Namespace).List(
 		metav1.ListOptions{
