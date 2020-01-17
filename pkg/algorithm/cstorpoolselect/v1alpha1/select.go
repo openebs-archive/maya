@@ -189,7 +189,7 @@ func (p *scheduleWithOverProvisioningAwareness) consumedCapacity(csp *apis.CStor
 		cstorVolumeMap[cvr.Labels[string(apis.CStorVolumeKey)]] = true
 	}
 
-	for cv, _ := range cstorVolumeMap {
+	for cv := range cstorVolumeMap {
 		cap, err := p.getCStorVolumeCapacity(cv)
 		if err != nil {
 			return resource.Quantity{}, errors.Wrapf(err, "failed to get capacity for cstorvolume %s", cv)
