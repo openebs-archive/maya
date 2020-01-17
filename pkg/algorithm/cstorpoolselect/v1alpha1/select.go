@@ -26,6 +26,7 @@ import (
 	cstorvolume "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cstorvolumereplica "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -118,7 +119,7 @@ type policy interface {
 type scheduleWithOverProvisioningAwareness struct {
 	overProvisioning bool
 	spcName          string
-	volumeNamespace  string
+	openebsNamespace string
 	capacity         resource.Quantity
 	err              []error
 }
@@ -149,7 +150,7 @@ func (p scheduleWithOverProvisioningAwareness) filter(pools *csp.CSPList) (*csp.
 
 	filteredPools := &csp.CSPList{Items: []*csp.CSP{}}
 	for _, pool := range pools.Items {
-		volCap, err := getAllVolumeCapacity(pool.Object)
+		volCap, err := p.getAllVolumeCapacity(pool.Object)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get capacity consumed by existing volumes on pool %s ", pool.Object.UID)
 		}
@@ -164,11 +165,11 @@ func (p scheduleWithOverProvisioningAwareness) filter(pools *csp.CSPList) (*csp.
 
 // getAllVolumeCapacity returns the sum of total capacities of all the volumes
 // present of the given CSP.
-func getAllVolumeCapacity(csp *apis.CStorPool) (resource.Quantity, error) {
+func (p *scheduleWithOverProvisioningAwareness) getAllVolumeCapacity(csp *apis.CStorPool) (resource.Quantity, error) {
 	var totalcapcity resource.Quantity
 	cstorVolumeMap := make(map[string]bool)
 	label := string(apis.CStorPoolKey) + "=" + csp.Name
-	cstorVolumeReplicaObjList, err := cstorvolumereplica.NewKubeclient().WithNamespace("openebs").List(metav1.ListOptions{LabelSelector: label})
+	cstorVolumeReplicaObjList, err := cstorvolumereplica.NewKubeclient().WithNamespace(p.openebsNamespace).List(metav1.ListOptions{LabelSelector: label})
 	if err != nil {
 		return resource.Quantity{}, errors.Wrapf(err, "error in listing all cvr resources present on %s csp", csp.Name)
 	}
@@ -180,7 +181,7 @@ func getAllVolumeCapacity(csp *apis.CStorPool) (resource.Quantity, error) {
 	}
 
 	for cv, _ := range cstorVolumeMap {
-		cap, err := getCStorVolumeCapacity(cv)
+		cap, err := p.getCStorVolumeCapacity(cv)
 		if err != nil {
 			return resource.Quantity{}, errors.Wrapf(err, "failed to get capacity for cstorvolume %s", cv)
 		}
@@ -192,8 +193,8 @@ func getAllVolumeCapacity(csp *apis.CStorPool) (resource.Quantity, error) {
 }
 
 // getCStorVolumeCapacity returns the capacity present on a CStorVolume CR.
-func getCStorVolumeCapacity(name string) (resource.Quantity, error) {
-	cv, err := cstorvolume.NewKubeclient().WithNamespace("openebs").Get(name, metav1.GetOptions{})
+func (p *scheduleWithOverProvisioningAwareness) getCStorVolumeCapacity(name string) (resource.Quantity, error) {
+	cv, err := cstorvolume.NewKubeclient().WithNamespace(p.openebsNamespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return resource.Quantity{}, errors.Wrapf(err, "failed to fetch cstorvolume %s", name)
 	}
@@ -564,6 +565,11 @@ func CapacityAwareScheduling(values ...string) buildOption {
 			overProvisioningPolicy.err = append(overProvisioningPolicy.err, err)
 		}
 		overProvisioningPolicy.capacity = volCapacity
+
+		// Get the namespace where OpenEBS is installed
+
+		openEBSnamespace := env.Get(env.OpenEBSNamespace)
+		overProvisioningPolicy.openebsNamespace = openEBSnamespace
 
 		if len(overProvisioningPolicy.err) == 0 {
 			spc, err := getSPC(spcName)
