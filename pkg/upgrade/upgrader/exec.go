@@ -130,11 +130,11 @@ func Exec(fromVersion, toVersion, kind, name,
 				klog.Error(uerr)
 				return err
 			}
+			utaskObj.Status.Retries = utaskObj.Status.Retries + 1
 			if utaskObj.Status.Retries == backoffLimit {
 				utaskObj.Status.Phase = apis.UpgradeError
 				utaskObj.Status.CompletedTime = metav1.Now()
 			}
-			utaskObj.Status.Retries = utaskObj.Status.Retries + 1
 			_, uerr = utaskClient.WithNamespace(openebsNamespace).
 				Update(utaskObj)
 			if uerr != nil && isENVPresent {
