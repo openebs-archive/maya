@@ -216,8 +216,8 @@ func csptocspi(
 				return err1
 			}
 			if cspiObj.Status.Phase != "ONLINE" {
-				return errors.Errorf("failed to verify cspi phase expected: Healthy got: %s",
-					cspiObj.Status.Phase)
+				return errors.Errorf("failed to verify cspi %s phase expected: Healthy got: %s",
+					cspiObj.Name, cspiObj.Status.Phase)
 			}
 			return nil
 		})
@@ -261,7 +261,7 @@ func scaleDownDeployment(cspObj *apis.CStorPool, openebsNamespace string) error 
 		return err
 	}
 	if len(cspDeployList.Items) != 1 {
-		return errors.Errorf("invalid number of csp deployment found: %d", len(cspDeployList.Items))
+		return errors.Errorf("invalid number of csp deployment found for %s: %d", len(cspDeployList.Items), cspObj.Name)
 	}
 	_, err = deploy.NewKubeClient().WithNamespace(openebsNamespace).
 		Patch(
@@ -300,23 +300,23 @@ func updateBDCLabels(cspcName, openebsNamespace string) error {
 		return err
 	}
 	for _, bdcItem := range bdcList.Items {
-		bdcItem := bdcItem // pin it
-		bdcObj := &bdcItem
-		klog.Infof("Updating bdc %s with cspc labels & finalizer.", bdcObj.Name)
-		delete(bdcObj.Labels, string(apis.StoragePoolClaimCPK))
-		bdcObj.Labels[string(apis.CStorPoolClusterCPK)] = cspcName
-		for i, finalizer := range bdcObj.Finalizers {
-			if finalizer == spcFinalizer {
-				bdcObj.Finalizers[i] = cspcFinalizer
+		if bdcItem.Labels[string(apis.StoragePoolClaimCPK)] != "" {
+			bdcItem := bdcItem // pin it
+			bdcObj := &bdcItem
+			klog.Infof("Updating bdc %s with cspc labels & finalizer.", bdcObj.Name)
+			delete(bdcObj.Labels, string(apis.StoragePoolClaimCPK))
+			bdcObj.Labels[string(apis.CStorPoolClusterCPK)] = cspcName
+			for i, finalizer := range bdcObj.Finalizers {
+				if finalizer == spcFinalizer {
+					bdcObj.Finalizers[i] = cspcFinalizer
+				}
 			}
-		}
-		// bdcObj.OwnerReferences[0].Kind = "CStorPoolCluster"
-		// bdcObj.OwnerReferences[0].UID = cspcObj.UID
-		_, err := bdc.NewKubeClient().
-			WithNamespace(openebsNamespace).
-			Update(bdcObj)
-		if err != nil {
-			return errors.Wrapf(err, "failed to update bdc %s with cspc label & finalizer", bdcObj.Name)
+			_, err := bdc.NewKubeClient().
+				WithNamespace(openebsNamespace).
+				Update(bdcObj)
+			if err != nil {
+				return errors.Wrapf(err, "failed to update bdc %s with cspc label & finalizer", bdcObj.Name)
+			}
 		}
 	}
 	return nil

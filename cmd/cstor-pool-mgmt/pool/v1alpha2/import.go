@@ -35,6 +35,9 @@ import (
 // uid name to the current PoolName(cspi) format
 func Import(cspi *apis.CStorPoolInstance) (bool, error) {
 	if poolExist := checkIfPoolPresent(PoolName(cspi)); poolExist {
+		// If the pool is renamed and imported but the pool-mgmt restarts
+		// for some reason then the annotation should be removed.
+		delete(cspi.Annotations, string(apis.OldPoolName))
 		return true, nil
 	}
 
@@ -46,8 +49,8 @@ func Import(cspi *apis.CStorPoolInstance) (bool, error) {
 
 	_, poolNotImported, _ = checkIfPoolIsImportable(cspi)
 	if poolNotImported {
-		// if the pool is renamed but not imported remove the
-		// annotation to avoid not found errors
+		// If the pool is renamed but not imported, remove the
+		// annotation to avoid not found errors.
 		delete(cspi.Annotations, string(apis.OldPoolName))
 	}
 
@@ -56,19 +59,19 @@ func Import(cspi *apis.CStorPoolInstance) (bool, error) {
 		return false, err
 	}
 
+	// oldName denotes the pool name that may be present
+	// from previous version and needs to be imported with new name
+	oldName := cspi.Annotations[string(apis.OldPoolName)]
+
 	klog.Infof("Importing pool %s %s", string(cspi.GetUID()), PoolName(cspi))
 	devID := pool.GetDevPathIfNotSlashDev(bdPath[0])
 	cmd := zfs.NewPoolImport().
 		WithCachefile(cspi.Spec.PoolConfig.CacheFile).
 		WithProperty("cachefile", cspi.Spec.PoolConfig.CacheFile).
 		WithDirectory(devID).
+		WithPool(oldName).
 		WithNewPool(PoolName(cspi))
-	// oldName denotes the pool name that may be present
-	// from previous version and needs to be imported with new name
-	oldName := cspi.Annotations[string(apis.OldPoolName)]
-	if oldName != "" {
-		cmd.WithPool(oldName)
-	}
+
 	if len(devID) != 0 {
 		cmdOut, err = cmd.Execute()
 		if err == nil {
@@ -84,7 +87,8 @@ func Import(cspi *apis.CStorPoolInstance) (bool, error) {
 		cmdOut, err = zfs.NewPoolImport().
 			WithCachefile(cspi.Spec.PoolConfig.CacheFile).
 			WithProperty("cachefile", cspi.Spec.PoolConfig.CacheFile).
-			WithPool(PoolName(cspi)).
+			WithNewPool(PoolName(cspi)).
+			WithPool(oldName).
 			Execute()
 	}
 
