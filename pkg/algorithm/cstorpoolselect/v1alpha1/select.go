@@ -46,6 +46,7 @@ const (
 	// replicaAntiAffinty is the label key
 	// that refers to replica anti affinity policy
 	replicaAntiAffinityLabel labelKey = "openebs.io/replica-anti-affinity"
+	volumeCapacityLabel      labelKey = "volume.kubernetes.io/capacity"
 )
 
 type annotationKey string
@@ -117,11 +118,17 @@ type policy interface {
 // scheduleWithOverProvisioningAwareness is a pool
 // selection implementation.
 type scheduleWithOverProvisioningAwareness struct {
+	// overProvisioning field if true means over-provisioning is enabled or vice-versa.
 	overProvisioning bool
-	spcName          string
+	// spcName is the name of the SPC to which the over-provisioning policy will be
+	// applied and volume will be created from CSPs of this SPC.
+	spcName string
+	// openebsNamespace is the namespace where OpenEBS is installed.
 	openebsNamespace string
-	capacity         resource.Quantity
-	err              []error
+	// totalCapacity is the capacity of the incoming volume.
+	totalCapacity resource.Quantity
+	// err constains a list of error in if any while building this current structure.
+	err []error
 }
 
 // priority returns the priority of the
@@ -144,20 +151,21 @@ func (p scheduleWithOverProvisioningAwareness) filter(pools *csp.CSPList) (*csp.
 	}
 
 	if p.overProvisioning {
-		klog.Info("Overprovisioning restriction policy not added as overprovisioning is enabled")
+		klog.Infof("Overprovisioning restriction policy not added as overprovisioning is enabled on spc %s", p.spcName)
 		return pools, nil
 	}
 
 	filteredPools := &csp.CSPList{Items: []*csp.CSP{}}
 	for _, pool := range pools.Items {
-		volCap, err := p.getAllVolumeCapacity(pool.Object)
+		volCap, err := p.consumedCapacity(pool.Object)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get capacity consumed by existing volumes on pool %s ", pool.Object.UID)
+			klog.Errorf("failed to get capacity consumed by existing volumes on pool %s:{%s} ", pool.Object.UID, err.Error())
+			continue
 		}
-		if pool.HasSpace(p.capacity, volCap) {
+		if pool.HasSpace(p.totalCapacity, volCap) {
 			filteredPools.Items = append(filteredPools.Items, pool)
 		} else {
-			klog.V(2).Infof("CSP with UID %s rejected due to over provisioning policy", pool.Object.UID)
+			klog.V(2).Infof("Can't select CSP with UID %q: Required space not available: Policy %s", pool.Object.UID, overProvisioningPolicy)
 		}
 	}
 	return filteredPools, nil
@@ -165,17 +173,18 @@ func (p scheduleWithOverProvisioningAwareness) filter(pools *csp.CSPList) (*csp.
 
 // getAllVolumeCapacity returns the sum of total capacities of all the volumes
 // present of the given CSP.
-func (p *scheduleWithOverProvisioningAwareness) getAllVolumeCapacity(csp *apis.CStorPool) (resource.Quantity, error) {
+func (p *scheduleWithOverProvisioningAwareness) consumedCapacity(csp *apis.CStorPool) (resource.Quantity, error) {
 	var totalcapcity resource.Quantity
 	cstorVolumeMap := make(map[string]bool)
 	label := string(apis.CStorPoolKey) + "=" + csp.Name
 	cstorVolumeReplicaObjList, err := cstorvolumereplica.NewKubeclient().WithNamespace(p.openebsNamespace).List(metav1.ListOptions{LabelSelector: label})
 	if err != nil {
-		return resource.Quantity{}, errors.Wrapf(err, "error in listing all cvr resources present on %s csp", csp.Name)
+		return resource.Quantity{}, errors.Wrapf(err, "Failed to get total volume capacity for CSP %s", csp.Name)
 	}
 	for _, cvr := range cstorVolumeReplicaObjList.Items {
 		if cvr.Labels == nil {
-			return resource.Quantity{}, errors.Errorf("No labels found on cvr %s", cvr.Name)
+			return resource.Quantity{}, errors.Errorf("Failed to get total volume capacity for CSP %s: "+
+				"Missing labels in CVR %s: Want label %s to calculate total volume capacity", csp.UID, cvr.Name, volumeCapacityLabel)
 		}
 		cstorVolumeMap[cvr.Labels[string(apis.CStorVolumeKey)]] = true
 	}
@@ -564,7 +573,7 @@ func CapacityAwareScheduling(values ...string) buildOption {
 		if err != nil {
 			overProvisioningPolicy.err = append(overProvisioningPolicy.err, err)
 		}
-		overProvisioningPolicy.capacity = volCapacity
+		overProvisioningPolicy.totalCapacity = volCapacity
 
 		// Get the namespace where OpenEBS is installed
 
@@ -588,7 +597,7 @@ func CapacityAwareScheduling(values ...string) buildOption {
 func getSPCName(values ...string) string {
 
 	for _, val := range values {
-		if strings.Contains(val, string("openebs.io/storage-pool-claim")) {
+		if strings.Contains(val, string(apis.StoragePoolClaimCPK)) {
 			str := strings.Split(val, "=")
 			return str[1]
 		}
@@ -603,7 +612,7 @@ func getSPC(name string) (*apis.StoragePoolClaim, error) {
 func getVolumeCapacity(values ...string) (resource.Quantity, error) {
 	var capacity string
 	for _, val := range values {
-		if strings.Contains(val, string("volume.kubernetes.io/capacity")) {
+		if strings.Contains(val, string(volumeCapacityLabel)) {
 			str := strings.Split(val, "=")
 			capacity = str[1]
 		}
