@@ -147,7 +147,7 @@ func (p scheduleWithOverProvisioningAwareness) filter(pools *csp.CSPList) (*csp.
 		return pools, nil
 	}
 
-	filteredPools := csp.ListBuilder().List()
+	filteredPools := &csp.CSPList{Items: []*csp.CSP{}}
 	for _, pool := range pools.Items {
 		volCap, err := getAllVolumeCapacity(pool.Object)
 		if err != nil {

@@ -47,6 +47,9 @@ func TestCStorPoolAll(t *testing.T) {
 		"Negative Predicate 9": {[]predicate{mockAlwaysFalse, mockAlwaysFalse, mockAlwaysFalse}, false},
 	}
 	for name, mock := range tests {
+		// pin it
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			if output := mock.Predicates.all(&CSP{}); output != mock.expectedOutput {
 				t.Fatalf("test %q failed: expected %v \n got : %v \n", name, mock.expectedOutput, output)
@@ -76,6 +79,9 @@ func TestCStorPoolIsNotUID(t *testing.T) {
 		"Negative 5": {"uid5", []string{"uid1", "uid2", "uid3", "uid4", "uid5"}, false},
 	}
 	for name, mock := range tests {
+		// pin it
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			mockCSP := &CSP{&apis.CStorPool{ObjectMeta: metav1.ObjectMeta{UID: mock.CSPuid}}}
 			p := IsNotUID(mock.uids...)
@@ -102,6 +108,9 @@ func TestCStorPoolFilterUIDs(t *testing.T) {
 		"Negative 3": {[]predicate{mockAlwaysFalse, mockAlwaysFalse}, []string{"uid1", "uid2", "uid3"}, []string{}},
 	}
 	for name, mock := range tests {
+		// pin it
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			CSPL := ListBuilder().WithUIDs(mock.UIDs...).List()
 			output := CSPL.Filter(mock.Predicates...)
@@ -134,6 +143,9 @@ func TestCStorPoolWithUIDs(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		// pin it
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			lb := ListBuilder().WithUIDs(mock.expectedUIDs...)
 			if len(lb.list.Items) != len(mock.expectedUIDs) {
@@ -165,6 +177,9 @@ func TestCstorPoolList(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		// pin it
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			lb := ListBuilder().WithUIDs(mock.expectedUIDs...).List()
 			if len(lb.Items) != len(mock.expectedUIDs) {
@@ -196,6 +211,9 @@ func TestBuildWithListUids(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		// pin it
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			lb := ListBuilder().WithUIDs(mock.expectedUIDs...).List()
 			if len(lb.GetPoolUIDs()) != len(mock.expectedUIDs) {
@@ -220,6 +238,9 @@ func TestNewListFromUIDNode(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		// pin it
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			output := newListFromUIDNode(mock.UIDNodeMap, mock.UIDCapacityMap).GetPoolUIDs()
 			if len(output) != len(mock.expectedPools) {
@@ -242,6 +263,9 @@ func TestNewListFromUIDs(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		// pin it
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			output := newListFromUIDs(mock.PoolUIDs).GetPoolUIDs()
 			if len(output) != len(mock.PoolUIDs) {
@@ -260,6 +284,9 @@ func TestTemplateFunctionsCount(t *testing.T) {
 	}
 
 	for name, test := range tests {
+		// pin it
+		name := name
+		test := test
 		t.Run(name, func(t *testing.T) {
 			p := TemplateFunctions()
 			if len(p) != test.expectedLength {
@@ -283,6 +310,9 @@ func TestHasAnnotation(t *testing.T) {
 	}
 
 	for name, test := range tests {
+		// pin it
+		name := name
+		test := test
 		t.Run(name, func(t *testing.T) {
 			fakeCSP := &CSP{&apis.CStorPool{ObjectMeta: metav1.ObjectMeta{Annotations: test.availableAnnotations}}}
 			ok := HasAnnotation(test.checkForKey, test.checkForValue)(fakeCSP)
