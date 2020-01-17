@@ -261,7 +261,7 @@ func scaleDownDeployment(cspObj *apis.CStorPool, openebsNamespace string) error 
 		return err
 	}
 	if len(cspDeployList.Items) != 1 {
-		return errors.Errorf("invalid number of csp deployment found for %s: %d", len(cspDeployList.Items), cspObj.Name)
+		return errors.Errorf("invalid number of csp deployment found for %s: %d", cspObj.Name, len(cspDeployList.Items))
 	}
 	_, err = deploy.NewKubeClient().WithNamespace(openebsNamespace).
 		Patch(
