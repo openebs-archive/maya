@@ -28,6 +28,7 @@ import (
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	cspcv1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	poolspec "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
 	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
@@ -124,6 +125,10 @@ func (wh *webhook) validateCSPCCreateRequest(req *v1beta1.AdmissionRequest) *v1b
 		return response
 	}
 	if ok, msg := cspcValidation(&cspc); !ok {
+		klog.Errorf("Invalid CSPC specification %s for creation request error: %s",
+			cspc.Name,
+			msg,
+		)
 		err := errors.Errorf("invalid cspc specification: %s", msg)
 		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusUnprocessableEntity).AR
 		return response
@@ -166,12 +171,12 @@ func (wh *webhook) validateCSPCDeleteRequest(req *v1beta1.AdmissionRequest) *v1b
 func cspcValidation(cspc *apis.CStorPoolCluster) (bool, string) {
 	usedNodes := map[string]bool{}
 	if len(cspc.Spec.Pools) == 0 {
-		return false, fmt.Sprintf("pools in cspc should have at least one item")
+		return false, fmt.Sprintf("pool spec in cspc should have at least one item")
 	}
 
 	repeatedBlockDevices := getDuplicateBlockDeviceList(cspc)
 	if len(repeatedBlockDevices) > 0 {
-		return false, fmt.Sprintf("invalid cspc: cspc {%s} has duplicate blockdevices entries %v",
+		return false, fmt.Sprintf("cspc {%s} has duplicate blockdevices entries %v",
 			cspc.Name,
 			repeatedBlockDevices)
 	}
@@ -184,13 +189,13 @@ func cspcValidation(cspc *apis.CStorPoolCluster) (bool, string) {
 		nodeName, err := nodeselect.GetNodeFromLabelSelector(pool.NodeSelector)
 		if err != nil {
 			return false, fmt.Sprintf(
-				"failed to get node from pool nodeSelector: {%v} error: {%v}",
+				"failed to get node name from pool nodeSelector: {%v} error: {%v}",
 				pool.NodeSelector,
 				err,
 			)
 		}
 		if usedNodes[nodeName] {
-			return false, fmt.Sprintf("invalid cspc: duplicate node %s entry", nodeName)
+			return false, fmt.Sprintf("duplicate node %s entry", nodeName)
 		}
 		usedNodes[nodeName] = true
 		pValidate := buildPoolValidator.withPoolSpec(pool).
@@ -233,6 +238,12 @@ func getDuplicateBlockDeviceList(cspc *apis.CStorPoolCluster) []string {
 func (poolValidator *PoolValidator) poolSpecValidation() (bool, string) {
 	if len(poolValidator.poolSpec.RaidGroups) == 0 {
 		return false, "at least one raid group should be present on pool spec"
+	}
+	// Return error if pool spec is of stripe and it contains more than one raidGroup
+	if poolspec.IsStripePoolSpec(poolValidator.poolSpec) {
+		if len(poolValidator.poolSpec.RaidGroups) > 1 {
+			return false, fmt.Sprintf("stripe pool spec configuration has more than one raid group")
+		}
 	}
 	// TODO : Add validation for pool config
 	// Pool config will require mutating webhooks also.
@@ -299,6 +310,8 @@ func (poolValidator *PoolValidator) blockDeviceValidation(
 			err,
 		)
 	}
+	// Below snippet will validate blockDevice whether it is Active, belongs to
+	// correct node and blockdevice shouldn't contain any FileSystem
 	err = blockdevice.
 		BuilderForAPIObject(bdObj).
 		BlockDevice.
@@ -308,13 +321,6 @@ func (poolValidator *PoolValidator) blockDeviceValidation(
 			blockdevice.CheckIfBDBelongsToNode(poolValidator.nodeName))
 	if err != nil {
 		return false, fmt.Sprintf("%v", err)
-	}
-	if bdObj.Spec.NodeAttributes.NodeName != poolValidator.nodeName {
-		return false, fmt.Sprintf(
-			"pool validation failed: block device %s doesn't belongs to pool node %s",
-			bd.BlockDeviceName,
-			poolValidator.nodeName,
-		)
 	}
 	if bdObj.Status.ClaimState == ndmapis.BlockDeviceClaimed {
 		// TODO: Need to check how NDM
@@ -336,10 +342,12 @@ func (poolValidator *PoolValidator) blockDeviceClaimValidation(bdcName, bdName s
 		return errors.Wrapf(err,
 			"could not get block device claim for block device {%s}", bdName)
 	}
+	// CSPC label on BDC will be helpful to identify is this BDC belongs to
+	// current CSPC
 	cspcName := bdcObject.
-		GetAnnotations()[string(apis.CStorPoolClusterCPK)]
+		GetLabels()[string(apis.CStorPoolClusterCPK)]
 	if cspcName != poolValidator.cspcName {
-		return errors.Wrapf(err,
+		return errors.Errorf(
 			"cann't use claimed blockdevice %s",
 			bdName,
 		)
@@ -377,16 +385,18 @@ func (wh *webhook) validateCSPCUpdateRequest(req *v1beta1.AdmissionRequest) *v1b
 		return response
 	}
 
-	bdr := NewBlockDeviceReplacement().WithNewCSPC(&cspcNew).WithOldCSPC(cspcOld)
+	pOps := NewPoolOperations().WithNewCSPC(&cspcNew).WithOldCSPC(cspcOld)
 	commonPoolSpec, err := getCommonPoolSpecs(&cspcNew, cspcOld)
 
 	if err != nil {
+		klog.Errorf("failed to get common poolspecs of cspc: %s error: %s", cspcNew.Name, err.Error())
 		err = errors.Errorf("could not find common pool specs for validation: %s", err.Error())
 		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusInternalServerError).AR
 		return response
 	}
 
-	if ok, msg := ValidateSpecChanges(commonPoolSpec, bdr); !ok {
+	if ok, msg := ValidateSpecChanges(commonPoolSpec, pOps); !ok {
+		klog.Errorf("Invalid CSPC %s specification for update request error: %s", cspcNew.Name, msg)
 		err = errors.Errorf("invalid cspc specification: %s", msg)
 		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusUnprocessableEntity).AR
 		return response

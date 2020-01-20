@@ -685,7 +685,7 @@ func TestBlockDeviceReplacement_IsNewBDPresentOnCurrentCSPC(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // pin it
 		t.Run(tt.name, func(t *testing.T) {
-			bdr := &BlockDeviceReplacement{
+			bdr := &PoolOperations{
 				OldCSPC: tt.fields.OldCSPC,
 				NewCSPC: tt.fields.NewCSPC,
 			}
@@ -762,6 +762,55 @@ func TestValidateRaidGroupChanges(t *testing.T) {
 			}
 			if !test.expectedError && err != nil {
 				t.Errorf("test %s failed expectedError not to be error but got error %v", name, err)
+			}
+		})
+	}
+}
+
+func TestGetNewBDsFromStripeSpec(t *testing.T) {
+	tests := map[string]struct {
+		oldRG         apis.RaidGroup
+		newRG         apis.RaidGroup
+		expectedCount int
+	}{
+		"When there are no addition of blockdevices": {
+			oldRG: apis.RaidGroup{
+				BlockDevices: []apis.CStorPoolClusterBlockDevice{
+					{BlockDeviceName: "bd-1"},
+					{BlockDeviceName: "bd-2"},
+				},
+			},
+			newRG: apis.RaidGroup{
+				BlockDevices: []apis.CStorPoolClusterBlockDevice{
+					{BlockDeviceName: "bd-1"},
+					{BlockDeviceName: "bd-2"},
+				},
+			},
+			expectedCount: 0,
+		},
+		"When there are addition of blockdevices": {
+			oldRG: apis.RaidGroup{
+				BlockDevices: []apis.CStorPoolClusterBlockDevice{
+					{BlockDeviceName: "bd-1"},
+					{BlockDeviceName: "bd-2"},
+				},
+			},
+			newRG: apis.RaidGroup{
+				BlockDevices: []apis.CStorPoolClusterBlockDevice{
+					{BlockDeviceName: "bd-3"},
+					{BlockDeviceName: "bd-2"},
+					{BlockDeviceName: "bd-1"},
+				},
+			},
+			expectedCount: 1,
+		},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			bdList := getNewBDsFromStripeSpec(test.oldRG, test.newRG)
+			if test.expectedCount != len(bdList) {
+				t.Errorf("test %s failed expected new blockdevice count %d but got %d", name, test.expectedCount, len(bdList))
 			}
 		})
 	}

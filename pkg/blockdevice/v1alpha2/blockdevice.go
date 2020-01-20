@@ -234,7 +234,8 @@ func CheckIfBDBelongsToNode(nodeName string) Validate {
 func (bd *BlockDevice) CheckIfBDBelongsToNode(nodeName string) error {
 	if !bd.IsBelongToNode(nodeName) {
 		return errors.Errorf(
-			"block device doesn't belongs to node %s",
+			"block device %s doesn't belongs to node %s",
+			bd.Object.Name,
 			bd.Object.Spec.NodeAttributes.NodeName,
 		)
 	}

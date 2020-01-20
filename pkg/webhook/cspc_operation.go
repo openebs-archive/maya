@@ -26,42 +26,43 @@ import (
 	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	cspcv1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	poolspec "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
 	"github.com/openebs/maya/pkg/volume"
 	"github.com/pkg/errors"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
-//TODO: Update BlockDeviceReplacement to generic name
-
-// BlockDeviceReplacement contains old and new CSPC to validate for block device replacement
-type BlockDeviceReplacement struct {
+// PoolOperations contains old and new CSPC to validate for pool
+// operations
+type PoolOperations struct {
 	// OldCSPC is the persisted CSPC in etcd.
 	OldCSPC *apis.CStorPoolCluster
 	// NewCSPC is the CSPC after it has been modified but yet not persisted to etcd.
 	NewCSPC *apis.CStorPoolCluster
 }
 
-// NewBlockDeviceReplacement returns an empty BlockDeviceReplacement object.
-func NewBlockDeviceReplacement() *BlockDeviceReplacement {
-	return &BlockDeviceReplacement{
+// NewPoolOperations returns an empty PoolOperations object.
+func NewPoolOperations() *PoolOperations {
+	return &PoolOperations{
 		OldCSPC: &apis.CStorPoolCluster{},
 		NewCSPC: &apis.CStorPoolCluster{},
 	}
 }
 
-// WithOldCSPC sets the old persisted CSPC into the BlockDeviceReplacement object.
-func (bdr *BlockDeviceReplacement) WithOldCSPC(oldCSPC *apis.CStorPoolCluster) *BlockDeviceReplacement {
-	bdr.OldCSPC = oldCSPC
-	return bdr
+// WithOldCSPC sets the old persisted CSPC into the PoolOperations object.
+func (pOps *PoolOperations) WithOldCSPC(oldCSPC *apis.CStorPoolCluster) *PoolOperations {
+	pOps.OldCSPC = oldCSPC
+	return pOps
 }
 
 // WithNewCSPC sets the new CSPC as a result of CSPC modification which is not yet persisted,
-// into the BlockDeviceReplacement object
-func (bdr *BlockDeviceReplacement) WithNewCSPC(newCSPC *apis.CStorPoolCluster) *BlockDeviceReplacement {
-	bdr.NewCSPC = newCSPC
-	return bdr
+// into the PoolOperations object
+func (pOps *PoolOperations) WithNewCSPC(newCSPC *apis.CStorPoolCluster) *PoolOperations {
+	pOps.NewCSPC = newCSPC
+	return pOps
 }
 
 type poolspecs struct {
@@ -69,17 +70,23 @@ type poolspecs struct {
 	newSpec []apis.PoolSpec
 }
 
+// raidGroups contains list of oldraid groups and newraid groups
+type raidGroups struct {
+	oldRaidGroups []apis.RaidGroup
+	newRaidGroups []apis.RaidGroup
+}
+
 // ValidateSpecChanges validates the changes in CSPC for changes in a raid group only if the
 // update/edit of CSPC can trigger a block device replacement/pool expansion
 // scenarios.
-func ValidateSpecChanges(commonPoolSpecs *poolspecs, bdr *BlockDeviceReplacement) (bool, string) {
+func ValidateSpecChanges(commonPoolSpecs *poolspecs, pOps *PoolOperations) (bool, string) {
 	for i, oldPoolSpec := range commonPoolSpecs.oldSpec {
 		oldPoolSpec := oldPoolSpec
 		// process only when there is change in pool specs
 		if reflect.DeepEqual(&oldPoolSpec, &commonPoolSpecs.newSpec[i]) {
 			continue
 		}
-		if ok, msg := bdr.IsPoolSpecChangeValid(&oldPoolSpec, &commonPoolSpecs.newSpec[i]); !ok {
+		if ok, msg := pOps.ArePoolSpecChangesValid(&oldPoolSpec, &commonPoolSpecs.newSpec[i]); !ok {
 			return false, msg
 		}
 	}
@@ -114,6 +121,99 @@ func getCommonPoolSpecs(cspcNew, cspcOld *apis.CStorPoolCluster) (*poolspecs, er
 	return commonPoolSpecs, nil
 }
 
+// getExpandedRaidGroups returns the raid groups only if pool expansion is done
+// by the users
+func getExpandedRaidGroups(
+	newPoolSpec *apis.PoolSpec, oldRaidGroups []apis.RaidGroup) []apis.RaidGroup {
+	expandedRgs := []apis.RaidGroup{}
+	for _, newRg := range newPoolSpec.RaidGroups {
+		isRaidGroupExist := false
+		for _, oldRg := range oldRaidGroups {
+			if IsRaidGroupCommon(oldRg, newRg) {
+				isRaidGroupExist = true
+				break
+			}
+		}
+		// If no common blockdevices exists in raid groups then newRg is
+		// added for expansion
+		if !isRaidGroupExist {
+			expandedRgs = append(expandedRgs, newRg)
+		}
+	}
+	return expandedRgs
+}
+
+func getNewBDsFromStripeSpec(oldRg, newRg apis.RaidGroup) []string {
+	mapOldRg := map[string]bool{}
+	bds := []string{}
+	for _, bd := range oldRg.BlockDevices {
+		mapOldRg[bd.BlockDeviceName] = true
+	}
+	for _, bd := range newRg.BlockDevices {
+		if !mapOldRg[bd.BlockDeviceName] {
+			bds = append(bds, bd.BlockDeviceName)
+		}
+	}
+	return bds
+}
+
+// getBDsFromRaidGroups return list of blockdevices from list of raid groups
+func getBDsFromRaidGroups(rgs []apis.RaidGroup) []string {
+	bds := []string{}
+	for _, rg := range rgs {
+		for _, bd := range rg.BlockDevices {
+			bds = append(bds, bd.BlockDeviceName)
+		}
+	}
+	return bds
+}
+
+// getOldCommonRaidGroups returns raidGroups that contains index matching of
+// oldRaidGroups and newRaidGroups. If oldRaidGroup doesn't exist on
+// newRaidGroup then return error
+func getOldCommonRaidGroups(oldPoolSpec,
+	newPoolSpec *apis.PoolSpec) (*raidGroups, error) {
+	rgs := &raidGroups{
+		oldRaidGroups: []apis.RaidGroup{},
+		newRaidGroups: []apis.RaidGroup{},
+	}
+	// build raidGroups by identifying common raidGroups in old and new
+	for _, oldRg := range oldPoolSpec.RaidGroups {
+		isRaidGroupExist := false
+		for _, newRg := range newPoolSpec.RaidGroups {
+			if IsRaidGroupCommon(oldRg, newRg) {
+				isRaidGroupExist = true
+				rgs.oldRaidGroups = append(rgs.oldRaidGroups, oldRg)
+				rgs.newRaidGroups = append(rgs.newRaidGroups, newRg)
+				break
+			}
+		}
+		// Old raid group should exist on new pool spec changes
+		if !isRaidGroupExist {
+			return nil, errors.Errorf("removing raid group from pool spec is invalid operation")
+		}
+	}
+	return rgs, nil
+}
+
+// validateNewBDs returns nil if new BDs are valid for expansion or else it will
+// return error if occurs
+func (pOps *PoolOperations) validateNewBDs(newBDs []string, cspc *apis.CStorPoolCluster) error {
+	for _, bd := range newBDs {
+		bdc, err := pOps.GetBDCOfBD(bd)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get claim of block device %s", bd)
+		}
+		// New BD should be valid only if:
+		// 1. If BlockDevice already claimed that claim should have current CSPC mark.
+		// 2. New BlockDevice shouldn't be successor of any BD in this CSPC.
+		if !pOps.IsBDValid(bd, bdc, cspc) {
+			return errors.Errorf("can not use blockdevice %s validation failed", bd)
+		}
+	}
+	return nil
+}
+
 // validateRaidGroupChanges returns error when user removes or add block
 // devices(for other than strip type) to existing raid group or else it will
 // return nil
@@ -134,43 +234,62 @@ func validateRaidGroupChanges(oldRg, newRg *apis.RaidGroup) error {
 	return nil
 }
 
-// IsPoolSpecChangeValid validates the pool specs on CSPC for raid groups
+func (pOps *PoolOperations) validatePoolExpansion(
+	newPoolSpec *apis.PoolSpec, commonRaidGroups *raidGroups) error {
+	bds := []string{}
+	// Multiple raidGroups doesn't exist for stripe pool spec
+	if poolspec.IsStripePoolSpec(newPoolSpec) {
+		bds = getNewBDsFromStripeSpec(commonRaidGroups.oldRaidGroups[0],
+			commonRaidGroups.newRaidGroups[0])
+	} else {
+		// RaidGroups will be added only for mirror, raidz and raidz2 cases
+		newRgs := getExpandedRaidGroups(newPoolSpec, commonRaidGroups.oldRaidGroups)
+		bds = getBDsFromRaidGroups(newRgs)
+	}
+	err := pOps.validateNewBDs(bds, pOps.NewCSPC)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ArePoolSpecChangesValid validates the pool specs on CSPC for raid groups
 // changes case
-func (bdr *BlockDeviceReplacement) IsPoolSpecChangeValid(oldPoolSpec, newPoolSpec *apis.PoolSpec) (bool, string) {
+func (pOps *PoolOperations) ArePoolSpecChangesValid(oldPoolSpec, newPoolSpec *apis.PoolSpec) (bool, string) {
 	newToOldBd := make(map[string]string)
-	for _, oldRg := range oldPoolSpec.RaidGroups {
-		oldRg := oldRg // pin it
-		isRaidGroupExist := false
+	commonRaidGroups, err := getOldCommonRaidGroups(oldPoolSpec, newPoolSpec)
+	if err != nil {
+		return false, fmt.Sprintf("raid group validation failed: %v", err)
+	}
+	for _, oldRg := range commonRaidGroups.oldRaidGroups {
 		if oldRg.Type == "" {
 			oldRg.Type = oldPoolSpec.PoolConfig.DefaultRaidGroupType
 		}
-		for _, newRg := range newPoolSpec.RaidGroups {
-			newRg := newRg // pin it
-			if IsRaidGroupCommon(oldRg, newRg) {
-				isRaidGroupExist = true
-				if err := validateRaidGroupChanges(&oldRg, &newRg); err != nil {
-					return false, fmt.Sprintf("raid group validation failed: %v", err)
-				}
-				if IsBlockDeviceReplacementCase(&oldRg, &newRg) {
-					if ok, msg := bdr.IsBDReplacementValid(&newRg, &oldRg); !ok {
-						return false, msg
-					}
-					newBD := GetNewBDFromRaidGroups(&newRg, &oldRg)
-					for k, v := range newBD {
-						newToOldBd[k] = v
-					}
-				}
-				break
+		for _, newRg := range commonRaidGroups.newRaidGroups {
+			if err := validateRaidGroupChanges(&oldRg, &newRg); err != nil {
+				return false, fmt.Sprintf("raid group validation failed: %v", err)
 			}
+			if IsBlockDeviceReplacementCase(&oldRg, &newRg) {
+				if ok, msg := pOps.IsBDReplacementValid(&newRg, &oldRg); !ok {
+					return false, msg
+				}
+				newBD := GetNewBDFromRaidGroups(&newRg, &oldRg)
+				for k, v := range newBD {
+					newToOldBd[k] = v
+				}
+			}
+			// Already mapped(via index) old raid groups and new raid groups in
+			// commonRaidGroups no need to check other raid groups
+			break
 		}
-		// Old raid group should exist on new pool spec changes
-		if !isRaidGroupExist {
-			return false, fmt.Sprintf("removing raid group from pool spec is invalid operation")
-		}
+	}
+	err = pOps.validatePoolExpansion(newPoolSpec, commonRaidGroups)
+	if err != nil {
+		return false, fmt.Sprintf("pool expansion validation failed: %v", err)
 	}
 
 	for newBD, oldBD := range newToOldBd {
-		err := createBDC(newBD, oldBD, bdr.OldCSPC)
+		err := createBDC(newBD, oldBD, pOps.OldCSPC)
 		if err != nil {
 			return false, err.Error()
 		}
@@ -216,7 +335,7 @@ func GetNumberOfDiskReplaced(newRG, oldRG *apis.RaidGroup) int {
 }
 
 // IsBDReplacementValid validates for BD replacement.
-func (bdr *BlockDeviceReplacement) IsBDReplacementValid(newRG, oldRG *apis.RaidGroup) (bool, string) {
+func (pOps *PoolOperations) IsBDReplacementValid(newRG, oldRG *apis.RaidGroup) (bool, string) {
 
 	if oldRG.Type == string(apis.PoolStriped) {
 		return false, "cannot replace  blockdevice in stripe raid group"
@@ -228,12 +347,12 @@ func (bdr *BlockDeviceReplacement) IsBDReplacementValid(newRG, oldRG *apis.RaidG
 	}
 
 	// The incoming BD for replacement should not be present in the current CSPC.
-	if bdr.IsNewBDPresentOnCurrentCSPC(newRG, oldRG) {
+	if pOps.IsNewBDPresentOnCurrentCSPC(newRG, oldRG) {
 		return false, "the new blockdevice intended to use for replacement is already a part of the current cspc"
 	}
 
 	// No background replacement should be going on in the raid group undergoing replacement.
-	if ok, err := bdr.IsExistingReplacmentInProgress(oldRG); ok {
+	if ok, err := pOps.IsExistingReplacmentInProgress(oldRG); ok {
 		return false, fmt.Sprintf("cannot replace blockdevice as a "+
 			"background replacement may be in progress in the raid group: %s", err.Error())
 	}
@@ -242,11 +361,11 @@ func (bdr *BlockDeviceReplacement) IsBDReplacementValid(newRG, oldRG *apis.RaidG
 	// 1. The BD does not have a BDC.
 	// 2. The BD has a BDC with the current CSPC label and there is no successor of this BD
 	//    present in the CSPC.
-	if !bdr.AreNewBDsValid(newRG, oldRG, bdr.OldCSPC) {
+	if !pOps.AreReplacedBDsValid(newRG, oldRG, pOps.OldCSPC) {
 		return false, "the new blockdevice intended to use for replacement in invalid"
 	}
 
-	if err := bdr.validateNewBDCapacity(newRG, oldRG); err != nil {
+	if err := pOps.validateNewBDCapacity(newRG, oldRG); err != nil {
 		return false, fmt.Sprintf("error: %v", err)
 	}
 
@@ -255,9 +374,9 @@ func (bdr *BlockDeviceReplacement) IsBDReplacementValid(newRG, oldRG *apis.RaidG
 
 // validateNewBDCapacity returns error only when new block device has less capacity
 // than existing block device
-func (bdr *BlockDeviceReplacement) validateNewBDCapacity(newRG, oldRG *apis.RaidGroup) error {
+func (pOps *PoolOperations) validateNewBDCapacity(newRG, oldRG *apis.RaidGroup) error {
 	newToOldBlockDeviceMap := GetNewBDFromRaidGroups(newRG, oldRG)
-	bdClient := bd.NewKubeClient().WithNamespace(bdr.OldCSPC.Namespace)
+	bdClient := bd.NewKubeClient().WithNamespace(pOps.OldCSPC.Namespace)
 	for newBDName, oldBDName := range newToOldBlockDeviceMap {
 		newBDObj, err := bdClient.Get(newBDName, metav1.GetOptions{})
 		if err != nil {
@@ -285,9 +404,9 @@ func IsMoreThanOneDiskReplaced(newRG, oldRG *apis.RaidGroup) bool {
 
 // IsNewBDPresentOnCurrentCSPC returns true if the new/incoming BD that will be used for replacement
 // is already present in CSPC.
-func (bdr *BlockDeviceReplacement) IsNewBDPresentOnCurrentCSPC(newRG, oldRG *apis.RaidGroup) bool {
+func (pOps *PoolOperations) IsNewBDPresentOnCurrentCSPC(newRG, oldRG *apis.RaidGroup) bool {
 	newBDs := GetNewBDFromRaidGroups(newRG, oldRG)
-	for _, pool := range bdr.OldCSPC.Spec.Pools {
+	for _, pool := range pOps.OldCSPC.Spec.Pools {
 		for _, rg := range pool.RaidGroups {
 			for _, bd := range rg.BlockDevices {
 				if _, ok := newBDs[bd.BlockDeviceName]; ok {
@@ -300,9 +419,9 @@ func (bdr *BlockDeviceReplacement) IsNewBDPresentOnCurrentCSPC(newRG, oldRG *api
 }
 
 // IsExistingReplacmentInProgress returns true if a block device in raid group is under active replacement.
-func (bdr *BlockDeviceReplacement) IsExistingReplacmentInProgress(oldRG *apis.RaidGroup) (bool, error) {
+func (pOps *PoolOperations) IsExistingReplacmentInProgress(oldRG *apis.RaidGroup) (bool, error) {
 	for _, v := range oldRG.BlockDevices {
-		bdcObject, err := bdr.GetBDCOfBD(v.BlockDeviceName)
+		bdcObject, err := pOps.GetBDCOfBD(v.BlockDeviceName)
 		if err != nil {
 			return true, errors.Errorf("failed to query for any existing replacement in the raid group : %s", err.Error())
 		}
@@ -313,15 +432,16 @@ func (bdr *BlockDeviceReplacement) IsExistingReplacmentInProgress(oldRG *apis.Ra
 	return false, nil
 }
 
-// AreNewBDsValid returns true if the new BDs are valid BDs for replacement.
-func (bdr *BlockDeviceReplacement) AreNewBDsValid(newRG, oldRG *apis.RaidGroup, oldcspc *apis.CStorPoolCluster) bool {
+// AreReplacedBDsValid returns true if the new BDs are valid BDs for replacement.
+func (pOps *PoolOperations) AreReplacedBDsValid(newRG, oldRG *apis.RaidGroup, oldcspc *apis.CStorPoolCluster) bool {
 	newBDs := GetNewBDFromRaidGroups(newRG, oldRG)
 	for bd := range newBDs {
-		bdc, err := bdr.GetBDCOfBD(bd)
+		bdc, err := pOps.GetBDCOfBD(bd)
 		if err != nil {
+			klog.Errorf("failed to get claim of block device %s error: %v", bd, err)
 			return false
 		}
-		if !bdr.IsBDValid(bd, bdc, oldcspc) {
+		if !pOps.IsBDValid(bd, bdc, oldcspc) {
 			return false
 		}
 	}
@@ -329,11 +449,11 @@ func (bdr *BlockDeviceReplacement) AreNewBDsValid(newRG, oldRG *apis.RaidGroup, 
 }
 
 // IsBDValid returns true if the new BD is a valid BD for replacement.
-func (bdr *BlockDeviceReplacement) IsBDValid(bd string, bdc *bdc.BlockDeviceClaim, oldcspc *apis.CStorPoolCluster) bool {
+func (pOps *PoolOperations) IsBDValid(bd string, bdc *bdc.BlockDeviceClaim, oldcspc *apis.CStorPoolCluster) bool {
 	if bdc != nil && !bdc.HasLabel(string(apis.CStorPoolClusterCPK), oldcspc.Name) {
 		return false
 	}
-	predecessorMap, err := bdr.GetPredecessorBDIfAny(oldcspc)
+	predecessorMap, err := pOps.GetPredecessorBDIfAny(oldcspc)
 	if err != nil {
 		return false
 	}
@@ -352,12 +472,12 @@ func (bdr *BlockDeviceReplacement) IsBDValid(bd string, bdc *bdc.BlockDeviceClai
 // which has been changed to ( b3,b2 )  [Notice that b1 got replaced by b3],
 // now b1 is not present in CSPC but the replacement is still in progress in background.
 // In this case b1 is a predecessor BD.
-func (bdr *BlockDeviceReplacement) GetPredecessorBDIfAny(cspcOld *apis.CStorPoolCluster) (map[string]bool, error) {
+func (pOps *PoolOperations) GetPredecessorBDIfAny(cspcOld *apis.CStorPoolCluster) (map[string]bool, error) {
 	predecessorBDMap := make(map[string]bool)
 	for _, pool := range cspcOld.Spec.Pools {
 		for _, rg := range pool.RaidGroups {
 			for _, bd := range rg.BlockDevices {
-				bdc, err := bdr.GetBDCOfBD(bd.BlockDeviceName)
+				bdc, err := pOps.GetBDCOfBD(bd.BlockDeviceName)
 				if err != nil {
 					return nil, err
 				}
@@ -372,8 +492,8 @@ func (bdr *BlockDeviceReplacement) GetPredecessorBDIfAny(cspcOld *apis.CStorPool
 }
 
 // GetBDCOfBD returns the BDC object for corresponding BD.
-func (bdr *BlockDeviceReplacement) GetBDCOfBD(bdName string) (*bdc.BlockDeviceClaim, error) {
-	bdcList, err := bdc.NewKubeClient().WithNamespace(bdr.OldCSPC.Namespace).List(v1.ListOptions{})
+func (pOps *PoolOperations) GetBDCOfBD(bdName string) (*bdc.BlockDeviceClaim, error) {
+	bdcList, err := bdc.NewKubeClient().WithNamespace(pOps.OldCSPC.Namespace).List(v1.ListOptions{})
 	if err != nil {
 		return nil, errors.Errorf("failed to list bdc: %s", err.Error())
 	}
@@ -428,6 +548,12 @@ func ClaimBD(newBdObj *ndmapis.BlockDevice, oldBD string, cspcOld *apis.CStorPoo
 		if err != nil {
 			return errors.Wrapf(err, "failed to create block device claim for bd {%s}", newBdObj.Name)
 		}
+		klog.Infof(
+			"Replaced %s blockdevice with %s blockdevice hence created %s blockdeviceclaim",
+			oldBD,
+			newBdObj.Name,
+			newBDCObj.Object.Name,
+		)
 		return nil
 	} else if err != nil {
 		return errors.Wrapf(err, "failed to get block device claim for bd {%s}", newBdObj.Name)
@@ -442,6 +568,16 @@ func ClaimBD(newBdObj *ndmapis.BlockDevice, oldBD string, cspcOld *apis.CStorPoo
 
 	_, err = bdcClient.
 		Update(updatedBDCObj.Object)
+	if err == nil {
+		klog.Infof(
+			"Replaced %s blockdevice with %s blockdevice but blockdeviceclaim %s already "+
+				"exists hence updating %s annotation",
+			oldBD,
+			newBdObj.Name,
+			updatedBDCObj.Object.Name,
+			string(apis.PredecessorBDKey),
+		)
+	}
 	return err
 }
 

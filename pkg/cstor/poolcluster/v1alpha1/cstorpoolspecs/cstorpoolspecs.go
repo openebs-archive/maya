@@ -39,3 +39,15 @@ type PSList struct {
 func (c *PSList) Len() int {
 	return len(c.items)
 }
+
+// IsStripePoolSpec returns true if pool spec is stripe pool or else it will
+// return false
+func IsStripePoolSpec(poolSpec *apisv1alpha1.PoolSpec) bool {
+	if len(poolSpec.RaidGroups[0].Type) != 0 {
+		if apisv1alpha1.PoolType(poolSpec.RaidGroups[0].Type) == apisv1alpha1.PoolStriped {
+			return true
+		}
+		return false
+	}
+	return apisv1alpha1.PoolType(poolSpec.PoolConfig.DefaultRaidGroupType) == apisv1alpha1.PoolStriped
+}
