@@ -585,7 +585,7 @@ spec:
             - name: conf
               mountPath: /usr/local/etc/istgt
             - name: storagepath
-              mountPath: /var/openebs
+              mountPath: /var/openebs/cstor-target
             - name: tmp
               mountPath: /tmp
               mountPropagation: Bidirectional
@@ -656,7 +656,7 @@ spec:
             - name: conf
               mountPath: /usr/local/etc/istgt
             - name: storagepath
-              mountPath: /var/openebs
+              mountPath: /var/openebs/cstor-target
             - name: tmp
               mountPath: /tmp
               mountPropagation: Bidirectional
