@@ -319,6 +319,7 @@ func (pc *PoolConfig) deleteAssociatedCSPI() error {
 // BDC and CSPI resources in correct order and CSPC object itself.
 func (pc *PoolConfig) removeCSPCFinalizer() error {
 
+	// clean up all cspi related resources for given cspc
 	err := cleanupCSPIResources(pc.AlgorithmConfig.CSPC)
 	if err != nil {
 		klog.Errorf("Failed to cleanup CSPC api object %s: %s", pc.AlgorithmConfig.CSPC.Name, err.Error())

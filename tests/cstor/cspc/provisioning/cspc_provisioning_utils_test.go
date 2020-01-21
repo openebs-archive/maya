@@ -109,7 +109,8 @@ func getLabelSelector(cspc *apis.CStorPoolCluster) string {
 
 func downScaleCSPCObject() {
 	// getting the object to avoid update failure
-	cspcObj, err := ops.CSPCClient.WithNamespace(cspcObj.Namespace).
+	var err error
+	cspcObj, err = ops.CSPCClient.WithNamespace(cspcObj.Namespace).
 		Get(cspcObj.Name, metav1.GetOptions{})
 	Expect(err).To(BeNil())
 	// downsclaing cspc by 1

@@ -43,6 +43,8 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 		cspiItem := cspiItem // pin it
 		cspiObj := &cspiItem
 		if cspiObj.DeletionTimestamp != nil {
+			// if PoolProtectionFinalizer is not removed wait for the next reconcile
+			// attempt to perform cleanup
 			if canPerformCSPICleanup(cspiObj) {
 				for _, o := range opts {
 					err = o(cspiObj)
@@ -57,6 +59,8 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 				}
 				klog.Infof("cleanup for cspi %s was successful", cspiItem.Name)
 			} else {
+				// returning error helps prevent removal of finalizer on cspc object
+				// cspc object should not get deleted before all cspi are deleted successfully
 				return errors.Errorf("failed to cleanup cspi %s for cspc %s : waiting for pool to get destroyed",
 					cspiItem.Name, cspcObj.Name)
 			}
