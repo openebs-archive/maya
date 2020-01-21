@@ -236,7 +236,7 @@ func validateRaidGroupChanges(oldRg, newRg *apis.RaidGroup) error {
 
 func (pOps *PoolOperations) validatePoolExpansion(
 	newPoolSpec *apis.PoolSpec, commonRaidGroups *raidGroups) error {
-	bds := []string{}
+	var bds []string
 	// Multiple raidGroups doesn't exist for stripe pool spec
 	if poolspec.IsStripePoolSpec(newPoolSpec) {
 		bds = getNewBDsFromStripeSpec(commonRaidGroups.oldRaidGroups[0],
@@ -262,11 +262,13 @@ func (pOps *PoolOperations) ArePoolSpecChangesValid(oldPoolSpec, newPoolSpec *ap
 		return false, fmt.Sprintf("raid group validation failed: %v", err)
 	}
 	for _, oldRg := range commonRaidGroups.oldRaidGroups {
+		oldRg := oldRg
 		if oldRg.Type == "" {
 			oldRg.Type = oldPoolSpec.PoolConfig.DefaultRaidGroupType
 		}
 		for _, newRg := range commonRaidGroups.newRaidGroups {
-			if err := validateRaidGroupChanges(&oldRg, &newRg); err != nil {
+			newRg := newRg
+			if err = validateRaidGroupChanges(&oldRg, &newRg); err != nil {
 				return false, fmt.Sprintf("raid group validation failed: %v", err)
 			}
 			if IsBlockDeviceReplacementCase(&oldRg, &newRg) {

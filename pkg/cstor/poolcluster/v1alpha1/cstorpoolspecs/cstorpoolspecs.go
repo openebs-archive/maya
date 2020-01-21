@@ -44,10 +44,7 @@ func (c *PSList) Len() int {
 // return false
 func IsStripePoolSpec(poolSpec *apisv1alpha1.PoolSpec) bool {
 	if len(poolSpec.RaidGroups[0].Type) != 0 {
-		if apisv1alpha1.PoolType(poolSpec.RaidGroups[0].Type) == apisv1alpha1.PoolStriped {
-			return true
-		}
-		return false
+		return apisv1alpha1.PoolType(poolSpec.RaidGroups[0].Type) == apisv1alpha1.PoolStriped
 	}
 	return apisv1alpha1.PoolType(poolSpec.PoolConfig.DefaultRaidGroupType) == apisv1alpha1.PoolStriped
 }
