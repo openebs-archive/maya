@@ -53,6 +53,16 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 		return nil
 	}
 
+	err = c.addFinalizer(cspi)
+	if err != nil {
+		common.SyncResources.Mux.Unlock()
+		c.recorder.Event(cspi,
+			corev1.EventTypeWarning,
+			fmt.Sprintf("Failed to add %s finalizer.", apiscspc.PoolProtectionFinalizer),
+			err.Error())
+		return nil
+	}
+
 	if IsDestroyed(cspi) {
 		return c.destroy(cspi)
 	}
@@ -252,6 +262,26 @@ func (c *CStorPoolInstanceController) removeFinalizer(cspi *apis.CStorPoolInstan
 		return err
 	}
 	klog.Infof("Removed Finalizer: %v, %v",
+		cspi.Name,
+		string(cspi.GetUID()))
+	return nil
+}
+
+// addFinalizer is to add finalizer of cstorpoolinstance resource.
+func (c *CStorPoolInstanceController) addFinalizer(cspi *apis.CStorPoolInstance) error {
+	// is CSPI is deleted or the finalizer is already present skip this step
+	if IsDestroyed(cspi) || util.ContainsString(cspi.Finalizers, apiscspc.PoolProtectionFinalizer) {
+		return nil
+	}
+	cspi.Finalizers = append(cspi.Finalizers, apiscspc.PoolProtectionFinalizer)
+	_, err := c.clientset.
+		OpenebsV1alpha1().
+		CStorPoolInstances(cspi.Namespace).
+		Update(cspi)
+	if err != nil {
+		return err
+	}
+	klog.Infof("Added Finalizer: %v, %v",
 		cspi.Name,
 		string(cspi.GetUID()))
 	return nil

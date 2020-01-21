@@ -36,24 +36,29 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 		},
 	)
 	if err != nil {
-		klog.Errorf("failed to list cspi for cspc %s to perform cleanup: %s", cspcObj.Name, err.Error())
-		return nil
+		return errors.Errorf("failed to list cspi for cspc %s to perform cleanup: %s", cspcObj.Name, err.Error())
 	}
 	opts := []cspiCleanupOptions{cleanupBDC}
 	for _, cspiItem := range cspiList.Items {
 		cspiItem := cspiItem // pin it
 		cspiObj := &cspiItem
-		if cspiObj.DeletionTimestamp != nil && canPerformCSPICleanup(cspiObj) {
-			for _, o := range opts {
-				err = o(cspiObj)
-				if err != nil {
-					return errors.Wrapf(err, "failed to cleanup cspi %s for cspc %s", cspiItem.Name, cspcObj.Name)
+		if cspiObj.DeletionTimestamp != nil {
+			if canPerformCSPICleanup(cspiObj) {
+				for _, o := range opts {
+					err = o(cspiObj)
+					if err != nil {
+						return errors.Wrapf(err, "failed to cleanup cspi %s for cspc %s", cspiItem.Name, cspcObj.Name)
+					}
 				}
-			}
-			cspiObj.Finalizers = util.RemoveString(cspiObj.Finalizers, apiscspc.CSPCFinalizer)
-			_, err = cspi.NewKubeClient().WithNamespace(cspiItem.Namespace).Update(cspiObj)
-			if err != nil {
-				return errors.Wrapf(err, "failed to remove finalizer from cspi %s", cspiItem.Name)
+				cspiObj.Finalizers = util.RemoveString(cspiObj.Finalizers, apiscspc.CSPCFinalizer)
+				_, err = cspi.NewKubeClient().WithNamespace(cspiItem.Namespace).Update(cspiObj)
+				if err != nil {
+					return errors.Wrapf(err, "failed to remove finalizer from cspi %s", cspiItem.Name)
+				}
+				klog.Infof("cleanup for cspi %s was successful", cspiItem.Name)
+			} else {
+				return errors.Errorf("failed to cleanup cspi %s for cspc %s : waiting for pool to get destroyed",
+					cspiItem.Name, cspcObj.Name)
 			}
 		}
 	}
