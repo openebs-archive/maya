@@ -17,12 +17,15 @@ limitations under the License.
 package volume
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
+	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	"github.com/openebs/maya/pkg/debug"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	"github.com/openebs/maya/tests"
@@ -52,7 +55,6 @@ var _ = Describe("[Cstor Volume Provisioning Negative] Volume Provisioning", fun
 			By("Creating SPC, Desired Number of CSP Should Be Created", func() {
 				ops.VerifyDesiredCSPCount(spcObj, cstor.PoolCount)
 			})
-			By("Build And Create StorageClass", buildAndCreateSC)
 		})
 	})
 	When("Service is Applied", func() {
@@ -100,8 +102,18 @@ var _ = Describe("[Cstor Volume Provisioning Negative] Volume Provisioning", fun
 		})
 	})
 
-	When("PersistentVolumeClaim Is Created", func() {
-		It("Volume Should be Created and Provisioned", func() {
+	When("Volume provisioning with create/update error injection", func() {
+		cvrPred, cvPred := cvr.PredicateList{}, cv.PredicateList{}
+		if cstor.ReplicaCount > 1 {
+			cvrPred = append(cvrPred, cvr.IsHealthy())
+			cvPred = append(cvPred, cv.IsHealthy())
+		}
+
+		BeforeEach(func() {
+			By("Provisioning a volume")
+
+			By("Build And Create StorageClass", buildAndCreateSC)
+
 			// Populate PVC configurations
 			pvcConfig := &tests.PVCConfig{
 				Name:        pvcName,
@@ -121,10 +133,20 @@ var _ = Describe("[Cstor Volume Provisioning Negative] Volume Provisioning", fun
 			Expect(err).To(BeNil())
 
 			pvcObj = ops.BuildAndCreatePVC()
+			By(fmt.Sprintf("Creating a PVC count %d", cstor.ReplicaCount))
 			// n-1 Replicas should be Healthy
-			By("Creating PVC, Desired Number of CVR Should Be Created", func() {
-				ops.VerifyVolumeStatus(pvcObj, cstor.ReplicaCount-1)
-			})
+			cvrCount := cstor.ReplicaCount - 1
+			if cstor.ReplicaCount == 1 {
+				// Since replica count is 1 then we can check for 1 CVR only
+				// and that won't be in healthy state
+				cvrCount = 1
+			}
+			By("Creating PVC, Desired Number of CVR Should Be Created")
+			ops.VerifyVolumeStatus(pvcObj,
+				cvrCount,
+				cvrPred,
+				cvPred,
+			)
 
 			// GetLatest PVC object
 			pvcObj, err = ops.PVCClient.
@@ -132,41 +154,56 @@ var _ = Describe("[Cstor Volume Provisioning Negative] Volume Provisioning", fun
 				Get(pvcObj.Name, metav1.GetOptions{})
 			Expect(err).To(BeNil())
 		})
-	})
 
-	When("PVC Created During Error Injection", func() {
 		It("All Volume Replicas Should Not Be Healthy", func() {
-			By("Verify Volume Status after Injecting Errors", func() {
-				command := "zfs get guid | grep " + pvcObj.Spec.VolumeName + " | awk '{print $3}'"
-				_ = ops.ExecuteCMDEventually(
-					&poolPodList.Items[0],
-					"cstor-pool-mgmt", command, false)
+			command := "zfs get guid | grep " + pvcObj.Spec.VolumeName + " | awk '{print $3}'"
+			_ = ops.ExecuteCMDEventually(
+				&poolPodList.Items[0],
+				"cstor-pool-mgmt", command, false)
 
-				// Eject the ZFSCreate error
-				injectError := debug.NewClient(hostIPPort)
-				err := injectError.PostInject(
-					debug.NewErrorInjection().
-						WithZFSCreateError(debug.Eject).
-						WithCVRUpdateError(debug.Inject))
-				Expect(err).To(BeNil())
+			// Eject the ZFSCreate error
+			injectError := debug.NewClient(hostIPPort)
+			err := injectError.PostInject(
+				debug.NewErrorInjection().
+					WithZFSCreateError(debug.Eject).
+					WithCVRUpdateError(debug.Inject))
+			Expect(err).To(BeNil())
 
-				//After ejecting the ZFS Create volume dataset should be created
-				zvolGUID := ops.ExecuteCMDEventually(
-					&poolPodList.Items[0],
-					"cstor-pool-mgmt", command, true)
-				Expect(zvolGUID).NotTo(BeEmpty())
-				// CVR Update will error due to error injection. So replica count
-				// should be n-1
-				ops.VerifyVolumeStatus(pvcObj, cstor.ReplicaCount-1)
+			//After ejecting the ZFS Create volume dataset should be created
+			zvolGUID := ops.ExecuteCMDEventually(
+				&poolPodList.Items[0],
+				"cstor-pool-mgmt", command, true)
+			Expect(zvolGUID).NotTo(BeEmpty())
+			// CVR Update will error due to error injection. So replica count
+			// should be n-1
+			By("Checking replica count after error injection")
+			cvrCount := cstor.ReplicaCount - 1
+			if cstor.ReplicaCount == 1 {
+				// Since replica count is 1 then we can check for 1 CVR only
+				// and that won't be in healthy state
+				cvrCount = 1
+			}
+			ops.VerifyVolumeStatus(pvcObj, cvrCount, cvrPred, cvPred)
 
-				//Eject CVRUpdate error then CVR should become Healthy
-				err = injectError.PostInject(
-					debug.NewErrorInjection().
-						WithCVRUpdateError(debug.Eject))
-				Expect(err).To(BeNil())
+			//Eject CVRUpdate error then CVR should become Healthy
+			err = injectError.PostInject(
+				debug.NewErrorInjection().
+					WithCVRUpdateError(debug.Eject))
+			Expect(err).To(BeNil())
 
-				ops.VerifyVolumeStatus(pvcObj, cstor.ReplicaCount)
-			})
+			By("Checking replica count after error ejection")
+			ops.VerifyVolumeStatus(pvcObj, cstor.ReplicaCount, cvrPred, cvPred)
+		})
+
+		It("CVR deletion in case of error injection", func() {
+			By("Checking replica count")
+			// check for CVR and CV count
+			ops.VerifyVolumeStatus(pvcObj, cstor.ReplicaCount, cvr.PredicateList{}, cv.PredicateList{})
+		})
+
+		AfterEach(func() {
+			By("Deleting a volume")
+			ops.DeleteVolumeResources(pvcObj, scObj)
 		})
 	})
 
@@ -174,9 +211,6 @@ var _ = Describe("[Cstor Volume Provisioning Negative] Volume Provisioning", fun
 		It("Should Delete All The Resources Related To Test", func() {
 			err := ops.SVCClient.Delete(serviceObj.Name, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil())
-			By("Delete persistentVolumeClaim then volume resources should be deleted", func() {
-				ops.DeleteVolumeResources(pvcObj, scObj)
-			})
 			By("Delete StoragePoolClaim then pool related resources should be deleted", func() {
 				ops.DeleteStoragePoolClaim(spcObj.Name)
 			})

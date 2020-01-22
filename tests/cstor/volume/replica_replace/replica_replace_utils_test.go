@@ -109,7 +109,7 @@ func deleteZFSDataSets() {
 
 	// Make Sure data sets are deleted ( we can get it by checking the phase of
 	// cvr)
-	isExpectedCVRCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, volumeLabel, ReplicaCount-FailureReplicaCount)
+	isExpectedCVRCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, volumeLabel, ReplicaCount-FailureReplicaCount, cvr.IsHealthy())
 	Expect(isExpectedCVRCount).To(Equal(true), "while checking cstorvolume replica count after deleting volume datasets")
 }
 

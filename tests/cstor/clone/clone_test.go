@@ -31,6 +31,7 @@ import (
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/openebs/maya/tests/cstor"
 
+	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -138,7 +139,7 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 				nsObj.Name,
 			)
 			cvrLabel := pvLabel + pvcObj.Spec.VolumeName
-			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, cstor.ReplicaCount)
+			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, cstor.ReplicaCount, cvr.IsHealthy())
 			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
 
 			By("verifying pvc status as bound")

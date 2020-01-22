@@ -20,6 +20,8 @@ package replicareplace
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
+	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	"github.com/openebs/maya/tests"
 	"github.com/openebs/maya/tests/cstor"
 
@@ -61,7 +63,11 @@ var _ = Describe("[REPLICA REPLACE] CSTOR REPLICA REPLACE", func() {
 			ops.Config = pvcConfig
 			pvcObj = ops.BuildAndCreatePVC()
 			By("Creating PVC, Desired Number of CVR Should Be Created", func() {
-				ops.VerifyVolumeStatus(pvcObj, cstor.ReplicaCount)
+				ops.VerifyVolumeStatus(pvcObj,
+					cstor.ReplicaCount,
+					cvr.PredicateList{cvr.IsHealthy()},
+					cv.PredicateList{cv.IsHealthy()},
+				)
 			})
 			// GetLatest PVC object
 			var err error
@@ -77,7 +83,11 @@ var _ = Describe("[REPLICA REPLACE] CSTOR REPLICA REPLACE", func() {
 			By("Update CStorVolume Configurations to Start Rebuild", updateCVConfigurationsAndVerifyStatus)
 			By("Restart CStor-Pool-Mgmt Container Pods Doesn't Have Volume DataSets", restartPoolPods)
 			By("Verify Volume Status after Performing Replica Replace", func() {
-				ops.VerifyVolumeStatus(pvcObj, cstor.ReplicaCount)
+				ops.VerifyVolumeStatus(pvcObj,
+					cstor.ReplicaCount,
+					cvr.PredicateList{cvr.IsHealthy()},
+					cv.PredicateList{cv.IsHealthy()},
+				)
 			})
 			By("Verify Volume configurations from cstor volume", verifyCVConfigForReplicaReplaceEventually)
 		})
@@ -88,7 +98,11 @@ var _ = Describe("[REPLICA REPLACE] CSTOR REPLICA REPLACE", func() {
 			By("Build And Create CstorVolumeReplica then Delete Which Has To Migrate Replica", migrateReplica)
 			By("Verify Volume configurations from cstorvolume", verifyCVConfigForReplicaMigrationEventually)
 			By("Verify Volume Status after Performing Replica Movement", func() {
-				ops.VerifyVolumeStatus(pvcObj, cstor.ReplicaCount)
+				ops.VerifyVolumeStatus(pvcObj,
+					cstor.ReplicaCount,
+					cvr.PredicateList{cvr.IsHealthy()},
+					cv.PredicateList{cv.IsHealthy()},
+				)
 			})
 		})
 	})
