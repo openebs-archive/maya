@@ -90,6 +90,13 @@ func (l predicateList) all(c *SPC) bool {
 	return true
 }
 
+// IsOverProvisioningEnabled returns OverProvisioning truth value.
+func IsOverProvisioningEnabled() Predicate {
+	return func(spc *SPC) bool {
+		return spc.Object.Spec.PoolSpec.OverProvisioning
+	}
+}
+
 // HasAnnotation returns true if provided annotation key and value are present in the provided spc instance.
 func HasAnnotation(key, value string) Predicate {
 	return func(c *SPC) bool {

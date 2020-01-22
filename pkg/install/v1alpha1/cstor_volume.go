@@ -262,6 +262,8 @@ spec:
     {{- $poolsList | keyMap "cvolPoolList" .ListItems | noop -}}
     {{- $poolsNodeList := jsonpath .JsonResult "{range .items[*]}pkey=pools,{@.metadata.uid}={@.metadata.labels.kubernetes\\.io/hostname};{end}" | trim | default "" | splitList ";" -}}
     {{- $poolsNodeList | keyMap "cvolPoolNodeList" .ListItems | noop -}}
+    {{- $poolsCapList := jsonpath .JsonResult "{range .items[*]}pkey=poolsCapacity,{@.metadata.uid}={@.status.capacity.total};{end}" | trim | default "" | splitList ";" -}}
+    {{- $poolsCapList | keyMap "cvolPoolCapList" .ListItems | noop -}}
     {{- end }}
 ---
 #runTask to get storageclass info
@@ -690,13 +692,17 @@ spec:
     Add as many poolUid to resources as there is replica count
     */}}
     {{- $hostName := .TaskResult.creategetpvc.hostName -}}
+    {{- $capacity := .Volume.capacity -}}
+    {{- $spc := .Config.StoragePoolClaim.value }}
     {{- $replicaAntiAffinity := .TaskResult.creategetpvc.replicaAntiAffinity }}
     {{- $preferredReplicaAntiAffinity := .TaskResult.creategetpvc.preferredReplicaAntiAffinity }}
     {{- $antiAffinityLabelSelector := printf "openebs.io/replica-anti-affinity=%s" $replicaAntiAffinity | IfNotNil $replicaAntiAffinity }}
     {{- $preferredAntiAffinityLabelSelector := printf "openebs.io/preferred-replica-anti-affinity=%s" $preferredReplicaAntiAffinity | IfNotNil $preferredReplicaAntiAffinity }}
     {{- $preferedScheduleOnHostAnnotationSelector := printf "volume.kubernetes.io/selected-node=%s" $hostName | IfNotNil $hostName }}
-    {{- $selectionPolicies := cspGetPolicies $antiAffinityLabelSelector $preferredAntiAffinityLabelSelector $preferedScheduleOnHostAnnotationSelector }}
-    {{- $pools :=  createCSPListFromUIDNodeMap (getMapofString .ListItems.cvolPoolNodeList "pools") }}
+    {{- $volumeCapacity := printf "volume.kubernetes.io/capacity=%s" $capacity | IfNotNil $capacity }}
+    {{- $spcName := printf "openebs.io/storage-pool-claim=%s" $spc | IfNotNil $spc }}
+    {{- $selectionPolicies := cspGetPolicies $antiAffinityLabelSelector $preferredAntiAffinityLabelSelector $preferedScheduleOnHostAnnotationSelector $volumeCapacity $spcName }}
+    {{- $pools :=  createCSPListFromUIDNodeMap (getMapofString .ListItems.cvolPoolNodeList "pools") (getMapofString .ListItems.cvolPoolCapList "poolsCapacity") }}
     {{- $poolUids := cspFilterPoolIDs $pools $selectionPolicies | randomize }}
     {{- $replicaCount := .Config.ReplicaCount.value | int64 -}}
     {{- if lt (len $poolUids) $replicaCount -}}
