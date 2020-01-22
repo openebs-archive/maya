@@ -165,7 +165,7 @@ func (p scheduleWithOverProvisioningAwareness) filter(pools *csp.CSPList) (*csp.
 		if pool.HasSpace(p.totalCapacity, volCap) {
 			filteredPools.Items = append(filteredPools.Items, pool)
 		} else {
-			klog.V(2).Infof("Can't select CSP with UID %q: Required space not available: Policy %s", pool.Object.UID, overProvisioningPolicy)
+			klog.Infof("Can't select CSP with UID %q: Required space not available: Policy %s", pool.Object.UID, overProvisioningPolicy)
 		}
 	}
 	return filteredPools, nil
