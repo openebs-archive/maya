@@ -637,10 +637,10 @@ func TestGetPolicies(t *testing.T) {
 		selectors            []string
 		expectedBuildoptions []buildOption
 	}{
-		"Test 1": {selectors: []string{}, expectedBuildoptions: []buildOption{CapacityAwareScheduling()}},
-		"Test 2": {selectors: []string{fakeAntiAffinitySelector}, expectedBuildoptions: []buildOption{AntiAffinityLabel(fakeAntiAffinitySelector), CapacityAwareScheduling()}},
-		"Test 3": {selectors: []string{fakePreferAntiAffinitySelector}, expectedBuildoptions: []buildOption{PreferAntiAffinityLabel(fakePreferAntiAffinitySelector), CapacityAwareScheduling()}},
-		"Test 4": {selectors: []string{fakePreferScheduleOnHostSelector}, expectedBuildoptions: []buildOption{PreferScheduleOnHostAnnotation(fakePreferScheduleOnHostSelector), CapacityAwareScheduling()}},
+		"Test 1": {selectors: []string{}, expectedBuildoptions: []buildOption{CapacityAwareProvisioning()}},
+		"Test 2": {selectors: []string{fakeAntiAffinitySelector}, expectedBuildoptions: []buildOption{AntiAffinityLabel(fakeAntiAffinitySelector), CapacityAwareProvisioning()}},
+		"Test 3": {selectors: []string{fakePreferAntiAffinitySelector}, expectedBuildoptions: []buildOption{PreferAntiAffinityLabel(fakePreferAntiAffinitySelector), CapacityAwareProvisioning()}},
+		"Test 4": {selectors: []string{fakePreferScheduleOnHostSelector}, expectedBuildoptions: []buildOption{PreferScheduleOnHostAnnotation(fakePreferScheduleOnHostSelector), CapacityAwareProvisioning()}},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

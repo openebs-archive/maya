@@ -554,9 +554,9 @@ func PreferScheduleOnHostAnnotation(hostNameAnnotation string) buildOption {
 	}
 }
 
-// CapacityAwareScheduling adds scheduleWithOverProvisioningAwareness as a policy
+// CapacityAwareProvisioning adds scheduleWithOverProvisioningAwareness as a policy
 // to be used during pool selection.
-func CapacityAwareScheduling(values ...string) buildOption {
+func CapacityAwareProvisioning(values ...string) buildOption {
 	return func(s *selection) {
 		var err error
 		overProvisioningPolicy := &scheduleWithOverProvisioningAwareness{}
@@ -635,7 +635,7 @@ func GetPolicies(values ...string) []buildOption {
 			opts = append(opts, AntiAffinityLabel(val))
 		}
 	}
-	opts = append(opts, CapacityAwareScheduling(values...))
+	opts = append(opts, CapacityAwareProvisioning(values...))
 	return opts
 }
 
@@ -703,11 +703,11 @@ func FilterPoolIDs(entries *csp.CSPList, opts []buildOption) ([]string, error) {
 // go template functions
 func TemplateFunctions() template.FuncMap {
 	return template.FuncMap{
-		"cspGetPolicies":          GetPolicies,
-		"cspFilterPoolIDs":        FilterPoolIDs,
-		"cspAntiAffinity":         AntiAffinityLabel,
-		"cspPreferAntiAffinity":   PreferAntiAffinityLabel,
-		"preferScheduleOnHost":    PreferScheduleOnHostAnnotation,
-		"capacityAwareScheduling": CapacityAwareScheduling,
+		"cspGetPolicies":            GetPolicies,
+		"cspFilterPoolIDs":          FilterPoolIDs,
+		"cspAntiAffinity":           AntiAffinityLabel,
+		"cspPreferAntiAffinity":     PreferAntiAffinityLabel,
+		"preferScheduleOnHost":      PreferScheduleOnHostAnnotation,
+		"capacityAwareProvisioning": CapacityAwareProvisioning,
 	}
 }
