@@ -59,6 +59,8 @@ type CStorVolumeClaimSpec struct {
 	// CstorVolumeSource contains the source volumeName@snapShotname
 	// combaination.  This will be filled only if it is a clone creation.
 	CstorVolumeSource string `json:"cstorVolumeSource,omitempty"`
+	// Policy contains volume specific required policies target and replicas
+	Policy CStorVolumePolicySpec `json:"policy"`
 }
 
 // CStorVolumeClaimPublish contains info related to attachment of a volume to a node.
@@ -83,6 +85,11 @@ const (
 	//CStorVolumeClaimPhaseFailed indiacates that the cstorvolume provisioning
 	//has failed
 	CStorVolumeClaimPhaseFailed CStorVolumeClaimPhase = "Failed"
+
+	//CStorVolumeClaimPhaseReconcile indicates that the changes currently
+	//reconclied based on the cstor volume policy changes to achieve the desired
+	//state
+	CStorVolumeClaimPhaseReconcile CStorVolumeClaimPhase = "Reconile"
 )
 
 // CStorVolumeClaimStatus is for handling status of CstorVolume Claim.

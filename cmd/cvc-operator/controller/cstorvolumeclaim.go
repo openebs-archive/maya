@@ -319,7 +319,7 @@ func getOrCreateCStorVolumeResource(
 // distributeCVRs create cstorvolume replica based on the replicaCount
 // on the available cstor pools created for storagepoolclaim.
 // if pools are less then desired replicaCount its return an error.
-func distributeCVRs(
+func (c *CVCController) distributeCVRs(
 	pendingReplicaCount int,
 	claim *apis.CStorVolumeClaim,
 	service *corev1.Service,
@@ -350,8 +350,15 @@ func distributeCVRs(
 	} else {
 		usablePoolList = getUsablePoolList(volume.Name, poolList)
 	}
+
 	// randomizePoolList to get the pool list in random order
 	usablePoolList = randomizePoolList(usablePoolList)
+
+	// prioritized pool instances matched to the given
+	// nodeName in case of replica affinity is enabled via cstor volume policy
+	if c.isReplicaAffinityEnabled(claim) {
+		usablePoolList = prioritizedPoolList(claim.Publish.NodeID, usablePoolList)
+	}
 	for count, pool := range usablePoolList.Items {
 		pool := pool
 		if count < pendingReplicaCount {
@@ -510,6 +517,19 @@ func getUsablePoolListForClone(pvName, srcPVName string, poolList *apis.CStorPoo
 		}
 	}
 	return usablePoolList
+}
+
+// prioritizedPoolList prioritized pool instance name matched to the given
+// nodeName in case of replica affinity is enabled via volume policy
+func prioritizedPoolList(nodeName string, list *apis.CStorPoolInstanceList) *apis.CStorPoolInstanceList {
+	for i, pool := range list.Items {
+		if pool.Spec.HostName != nodeName {
+			continue
+		}
+		list.Items[0], list.Items[i] = list.Items[i], list.Items[0]
+		break
+	}
+	return list
 }
 
 // randomizePoolList returns randomized pool list

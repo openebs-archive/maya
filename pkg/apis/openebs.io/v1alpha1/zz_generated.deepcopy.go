@@ -1007,6 +1007,7 @@ func (in *CStorVolumeClaimSpec) DeepCopyInto(out *CStorVolumeClaimSpec) {
 		*out = new(v1.ObjectReference)
 		**out = **in
 	}
+	in.Policy.DeepCopyInto(&out.Policy)
 	return
 }
 
