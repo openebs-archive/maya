@@ -281,7 +281,7 @@ spec:
             - name: device
               mountPath: /dev
             - name: storagepath
-              mountPath: /var/openebs
+              mountPath: /var/openebs/cstor-pool
             - name: tmp
               mountPath: /tmp
             - name: sparse
@@ -321,7 +321,7 @@ spec:
             - name: tmp
               mountPath: /tmp
             - name: storagepath
-              mountPath: /var/openebs
+              mountPath: /var/openebs/cstor-pool
             - name: sparse
               mountPath: {{ .Config.SparseDir.value }}
             - name: udev
@@ -370,7 +370,7 @@ spec:
             - name: tmp
               mountPath: /tmp
             - name: storagepath
-              mountPath: /var/openebs
+              mountPath: /var/openebs/cstor-pool
             - mountPath: {{ .Config.SparseDir.value }}
               name: sparse
             - mountPath: /run/udev
