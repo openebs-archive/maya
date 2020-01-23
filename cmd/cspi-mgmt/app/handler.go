@@ -129,6 +129,10 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 func (c *CStorPoolInstanceController) destroy(cspi *apis.CStorPoolInstance) error {
 	var phase apis.CStorPoolPhase
 
+	if !util.ContainsString(cspi.Finalizers, apiscspc.PoolProtectionFinalizer) {
+		return nil
+	}
+
 	// DeletePool is to delete cstor zpool.
 	// It will also clear the label for relevant disk
 	err := zpool.Delete(cspi)

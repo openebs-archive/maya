@@ -38,13 +38,14 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 	if err != nil {
 		return errors.Errorf("failed to list cspi for cspc %s to perform cleanup: %s", cspcObj.Name, err.Error())
 	}
-	opts := []cspiCleanupOptions{cleanupBDC}
+	opts := []cspiCleanupOptions{
+		cleanupBDC,
+	}
 	for _, cspiItem := range cspiList.Items {
-		cspiItem := cspiItem // pin it
-		cspiObj := &cspiItem
+		cspiObj := cspiItem // pin it
 		// cleanup to be performed only if DeletionTimestamp is non zero and if
 		// PoolProtectionFinalizer is not removed wait for the next reconcile attempt
-		if canPerformCSPICleanup(cspiObj) {
+		if canPerformCSPICleanup(cspiItem) {
 			for _, o := range opts {
 				err = o(cspiObj)
 				if err != nil {
@@ -52,16 +53,19 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 				}
 			}
 			cspiObj.Finalizers = util.RemoveString(cspiObj.Finalizers, apiscspc.CSPCFinalizer)
-			_, err = cspi.NewKubeClient().WithNamespace(cspiItem.Namespace).Update(cspiObj)
+			_, err = cspi.NewKubeClient().WithNamespace(cspiItem.Namespace).Update(&cspiObj)
 			if err != nil {
 				return errors.Wrapf(err, "failed to remove finalizer from cspi %s", cspiItem.Name)
 			}
 			klog.Infof("cleanup for cspi %s was successful", cspiItem.Name)
 		} else {
-			// returning error helps prevent removal of finalizer on cspc object
-			// cspc object should not get deleted before all cspi are deleted successfully
-			return errors.Errorf("failed to cleanup cspi %s for cspc %s : waiting for pool to get destroyed",
-				cspiItem.Name, cspcObj.Name)
+			if isDestroyed(cspiItem) {
+				// if cspi has DeletionTimestamp but the PoolProtectionFinalizer is present
+				// returning error helps prevent removal of finalizer on cspc object
+				// cspc object should not get deleted before all cspi are deleted successfully
+				return errors.Errorf("failed to cleanup cspi %s for cspc %s : waiting for pool to get destroyed",
+					cspiItem.Name, cspcObj.Name)
+			}
 		}
 	}
 	return nil
@@ -69,7 +73,7 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 
 // canPerformCSPICleanup performs the validation if the cleanup for the
 // CSPI can begin
-func canPerformCSPICleanup(cspiObj *apis.CStorPoolInstance) bool {
+func canPerformCSPICleanup(cspiObj apis.CStorPoolInstance) bool {
 	predicates := []cspiCleanupPredicates{
 		isDestroyed,
 		hasCSPCFinalizer,
@@ -83,30 +87,30 @@ func canPerformCSPICleanup(cspiObj *apis.CStorPoolInstance) bool {
 	return true
 }
 
-type cspiCleanupPredicates func(*apis.CStorPoolInstance) bool
+type cspiCleanupPredicates func(apis.CStorPoolInstance) bool
 
 // isDestroyed is to check if the call is for cStorPoolInstance destroy.
-func isDestroyed(cspiObj *apis.CStorPoolInstance) bool {
+func isDestroyed(cspiObj apis.CStorPoolInstance) bool {
 	return !cspiObj.DeletionTimestamp.IsZero()
 }
 
 // hasCSPCFinalizer is a predicate which checks whether the CSPC
 // finalizer is presemt on the CSPI or not
-func hasCSPCFinalizer(cspiObj *apis.CStorPoolInstance) bool {
+func hasCSPCFinalizer(cspiObj apis.CStorPoolInstance) bool {
 	return util.ContainsString(cspiObj.Finalizers, apiscspc.CSPCFinalizer)
 }
 
 // hasNoPoolProtectionFinalizer is a predicate which checks whether the pool
 // protection finalizer is removed or not. The pool protection finalizer is
 // used to make sure that the pool is destroyed before BDCs are deleted.
-func hasNoPoolProtectionFinalizer(cspiObj *apis.CStorPoolInstance) bool {
+func hasNoPoolProtectionFinalizer(cspiObj apis.CStorPoolInstance) bool {
 	return !util.ContainsString(cspiObj.Finalizers, apiscspc.PoolProtectionFinalizer)
 }
 
-type cspiCleanupOptions func(*apis.CStorPoolInstance) error
+type cspiCleanupOptions func(apis.CStorPoolInstance) error
 
 // cleanupBDC deletes the BDCs for the CSPI which has been deleted or downscaled
-func cleanupBDC(cspiObj *apis.CStorPoolInstance) error {
+func cleanupBDC(cspiObj apis.CStorPoolInstance) error {
 	bdcList, err := bdc.NewKubeClient().WithNamespace(cspiObj.Namespace).List(
 		metav1.ListOptions{
 			LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + cspiObj.Labels[string(apis.CStorPoolClusterCPK)],
