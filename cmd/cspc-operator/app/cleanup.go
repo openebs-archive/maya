@@ -42,28 +42,26 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 	for _, cspiItem := range cspiList.Items {
 		cspiItem := cspiItem // pin it
 		cspiObj := &cspiItem
-		if cspiObj.DeletionTimestamp != nil {
-			// if PoolProtectionFinalizer is not removed wait for the next reconcile
-			// attempt to perform cleanup
-			if canPerformCSPICleanup(cspiObj) {
-				for _, o := range opts {
-					err = o(cspiObj)
-					if err != nil {
-						return errors.Wrapf(err, "failed to cleanup cspi %s for cspc %s", cspiItem.Name, cspcObj.Name)
-					}
-				}
-				cspiObj.Finalizers = util.RemoveString(cspiObj.Finalizers, apiscspc.CSPCFinalizer)
-				_, err = cspi.NewKubeClient().WithNamespace(cspiItem.Namespace).Update(cspiObj)
+		// cleanup to be performed only if DeletionTimestamp is non zero and if
+		// PoolProtectionFinalizer is not removed wait for the next reconcile attempt
+		if canPerformCSPICleanup(cspiObj) {
+			for _, o := range opts {
+				err = o(cspiObj)
 				if err != nil {
-					return errors.Wrapf(err, "failed to remove finalizer from cspi %s", cspiItem.Name)
+					return errors.Wrapf(err, "failed to cleanup cspi %s for cspc %s", cspiItem.Name, cspcObj.Name)
 				}
-				klog.Infof("cleanup for cspi %s was successful", cspiItem.Name)
-			} else {
-				// returning error helps prevent removal of finalizer on cspc object
-				// cspc object should not get deleted before all cspi are deleted successfully
-				return errors.Errorf("failed to cleanup cspi %s for cspc %s : waiting for pool to get destroyed",
-					cspiItem.Name, cspcObj.Name)
 			}
+			cspiObj.Finalizers = util.RemoveString(cspiObj.Finalizers, apiscspc.CSPCFinalizer)
+			_, err = cspi.NewKubeClient().WithNamespace(cspiItem.Namespace).Update(cspiObj)
+			if err != nil {
+				return errors.Wrapf(err, "failed to remove finalizer from cspi %s", cspiItem.Name)
+			}
+			klog.Infof("cleanup for cspi %s was successful", cspiItem.Name)
+		} else {
+			// returning error helps prevent removal of finalizer on cspc object
+			// cspc object should not get deleted before all cspi are deleted successfully
+			return errors.Errorf("failed to cleanup cspi %s for cspc %s : waiting for pool to get destroyed",
+				cspiItem.Name, cspcObj.Name)
 		}
 	}
 	return nil
@@ -73,6 +71,7 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 // CSPI can begin
 func canPerformCSPICleanup(cspiObj *apis.CStorPoolInstance) bool {
 	predicates := []cspiCleanupPredicates{
+		isDestroyed,
 		hasCSPCFinalizer,
 		hasNoPoolProtectionFinalizer,
 	}
@@ -85,6 +84,11 @@ func canPerformCSPICleanup(cspiObj *apis.CStorPoolInstance) bool {
 }
 
 type cspiCleanupPredicates func(*apis.CStorPoolInstance) bool
+
+// isDestroyed is to check if the call is for cStorPoolInstance destroy.
+func isDestroyed(cspiObj *apis.CStorPoolInstance) bool {
+	return !cspiObj.DeletionTimestamp.IsZero()
+}
 
 // hasCSPCFinalizer is a predicate which checks whether the CSPC
 // finalizer is presemt on the CSPI or not

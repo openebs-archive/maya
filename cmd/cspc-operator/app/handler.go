@@ -94,13 +94,6 @@ func (c *Controller) syncHandler(key string) error {
 	// TODO: Deep-copy only when needed.
 	cspcGot := cspc.DeepCopy()
 	err = c.syncCSPC(cspcGot)
-	if err != nil {
-		return err
-	}
-	//cleaning up CSPI resources in case of CSPC scale down or CSPI deletion
-	if cspcGot.DeletionTimestamp.IsZero() {
-		err = cleanupCSPIResources(cspcGot)
-	}
 	return err
 }
 
@@ -126,6 +119,18 @@ func (c *Controller) syncCSPC(cspcGot *apis.CStorPoolCluster) error {
 		c.recorder.Event(cspcGot, corev1.EventTypeWarning, "Getting Namespace", message)
 		klog.Errorf("Could not sync CSPC {%s}: got empty namespace for openebs from env variable", cspcGot.Name)
 		return nil
+	}
+
+	// cleaning up CSPI resources in case of removing poolSpec from CSPC
+	// or manual CSPI deletion
+	if cspcGot.DeletionTimestamp.IsZero() {
+		err := cleanupCSPIResources(cspcGot)
+		if err != nil {
+			message := fmt.Sprintf("Could not sync CSPC: {%s}", err.Error())
+			c.recorder.Event(cspcGot, corev1.EventTypeWarning, "Pool Cleanup", message)
+			klog.Errorf("Could not sync CSPC {%s}: %s", cspcGot.Name, err.Error())
+			return nil
+		}
 	}
 
 	cspcObj := cspcGot
@@ -324,6 +329,16 @@ func (pc *PoolConfig) removeCSPCFinalizer() error {
 	if err != nil {
 		klog.Errorf("Failed to cleanup CSPC api object %s: %s", pc.AlgorithmConfig.CSPC.Name, err.Error())
 		return nil
+	}
+
+	cspList, err := apiscsp.NewKubeClient().List(metav1.ListOptions{
+		LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + pc.AlgorithmConfig.CSPC.Name,
+	})
+
+	if len(cspList.Items) > 0 {
+		return errors.Wrap(err, "failed to remove CSPC finalizer on associated resources as "+
+			"CSPI(s) still exists for CSPC")
+
 	}
 
 	cspcBuilderObj, err := apiscspc.BuilderForAPIObject(pc.AlgorithmConfig.CSPC).Build()

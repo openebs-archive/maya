@@ -53,18 +53,17 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 		return nil
 	}
 
-	err = c.addFinalizer(cspi)
+	if IsDestroyed(cspi) {
+		return c.destroy(cspi)
+	}
+
+	err = c.addPoolProtectionFinalizer(cspi)
 	if err != nil {
-		common.SyncResources.Mux.Unlock()
 		c.recorder.Event(cspi,
 			corev1.EventTypeWarning,
 			fmt.Sprintf("Failed to add %s finalizer.", apiscspc.PoolProtectionFinalizer),
 			err.Error())
 		return nil
-	}
-
-	if IsDestroyed(cspi) {
-		return c.destroy(cspi)
 	}
 
 	// take a lock for common package for updating variables
@@ -267,10 +266,10 @@ func (c *CStorPoolInstanceController) removeFinalizer(cspi *apis.CStorPoolInstan
 	return nil
 }
 
-// addFinalizer is to add finalizer of cstorpoolinstance resource.
-func (c *CStorPoolInstanceController) addFinalizer(cspi *apis.CStorPoolInstance) error {
+// addPoolProtectionFinalizer is to add PoolProtectionFinalizer finalizer of cstorpoolinstance resource.
+func (c *CStorPoolInstanceController) addPoolProtectionFinalizer(cspi *apis.CStorPoolInstance) error {
 	// is CSPI is deleted or the finalizer is already present skip this step
-	if IsDestroyed(cspi) || util.ContainsString(cspi.Finalizers, apiscspc.PoolProtectionFinalizer) {
+	if util.ContainsString(cspi.Finalizers, apiscspc.PoolProtectionFinalizer) {
 		return nil
 	}
 	cspi.Finalizers = append(cspi.Finalizers, apiscspc.PoolProtectionFinalizer)
