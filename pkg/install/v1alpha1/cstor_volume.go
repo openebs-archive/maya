@@ -262,9 +262,9 @@ spec:
     {{- $poolsList | keyMap "cvolPoolList" .ListItems | noop -}}
     {{- $poolsNodeList := jsonpath .JsonResult "{range .items[*]}pkey=pools,{@.metadata.uid}={@.metadata.labels.kubernetes\\.io/hostname};{end}" | trim | default "" | splitList ";" -}}
     {{- $poolsNodeList | keyMap "cvolPoolNodeList" .ListItems | noop -}}
+    {{- end }}
     {{- $poolsCapList := jsonpath .JsonResult "{range .items[*]}pkey=poolsCapacity,{@.metadata.uid}={@.status.capacity.total};{end}" | trim | default "" | splitList ";" -}}
     {{- $poolsCapList | keyMap "cvolPoolCapList" .ListItems | noop -}}
-    {{- end }}
 ---
 #runTask to get storageclass info
 apiVersion: openebs.io/v1alpha1
