@@ -1000,7 +1000,7 @@ func (ops *Operations) ExecPod(opts *Options) ([]byte, error) {
 		Tty:    false,
 	})
 	Expect(err).To(BeNil(), "while streaming the command in pod ", opts.podName, execOut.String(), execErr.String())
-	Expect(execOut.Len()).Should(BeNumerically(">", 0), "while streaming the command in pod ", opts.podName, execErr.String(), execOut.String())
+	Expect(execOut.Len()).Should(BeNumerically(">=", 0), "while streaming the command in pod ", opts.podName, execErr.String(), execOut.String())
 	return execOut.Bytes(), nil
 }
 
