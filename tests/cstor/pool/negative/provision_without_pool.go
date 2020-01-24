@@ -78,6 +78,7 @@ var _ = Describe("[cstor] [-ve] TEST PROVISION WITHOUT POOL", func() {
 			Expect(len(puid)).Should(BeNumerically(">=", 1))
 
 			cspList, err := ops.CSPClient.List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcObj.Name})
+			Expect(err).To(BeNil())
 			Expect(len(cspList.Items)).Should(BeNumerically(">=", 1))
 			var cspObj apis.CStorPool
 			for _, l := range cspList.Items {
