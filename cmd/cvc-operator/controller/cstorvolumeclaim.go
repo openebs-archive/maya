@@ -324,6 +324,7 @@ func (c *CVCController) distributeCVRs(
 	claim *apis.CStorVolumeClaim,
 	service *corev1.Service,
 	volume *apis.CStorVolume,
+	policy *apis.CStorVolumePolicy,
 ) error {
 	var (
 		usablePoolList *apis.CStorPoolInstanceList
@@ -356,7 +357,7 @@ func (c *CVCController) distributeCVRs(
 
 	// prioritized pool instances matched to the given
 	// nodeName in case of replica affinity is enabled via cstor volume policy
-	if c.isReplicaAffinityEnabled(claim) {
+	if c.isReplicaAffinityEnabled(policy) {
 		usablePoolList = prioritizedPoolList(claim.Publish.NodeID, usablePoolList)
 	}
 	for count, pool := range usablePoolList.Items {

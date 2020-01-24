@@ -38,7 +38,7 @@ type CStorVolumePolicy struct {
 
 // CStorVolumePolicySpec ...
 type CStorVolumePolicySpec struct {
-	// replicaAffinity is set to true then volume resources need to be
+	// replicaAffinity is set to true then volume replica resources need to be
 	// distributed across the pool instances
 	ReplicaAffinity bool `json:"replicaAffinity"`
 	// TargetSpec represents configuration related to cstor target and its resources
