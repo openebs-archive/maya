@@ -110,8 +110,6 @@ func (wh *webhook) validateCSPC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 		return wh.validateCSPCDeleteRequest(req)
 	}
 
-	klog.V(2).Info("Admission wehbook for CSPC not " +
-		"configured for operations other than UPDATE and CREATE")
 	return response
 }
 
