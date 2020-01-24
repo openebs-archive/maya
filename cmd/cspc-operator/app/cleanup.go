@@ -63,7 +63,7 @@ func cleanupCSPIResources(cspcObj *apis.CStorPoolCluster) error {
 				// if cspi has DeletionTimestamp but the PoolProtectionFinalizer is present
 				// returning error helps prevent removal of finalizer on cspc object
 				// cspc object should not get deleted before all cspi are deleted successfully
-				return errors.Errorf("failed to cleanup cspi %s for cspc %s : waiting for pool to get destroyed",
+				return errors.Errorf("failed to cleanup cspi %s for cspc %s: waiting for pool to get destroyed or there is no CSPC label on CSPI",
 					cspiItem.Name, cspcObj.Name)
 			}
 		}
