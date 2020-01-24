@@ -163,6 +163,7 @@ func createAdmissionService(
 				Operations: []v1beta1.OperationType{
 					v1beta1.Create,
 					v1beta1.Update,
+					v1beta1.Delete,
 				},
 				Rule: v1beta1.Rule{
 					APIGroups:   []string{"*"},
@@ -447,7 +448,7 @@ func preUpgrade(openebsNamespace string) error {
 	}
 
 	for _, service := range svcList.Items {
-		if len(service.Labels["openebs.io/version"]) == 0 {
+		if service.Labels["openebs.io/version"] != version.Current() {
 			err = svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).Delete(service.Name, &metav1.DeleteOptions{})
 			if err != nil {
 				return fmt.Errorf("failed to delete old service %s: %s", service.Name, err.Error())
@@ -460,7 +461,7 @@ func preUpgrade(openebsNamespace string) error {
 	}
 
 	for _, config := range webhookConfigList.Items {
-		if len(config.Labels["openebs.io/version"]) == 0 {
+		if config.Labels["openebs.io/version"] != version.Current() {
 			err = validate.KubeClient().Delete(config.Name, &metav1.DeleteOptions{})
 			if err != nil {
 				return fmt.Errorf("failed to delete older webhook config %s: %s", config.Name, err.Error())

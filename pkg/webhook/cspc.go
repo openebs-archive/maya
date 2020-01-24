@@ -28,6 +28,8 @@ import (
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	cspcv1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
+	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
 	"k8s.io/api/admission/v1beta1"
@@ -103,9 +105,12 @@ func (wh *webhook) validateCSPC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionR
 	} else if req.Operation == v1beta1.Create {
 		klog.V(5).Infof("Admission webhook create request for type %s", req.Kind.Kind)
 		return wh.validateCSPCCreateRequest(req)
+	} else if req.Operation == v1beta1.Delete {
+		klog.V(5).Infof("Admission webhook delete request for type %s", req.Kind.Kind)
+		return wh.validateCSPCDeleteRequest(req)
 	}
 
-	klog.V(2).Info("Admission wehbook for PVC not " +
+	klog.V(2).Info("Admission wehbook for CSPC not " +
 		"configured for operations other than UPDATE and CREATE")
 	return response
 }
@@ -124,6 +129,37 @@ func (wh *webhook) validateCSPCCreateRequest(req *v1beta1.AdmissionRequest) *v1b
 		err := errors.Errorf("invalid cspc specification: %s", msg)
 		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusUnprocessableEntity).AR
 		return response
+	}
+	return response
+}
+
+// validateCSPCDeleteRequest validates CSPC delete request
+// if any cvrs exist on the cspc pools then deletion is invalid
+func (wh *webhook) validateCSPCDeleteRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+	response := NewAdmissionResponse().SetAllowed().WithResultAsSuccess(http.StatusAccepted).AR
+	cspiList, err := cspi.NewKubeClient().WithNamespace(req.Namespace).List(
+		metav1.ListOptions{
+			LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + req.Name,
+		})
+	if err != nil {
+		klog.Errorf("Could not list cspi for cspc %s: %s", req.Name, err.Error())
+		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusBadRequest).AR
+		return response
+	}
+	for _, cspiObj := range cspiList.Items {
+		cvrList, err := cvr.NewKubeclient().WithNamespace(cspiObj.Namespace).List(metav1.ListOptions{
+			LabelSelector: "cstorpoolinstance.openebs.io/name=" + cspiObj.Name,
+		})
+		if err != nil {
+			klog.Errorf("Could not list cvr for cspi %s: %s", cspiObj.Name, err.Error())
+			response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusBadRequest).AR
+			return response
+		}
+		if len(cvrList.Items) != 0 {
+			err := errors.Errorf("invalid cspc %s deletion: volume still exists on pool %s", req.Name, cspiObj.Name)
+			response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusUnprocessableEntity).AR
+			return response
+		}
 	}
 	return response
 }
