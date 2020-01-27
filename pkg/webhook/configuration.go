@@ -468,12 +468,12 @@ func preUpgrade(openebsNamespace string) error {
 					return fmt.Errorf("failed to delete old secret %s: %s", scrt.Name, err.Error())
 				}
 			} else {
-				newScrt := &scrt
+				newScrt := scrt
 				for _, t := range transformSecret {
-					t(newScrt)
+					t(&newScrt)
 				}
 				newScrt.Labels["openebs.io/version"] = version.Current()
-				_, err = secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).Update(newScrt)
+				_, err = secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).Update(&newScrt)
 				if err != nil {
 					return fmt.Errorf("failed to update old secret %s: %s", scrt.Name, err.Error())
 				}
@@ -494,12 +494,12 @@ func preUpgrade(openebsNamespace string) error {
 					return fmt.Errorf("failed to delete old service %s: %s", service.Name, err.Error())
 				}
 			} else {
-				newSvc := &service
+				newSvc := service
 				for _, t := range transformSvc {
-					t(newSvc)
+					t(&newSvc)
 				}
 				newSvc.Labels["openebs.io/version"] = version.Current()
-				_, err = svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).Update(newSvc)
+				_, err = svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).Update(&newSvc)
 				if err != nil {
 					return fmt.Errorf("failed to update old service %s: %s", service.Name, err.Error())
 				}
@@ -519,12 +519,12 @@ func preUpgrade(openebsNamespace string) error {
 					return fmt.Errorf("failed to delete older webhook config %s: %s", config.Name, err.Error())
 				}
 			} else {
-				newConfig := &config
+				newConfig := config
 				for _, t := range transformConfig {
-					t(newConfig)
+					t(&newConfig)
 				}
 				newConfig.Labels["openebs.io/version"] = version.Current()
-				_, err = validate.KubeClient().Update(newConfig)
+				_, err = validate.KubeClient().Update(&newConfig)
 				if err != nil {
 					return fmt.Errorf("failed to update older webhook config %s: %s", config.Name, err.Error())
 				}
