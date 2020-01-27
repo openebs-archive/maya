@@ -26,6 +26,7 @@ import (
 	secret "github.com/openebs/maya/pkg/kubernetes/secret"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	validate "github.com/openebs/maya/pkg/kubernetes/webhook/validate/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
 	"k8s.io/api/admissionregistration/v1beta1"
@@ -424,6 +425,32 @@ func GetAdmissionReference() (*metav1.OwnerReference, error) {
 	return nil, fmt.Errorf("failed to create deployment ownerReference")
 }
 
+type transformSvcFunc func(*corev1.Service)
+type transformSecretFunc func(*corev1.Secret)
+type transformConfigFunc func(*v1beta1.ValidatingWebhookConfiguration)
+
+func addCSPCDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
+	if config.Labels["openebs.io/version"] < "1.7.0" {
+		index := -1
+		for i, rule := range config.Webhooks[0].Rules {
+			if util.ContainsString(rule.Rule.Resources, "cstorpoolclusters") {
+				index = i
+			}
+		}
+		if index != -1 {
+			config.Webhooks[0].Rules[index].Operations = append(config.Webhooks[0].Rules[index].Operations, v1beta1.Delete)
+		}
+	}
+}
+
+var (
+	transformSecret = []transformSecretFunc{}
+	transformSvc    = []transformSvcFunc{}
+	transformConfig = []transformConfigFunc{
+		addCSPCDeleteRule,
+	}
+)
+
 // preUpgrade checks for the required older webhook configs,older
 // then 1.4.0 if exists delete them.
 func preUpgrade(openebsNamespace string) error {
@@ -434,10 +461,22 @@ func preUpgrade(openebsNamespace string) error {
 	}
 
 	for _, scrt := range secretlist.Items {
-		if len(scrt.Labels["openebs.io/version"]) == 0 {
-			err = secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).Delete(scrt.Name, &metav1.DeleteOptions{})
-			if err != nil {
-				return fmt.Errorf("failed to delete old secret %s: %s", scrt.Name, err.Error())
+		if scrt.Labels["openebs.io/version"] != version.Current() {
+			if scrt.Labels["openebs.io/version"] == "" {
+				err = secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).Delete(scrt.Name, &metav1.DeleteOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to delete old secret %s: %s", scrt.Name, err.Error())
+				}
+			} else {
+				newScrt := &scrt
+				for _, t := range transformSecret {
+					t(newScrt)
+				}
+				newScrt.Labels["openebs.io/version"] = version.Current()
+				_, err = secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).Update(newScrt)
+				if err != nil {
+					return fmt.Errorf("failed to update old secret %s: %s", scrt.Name, err.Error())
+				}
 			}
 		}
 	}
@@ -449,9 +488,21 @@ func preUpgrade(openebsNamespace string) error {
 
 	for _, service := range svcList.Items {
 		if service.Labels["openebs.io/version"] != version.Current() {
-			err = svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).Delete(service.Name, &metav1.DeleteOptions{})
-			if err != nil {
-				return fmt.Errorf("failed to delete old service %s: %s", service.Name, err.Error())
+			if service.Labels["openebs.io/version"] == "" {
+				err = svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).Delete(service.Name, &metav1.DeleteOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to delete old service %s: %s", service.Name, err.Error())
+				}
+			} else {
+				newSvc := &service
+				for _, t := range transformSvc {
+					t(newSvc)
+				}
+				newSvc.Labels["openebs.io/version"] = version.Current()
+				_, err = svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).Update(newSvc)
+				if err != nil {
+					return fmt.Errorf("failed to update old service %s: %s", service.Name, err.Error())
+				}
 			}
 		}
 	}
@@ -462,9 +513,21 @@ func preUpgrade(openebsNamespace string) error {
 
 	for _, config := range webhookConfigList.Items {
 		if config.Labels["openebs.io/version"] != version.Current() {
-			err = validate.KubeClient().Delete(config.Name, &metav1.DeleteOptions{})
-			if err != nil {
-				return fmt.Errorf("failed to delete older webhook config %s: %s", config.Name, err.Error())
+			if config.Labels["openebs.io/version"] == "" {
+				err = validate.KubeClient().Delete(config.Name, &metav1.DeleteOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to delete older webhook config %s: %s", config.Name, err.Error())
+				}
+			} else {
+				newConfig := &config
+				for _, t := range transformConfig {
+					t(newConfig)
+				}
+				newConfig.Labels["openebs.io/version"] = version.Current()
+				_, err = validate.KubeClient().Update(newConfig)
+				if err != nil {
+					return fmt.Errorf("failed to update older webhook config %s: %s", config.Name, err.Error())
+				}
 			}
 		}
 	}
