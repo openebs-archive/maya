@@ -85,11 +85,6 @@ const (
 	//CStorVolumeClaimPhaseFailed indiacates that the cstorvolume provisioning
 	//has failed
 	CStorVolumeClaimPhaseFailed CStorVolumeClaimPhase = "Failed"
-
-	//CStorVolumeClaimPhaseReconcile indicates that the changes currently
-	//reconclied based on the cstor volume policy changes to achieve the desired
-	//state
-	CStorVolumeClaimPhaseReconcile CStorVolumeClaimPhase = "Reconile"
 )
 
 // CStorVolumeClaimStatus is for handling status of CstorVolume Claim.
