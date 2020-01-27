@@ -272,7 +272,7 @@ func (c *CStorPoolInstanceController) removeFinalizer(cspi *apis.CStorPoolInstan
 
 // addPoolProtectionFinalizer is to add PoolProtectionFinalizer finalizer of cstorpoolinstance resource.
 func (c *CStorPoolInstanceController) addPoolProtectionFinalizer(cspi *apis.CStorPoolInstance) error {
-	// is CSPI is deleted or the finalizer is already present skip this step
+	// if PoolProtectionFinalizer is already present return
 	if util.ContainsString(cspi.Finalizers, apiscspc.PoolProtectionFinalizer) {
 		return nil
 	}
