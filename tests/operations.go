@@ -794,7 +794,9 @@ func (ops *Operations) GetCSPIResourceCountEventually(labelSelector string, expe
 // GetHealthyCSPICount gets healthy csp based on spcName
 func (ops *Operations) GetHealthyCSPICount(cspcName string, expectedCSPICount int) int {
 	var cspiCount int
-	for i := 0; i < maxRetry; i++ {
+	// as cspi deletion takes more time now for cleanup of its resources
+	// for reconciled cspi to come up it can take additional time.
+	for i := 0; i < (maxRetry + 60); i++ {
 		cspiAPIList, err := ops.CSPIClient.WithNamespace(ops.NameSpace).List(metav1.ListOptions{})
 		time.Sleep(5 * time.Second)
 		Expect(err).To(BeNil())
@@ -806,7 +808,7 @@ func (ops *Operations) GetHealthyCSPICount(cspcName string, expectedCSPICount in
 		if cspiCount == expectedCSPICount {
 			return cspiCount
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(3 * time.Second)
 	}
 	return cspiCount
 }

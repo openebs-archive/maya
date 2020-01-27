@@ -14,11 +14,13 @@ limitations under the License.
 package provisioning
 
 import (
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cspc_v1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	cspcspecs_v1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
 	cspcrg_v1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/raidgroups"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func createCSPCObjectForStripe() {
@@ -103,4 +105,31 @@ func verifyDesiredCSPIResourceCountTo(count int) {
 // This function is local to this package
 func getLabelSelector(cspc *apis.CStorPoolCluster) string {
 	return string(apis.CStorPoolClusterCPK) + "=" + cspc.Name
+}
+
+func downScaleCSPCObject() {
+	// getting the object to avoid update failure
+	var err error
+	cspcObj, err = ops.CSPCClient.WithNamespace(cspcObj.Namespace).
+		Get(cspcObj.Name, metav1.GetOptions{})
+	Expect(err).To(BeNil())
+	// downsclaing cspc by 1
+	cspcObj.Spec.Pools = cspcObj.Spec.Pools[:2]
+	_, err = ops.CSPCClient.WithNamespace(ops.NameSpace).Update(cspcObj)
+	Expect(err).To(BeNil())
+	cspiCount := ops.GetCSPIResourceCountEventually(getLabelSelector(cspcObj), 2)
+	Expect(cspiCount).To(Equal(2))
+}
+
+func cleanCSPCObject() {
+	When("Cleaning up cspc", func() {
+		It("should delete the cspc", func() {
+			SkipTest(skipPositiveCaseIfRequired)
+			err := ops.CSPCClient.Delete(cspcObj.Name, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil())
+			cspiCount := ops.GetCSPIResourceCountEventually(getLabelSelector(cspcObj), 0)
+			Expect(cspiCount).To(BeZero())
+			Expect(ops.IsCSPCNotExists(cspcObj.Name)).To(BeTrue())
+		})
+	})
 }

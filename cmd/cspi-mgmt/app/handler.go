@@ -25,6 +25,8 @@ import (
 
 	zpool "github.com/openebs/maya/cmd/cstor-pool-mgmt/pool/v1alpha2"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	apiscspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,6 +55,15 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 
 	if IsDestroyed(cspi) {
 		return c.destroy(cspi)
+	}
+
+	err = c.addPoolProtectionFinalizer(cspi)
+	if err != nil {
+		c.recorder.Event(cspi,
+			corev1.EventTypeWarning,
+			fmt.Sprintf("Failed to add %s finalizer.", apiscspc.PoolProtectionFinalizer),
+			err.Error())
+		return nil
 	}
 
 	// take a lock for common package for updating variables
@@ -117,6 +128,10 @@ func (c *CStorPoolInstanceController) reconcile(key string) error {
 
 func (c *CStorPoolInstanceController) destroy(cspi *apis.CStorPoolInstance) error {
 	var phase apis.CStorPoolPhase
+
+	if !util.ContainsString(cspi.Finalizers, apiscspc.PoolProtectionFinalizer) {
+		return nil
+	}
 
 	// DeletePool is to delete cstor zpool.
 	// It will also clear the label for relevant disk
@@ -241,7 +256,7 @@ func (c *CStorPoolInstanceController) removeFinalizer(cspi *apis.CStorPoolInstan
 	if len(cspi.Finalizers) == 0 {
 		return nil
 	}
-	cspi.Finalizers = []string{}
+	cspi.Finalizers = util.RemoveString(cspi.Finalizers, apiscspc.PoolProtectionFinalizer)
 	_, err := c.clientset.
 		OpenebsV1alpha1().
 		CStorPoolInstances(cspi.Namespace).
@@ -250,6 +265,26 @@ func (c *CStorPoolInstanceController) removeFinalizer(cspi *apis.CStorPoolInstan
 		return err
 	}
 	klog.Infof("Removed Finalizer: %v, %v",
+		cspi.Name,
+		string(cspi.GetUID()))
+	return nil
+}
+
+// addPoolProtectionFinalizer is to add PoolProtectionFinalizer finalizer of cstorpoolinstance resource.
+func (c *CStorPoolInstanceController) addPoolProtectionFinalizer(cspi *apis.CStorPoolInstance) error {
+	// if PoolProtectionFinalizer is already present return
+	if util.ContainsString(cspi.Finalizers, apiscspc.PoolProtectionFinalizer) {
+		return nil
+	}
+	cspi.Finalizers = append(cspi.Finalizers, apiscspc.PoolProtectionFinalizer)
+	_, err := c.clientset.
+		OpenebsV1alpha1().
+		CStorPoolInstances(cspi.Namespace).
+		Update(cspi)
+	if err != nil {
+		return err
+	}
+	klog.Infof("Added Finalizer: %v, %v",
 		cspi.Name,
 		string(cspi.GetUID()))
 	return nil
