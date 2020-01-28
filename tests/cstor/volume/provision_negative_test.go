@@ -104,7 +104,7 @@ var _ = Describe("[Cstor Volume Provisioning Negative] Volume Provisioning", fun
 
 	When("Volume provisioning with create/update error injection", func() {
 		cvrPred, cvPred := cvr.PredicateList{}, cv.PredicateList{}
-		if cstor.ReplicaCount > 1 {
+		if cstor.ReplicaCount > 2 {
 			cvrPred = append(cvrPred, cvr.IsHealthy())
 			cvPred = append(cvPred, cv.IsHealthy())
 		}
@@ -190,6 +190,8 @@ var _ = Describe("[Cstor Volume Provisioning Negative] Volume Provisioning", fun
 				debug.NewErrorInjection().
 					WithCVRUpdateError(debug.Eject))
 			Expect(err).To(BeNil())
+			cvrPred = append(cvrPred, cvr.IsHealthy())
+			cvPred = append(cvPred, cv.IsHealthy())
 
 			By("Checking replica count after error ejection")
 			ops.VerifyVolumeStatus(pvcObj, cstor.ReplicaCount, cvrPred, cvPred)

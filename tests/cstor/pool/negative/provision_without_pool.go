@@ -59,13 +59,14 @@ var _ = Describe("[cstor] [-ve] TEST PROVISION WITHOUT POOL", func() {
 		Expect(cspCount).To(Equal(0), "stale CSP")
 	})
 
-	When("creating storagepoolclaim without", func() {
-		It("Testing SPC deletion if pool does not exist", func() {
+	When("Deleting SPC if the pool does not exist", func() {
+		It("Should delete the SPC", func() {
 			spcLabel := getLabelSelector(spcObj)
 			poolPodList, err := ops.PodClient.
 				WithNamespace(openebsNamespace).
 				List(metav1.ListOptions{LabelSelector: spcLabel})
 			Expect(err).To(BeNil())
+			// Since spc is created successfully, pool pod count should be >= 1
 			Expect(len(poolPodList.Items)).Should(BeNumerically(">=", 1))
 
 			tPod := poolPodList.Items[0]
