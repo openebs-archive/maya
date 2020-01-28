@@ -169,8 +169,12 @@ func (i *simpleInstaller) Clean() error {
 			Version:  "v1alpha1",
 			Resource: res.name,
 		}
+		// the label selector prevents clean up of resources on each restart
+		// as the listed items will be an empty list.
 		resList, err := k8s.ListResource(gvr, res.namespace).
-			List(metav1.ListOptions{})
+			List(metav1.ListOptions{
+				LabelSelector: "version!=" + version.Current(),
+			})
 		if err != nil {
 			return err
 		}
