@@ -585,7 +585,7 @@ func CapacityAwareProvisioning(values ...string) buildOption {
 			if err != nil {
 				overProvisioningPolicy.err = append(overProvisioningPolicy.err, err)
 			} else {
-				if spc.Spec.PoolSpec.OverProvisioning {
+				if !spc.Spec.PoolSpec.ThickProvisioning {
 					overProvisioningPolicy.overProvisioning = true
 				}
 			}

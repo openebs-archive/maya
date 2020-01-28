@@ -68,9 +68,12 @@ type BlockDeviceAttr struct {
 
 // CStorPoolAttr is to describe zpool related attributes.
 type CStorPoolAttr struct {
-	CacheFile        string `json:"cacheFile"`        //optional, faster if specified
-	PoolType         string `json:"poolType"`         //mirrored, striped
-	OverProvisioning bool   `json:"overProvisioning"` //true or false
+	CacheFile string `json:"cacheFile"` //optional, faster if specified
+	PoolType  string `json:"poolType"`  //mirrored, striped
+	// OverProvisioning field is deprecated and not honoured
+	OverProvisioning bool `json:"overProvisioning"` //true or false
+	// ThickProvisioning, If true disables OverProvisioning
+	ThickProvisioning bool `json:"thickProvisioning"` // true or false
 }
 
 // CStorPoolPhase is a typed string for phase field of CStorPool.
