@@ -85,7 +85,7 @@ func (in *BlockDeviceClaim) DeepCopyObject() runtime.Object {
 func (in *BlockDeviceClaimList) DeepCopyInto(out *BlockDeviceClaimList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]BlockDeviceClaim, len(*in))
@@ -118,7 +118,7 @@ func (in *BlockDeviceClaimList) DeepCopyObject() runtime.Object {
 func (in *BlockDeviceList) DeepCopyInto(out *BlockDeviceList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]BlockDevice, len(*in))
@@ -441,7 +441,7 @@ func (in *DiskDevLink) DeepCopy() *DiskDevLink {
 func (in *DiskList) DeepCopyInto(out *DiskList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Disk, len(*in))
