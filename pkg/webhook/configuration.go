@@ -21,6 +21,7 @@ import (
 	"os"
 	"strings"
 
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	secret "github.com/openebs/maya/pkg/kubernetes/secret"
@@ -100,9 +101,9 @@ func createWebhookService(
 			Namespace: namespace,
 			Name:      serviceName,
 			Labels: map[string]string{
-				"app":                       "admission-webhook",
-				"openebs.io/component-name": "admission-webhook-svc",
-				"openebs.io/version":        version.GetVersion(),
+				"app":                          "admission-webhook",
+				"openebs.io/component-name":    "admission-webhook-svc",
+				string(apis.OpenEBSVersionKey): version.GetVersion(),
 			},
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
 		},
@@ -192,9 +193,9 @@ func createAdmissionService(
 		ObjectMeta: metav1.ObjectMeta{
 			Name: validatorWebhook,
 			Labels: map[string]string{
-				"app":                       "admission-webhook",
-				"openebs.io/component-name": "admission-webhook",
-				"openebs.io/version":        version.GetVersion(),
+				"app":                          "admission-webhook",
+				"openebs.io/component-name":    "admission-webhook",
+				string(apis.OpenEBSVersionKey): version.GetVersion(),
 			},
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
 		},
@@ -246,9 +247,9 @@ func createCertsSecret(
 			Name:      secretName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app":                       "admission-webhook",
-				"openebs.io/component-name": "admission-webhook",
-				"openebs.io/version":        version.GetVersion(),
+				"app":                          "admission-webhook",
+				"openebs.io/component-name":    "admission-webhook",
+				string(apis.OpenEBSVersionKey): version.GetVersion(),
 			},
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
 		},
@@ -430,7 +431,7 @@ type transformSecretFunc func(*corev1.Secret)
 type transformConfigFunc func(*v1beta1.ValidatingWebhookConfiguration)
 
 func addCSPCDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
-	if config.Labels["openebs.io/version"] < "1.7.0" {
+	if config.Labels[string(apis.OpenEBSVersionKey)] < "1.7.0" {
 		index := -1
 		for i, rule := range config.Webhooks[0].Rules {
 			if util.ContainsString(rule.Rule.Resources, "cstorpoolclusters") {
@@ -461,8 +462,8 @@ func preUpgrade(openebsNamespace string) error {
 	}
 
 	for _, scrt := range secretlist.Items {
-		if scrt.Labels["openebs.io/version"] != version.Current() {
-			if scrt.Labels["openebs.io/version"] == "" {
+		if scrt.Labels[string(apis.OpenEBSVersionKey)] != version.Current() {
+			if scrt.Labels[string(apis.OpenEBSVersionKey)] == "" {
 				err = secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).Delete(scrt.Name, &metav1.DeleteOptions{})
 				if err != nil {
 					return fmt.Errorf("failed to delete old secret %s: %s", scrt.Name, err.Error())
@@ -472,7 +473,7 @@ func preUpgrade(openebsNamespace string) error {
 				for _, t := range transformSecret {
 					t(&newScrt)
 				}
-				newScrt.Labels["openebs.io/version"] = version.Current()
+				newScrt.Labels[string(apis.OpenEBSVersionKey)] = version.Current()
 				_, err = secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).Update(&newScrt)
 				if err != nil {
 					return fmt.Errorf("failed to update old secret %s: %s", scrt.Name, err.Error())
@@ -487,8 +488,8 @@ func preUpgrade(openebsNamespace string) error {
 	}
 
 	for _, service := range svcList.Items {
-		if service.Labels["openebs.io/version"] != version.Current() {
-			if service.Labels["openebs.io/version"] == "" {
+		if service.Labels[string(apis.OpenEBSVersionKey)] != version.Current() {
+			if service.Labels[string(apis.OpenEBSVersionKey)] == "" {
 				err = svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).Delete(service.Name, &metav1.DeleteOptions{})
 				if err != nil {
 					return fmt.Errorf("failed to delete old service %s: %s", service.Name, err.Error())
@@ -498,7 +499,7 @@ func preUpgrade(openebsNamespace string) error {
 				for _, t := range transformSvc {
 					t(&newSvc)
 				}
-				newSvc.Labels["openebs.io/version"] = version.Current()
+				newSvc.Labels[string(apis.OpenEBSVersionKey)] = version.Current()
 				_, err = svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).Update(&newSvc)
 				if err != nil {
 					return fmt.Errorf("failed to update old service %s: %s", service.Name, err.Error())
@@ -512,8 +513,8 @@ func preUpgrade(openebsNamespace string) error {
 	}
 
 	for _, config := range webhookConfigList.Items {
-		if config.Labels["openebs.io/version"] != version.Current() {
-			if config.Labels["openebs.io/version"] == "" {
+		if config.Labels[string(apis.OpenEBSVersionKey)] != version.Current() {
+			if config.Labels[string(apis.OpenEBSVersionKey)] == "" {
 				err = validate.KubeClient().Delete(config.Name, &metav1.DeleteOptions{})
 				if err != nil {
 					return fmt.Errorf("failed to delete older webhook config %s: %s", config.Name, err.Error())
@@ -523,7 +524,7 @@ func preUpgrade(openebsNamespace string) error {
 				for _, t := range transformConfig {
 					t(&newConfig)
 				}
-				newConfig.Labels["openebs.io/version"] = version.Current()
+				newConfig.Labels[string(apis.OpenEBSVersionKey)] = version.Current()
 				_, err = validate.KubeClient().Update(&newConfig)
 				if err != nil {
 					return fmt.Errorf("failed to update older webhook config %s: %s", config.Name, err.Error())

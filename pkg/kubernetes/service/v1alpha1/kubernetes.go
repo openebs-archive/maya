@@ -368,7 +368,7 @@ func (k *Kubeclient) Update(service *corev1.Service) (*corev1.Service, error) {
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
-			"failed to create service {%s} in namespace {%s}",
+			"failed to update service {%s} in namespace {%s}",
 			service.Name,
 			service.Namespace,
 		)

@@ -219,7 +219,7 @@ func (k *Kubeclient) Update(secret *corev1.Secret) (*corev1.Secret, error) {
 	}
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to update secret")
+		return nil, errors.Wrapf(err, "failed to update secret %s", secret.Name)
 	}
 	return k.update(cli, k.namespace, secret)
 }
