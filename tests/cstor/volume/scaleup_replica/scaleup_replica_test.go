@@ -19,6 +19,8 @@ package replicascaleup
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
+	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	"github.com/openebs/maya/tests"
 	"github.com/openebs/maya/tests/cstor"
 
@@ -61,7 +63,11 @@ var _ = Describe("[REPLICA SCALEUP/SCALEDOWN] CSTOR REPLICA SCALEUP And SCALEDOW
 			pvcObj = ops.BuildAndCreatePVC()
 			By("Creating PVC, Desired Number of CVR Should Be Created", func() {
 				// ReplicaCount is initilized as 1
-				ops.VerifyVolumeStatus(pvcObj, ReplicaCount)
+				ops.VerifyVolumeStatus(pvcObj,
+					ReplicaCount,
+					cvr.PredicateList{cvr.IsHealthy()},
+					cv.PredicateList{cv.IsHealthy()},
+				)
 			})
 			// GetLatest PVC object
 			var err error
@@ -77,7 +83,11 @@ var _ = Describe("[REPLICA SCALEUP/SCALEDOWN] CSTOR REPLICA SCALEUP And SCALEDOW
 			By("Build and Create CStorVolumeReplica", buildAndCreateCVR)
 			ReplicaCount = ReplicaCount + 1
 			By("Verify Volume Status after ScaleUp Replica", func() {
-				ops.VerifyVolumeStatus(pvcObj, ReplicaCount)
+				ops.VerifyVolumeStatus(pvcObj,
+					ReplicaCount,
+					cvr.PredicateList{cvr.IsHealthy()},
+					cv.PredicateList{cv.IsHealthy()},
+				)
 			})
 			By("Verify Volume configurations from cstor volume", verifyVolumeConfigurationEventually)
 		})
@@ -93,7 +103,11 @@ var _ = Describe("[REPLICA SCALEUP/SCALEDOWN] CSTOR REPLICA SCALEUP And SCALEDOW
 				verifyCVConfigForReplicaScaleDownEventually(ReplicaCount)
 			})
 			By("Verify Volume Status after ScaleDown Replica", func() {
-				ops.VerifyVolumeStatus(pvcObj, ReplicaCount)
+				ops.VerifyVolumeStatus(pvcObj,
+					ReplicaCount,
+					cvr.PredicateList{cvr.IsHealthy()},
+					cv.PredicateList{cv.IsHealthy()},
+				)
 			})
 		})
 	})

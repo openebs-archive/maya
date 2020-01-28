@@ -310,10 +310,10 @@ func (ops *Operations) GetPodRunningCountEventually(namespace, lselector string,
 
 // GetCstorVolumeCount gives the count of cstorvolume based on
 // selecter
-func (ops *Operations) GetCstorVolumeCount(namespace, lselector string, expectedCVCount int) int {
+func (ops *Operations) GetCstorVolumeCount(namespace, lselector string, expectedCVCount int, preds ...cv.Predicate) int {
 	var cvCount int
 	for i := 0; i < maxRetry; i++ {
-		cvCount = ops.GetCVCount(namespace, lselector)
+		cvCount = ops.GetCVCount(namespace, lselector, preds...)
 		if cvCount == expectedCVCount {
 			return cvCount
 		}
@@ -326,7 +326,7 @@ func (ops *Operations) GetCstorVolumeCount(namespace, lselector string, expected
 // selecter eventually
 func (ops *Operations) GetCstorVolumeCountEventually(namespace, lselector string, expectedCVCount int) bool {
 	return Eventually(func() int {
-		cvCount := ops.GetCVCount(namespace, lselector)
+		cvCount := ops.GetCVCount(namespace, lselector, cv.IsHealthy())
 		return cvCount
 	},
 		120, 10).Should(Equal(expectedCVCount))
@@ -334,9 +334,9 @@ func (ops *Operations) GetCstorVolumeCountEventually(namespace, lselector string
 
 // GetCstorVolumeReplicaCountEventually gives the count of cstorvolume based on
 // selecter eventually
-func (ops *Operations) GetCstorVolumeReplicaCountEventually(namespace, lselector string, expectedCVRCount int) bool {
+func (ops *Operations) GetCstorVolumeReplicaCountEventually(namespace, lselector string, expectedCVRCount int, pred ...cvr.Predicate) bool {
 	return Eventually(func() int {
-		cvCount := ops.GetCstorVolumeReplicaCount(namespace, lselector)
+		cvCount := ops.GetCstorVolumeReplicaCount(namespace, lselector, pred...)
 		return cvCount
 	},
 		120, 10).Should(Equal(expectedCVRCount))
@@ -365,7 +365,7 @@ func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 }
 
 // GetCVCount gives cstorvolume healthy count currently based on selecter
-func (ops *Operations) GetCVCount(namespace, lselector string) int {
+func (ops *Operations) GetCVCount(namespace, lselector string, pred ...cv.Predicate) int {
 	cvs, err := ops.CVClient.
 		WithNamespace(namespace).
 		List(metav1.ListOptions{LabelSelector: lselector})
@@ -373,13 +373,13 @@ func (ops *Operations) GetCVCount(namespace, lselector string) int {
 	return cv.
 		NewListBuilder().
 		WithAPIList(cvs).
-		WithFilter(cv.IsHealthy()).
+		WithFilter(pred...).
 		List().
 		Len()
 }
 
 // GetCstorVolumeReplicaCount gives cstorvolumereplica healthy count currently based on selecter
-func (ops *Operations) GetCstorVolumeReplicaCount(namespace, lselector string) int {
+func (ops *Operations) GetCstorVolumeReplicaCount(namespace, lselector string, pred ...cvr.Predicate) int {
 	cvrs, err := ops.CVRClient.
 		WithNamespace(namespace).
 		List(metav1.ListOptions{LabelSelector: lselector})
@@ -387,7 +387,7 @@ func (ops *Operations) GetCstorVolumeReplicaCount(namespace, lselector string) i
 	return cvr.
 		NewListBuilder().
 		WithAPIList(cvrs).
-		WithFilter(cvr.IsHealthy()).
+		WithFilter(pred...).
 		List().
 		Len()
 }
@@ -1002,7 +1002,7 @@ func (ops *Operations) ExecPod(opts *Options) ([]byte, error) {
 		Tty:    false,
 	})
 	Expect(err).To(BeNil(), "while streaming the command in pod ", opts.podName, execOut.String(), execErr.String())
-	Expect(execOut.Len()).Should(BeNumerically(">", 0), "while streaming the command in pod ", opts.podName, execErr.String(), execOut.String())
+	Expect(execOut.Len()).Should(BeNumerically(">=", 0), "while streaming the command in pod ", opts.podName, execErr.String(), execOut.String())
 	return execOut.Bytes(), nil
 }
 
@@ -1179,15 +1179,15 @@ func (ops *Operations) DeletePersistentVolumeClaim(name, namespace string) {
 }
 
 // VerifyVolumeResources verifies whether volume resource exist or not
-func (ops *Operations) VerifyVolumeResources(pvName, namespace string) {
+func (ops *Operations) VerifyVolumeResources(pvName, namespace string, cvrPred cvr.PredicateList, cvPred cv.PredicateList) {
 	volumeLabel := pvLabel + pvName
 	targetPodCount := ops.GetPodRunningCountEventually(namespace, volumeLabel, 0)
 	Expect(targetPodCount).To(Equal(0), "when pvc is deleted target pod should be deleted")
 
-	cvCount := ops.GetCstorVolumeCount(openebsNamespace, volumeLabel, 0)
+	cvCount := ops.GetCstorVolumeCount(openebsNamespace, volumeLabel, 0, cvPred...)
 	Expect(cvCount).To(Equal(0), "when pvc is deleted cstorvolume should be deleted")
 
-	IsCVRDeleted := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, volumeLabel, 0)
+	IsCVRDeleted := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, volumeLabel, 0, cvrPred...)
 	Expect(IsCVRDeleted).To(Equal(true), "when pvc is deleted cstorvolumereplica should be deleted")
 }
 
@@ -1209,7 +1209,7 @@ func (ops *Operations) VerifyPoolResources(spcName string) {
 // 2. Verifies whether CStorVolume is in Healthy or not
 // 3. Verifies whether specified number of CVR's are healthy or not
 func (ops *Operations) VerifyVolumeStatus(
-	pvcObj *corev1.PersistentVolumeClaim, replicaCount int) {
+	pvcObj *corev1.PersistentVolumeClaim, replicaCount int, cvrPred cvr.PredicateList, cvPred cv.PredicateList) {
 	status := ops.IsPVCBoundEventually(pvcObj.Name)
 	Expect(status).To(Equal(true), "while checking status equal to bound")
 
@@ -1220,10 +1220,10 @@ func (ops *Operations) VerifyVolumeStatus(
 	Expect(err).To(BeNil())
 
 	volumeLabel := pvLabel + updatedPVCObj.Spec.VolumeName
-	cvCount := ops.GetCstorVolumeCount(openebsNamespace, volumeLabel, 1)
+	cvCount := ops.GetCstorVolumeCount(openebsNamespace, volumeLabel, 1, cvPred...)
 	Expect(cvCount).To(Equal(1), "while checking cstorvolume count")
 
-	cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, volumeLabel, replicaCount)
+	cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, volumeLabel, replicaCount, cvrPred...)
 	Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
 }
 
@@ -1232,7 +1232,7 @@ func (ops *Operations) DeleteVolumeResources(
 	pvcObj *corev1.PersistentVolumeClaim,
 	scObj *storagev1.StorageClass) {
 	ops.DeletePersistentVolumeClaim(pvcObj.Name, pvcObj.Namespace)
-	ops.VerifyVolumeResources(pvcObj.Spec.VolumeName, openebsNamespace)
+	ops.VerifyVolumeResources(pvcObj.Spec.VolumeName, openebsNamespace, cvr.PredicateList{}, cv.PredicateList{})
 	err := ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
 	Expect(err).To(BeNil())
 }

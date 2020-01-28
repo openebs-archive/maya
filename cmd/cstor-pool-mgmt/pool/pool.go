@@ -345,13 +345,18 @@ func DeletePool(poolName string) error {
 	deletePoolStr := []string{"destroy", poolName}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, deletePoolStr...)
 	if err != nil {
-		klog.Errorf("Unable to delete pool: %v", string(stdoutStderr))
+		// If pool is missing then do not return error
+		if strings.Contains(string(stdoutStderr), "no such pool") {
+			klog.Infof("Assuming pool deletion successful for error: %v", string(stdoutStderr))
+			return nil
+		}
+		klog.Errorf("Unable to delete pool : %v", string(stdoutStderr))
 		alertlog.Logger.Errorw("",
 			"eventcode", "cstor.pool.delete.failure",
 			"msg", "Failed to delete CStor pool",
 			"rname", poolName,
 		)
-		return err
+		return errors.Wrapf(err, "failed to delete pool.. %s", string(stdoutStderr))
 	}
 	alertlog.Logger.Infow("",
 		"eventcode", "cstor.pool.delete.success",
