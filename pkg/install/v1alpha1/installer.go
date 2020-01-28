@@ -169,24 +169,37 @@ func (i *simpleInstaller) Clean() error {
 			Version:  "v1alpha1",
 			Resource: res.name,
 		}
-		// the label selector prevents clean up of resources on each restart
-		// as the listed items will be an empty list.
-		resList, err := k8s.ListResource(gvr, res.namespace).
-			List(metav1.ListOptions{
-				LabelSelector: "version!=" + version.Current(),
-			})
+		k8sDynamic, err := k8s.Dynamic().Provide()
 		if err != nil {
 			return err
 		}
-		for _, obj := range resList.Items {
-			unstructObj := obj
-			if obj.GetLabels()["version"] != version.Current() {
-				err = k8s.DeleteResource(gvr, res.namespace).Delete(&unstructObj)
-				if err != nil {
-					return err
-				}
-			}
+		err = k8sDynamic.Resource(gvr).Namespace(res.namespace).DeleteCollection(
+			&metav1.DeleteOptions{},
+			metav1.ListOptions{
+				LabelSelector: "version!=" + version.Current(),
+			},
+		)
+		if err != nil {
+			return err
 		}
+		// // the label selector prevents clean up of resources on each restart
+		// // as the listed items will be an empty list.
+		// resList, err := k8s.ListResource(gvr, res.namespace).
+		// 	List(metav1.ListOptions{
+		// 		LabelSelector: "version!=" + version.Current(),
+		// 	})
+		// if err != nil {
+		// 	return err
+		// }
+		// for _, obj := range resList.Items {
+		// 	unstructObj := obj
+		// 	if obj.GetLabels()["version"] != version.Current() {
+		// 		err = k8s.DeleteResource(gvr, res.namespace).Delete(&unstructObj)
+		// 		if err != nil {
+		// 			return err
+		// 		}
+		// 	}
+		// }
 	}
 	return nil
 }

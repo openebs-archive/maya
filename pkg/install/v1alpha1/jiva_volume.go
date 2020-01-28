@@ -39,7 +39,6 @@ spec:
     - jiva-volume-read-verifyreplicationfactor-default
     - jiva-volume-read-patchreplicadeployment-default
   output: jiva-volume-read-output-default
-  fallback: jiva-volume-read-default-0.6.0
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
@@ -278,7 +277,6 @@ spec:
     - jiva-volume-delete-deletereplicadeployment-default
     - jiva-volume-delete-putreplicascrub-default
   output: jiva-volume-delete-output-default
-  fallback: jiva-volume-delete-default-0.6.0
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate

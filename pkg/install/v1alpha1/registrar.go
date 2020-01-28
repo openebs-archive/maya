@@ -69,10 +69,6 @@ func RegisteredArtifacts() (list artifactList) {
 
 	list.Items = append(list.Items, JivaVolumeArtifacts().Items...)
 
-	// Contains read/list/delete CAST for supporting older volumes
-	// CAST defined here are provided as fallback options to latest CAST
-	list.Items = append(list.Items, JivaVolumeArtifactsFor060().Items...)
-
 	list.Items = append(list.Items, JivaPoolArtifacts().Items...)
 
 	list.Items = append(list.Items, CstorPoolArtifacts().Items...)

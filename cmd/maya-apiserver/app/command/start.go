@@ -291,7 +291,6 @@ func (c *CmdStartOptions) setupMayaServer(mconfig *config.MayaConfig) error {
 	cleanErr := install.SimpleInstaller().Clean()
 	if cleanErr != nil {
 		klog.Errorf("failed to clean old resources: %s", cleanErr.Error())
-		return errors.New("failed to clean old resources")
 	}
 
 	// Setup maya service i.e. maya api server
