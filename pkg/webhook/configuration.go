@@ -56,6 +56,10 @@ const (
 	rootCrt             = "ca.crt"
 )
 
+type transformSvcFunc func(*corev1.Service)
+type transformSecretFunc func(*corev1.Secret)
+type transformConfigFunc func(*v1beta1.ValidatingWebhookConfiguration)
+
 var (
 	// TimeoutSeconds specifies the timeout for this webhook. After the timeout passes,
 	// the webhook call will be ignored or the API call will fail based on the
@@ -64,6 +68,12 @@ var (
 	five = int32(5)
 	// Ignore means that an error calling the webhook is ignored.
 	Ignore = v1beta1.Ignore
+	// transformation function lists to upgrade webhook resources
+	transformSecret = []transformSecretFunc{}
+	transformSvc    = []transformSvcFunc{}
+	transformConfig = []transformConfigFunc{
+		addCSPCDeleteRule,
+	}
 )
 
 // createWebhookService creates our webhook Service resource if it does not
@@ -426,10 +436,6 @@ func GetAdmissionReference() (*metav1.OwnerReference, error) {
 	return nil, fmt.Errorf("failed to create deployment ownerReference")
 }
 
-type transformSvcFunc func(*corev1.Service)
-type transformSecretFunc func(*corev1.Secret)
-type transformConfigFunc func(*v1beta1.ValidatingWebhookConfiguration)
-
 func addCSPCDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
 	if config.Labels[string(apis.OpenEBSVersionKey)] < "1.7.0" {
 		index := -1
@@ -444,18 +450,9 @@ func addCSPCDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
 	}
 }
 
-var (
-	transformSecret = []transformSecretFunc{}
-	transformSvc    = []transformSvcFunc{}
-	transformConfig = []transformConfigFunc{
-		addCSPCDeleteRule,
-	}
-)
-
 // preUpgrade checks for the required older webhook configs,older
 // then 1.4.0 if exists delete them.
 func preUpgrade(openebsNamespace string) error {
-
 	secretlist, err := secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).List(metav1.ListOptions{LabelSelector: webhookLabel})
 	if err != nil {
 		return fmt.Errorf("failed to list old secret: %s", err.Error())
