@@ -146,7 +146,7 @@ func createAdmissionService(
 		)
 	}
 
-	webhookHandler := v1beta1.Webhook{
+	webhookHandler := v1beta1.ValidatingWebhook{
 		Name: webhookHandlerName,
 		Rules: []v1beta1.RuleWithOperations{{
 			Operations: []v1beta1.OperationType{
@@ -196,7 +196,7 @@ func createAdmissionService(
 			},
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
 		},
-		Webhooks: []v1beta1.Webhook{webhookHandler},
+		Webhooks: []v1beta1.ValidatingWebhook{webhookHandler},
 	}
 
 	_, err = validate.KubeClient().Create(validator)

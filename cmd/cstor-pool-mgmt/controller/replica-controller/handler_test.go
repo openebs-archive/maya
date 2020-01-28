@@ -47,7 +47,10 @@ func TestGetVolumeReplicaResource(t *testing.T) {
 		"VolumeReplicaResource1": {
 			expectedName: "VolumeReplicaResource1",
 			test: &apis.CStorVolumeReplica{
-				ObjectMeta: metav1.ObjectMeta{Name: "VolumeReplicaResource1"},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "VolumeReplicaResource1",
+					Namespace: "default",
+				},
 				Spec: apis.CStorVolumeReplicaSpec{
 					TargetIP: "10.210.110.121",
 					Capacity: "100MB",
@@ -57,7 +60,10 @@ func TestGetVolumeReplicaResource(t *testing.T) {
 		"VolumeReplicaResource2": {
 			expectedName: "VolumeReplicaResource2",
 			test: &apis.CStorVolumeReplica{
-				ObjectMeta: metav1.ObjectMeta{Name: "VolumeReplicaResource2"},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "VolumeReplicaResource2",
+					Namespace: "default",
+				},
 				Spec: apis.CStorVolumeReplicaSpec{
 					TargetIP: "10.210.110.121",
 					Capacity: "100MB",
@@ -67,13 +73,13 @@ func TestGetVolumeReplicaResource(t *testing.T) {
 	}
 	for desc, ut := range testVolumeReplicaResource {
 		// Create a volume-replica resource.
-		_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas("default").Create(ut.test)
+		_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas(ut.test.ObjectMeta.Namespace).Create(ut.test)
 		if err != nil {
 			t.Fatalf("Desc:%v, Unable to create resource : %v", desc, ut.test.ObjectMeta.Name)
 		}
 
 		// Get volume replica resource with name
-		cStorVolumeReplicaObtained, err := volumeReplicaController.getVolumeReplicaResource(ut.test.ObjectMeta.Name)
+		cStorVolumeReplicaObtained, err := volumeReplicaController.getVolumeReplicaResource(ut.test.ObjectMeta.Namespace + "/" + ut.test.ObjectMeta.Name)
 
 		if cStorVolumeReplicaObtained.Name != ut.expectedName {
 			t.Fatalf("Desc:%v, volName mismatch, Expected:%v, Got:%v", desc, ut.expectedName,
