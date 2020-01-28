@@ -214,7 +214,7 @@ func (k *Kubeclient) Delete(name string, options *metav1.DeleteOptions) error {
 // corresponding validatingWebhookConfiguration object, and an error if there is any.
 func (k *Kubeclient) Update(config *admission.ValidatingWebhookConfiguration) (*admission.ValidatingWebhookConfiguration, error) {
 	if config == nil {
-		return nil, errors.New("failed to create validating configuration: nil configuration")
+		return nil, errors.New("failed to update validating configuration: nil configuration")
 	}
 	cs, err := k.getClientOrCached()
 	if err != nil {

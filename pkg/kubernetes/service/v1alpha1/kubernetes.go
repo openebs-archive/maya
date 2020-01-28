@@ -362,7 +362,7 @@ func (k *Kubeclient) Create(service *corev1.Service) (*corev1.Service, error) {
 // Update updates a service in specified namespace in kubernetes cluster
 func (k *Kubeclient) Update(service *corev1.Service) (*corev1.Service, error) {
 	if service == nil {
-		return nil, errors.New("failed to create service: nil service object")
+		return nil, errors.New("failed to update service: nil service object")
 	}
 	cli, err := k.getClientOrCached()
 	if err != nil {
