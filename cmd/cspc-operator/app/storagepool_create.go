@@ -207,10 +207,10 @@ func getDeployOwnerReference(csp *apis.CStorPoolInstance) []metav1.OwnerReferenc
 // TODO: Use builder for labels and annotations
 func getDeployLabels(csp *apis.CStorPoolInstance) map[string]string {
 	return map[string]string{
-		string(apis.CStorPoolClusterCPK): csp.Labels[string(apis.CStorPoolClusterCPK)],
-		"app":                            "cstor-pool",
-		"openebs.io/cstor-pool-instance": csp.Name,
-		"openebs.io/version":             version.GetVersion(),
+		string(apis.CStorPoolClusterCPK):  csp.Labels[string(apis.CStorPoolClusterCPK)],
+		"app":                             "cstor-pool",
+		string(apis.CStorPoolInstanceCPK): csp.Name,
+		"openebs.io/version":              version.GetVersion(),
 	}
 }
 

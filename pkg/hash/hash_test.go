@@ -15,6 +15,7 @@
 package hash
 
 import (
+	"sort"
 	"testing"
 )
 
@@ -103,5 +104,23 @@ func TestHashInnerStruct(t *testing.T) {
 	fakeHash, err := Hash(fakeComplexStruct)
 	if err != nil {
 		t.Errorf("Failed to calculate the hash expected string but got: '%s' Error: '%v'", fakeHash, err)
+	}
+}
+
+func TestHashOutput(t *testing.T) {
+	list1 := []string{"one", "three", "two", "four"}
+	list2 := []string{"four", "one", "three", "two"}
+	sort.Strings(list1)
+	sort.Strings(list2)
+	hash1, err := Hash(list1)
+	if err != nil {
+		t.Errorf("Failed to calculate the hash expected string but got: '%s' Error: '%v'", hash1, err)
+	}
+	hash2, err := Hash(list2)
+	if err != nil {
+		t.Errorf("Failed to calculate the hash expected string but got: '%s' Error: '%v'", hash2, err)
+	}
+	if hash1 != hash2 {
+		t.Errorf("hash value didn't matched for the same list")
 	}
 }
