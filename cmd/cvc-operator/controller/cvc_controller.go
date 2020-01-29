@@ -308,7 +308,7 @@ func (c *CVCController) getVolumePolicy(
 // isReplicaAffinityEnabled checks if replicaAffinity has been enabled using
 // cstor volume policy
 func (c *CVCController) isReplicaAffinityEnabled(policy *apis.CStorVolumePolicy) bool {
-	return policy.Spec.ReplicaAffinity
+	return policy.Spec.Provision.ReplicaAffinity
 }
 
 // distributePendingCVRs trigers create and distribute pending cstorvolumereplica

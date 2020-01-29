@@ -40,7 +40,7 @@ type CStorVolumePolicy struct {
 type CStorVolumePolicySpec struct {
 	// replicaAffinity is set to true then volume replica resources need to be
 	// distributed across the pool instances
-	ReplicaAffinity bool `json:"replicaAffinity"`
+	Provision Provision `json:"provision"`
 	// TargetSpec represents configuration related to cstor target and its resources
 	Target TargetSpec `json:"target"`
 	// ReplicaSpec represents configuration related to replicas resources
@@ -93,6 +93,13 @@ type ReplicaSpec struct {
 	ZvolWorkers string `json:"zvolWorkers"`
 	// Affinity if specified, are the replica affinities
 	Affinity *corev1.PodAffinity `json:"affinity"`
+}
+
+// Provision represents volume provisioning configuration
+type Provision struct {
+	// replicaAffinity is set to true then volume replica resources need to be
+	// distributed across the cstor pool instances based on the given topology
+	ReplicaAffinity bool `json:"replicaAffinity"`
 }
 
 // CStorVolumePolicyStatus is for handling status of CstorVolumePolicy
