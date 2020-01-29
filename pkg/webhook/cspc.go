@@ -145,7 +145,8 @@ func (wh *webhook) validateCSPCDeleteRequest(req *v1beta1.AdmissionRequest) *v1b
 		return response
 	}
 	for _, cspiObj := range cspiList.Items {
-		cvrList, err := cvr.NewKubeclient().WithNamespace(cspiObj.Namespace).List(metav1.ListOptions{
+		// list cvrs in all namespaces
+		cvrList, err := cvr.NewKubeclient().WithNamespace("").List(metav1.ListOptions{
 			LabelSelector: "cstorpoolinstance.openebs.io/name=" + cspiObj.Name,
 		})
 		if err != nil {
