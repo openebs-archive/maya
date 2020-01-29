@@ -22,7 +22,9 @@ import (
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	template "github.com/openebs/maya/pkg/template/v1alpha1"
 	"github.com/openebs/maya/pkg/version"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog"
 )
 
@@ -38,6 +40,7 @@ var restrictUpdates = map[string]bool{
 // Installer abstracts installation
 type Installer interface {
 	Install() (errors []error)
+	Clean() error
 }
 
 // simpleInstaller installs artifacts by making use of install config
@@ -50,6 +53,12 @@ type simpleInstaller struct {
 
 	// TODO use pkg/errors/v1alpha1
 	errorList
+}
+
+// resourceMetadata holds the name and namespace of a resource
+type resourceMetadata struct {
+	name      string
+	namespace string
 }
 
 func (i *simpleInstaller) prepareResources() k8s.UnstructedList {
@@ -138,6 +147,43 @@ func (i *simpleInstaller) Install() []error {
 		}
 	}
 	return i.errors
+}
+
+// cleanResources are the versioned openebs respurces that needs to cleaned
+// after installing the latest versions of the respective resource
+var cleanResources = []resourceMetadata{
+	resourceMetadata{
+		name: "castemplates",
+	},
+	resourceMetadata{
+		name:      "runtasks",
+		namespace: menv.Get(menv.OpenEBSNamespace),
+	},
+}
+
+// Clean is the cleanup function that removes old version of openebs resources
+func (i *simpleInstaller) Clean() error {
+	for _, res := range cleanResources {
+		gvr := schema.GroupVersionResource{
+			Group:    "openebs.io",
+			Version:  "v1alpha1",
+			Resource: res.name,
+		}
+		k8sDynamic, err := k8s.Dynamic().Provide()
+		if err != nil {
+			return err
+		}
+		err = k8sDynamic.Resource(gvr).Namespace(res.namespace).DeleteCollection(
+			&metav1.DeleteOptions{},
+			metav1.ListOptions{
+				LabelSelector: "version!=" + version.Current(),
+			},
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // SimpleInstaller returns a new instance of simpleInstaller
