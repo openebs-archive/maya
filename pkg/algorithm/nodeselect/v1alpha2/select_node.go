@@ -69,7 +69,7 @@ func GetNodeFromLabelSelector(labels map[string]string) (string, error) {
 	if len(nodeList.Items) != 1 {
 		return "", errors.Errorf("invalid no.of nodes %d from the given node selectors", len(nodeList.Items))
 	}
-	return nodeList.Items[0].Name, nil
+	return nodeList.Items[0].GetLabels()[string(apis.HostNameCPK)], nil
 }
 
 // getLabelSelectorString returns a string of label selector form label map to be used in
