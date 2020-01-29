@@ -59,6 +59,8 @@ type CStorVolumeClaimSpec struct {
 	// CstorVolumeSource contains the source volumeName@snapShotname
 	// combaination.  This will be filled only if it is a clone creation.
 	CstorVolumeSource string `json:"cstorVolumeSource,omitempty"`
+	// Policy contains volume specific required policies target and replicas
+	Policy CStorVolumePolicySpec `json:"policy"`
 }
 
 // CStorVolumeClaimPublish contains info related to attachment of a volume to a node.

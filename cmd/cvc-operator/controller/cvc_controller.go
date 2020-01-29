@@ -269,7 +269,7 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 	}
 
 	klog.V(2).Infof("creating cstorvolume replica resource")
-	err = c.distributePendingCVRs(cvc, cvObj, svcObj)
+	err = c.distributePendingCVRs(cvc, cvObj, svcObj, volumePolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -294,6 +294,7 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 	// update the cstorvolume reference, phase as "Bound" and desired
 	// capacity
 	cvc.Spec.CStorVolumeRef = volumeRef
+	cvc.Spec.Policy = volumePolicy.Spec
 	cvc.Status.Phase = apis.CStorVolumeClaimPhaseBound
 	cvc.Status.Capacity = cvc.Spec.Capacity
 
@@ -327,19 +328,26 @@ func (c *CVCController) getVolumePolicy(
 	return volumePolicy, nil
 }
 
+// isReplicaAffinityEnabled checks if replicaAffinity has been enabled using
+// cstor volume policy
+func (c *CVCController) isReplicaAffinityEnabled(policy *apis.CStorVolumePolicy) bool {
+	return policy.Spec.Provision.ReplicaAffinity
+}
+
 // distributePendingCVRs trigers create and distribute pending cstorvolumereplica
 // resource among the available cstor pools
 func (c *CVCController) distributePendingCVRs(
 	cvc *apis.CStorVolumeClaim,
 	cv *apis.CStorVolume,
 	service *corev1.Service,
+	policy *apis.CStorVolumePolicy,
 ) error {
 
 	pendingReplicaCount, err := c.getPendingCVRCount(cvc)
 	if err != nil {
 		return err
 	}
-	err = distributeCVRs(pendingReplicaCount, cvc, service, cv)
+	err = c.distributeCVRs(pendingReplicaCount, cvc, service, cv, policy)
 	if err != nil {
 		return err
 	}
