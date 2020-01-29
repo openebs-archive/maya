@@ -436,16 +436,24 @@ func GetAdmissionReference() (*metav1.OwnerReference, error) {
 	return nil, fmt.Errorf("failed to create deployment ownerReference")
 }
 
+// addCSPCDeleteRule adds the DELETE operation to for CSPC if coming from 1.6.0
+// or older version
 func addCSPCDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
 	if config.Labels[string(apis.OpenEBSVersionKey)] < "1.7.0" {
 		index := -1
+		// find the index of the RuleWithOperations having CSPC
 		for i, rule := range config.Webhooks[0].Rules {
 			if util.ContainsString(rule.Rule.Resources, "cstorpoolclusters") {
 				index = i
+				break
 			}
 		}
+		// if CSPC RuleWithOperations is found append DELETE operation
 		if index != -1 {
-			config.Webhooks[0].Rules[index].Operations = append(config.Webhooks[0].Rules[index].Operations, v1beta1.Delete)
+			config.Webhooks[0].Rules[index].Operations = append(
+				config.Webhooks[0].Rules[index].Operations,
+				v1beta1.Delete,
+			)
 		}
 	}
 }
