@@ -26,7 +26,6 @@ import (
 	errors "github.com/pkg/errors"
 	"k8s.io/klog"
 
-	cvclaim "github.com/openebs/maya/pkg/cstorvolumeclaim/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	policy "k8s.io/api/policy/v1beta1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -241,7 +240,7 @@ func (c *CVCController) updateCVCObj(
 // 3. Create target deployment.
 // 4. Create cstorvolumeclaim resource.
 // 5. Create PDB provisioning volume is HA volume.
-// 5. Update the cstorvolumeclaim with claimRef info, PDB label(only for HA
+// 6. Update the cstorvolumeclaim with claimRef info, PDB label(only for HA
 //    volumes) and bound with cstorvolume.
 func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeClaim, error) {
 
@@ -275,14 +274,14 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 		return nil, err
 	}
 
-	if cvclaim.IsHAVolume(cvc) {
+	if isHAVolume(cvc) {
 		var pdbObj *policy.PodDisruptionBudget
 		pdbObj, err = getOrCreatePodDisruptionBudget(cvObj, getCSPC(cvc))
 		if err != nil {
 			return nil, errors.Wrapf(err,
 				"failed to create PDB for volume: %s", cvc.Name)
 		}
-		cvc = addPDBLabelOnCVC(cvc, pdbObj)
+		addPDBLabelOnCVC(cvc, pdbObj)
 	}
 
 	volumeRef, err := ref.GetReference(scheme.Scheme, cvObj)
@@ -356,7 +355,7 @@ func (c *CVCController) isClaimDeletionCandidate(cvc *apis.CStorVolumeClaim) boo
 func (c *CVCController) removeClaimFinalizer(
 	cvc *apis.CStorVolumeClaim,
 ) error {
-	if cvclaim.IsHAVolume(cvc) {
+	if isHAVolume(cvc) {
 		err := c.deletePDBIfNotInUse(cvc)
 		if err != nil {
 			return errors.Wrapf(err,
@@ -641,7 +640,7 @@ func (c *CVCController) deletePDBIfNotInUse(cvc *apis.CStorVolumeClaim) error {
 	}
 	if len(cvcList.Items) == 1 {
 		err = apispdb.KubeClient().
-			WithNamespace(cvc.Namespace).
+			WithNamespace(openebsNamespace).
 			Delete(pdbName, &metav1.DeleteOptions{})
 		if err != nil {
 			return err

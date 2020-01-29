@@ -39,9 +39,6 @@ const (
 	CStorPoolClusterCPK CasPoolKey = "openebs.io/cstor-pool-cluster"
 	// CStorPoolInstanceCPK is the CStorPoolInstance label
 	CStorPoolInstanceCPK CasPoolKey = "openebs.io/cstor-pool-instance"
-	// PredecessorBlockDeviceCPK is the annotation on the block device claim
-	// holding previous block device name
-	PredecessorBlockDeviceCPK CasPoolKey = "openebs.io/bd-predecessor"
 	// NdmDiskTypeCPK is the node-disk-manager disk type e.g. 'sparse' or 'disk'
 	NdmDiskTypeCPK CasPoolKey = "ndm.io/disk-type"
 	// NdmBlockDeviceTypeCPK is the node-disk-manager blockdevice type e.g. // 'blockdevice'

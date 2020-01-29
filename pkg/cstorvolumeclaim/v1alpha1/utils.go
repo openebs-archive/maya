@@ -24,12 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 )
 
-const (
-	// minHAReplicaCount is minimum no.of replicas are required to decide
-	// HighAvailable volume
-	minHAReplicaCount = 3
-)
-
 // CVCKey returns an unique key of a CVC object,
 func CVCKey(cvc *apis.CStorVolumeClaim) string {
 	return fmt.Sprintf("%s/%s", cvc.Namespace, cvc.Name)
@@ -49,11 +43,6 @@ func getPatchData(oldObj, newObj interface{}) ([]byte, error) {
 		return nil, fmt.Errorf("CreateTwoWayMergePatch failed: %v", err)
 	}
 	return patchBytes, nil
-}
-
-// IsHAVolume returns true if replica count is greater than or equal to 3
-func IsHAVolume(cvcObj *apis.CStorVolumeClaim) bool {
-	return cvcObj.Spec.ReplicaCount >= minHAReplicaCount
 }
 
 // GetPDBPoolLabels returns the pool labels from poolNames

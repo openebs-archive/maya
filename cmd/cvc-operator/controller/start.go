@@ -84,6 +84,12 @@ func Start() error {
 		return errors.Wrap(err, "error building ndm clientset")
 	}
 
+	// openebsNamespace will hold where the OpenEBS is installed
+	openebsNamespace = getNamespace()
+	if openebsNamespace == "" {
+		return errors.Errorf("failed to get openebs namespace got empty")
+	}
+
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
 	cvcInformerFactory := informers.NewSharedInformerFactory(openebsClient, time.Second*30)
 

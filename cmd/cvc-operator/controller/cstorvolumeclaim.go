@@ -18,6 +18,7 @@ package cstorvolumeclaim
 
 import (
 	"math/rand"
+	"sort"
 	"strings"
 	"time"
 
@@ -30,6 +31,7 @@ import (
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	cvclaim "github.com/openebs/maya/pkg/cstorvolumeclaim/v1alpha1"
+	hash "github.com/openebs/maya/pkg/hash"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -42,13 +44,14 @@ import (
 const (
 	cvcKind = "CStorVolumeClaim"
 	cvKind  = "CStorVolume"
-
-	cstorpoolInstanceLabel = "cstorpoolinstance.openebs.io/name"
 	// ReplicaCount represents replica count value
 	ReplicaCount = "replicaCount"
 	// pvSelector is the selector key for cstorvolumereplica belongs to a cstor
 	// volume
 	pvSelector = "openebs.io/persistent-volume"
+	// minHAReplicaCount is minimum no.of replicas are required to decide
+	// HighAvailable volume
+	minHAReplicaCount = 3
 )
 
 var (
@@ -86,6 +89,9 @@ var (
 			},
 		},
 	}
+	// openebsNamespace is global variable and it is initialized during starting
+	// of the controller
+	openebsNamespace string
 )
 
 // getTargetServiceLabels get the labels for cstor volume service
@@ -166,7 +172,7 @@ func getCVOwnerReference(cvc *apis.CStorVolumeClaim) []metav1.OwnerReference {
 }
 
 // getNamespace gets the namespace OPENEBS_NAMESPACE env value which is set by the
-// downward API where maya-apiserver has been deployed
+// downward API where CVC-Operator has been deployed
 func getNamespace() string {
 	return menv.Get(menv.OpenEBSNamespace)
 }
@@ -223,7 +229,7 @@ func getOrCreateTargetService(
 	claim *apis.CStorVolumeClaim,
 ) (*corev1.Service, error) {
 
-	svcObj, err := svc.NewKubeClient(svc.WithNamespace(getNamespace())).
+	svcObj, err := svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).
 		Get(claim.Name, metav1.GetOptions{})
 
 	if err == nil {
@@ -255,7 +261,7 @@ func getOrCreateTargetService(
 		)
 	}
 
-	svcObj, err = svc.NewKubeClient(svc.WithNamespace(getNamespace())).Create(svcObj)
+	svcObj, err = svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).Create(svcObj)
 	return svcObj, err
 }
 
@@ -285,7 +291,7 @@ func getOrCreateCStorVolumeResource(
 		volLabels[string(apis.SourceVolumeKey)] = srcVolume
 	}
 
-	cvObj, err := cv.NewKubeclient(cv.WithNamespace(getNamespace())).
+	cvObj, err := cv.NewKubeclient(cv.WithNamespace(openebsNamespace)).
 		Get(claim.Name, metav1.GetOptions{})
 	if err != nil && !k8serror.IsNotFound(err) {
 		return nil, errors.Wrapf(
@@ -319,7 +325,7 @@ func getOrCreateCStorVolumeResource(
 				claim.Name,
 			)
 		}
-		return cv.NewKubeclient(cv.WithNamespace(getNamespace())).Create(cvObj)
+		return cv.NewKubeclient(cv.WithNamespace(openebsNamespace)).Create(cvObj)
 	}
 	return cvObj, err
 }
@@ -410,7 +416,7 @@ func createCVR(
 		annotations[string(apis.SnapshotNameKey)] = snapName
 		labels[string(apis.CloneEnableKEY)] = isClone
 	}
-	cvrObj, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).
+	cvrObj, err := cvr.NewKubeclient(cvr.WithNamespace(openebsNamespace)).
 		Get(volume.Name+"-"+string(pool.Name), metav1.GetOptions{})
 
 	if err != nil && !k8serror.IsNotFound(err) {
@@ -439,7 +445,7 @@ func createCVR(
 				cvrObj.Name,
 			)
 		}
-		cvrObj, err = cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).Create(cvrObj)
+		cvrObj, err = cvr.NewKubeclient(cvr.WithNamespace(openebsNamespace)).Create(cvrObj)
 		if err != nil {
 			return nil, errors.Wrapf(
 				err,
@@ -458,7 +464,7 @@ func createCVR(
 func getPoolMapFromCVRList(cvrList *apis.CStorVolumeReplicaList) map[string]bool {
 	var poolMap = make(map[string]bool)
 	for _, cvr := range cvrList.Items {
-		poolName := cvr.GetLabels()[string(apis.CstorpoolInstanceLabel)]
+		poolName := cvr.GetLabels()[string(apis.CStorpoolInstanceLabel)]
 		if poolName != "" {
 			poolMap[poolName] = true
 		}
@@ -473,7 +479,7 @@ func getUsablePoolList(pvName string, poolList *apis.CStorPoolInstanceList) *api
 	usablePoolList := &apis.CStorPoolInstanceList{}
 
 	pvLabel := pvSelector + "=" + pvName
-	cvrList, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).List(metav1.ListOptions{
+	cvrList, err := cvr.NewKubeclient(cvr.WithNamespace(openebsNamespace)).List(metav1.ListOptions{
 		LabelSelector: pvLabel,
 	})
 	if err != nil {
@@ -496,14 +502,14 @@ func getUsablePoolListForClone(pvName, srcPVName string, poolList *apis.CStorPoo
 	usablePoolList := &apis.CStorPoolInstanceList{}
 
 	pvLabel := pvSelector + "=" + pvName
-	cvrList, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).List(metav1.ListOptions{
+	cvrList, err := cvr.NewKubeclient(cvr.WithNamespace(openebsNamespace)).List(metav1.ListOptions{
 		LabelSelector: pvLabel,
 	})
 	if err != nil {
 		return nil
 	}
 	srcPVLabel := pvSelector + "=" + srcPVName
-	srcCVRList, err := cvr.NewKubeclient(cvr.WithNamespace(getNamespace())).List(metav1.ListOptions{
+	srcCVRList, err := cvr.NewKubeclient(cvr.WithNamespace(openebsNamespace)).List(metav1.ListOptions{
 		LabelSelector: srcPVLabel,
 	})
 	if err != nil {
@@ -538,7 +544,8 @@ func randomizePoolList(list *apis.CStorPoolInstanceList) *apis.CStorPoolInstance
 // 3. If PDB doesn't exist it creates new PDB(With CSPC hash)
 func getOrCreatePodDisruptionBudget(
 	cvObj *apis.CStorVolume, cspcName string) (*policy.PodDisruptionBudget, error) {
-	poolNames, err := cvr.GetReplicaPoolNames(cvObj)
+	pvName := cvObj.Labels[string(apis.PersistentVolumeCPK)]
+	poolNames, err := cvr.GetVolumeReplicaPoolNames(pvName, openebsNamespace)
 	if err != nil {
 		return nil, errors.Wrapf(err,
 			"failed to get volume replica pool names of volume %s",
@@ -547,7 +554,7 @@ func getOrCreatePodDisruptionBudget(
 	pdbLabels := cvclaim.GetPDBPoolLabels(poolNames)
 	labelSelector := apispdb.GetPDBLabelSelector(pdbLabels)
 	pdbList, err := apispdb.KubeClient().
-		WithNamespace(getNamespace()).
+		WithNamespace(openebsNamespace).
 		List(metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		return nil, errors.Wrapf(err,
@@ -568,15 +575,27 @@ func getOrCreatePodDisruptionBudget(
 // createPDB creates PDB for cStorVolumes based on arguments
 func createPDB(cvObj *apis.CStorVolume,
 	poolNames []string, cspcName string) (*policy.PodDisruptionBudget, error) {
+	// To store sorted poolNames
+	var copyPoolNames []string
 	// Calculate minAvailable value from cStorVolume replica count
 	//minAvailable := (cvObj.Spec.ReplicationFactor >> 1) + 1
 	maxUnavailableIntStr := intstr.FromInt(1)
+	copy(copyPoolNames, poolNames)
+	sort.Strings(copyPoolNames)
+	hash, err := hash.Hash(copyPoolNames)
+	if err != nil {
+		errors.Wrapf(err, "failed to get hash of pools to populate PDB name")
+	}
+	// If two threads tries to create PDB for same pools at same then one who
+	// created first will succeed other will be errored saying PDB already
+	// exists with that name
+	pdbName := cspcName + hash
 
 	//build podDisruptionBudget for volume
 	pdbObj := policy.PodDisruptionBudget{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: cspcName,
-			Labels:       cvclaim.GetPDBLabels(poolNames, cspcName),
+			Name:   pdbName,
+			Labels: cvclaim.GetPDBLabels(poolNames, cspcName),
 		},
 		Spec: policy.PodDisruptionBudgetSpec{
 			MaxUnavailable: &maxUnavailableIntStr,
@@ -585,7 +604,7 @@ func createPDB(cvObj *apis.CStorVolume,
 	}
 	// Create podDisruptionBudget
 	return apispdb.KubeClient().
-		WithNamespace(cvObj.Namespace).
+		WithNamespace(openebsNamespace).
 		Create(&pdbObj)
 }
 
@@ -609,12 +628,16 @@ func getPDBSelector(pools []string) *metav1.LabelSelector {
 
 // addPDBLabelOnCVC will add PodDisruptionBudget label on CVC
 func addPDBLabelOnCVC(
-	cvcObj *apis.CStorVolumeClaim, pdbObj *policy.PodDisruptionBudget) *apis.CStorVolumeClaim {
+	cvcObj *apis.CStorVolumeClaim, pdbObj *policy.PodDisruptionBudget) {
 	cvcLabels := cvcObj.GetLabels()
 	if cvcLabels == nil {
 		cvcLabels = map[string]string{}
 	}
 	cvcLabels[apis.PodDisruptionBudgetKey] = pdbObj.Name
 	cvcObj.SetLabels(cvcLabels)
-	return cvcObj
+}
+
+// isHAVolume returns true if replica count is greater than or equal to 3
+func isHAVolume(cvcObj *apis.CStorVolumeClaim) bool {
+	return cvcObj.Spec.ReplicaCount >= minHAReplicaCount
 }

@@ -34,6 +34,9 @@ import (
 var (
 	kubeClientInst *kubernetes.Clientset
 	once           sync.Once
+	// pdbMutex will helpful if multiple threads are simultaneously accessing PDB
+	// NOTE: Take a lock only for write operations
+	pdbMutex *sync.Mutex = &sync.Mutex{}
 )
 
 // delFunc is a typed function that abstracts deleting poddisruptionbudget
@@ -44,7 +47,7 @@ type delFunc func(cs *kubernetes.Clientset, name, namespace string, opts *metav1
 type getFunc func(cs *kubernetes.Clientset, name, namespace string, opts metav1.GetOptions) (*policy.PodDisruptionBudget, error)
 
 // createFn is a typed function that abstracts
-// deleting poddisruptionbudget
+// creating poddisruptionbudget
 type createFunc func(cli *kubernetes.Clientset, namespace string,
 	pdb *policy.PodDisruptionBudget) (
 	*policy.PodDisruptionBudget,
@@ -178,6 +181,8 @@ func (k *Kubeclient) Delete(name string, options *metav1.DeleteOptions) error {
 	if err != nil {
 		return err
 	}
+	pdbMutex.Lock()
+	defer pdbMutex.Unlock()
 	return k.del(cli, name, k.namespace, options)
 }
 
@@ -188,10 +193,12 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*policy.PodDisruptionBudgetL
 	if err != nil {
 		return nil, err
 	}
+	pdbMutex.Lock()
+	defer pdbMutex.Unlock()
 	return k.list(cs, k.namespace, opts)
 }
 
-// Create create poddisruptionbudget, and returns the
+// Create creates poddisruptionbudget, and returns the
 // corresponding poddisruptionbudget object, and an error if there is any.
 func (k *Kubeclient) Create(pdb *policy.PodDisruptionBudget) (*policy.PodDisruptionBudget, error) {
 	if pdb == nil {
@@ -201,6 +208,8 @@ func (k *Kubeclient) Create(pdb *policy.PodDisruptionBudget) (*policy.PodDisrupt
 	if err != nil {
 		return nil, err
 	}
+	pdbMutex.Lock()
+	defer pdbMutex.Unlock()
 	return k.create(cs, k.namespace, pdb)
 }
 
@@ -214,5 +223,7 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*policy.PodDisrup
 	if err != nil {
 		return nil, err
 	}
+	pdbMutex.Lock()
+	defer pdbMutex.Unlock()
 	return k.get(cs, name, k.namespace, opts)
 }

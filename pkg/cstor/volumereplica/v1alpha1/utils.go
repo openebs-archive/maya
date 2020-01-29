@@ -22,34 +22,32 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// getCVRList returns list of volume replicas related to provided volume
-func getCVRList(cvObj *apis.CStorVolume) (*apis.CStorVolumeReplicaList, error) {
-	pvName := cvObj.Labels[string(apis.PersistentVolumeCPK)]
+// GetCVRList returns list of volume replicas related to provided volume
+func GetCVRList(pvName, namespace string) (*apis.CStorVolumeReplicaList, error) {
 	pvLabel := string(apis.PersistentVolumeCPK) + "=" + pvName
-	return NewKubeclient(WithNamespace(cvObj.Namespace)).
+	return NewKubeclient(WithNamespace(namespace)).
 		List(metav1.ListOptions{
 			LabelSelector: pvLabel,
 		})
 }
 
-// getPoolNames returns list of pool names from cStor volume replcia list
-func getPoolNames(cvrList *apis.CStorVolumeReplicaList) []string {
+// GetPoolNames returns list of pool names from cStor volume replcia list
+func GetPoolNames(cvrList *apis.CStorVolumeReplicaList) []string {
 	poolNames := []string{}
 	for _, cvrObj := range cvrList.Items {
-		poolNames = append(poolNames, cvrObj.Labels[string(apis.CstorpoolInstanceLabel)])
+		poolNames = append(poolNames, cvrObj.Labels[string(apis.CStorpoolInstanceLabel)])
 	}
 	return poolNames
 }
 
-// GetReplicaPoolNames return list of replicas pool names by taking cStor
-// volume claim as a argument and return error(if any error occured)
-func GetReplicaPoolNames(cvObj *apis.CStorVolume) ([]string, error) {
-	pvName := cvObj.Labels[string(apis.PersistentVolumeCPK)]
-	cvrList, err := getCVRList(cvObj)
+// GetVolumeReplicaPoolNames return list of replicas pool names by taking pvName
+// and namespace(where pool is installed) as a input and return error(if any error occured)
+func GetVolumeReplicaPoolNames(pvName, namespace string) ([]string, error) {
+	cvrList, err := GetCVRList(pvName, namespace)
 	if err != nil {
 		return []string{}, errors.Wrapf(err,
 			"failed to list cStorVolumeReplicas related to volume %s",
 			pvName)
 	}
-	return getPoolNames(cvrList), nil
+	return GetPoolNames(cvrList), nil
 }
