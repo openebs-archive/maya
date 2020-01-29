@@ -141,7 +141,7 @@ func (in *CASTemplate) DeepCopyObject() runtime.Object {
 func (in *CASTemplateList) DeepCopyInto(out *CASTemplateList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CASTemplate, len(*in))
@@ -220,7 +220,7 @@ func (in *CASVolumeList) DeepCopyInto(out *CASVolumeList) {
 	*out = *in
 	in.ListOptions.DeepCopyInto(&out.ListOptions)
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CASVolume, len(*in))
@@ -304,7 +304,7 @@ func (in *CStorBackup) DeepCopyObject() runtime.Object {
 func (in *CStorBackupList) DeepCopyInto(out *CStorBackupList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorBackup, len(*in))
@@ -380,7 +380,7 @@ func (in *CStorCompletedBackup) DeepCopyObject() runtime.Object {
 func (in *CStorCompletedBackupList) DeepCopyInto(out *CStorCompletedBackupList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorCompletedBackup, len(*in))
@@ -519,7 +519,7 @@ func (in *CStorPoolClusterBlockDevice) DeepCopy() *CStorPoolClusterBlockDevice {
 func (in *CStorPoolClusterList) DeepCopyInto(out *CStorPoolClusterList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorPoolCluster, len(*in))
@@ -638,7 +638,7 @@ func (in *CStorPoolInstance) DeepCopyObject() runtime.Object {
 func (in *CStorPoolInstanceList) DeepCopyInto(out *CStorPoolInstanceList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorPoolInstance, len(*in))
@@ -702,7 +702,7 @@ func (in *CStorPoolInstanceSpec) DeepCopy() *CStorPoolInstanceSpec {
 func (in *CStorPoolList) DeepCopyInto(out *CStorPoolList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorPool, len(*in))
@@ -805,7 +805,7 @@ func (in *CStorRestore) DeepCopyObject() runtime.Object {
 func (in *CStorRestoreList) DeepCopyInto(out *CStorRestoreList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorRestore, len(*in))
@@ -947,7 +947,7 @@ func (in *CStorVolumeClaimCondition) DeepCopy() *CStorVolumeClaimCondition {
 func (in *CStorVolumeClaimList) DeepCopyInto(out *CStorVolumeClaimList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorVolumeClaim, len(*in))
@@ -1073,7 +1073,7 @@ func (in *CStorVolumeCondition) DeepCopy() *CStorVolumeCondition {
 func (in *CStorVolumeList) DeepCopyInto(out *CStorVolumeList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorVolume, len(*in))
@@ -1134,7 +1134,7 @@ func (in *CStorVolumePolicy) DeepCopyObject() runtime.Object {
 func (in *CStorVolumePolicyList) DeepCopyInto(out *CStorVolumePolicyList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorVolumePolicy, len(*in))
@@ -1254,7 +1254,7 @@ func (in *CStorVolumeReplicaDetails) DeepCopy() *CStorVolumeReplicaDetails {
 func (in *CStorVolumeReplicaList) DeepCopyInto(out *CStorVolumeReplicaList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorVolumeReplica, len(*in))
@@ -1800,7 +1800,7 @@ func (in *RunTask) DeepCopyObject() runtime.Object {
 func (in *RunTaskList) DeepCopyInto(out *RunTaskList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]RunTask, len(*in))
@@ -1974,7 +1974,7 @@ func (in *StoragePoolClaim) DeepCopyObject() runtime.Object {
 func (in *StoragePoolClaimList) DeepCopyInto(out *StoragePoolClaimList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]StoragePoolClaim, len(*in))
@@ -2046,7 +2046,7 @@ func (in *StoragePoolClaimStatus) DeepCopy() *StoragePoolClaimStatus {
 func (in *StoragePoolList) DeepCopyInto(out *StoragePoolList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]StoragePool, len(*in))

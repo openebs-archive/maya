@@ -105,7 +105,7 @@ func (in *RunTask) DeepCopyObject() runtime.Object {
 func (in *RunTaskList) DeepCopyInto(out *RunTaskList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]RunTask, len(*in))
