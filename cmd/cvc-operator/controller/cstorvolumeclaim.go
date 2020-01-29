@@ -589,7 +589,7 @@ func createPDB(cvObj *apis.CStorVolume,
 	// If two threads tries to create PDB for same pools at same then one who
 	// created first will succeed other will be errored saying PDB already
 	// exists with that name
-	pdbName := cspcName + hash
+	pdbName := cspcName + "-" + hash
 
 	//build podDisruptionBudget for volume
 	pdbObj := policy.PodDisruptionBudget{
