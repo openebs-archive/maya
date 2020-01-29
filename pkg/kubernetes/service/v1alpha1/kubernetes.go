@@ -65,6 +65,13 @@ type createFn func(
 	namespace string,
 ) (*corev1.Service, error)
 
+// updateFn is a typed function that abstracts delete of service instances
+type updateFn func(
+	cli *kubernetes.Clientset,
+	service *corev1.Service,
+	namespace string,
+) (*corev1.Service, error)
+
 // patchFn is a typed function that abstracts patch of service instances
 type patchFn func(
 	cli *kubernetes.Clientset,
@@ -92,6 +99,7 @@ type Kubeclient struct {
 	del                 delFn
 	create              createFn
 	patch               patchFn
+	update              updateFn
 }
 
 // KubeclientBuildOption defines the abstraction to build a kubeclient instance
@@ -170,6 +178,18 @@ func defaultCreate(
 		Create(service)
 }
 
+// defaultUpdate is the default implementation to update
+// a service instance in kubernetes cluster
+func defaultUpdate(
+	cli *kubernetes.Clientset,
+	service *corev1.Service,
+	namespace string,
+) (*corev1.Service, error) {
+	return cli.CoreV1().
+		Services(namespace).
+		Update(service)
+}
+
 // defaultPatch is the default implementation to patch
 // a service instance in kubernetes cluster
 func defaultPatch(
@@ -206,6 +226,9 @@ func (k *Kubeclient) withDefaults() {
 	}
 	if k.patch == nil {
 		k.patch = defaultPatch
+	}
+	if k.update == nil {
+		k.update = defaultUpdate
 	}
 }
 
@@ -334,6 +357,23 @@ func (k *Kubeclient) Create(service *corev1.Service) (*corev1.Service, error) {
 		)
 	}
 	return k.create(cli, service, k.namespace)
+}
+
+// Update updates a service in specified namespace in kubernetes cluster
+func (k *Kubeclient) Update(service *corev1.Service) (*corev1.Service, error) {
+	if service == nil {
+		return nil, errors.New("failed to update service: nil service object")
+	}
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to update service {%s} in namespace {%s}",
+			service.Name,
+			service.Namespace,
+		)
+	}
+	return k.update(cli, service, k.namespace)
 }
 
 // Patch patches service object for given name
