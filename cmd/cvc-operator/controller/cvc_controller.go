@@ -275,6 +275,8 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 	}
 
 	if isHAVolume(cvc) {
+		// TODO: When multiple threads or multiple CVC controllers are set then
+		// we have to revist entier PDB code path
 		var pdbObj *policy.PodDisruptionBudget
 		pdbObj, err = getOrCreatePodDisruptionBudget(cvObj, getCSPC(cvc))
 		if err != nil {

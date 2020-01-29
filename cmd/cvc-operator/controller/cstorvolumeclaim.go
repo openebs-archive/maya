@@ -18,7 +18,6 @@ package cstorvolumeclaim
 
 import (
 	"math/rand"
-	"sort"
 	"strings"
 	"time"
 
@@ -31,7 +30,6 @@ import (
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	cvclaim "github.com/openebs/maya/pkg/cstorvolumeclaim/v1alpha1"
-	hash "github.com/openebs/maya/pkg/hash"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -574,27 +572,15 @@ func getOrCreatePodDisruptionBudget(
 
 // createPDB creates PDB for cStorVolumes based on arguments
 func createPDB(poolNames []string, cspcName string) (*policy.PodDisruptionBudget, error) {
-	// To store sorted poolNames
-	var copyPoolNames []string
 	// Calculate minAvailable value from cStorVolume replica count
 	//minAvailable := (cvObj.Spec.ReplicationFactor >> 1) + 1
 	maxUnavailableIntStr := intstr.FromInt(1)
-	copy(copyPoolNames, poolNames)
-	sort.Strings(copyPoolNames)
-	hash, err := hash.Hash(copyPoolNames)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get hash of pools to populate PDB name")
-	}
-	// If two threads tries to create PDB for same pools at same then one who
-	// created first will succeed other will be errored saying PDB already
-	// exists with that name
-	pdbName := cspcName + "-" + hash
 
 	//build podDisruptionBudget for volume
 	pdbObj := policy.PodDisruptionBudget{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   pdbName,
-			Labels: cvclaim.GetPDBLabels(poolNames, cspcName),
+			GenerateName: cspcName,
+			Labels:       cvclaim.GetPDBLabels(poolNames, cspcName),
 		},
 		Spec: policy.PodDisruptionBudgetSpec{
 			MaxUnavailable: &maxUnavailableIntStr,
