@@ -569,12 +569,11 @@ func getOrCreatePodDisruptionBudget(
 	if len(pdbList.Items) == 1 {
 		return &pdbList.Items[0], nil
 	}
-	return createPDB(cvObj, poolNames, cspcName)
+	return createPDB(poolNames, cspcName)
 }
 
 // createPDB creates PDB for cStorVolumes based on arguments
-func createPDB(cvObj *apis.CStorVolume,
-	poolNames []string, cspcName string) (*policy.PodDisruptionBudget, error) {
+func createPDB(poolNames []string, cspcName string) (*policy.PodDisruptionBudget, error) {
 	// To store sorted poolNames
 	var copyPoolNames []string
 	// Calculate minAvailable value from cStorVolume replica count
@@ -584,7 +583,7 @@ func createPDB(cvObj *apis.CStorVolume,
 	sort.Strings(copyPoolNames)
 	hash, err := hash.Hash(copyPoolNames)
 	if err != nil {
-		errors.Wrapf(err, "failed to get hash of pools to populate PDB name")
+		return nil, errors.Wrapf(err, "failed to get hash of pools to populate PDB name")
 	}
 	// If two threads tries to create PDB for same pools at same then one who
 	// created first will succeed other will be errored saying PDB already

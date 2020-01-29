@@ -628,6 +628,8 @@ func (c *CVCController) resizeCV(cv *apis.CStorVolume, newCapacity resource.Quan
 // deletePDBIfNotInUse deletes the PDB if no volume is refering to the
 // cStorvolumeclaim PDB
 func (c *CVCController) deletePDBIfNotInUse(cvc *apis.CStorVolumeClaim) error {
+	//TODO: If HALease is enabled active-active then below code needs to be
+	//revist
 	pdbName := getPDBName(cvc)
 	cvcLabelSelector := string(apis.PodDisruptionBudgetKey) + "=" + pdbName
 	cvcList, err := c.clientset.
