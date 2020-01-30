@@ -153,7 +153,7 @@ func TestGetDuplicateBlockDeviceList(t *testing.T) {
 	}
 }
 
-func TestGetOldCommonRaidGroups(t *testing.T) {
+func TestGetIndexedCommonRaidGroups(t *testing.T) {
 	test := map[string]struct {
 		oldPoolSpec *apis.PoolSpec
 		newPoolSpec *apis.PoolSpec
@@ -255,7 +255,7 @@ func TestGetOldCommonRaidGroups(t *testing.T) {
 	for name, test := range test {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
-			_, err := getOldCommonRaidGroups(test.oldPoolSpec, test.newPoolSpec)
+			_, err := getIndexedCommonRaidGroups(test.oldPoolSpec, test.newPoolSpec)
 			if test.expectedErr && err == nil {
 				t.Fatalf("test: %s failed expected err but got nil", name)
 			}
