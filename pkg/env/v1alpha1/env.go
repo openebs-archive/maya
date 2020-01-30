@@ -50,6 +50,10 @@ const (
 	// This environment variable is set via kubernetes downward API
 	Namespace ENVKey = "NAMESPACE"
 
+	// OpenEBSBaseDir is the environment variable to get base directory of
+	// openebs
+	OpenEBSBaseDir ENVKey = "OPENEBS_IO_BASE_DIR"
+
 	// OpenEBSMayaPodName is the environment variable to get maya-apiserver pod
 	// name
 	//
@@ -251,4 +255,14 @@ func lookupEnv(envKey string) (value string, present bool) {
 	value, present = os.LookupEnv(envKey)
 	value = strings.TrimSpace(value)
 	return
+}
+
+// GetOpenebsBaseDirPath returns the base path to store openebs related files on
+// host machine
+func GetOpenebsBaseDirPath() string {
+	baseDir, isPresent := lookupEnv(string(OpenEBSBaseDir))
+	if !isPresent {
+		return "/var/openebs"
+	}
+	return baseDir
 }

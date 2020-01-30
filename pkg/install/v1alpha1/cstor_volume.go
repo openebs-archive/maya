@@ -616,6 +616,8 @@ spec:
               mountPath: /var/run
             - name: conf
               mountPath: /usr/local/etc/istgt
+            - name: storagepath
+              mountPath: /var/openebs/cstor-target
           {{- end }}
           - name: cstor-volume-mgmt
             image: {{ .Config.VolumeControllerImage.value }}
