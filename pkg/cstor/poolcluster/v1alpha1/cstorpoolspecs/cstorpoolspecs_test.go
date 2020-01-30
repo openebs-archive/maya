@@ -89,3 +89,167 @@ func TestIsStripePoolSpec(t *testing.T) {
 		})
 	}
 }
+
+func TestDoesPoolSpecHasCommonPoolType(t *testing.T) {
+	tests := map[string]struct {
+		poolSpec     *apisv1alpha1.PoolSpec
+		expectOutput bool
+	}{
+		"When pool type stripe is mentioned on default pool configurations": {
+			poolSpec: &apisv1alpha1.PoolSpec{
+				RaidGroups: []apisv1alpha1.RaidGroup{
+					apisv1alpha1.RaidGroup{
+						Type: "",
+					},
+				},
+				PoolConfig: apisv1alpha1.PoolConfig{
+					DefaultRaidGroupType: "stripe",
+				},
+			},
+			expectOutput: true,
+		},
+		"When pool type stripe is mentioned on raid group but not on default": {
+			poolSpec: &apisv1alpha1.PoolSpec{
+				RaidGroups: []apisv1alpha1.RaidGroup{
+					apisv1alpha1.RaidGroup{
+						Type: "stripe",
+					},
+				},
+			},
+			expectOutput: true,
+		},
+		"When pool type is not mentioned on raidGroup1 but specified on raidGroup2 and defaults": {
+			poolSpec: &apisv1alpha1.PoolSpec{
+				RaidGroups: []apisv1alpha1.RaidGroup{
+					apisv1alpha1.RaidGroup{
+						Type: "",
+					},
+					apisv1alpha1.RaidGroup{
+						Type: "stripe",
+					},
+				},
+				PoolConfig: apisv1alpha1.PoolConfig{
+					DefaultRaidGroupType: "stripe",
+				},
+			},
+			expectOutput: true,
+		},
+		"when pool type is not specified on raidgroup2 but specified on raidgroup1 and default": {
+			poolSpec: &apisv1alpha1.PoolSpec{
+				RaidGroups: []apisv1alpha1.RaidGroup{
+					apisv1alpha1.RaidGroup{
+						Type: "stripe",
+					},
+					apisv1alpha1.RaidGroup{
+						Type: "",
+					},
+				},
+				PoolConfig: apisv1alpha1.PoolConfig{
+					DefaultRaidGroupType: "stripe",
+				},
+			},
+			expectOutput: true,
+		},
+		"When pool type is common on raidgroup1 and raidgroup2": {
+			poolSpec: &apisv1alpha1.PoolSpec{
+				RaidGroups: []apisv1alpha1.RaidGroup{
+					apisv1alpha1.RaidGroup{
+						Type: "stripe",
+					},
+					apisv1alpha1.RaidGroup{
+						Type: "stripe",
+					},
+				},
+			},
+			expectOutput: true,
+		},
+		"When pool type is mismatch on raidgroup1 and raidgroup2": {
+			poolSpec: &apisv1alpha1.PoolSpec{
+				RaidGroups: []apisv1alpha1.RaidGroup{
+					apisv1alpha1.RaidGroup{
+						Type: "mirror",
+					},
+					apisv1alpha1.RaidGroup{
+						Type: "stripe",
+					},
+				},
+			},
+			expectOutput: false,
+		},
+		"when pool type missmatches1": {
+			poolSpec: &apisv1alpha1.PoolSpec{
+				RaidGroups: []apisv1alpha1.RaidGroup{
+					apisv1alpha1.RaidGroup{
+						Type: "stripe",
+					},
+					apisv1alpha1.RaidGroup{
+						Type: "",
+					},
+				},
+				PoolConfig: apisv1alpha1.PoolConfig{
+					DefaultRaidGroupType: "mirror",
+				},
+			},
+			expectOutput: false,
+		},
+		"when pool type missmatches2": {
+			poolSpec: &apisv1alpha1.PoolSpec{
+				RaidGroups: []apisv1alpha1.RaidGroup{
+					apisv1alpha1.RaidGroup{
+						Type: "",
+					},
+					apisv1alpha1.RaidGroup{
+						Type: "stripe",
+					},
+				},
+				PoolConfig: apisv1alpha1.PoolConfig{
+					DefaultRaidGroupType: "mirror",
+				},
+			},
+			expectOutput: false,
+		},
+		"when pool type is not specified": {
+			poolSpec: &apisv1alpha1.PoolSpec{
+				RaidGroups: []apisv1alpha1.RaidGroup{
+					apisv1alpha1.RaidGroup{
+						Type: "",
+					},
+					apisv1alpha1.RaidGroup{
+						Type: "",
+					},
+				},
+			},
+			expectOutput: true,
+		},
+		"when default pool type alone is specified": {
+			poolSpec: &apisv1alpha1.PoolSpec{
+				RaidGroups: []apisv1alpha1.RaidGroup{
+					apisv1alpha1.RaidGroup{
+						Type: "",
+					},
+					apisv1alpha1.RaidGroup{
+						Type: "",
+					},
+				},
+				PoolConfig: apisv1alpha1.PoolConfig{
+					DefaultRaidGroupType: "raidz",
+				},
+			},
+			expectOutput: true,
+		},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			hasCommonPoolType := DoesPoolSpecHasCommonPoolType(test.poolSpec)
+			if hasCommonPoolType != test.expectOutput {
+				t.Fatalf(
+					"test: %s failed excepted output %t but got %t",
+					name,
+					test.expectOutput,
+					hasCommonPoolType,
+				)
+			}
+		})
+	}
+}

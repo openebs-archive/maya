@@ -245,6 +245,9 @@ func (poolValidator *PoolValidator) poolSpecValidation() (bool, string) {
 			return false, fmt.Sprintf("stripe pool spec configuration has more than one raid group")
 		}
 	}
+	if !poolspec.DoesPoolSpecHasCommonPoolType(poolValidator.poolSpec) {
+		return false, fmt.Sprintf("raid groups in pool spec has different pool type")
+	}
 	// TODO : Add validation for pool config
 	// Pool config will require mutating webhooks also.
 	for _, raidGroup := range poolValidator.poolSpec.RaidGroups {

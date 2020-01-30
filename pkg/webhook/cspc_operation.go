@@ -168,10 +168,10 @@ func getBDsFromRaidGroups(rgs []apis.RaidGroup) []string {
 	return bds
 }
 
-// getOldCommonRaidGroups returns raidGroups that contains index matching of
+// getIndexedCommonRaidGroups returns raidGroups that contains index matching of
 // oldRaidGroups and newRaidGroups. If oldRaidGroup doesn't exist on
 // newRaidGroup then return error
-func getOldCommonRaidGroups(oldPoolSpec,
+func getIndexedCommonRaidGroups(oldPoolSpec,
 	newPoolSpec *apis.PoolSpec) (*raidGroups, error) {
 	rgs := &raidGroups{
 		oldRaidGroups: []apis.RaidGroup{},
@@ -234,6 +234,10 @@ func validateRaidGroupChanges(oldRg, newRg *apis.RaidGroup) error {
 	return nil
 }
 
+// validatePoolExpansion will validate only expanded raid groups or new blockdevices(
+// in stripe only block devices are added). Following are the validations:
+// 1. New blockdevice shouldn't be claimed by any other CSPC (or) third party.
+// 2. New blockdevice shouldn't be the replacing blockdevice.
 func (pOps *PoolOperations) validatePoolExpansion(
 	newPoolSpec *apis.PoolSpec, commonRaidGroups *raidGroups) error {
 	var bds []string
@@ -254,10 +258,17 @@ func (pOps *PoolOperations) validatePoolExpansion(
 }
 
 // ArePoolSpecChangesValid validates the pool specs on CSPC for raid groups
-// changes case
+// changes(day-2-operations). Steps performed in this function
+// 1. Get common raidgroups with index matching from old and new spec.
+// 2. Iterate over common old and new raid groups and perform following steps:
+//    2.1 Validate raid group changes.
+//        2.1.1: Verify and return error when new block device added or removed from existing
+//               raid groups for other than stripe pool type.
+//    2.2 Validate changes for blockdevice replacement scenarios(openebs/openebs#2846).
+// 3. Validate vertical pool expansions if there are any new raidgroups or blockdevices added.
 func (pOps *PoolOperations) ArePoolSpecChangesValid(oldPoolSpec, newPoolSpec *apis.PoolSpec) (bool, string) {
 	newToOldBd := make(map[string]string)
-	commonRaidGroups, err := getOldCommonRaidGroups(oldPoolSpec, newPoolSpec)
+	commonRaidGroups, err := getIndexedCommonRaidGroups(oldPoolSpec, newPoolSpec)
 	if err != nil {
 		return false, fmt.Sprintf("raid group validation failed: %v", err)
 	}

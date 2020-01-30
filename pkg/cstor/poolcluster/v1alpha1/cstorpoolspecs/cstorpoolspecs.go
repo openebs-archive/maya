@@ -48,3 +48,25 @@ func IsStripePoolSpec(poolSpec *apisv1alpha1.PoolSpec) bool {
 	}
 	return apisv1alpha1.PoolType(poolSpec.PoolConfig.DefaultRaidGroupType) == apisv1alpha1.PoolStriped
 }
+
+// DoesPoolSpecHasCommonPoolType returns true if all the raid groups in pool
+// spec has common pool type or else it returns false
+func DoesPoolSpecHasCommonPoolType(poolSpec *apisv1alpha1.PoolSpec) bool {
+	defaultPoolType := poolSpec.PoolConfig.DefaultRaidGroupType
+	firstRGPoolType := poolSpec.RaidGroups[0].Type
+	if firstRGPoolType == "" {
+		firstRGPoolType = defaultPoolType
+	}
+	for _, curRG := range poolSpec.RaidGroups {
+		if curRG.Type != "" {
+			if firstRGPoolType != curRG.Type {
+				return false
+			}
+			continue
+		}
+		if firstRGPoolType != defaultPoolType {
+			return false
+		}
+	}
+	return true
+}

@@ -236,7 +236,7 @@ func (bd *BlockDevice) CheckIfBDBelongsToNode(nodeName string) error {
 		return errors.Errorf(
 			"block device %s doesn't belongs to node %s",
 			bd.Object.Name,
-			bd.Object.Spec.NodeAttributes.NodeName,
+			nodeName,
 		)
 	}
 	return nil
