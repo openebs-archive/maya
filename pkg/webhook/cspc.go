@@ -337,12 +337,9 @@ func (poolValidator *PoolValidator) blockDeviceClaimValidation(bdcName, bdName s
 			"could not get block device claim for block device {%s}", bdName)
 	}
 	cspcName := bdcObject.
-		GetAnnotations()[string(apis.CStorPoolClusterCPK)]
+		GetLabels()[string(apis.CStorPoolClusterCPK)]
 	if cspcName != poolValidator.cspcName {
-		return errors.Wrapf(err,
-			"cann't use claimed blockdevice %s",
-			bdName,
-		)
+		return errors.Errorf("can't use claimed blockdevice %s", bdName)
 	}
 	return nil
 }
