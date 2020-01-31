@@ -288,6 +288,8 @@ spec:
               mountPath: {{ .Config.SparseDir.value }}
             - name: udev
               mountPath: /run/udev
+            - name: sockfile
+              mountPath: /var/run
             env:
               # OPENEBS_IO_CSTOR_ID env has UID of cStorPool CR.
             - name: OPENEBS_IO_CSTOR_ID
@@ -326,6 +328,8 @@ spec:
               mountPath: {{ .Config.SparseDir.value }}
             - name: udev
               mountPath: /run/udev
+            - name: sockfile
+              mountPath: /var/run
             env:
               # OPENEBS_IO_CSTOR_ID env has UID of cStorPool CR.
             - name: OPENEBS_IO_CSTOR_ID
@@ -375,6 +379,8 @@ spec:
               name: sparse
             - mountPath: /run/udev
               name: udev
+            - name: sockfile
+              mountPath: /var/run
           tolerations:
           {{- if ne $isTolerations "none" }}
           {{- range $k, $v := $tolerationsVal }}
@@ -397,6 +403,9 @@ spec:
               # created to avoid clash if two pool pods run on same node.
               path: {{ .Config.OpenebsBaseDir.value }}/cstor-pool/{{.Storagepool.owner}}
               type: {{ .Config.HostPathType.value }}
+            ## sockfile is used to communicates between side cars and pool container
+          - name: sockfile
+            emptyDir: {}
           - name: tmp
             hostPath:
               # host dir {{ .Config.SparseDir.value }}/shared-<uid> is
