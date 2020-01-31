@@ -1390,6 +1390,8 @@ spec:
               type: ""
           containers:
           - name: sjr
+            securityContext:
+              privileged: true
             image: {{ .Config.ScrubImage.value }}
             command:
             - sh
