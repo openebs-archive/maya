@@ -52,44 +52,48 @@ var (
               "periodSeconds": 60,
               "successThreshold": 1,
               "timeoutSeconds": 150
-            },
+            }{{if lt .CurrentVersion "1.7.0"}},
             "volumeMounts": [
               {
                 "name": "storagepath",
-                "mountPath": "/var/openebs"
+                "mountPath": "/var/openebs/cstor-pool"
               }
             ]
+          {{end}}
           },
           {
             "name": "cstor-pool-mgmt",
-            "image": "{{.PoolMgmtImage}}:{{.ImageTag}}",
+            "image": "{{.PoolMgmtImage}}:{{.ImageTag}}"{{if lt .CurrentVersion "1.7.0"}},
             "volumeMounts": [
               {
                 "name": "storagepath",
-                "mountPath": "/var/openebs"
+                "mountPath": "/var/openebs/cstor-pool"
               }
             ]
-          },
+          {{end}}
+	  },
           {
             "name": "maya-exporter",
-            "image": "{{.MExporterImage}}:{{.ImageTag}}",
+            "image": "{{.MExporterImage}}:{{.ImageTag}}"{{if lt .CurrentVersion "1.7.0"}},
             "volumeMounts": [
               {
                 "name": "storagepath",
-                "mountPath": "/var/openebs"
+                "mountPath": "/var/openebs/cstor-pool"
               }
             ]
-          }
-        ],
+          {{end}}
+	  }
+        ]{{if lt .CurrentVersion "1.7.0"}},
         "volumes": [
           {
             "name": "storagepath",
             "hostPath": {
-              "path": "/var/openebs/cstor-pool/{{.SPCName}}",
+              "path": "{{.BaseDir}}/cstor-pool/{{.SPCName}}",
               "type": "DirectoryOrCreate"
             }
           }
         ]
+      {{end}}
       }
     }
   }

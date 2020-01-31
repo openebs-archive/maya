@@ -34,6 +34,7 @@ import (
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	utask "github.com/openebs/maya/pkg/upgrade/v1alpha2"
 	errors "github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -42,6 +43,7 @@ var (
 	currentVersion = ""
 	urlPrefix      = ""
 	imageTag       = ""
+	baseDir        = "/var/openebs"
 
 	buffer   bytes.Buffer
 	utaskObj *apis.UpgradeTask
@@ -202,5 +204,15 @@ func verifyMayaApiserver(openebsNamespace string) error {
 			upgradeVersion,
 		)
 	}
+	getBaseDir(mayaPods.Items[0])
 	return nil
+}
+
+func getBaseDir(pod corev1.Pod) {
+	for _, env := range pod.Spec.Containers[0].Env {
+		if env.Name == "OPENEBS_IO_BASE_DIR" {
+			baseDir = env.Value
+			break
+		}
+	}
 }

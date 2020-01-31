@@ -35,38 +35,48 @@ var (
         "containers": [
           {
             "name": "cstor-istgt",
-            "image": "{{.IstgtImage}}:{{.ImageTag}}",
+            "image": "{{.IstgtImage}}:{{.ImageTag}}"{{if lt .CurrentVersion "1.7.0"}},
             "volumeMounts": [
               {
                 "name": "storagepath",
-                "mountPath": "/var/openebs"
+                "mountPath": "/var/openebs/cstor-target"
               }
             ]
+          {{end}}
           },
           {
             "name": "maya-volume-exporter",
-            "image": "{{.MExporterImage}}:{{.ImageTag}}"
-          },
-          {
-            "name": "cstor-volume-mgmt",
-            "image": "{{.VolumeMgmtImage}}:{{.ImageTag}}",
+            "image": "{{.MExporterImage}}:{{.ImageTag}}"{{if lt .CurrentVersion "1.7.0"}},
             "volumeMounts": [
               {
                 "name": "storagepath",
-                "mountPath": "/var/openebs"
+                "mountPath": "/var/openebs/cstor-target"
               }
             ]
+          {{end}}
+          },
+          {
+            "name": "cstor-volume-mgmt",
+            "image": "{{.VolumeMgmtImage}}:{{.ImageTag}}"{{if lt .CurrentVersion "1.7.0"}},
+            "volumeMounts": [
+              {
+                "name": "storagepath",
+                "mountPath": "/var/openebs/cstor-target"
+              }
+            ]
+          {{end}}
           }
-        ],
+        ]{{if lt .CurrentVersion "1.7.0"}},
         "volumes": [
           {
             "name": "storagepath",
             "hostPath": {
-              "path": "/var/openebs/cstor-target/{{.PVName}}-target",
+              "path": "{{.BaseDir}}/cstor-target/{{.PVName}}",
               "type": "DirectoryOrCreate"
             }
           }
         ]
+      {{end}}
       }
     }
   }

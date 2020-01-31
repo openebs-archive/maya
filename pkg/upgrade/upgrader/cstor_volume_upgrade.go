@@ -34,7 +34,8 @@ import (
 )
 
 type cstorTargetPatchDetails struct {
-	UpgradeVersion, ImageTag, IstgtImage, MExporterImage, VolumeMgmtImage, PVName string
+	CurrentVersion, UpgradeVersion, ImageTag, IstgtImage,
+	BaseDir, MExporterImage, VolumeMgmtImage, PVName string
 }
 
 const (
@@ -118,17 +119,20 @@ func patchTargetDeploy(d *appsv1.Deployment, ns string) error {
 			return err
 		}
 		patchDetails.UpgradeVersion = upgradeVersion
+		patchDetails.CurrentVersion = currentVersion
+		patchDetails.BaseDir = baseDir
 		err = tmpl.Execute(&buffer, patchDetails)
 		if err != nil {
 			return errors.Wrapf(err, "failed to populate template for cstor target deployment patch")
 		}
-		replicaPatch := buffer.String()
+		targetPatch := buffer.String()
 		buffer.Reset()
+		fmt.Println(targetPatch)
 		err = patchDelpoyment(
 			d.Name,
 			ns,
 			types.StrategicMergePatchType,
-			[]byte(replicaPatch),
+			[]byte(targetPatch),
 		)
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch target deployment %s", d.Name)
