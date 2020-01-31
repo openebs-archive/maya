@@ -669,7 +669,7 @@ spec:
             emptyDir: {}
           - name: storagepath
             hostPath:
-              path: {{ .Config.OpenebsBaseDir.value }}/cstor-target/{{ .Volume.owner }}-target
+              path: {{ .Config.OpenebsBaseDir.value }}/cstor-target/{{ .Volume.owner }}
               type: DirectoryOrCreate
           - name: tmp
             hostPath:
