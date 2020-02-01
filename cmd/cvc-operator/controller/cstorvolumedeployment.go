@@ -20,6 +20,7 @@ import (
 	"os"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
@@ -45,10 +46,12 @@ var (
 	privileged = true
 
 	resyncInterval = "30"
+
 	// MountPropagationBidirectional means that the volume in a container will
 	// receive new mounts from the host or other containers, and its own mounts
 	// will be propagated from the container to the host or other containers.
-	mountPropagation = corev1.MountPropagationBidirectional
+	// mountPropagation = corev1.MountPropagationBidirectional
+
 	// hostpathType represents the hostpath type
 	hostpathType = corev1.HostPathDirectoryOrCreate
 
@@ -60,6 +63,10 @@ var (
 		corev1.VolumeMount{
 			Name:      "conf",
 			MountPath: "/usr/local/etc/istgt",
+		},
+		corev1.VolumeMount{
+			Name:      "storagepath",
+			MountPath: "/var/openebs/cstor-target",
 		},
 	}
 	// OpenEBSServiceAccount name of the openebs service accout with required
@@ -193,14 +200,7 @@ func getMonitorMounts() []corev1.VolumeMount {
 }
 
 func getTargetMgmtMounts() []corev1.VolumeMount {
-	return append(
-		defaultMounts,
-		corev1.VolumeMount{
-			Name:             "tmp",
-			MountPath:        "/tmp",
-			MountPropagation: &mountPropagation,
-		},
-	)
+	return defaultMounts
 }
 
 // getDeployTemplateEnvs return the common env required for
@@ -265,17 +265,6 @@ func getVolumeMgmtImage() string {
 		image = "openebs/cstor-volume-mgmt:ci"
 	}
 	return image
-}
-
-// getTargetDirPath returns cstor target volume directory for a
-// given volume, retrieves the value of the environment variable named
-// by the key.
-func getTargetDirPath(pvName string) string {
-	dir, present := os.LookupEnv("OPENEBS_IO_CSTOR_TARGET_DIR")
-	if !present {
-		dir = "/var/openebs"
-	}
-	return dir + "/shared-" + pvName + "-target"
 }
 
 func getContainerPort(port int32) []corev1.ContainerPort {
@@ -389,9 +378,9 @@ func getOrCreateCStorTargetDeployment(
 							WithName("conf").
 							WithEmptyDir(&corev1.EmptyDirVolumeSource{}),
 						volume.NewBuilder().
-							WithName("tmp").
+							WithName("storagepath").
 							WithHostPathAndType(
-								getTargetDirPath(vol.Name),
+								env.GetOpenebsBaseDirPath()+"/cstor-target/"+vol.Name,
 								&hostpathType,
 							),
 					),
