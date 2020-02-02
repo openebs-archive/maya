@@ -46,7 +46,7 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING USING TARGET AND REPLICA SELE
 					WithGenerateName(spcName).
 					WithDiskType(string(apis.TypeSparseCPV)).
 					WithMaxPool(cstor.PoolCount).
-					WithOverProvisioning(false).
+					WithThickProvisioning(true).
 					WithPoolType(string(apis.PoolTypeStripedCPV)).
 					Build().Object
 

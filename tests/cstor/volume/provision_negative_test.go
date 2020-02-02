@@ -44,11 +44,11 @@ var _ = Describe("[Cstor Volume Provisioning Negative] Volume Provisioning", fun
 			By("Build And Create StoragePoolClaim object")
 			// Populate configurations and create
 			spcConfig := &tests.SPCConfig{
-				Name:               spcName,
-				DiskType:           "sparse",
-				PoolCount:          cstor.PoolCount,
-				IsOverProvisioning: false,
-				PoolType:           "striped",
+				Name:                spcName,
+				DiskType:            "sparse",
+				PoolCount:           cstor.PoolCount,
+				IsThickProvisioning: true,
+				PoolType:            "striped",
 			}
 			ops.Config = spcConfig
 			spcObj = ops.BuildAndCreateSPC()

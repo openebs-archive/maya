@@ -45,7 +45,7 @@ var _ = Describe("[Cstor Volume Provisioning Positive] TEST VOLUME PROVISIONING"
 				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(cstor.PoolCount).
-				WithOverProvisioning(false).
+				WithThickProvisioning(true).
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
 				Build().Object
 

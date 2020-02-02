@@ -55,7 +55,7 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(cstor.PoolCount).
-				WithOverProvisioning(false).
+				WithThickProvisioning(true).
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
 				Build().Object
 

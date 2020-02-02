@@ -36,11 +36,11 @@ var _ = Describe("[cstor] [-ve] TEST PROVISION WITHOUT POOL", func() {
 	BeforeEach(func() {
 		By("creating storagepoolclaim")
 		spcConfig := &tests.SPCConfig{
-			Name:               spcName,
-			DiskType:           "sparse",
-			PoolCount:          cstor.PoolCount,
-			IsOverProvisioning: false,
-			PoolType:           "striped",
+			Name:                spcName,
+			DiskType:            "sparse",
+			PoolCount:           cstor.PoolCount,
+			IsThickProvisioning: true,
+			PoolType:            "striped",
 		}
 		ops.Config = spcConfig
 		spcObj = ops.BuildAndCreateSPC()

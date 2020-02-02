@@ -50,7 +50,7 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGEPOOLCLAIM", func() {
 				WithGenerateName(spcName).
 				WithDiskType("invalid-disk-type").
 				WithMaxPool(cstor.PoolCount).
-				WithOverProvisioning(false).
+				WithThickProvisioning(true).
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
 				Build().Object
 
@@ -73,7 +73,7 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGEPOOLCLAIM", func() {
 				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(cstor.PoolCount).
-				WithOverProvisioning(false).
+				WithThickProvisioning(true).
 				WithPoolType(string("invalid-pool-type")).
 				Build().Object
 
@@ -96,7 +96,7 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGEPOOLCLAIM", func() {
 				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(-1).
-				WithOverProvisioning(false).
+				WithThickProvisioning(true).
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
 				Build().Object
 

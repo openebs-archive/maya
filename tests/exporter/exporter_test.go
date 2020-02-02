@@ -65,7 +65,7 @@ var _ = Describe("Test maya-exporter [single-pool-pod]", func() {
 				WithName(spcName).
 				WithDiskType(string(apis.TypeBlockDeviceCPV)).
 				WithMaxPool(1).
-				WithOverProvisioning(false).
+				WithThickProvisioning(true).
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
 				Build().Object
 
