@@ -36,11 +36,11 @@ var _ = Describe("[REPLICA SCALEUP/SCALEDOWN] CSTOR REPLICA SCALEUP And SCALEDOW
 			By("Build And Create StoragePoolClaim object")
 			// Populate configurations and create
 			spcConfig := &tests.SPCConfig{
-				Name:               spcName,
-				DiskType:           "sparse",
-				PoolCount:          cstor.PoolCount,
-				IsOverProvisioning: false,
-				PoolType:           "striped",
+				Name:                spcName,
+				DiskType:            "sparse",
+				PoolCount:           cstor.PoolCount,
+				IsThickProvisioning: true,
+				PoolType:            "striped",
 			}
 			ops.Config = spcConfig
 			spcObj = ops.BuildAndCreateSPC()

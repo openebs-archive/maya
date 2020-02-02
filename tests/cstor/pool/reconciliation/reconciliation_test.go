@@ -40,7 +40,7 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(3).
-				WithOverProvisioning(false).
+				WithThickProvisioning(true).
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
 				Build()
 			spcObj = Spc.Object
@@ -211,7 +211,7 @@ var _ = Describe("MIRRORED SPARSE SPC", func() {
 				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(3).
-				WithOverProvisioning(false).
+				WithThickProvisioning(true).
 				WithPoolType(string(apis.PoolTypeMirroredCPV)).
 				Build().Object
 
@@ -280,7 +280,7 @@ var _ = Describe("RAIDZ SPARSE SPC", func() {
 				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(3).
-				WithOverProvisioning(false).
+				WithThickProvisioning(true).
 				WithPoolType(string(apis.PoolTypeRaidzCPV)).
 				Build().Object
 
@@ -355,7 +355,7 @@ var _ = Describe("RAIDZ2 SPARSE SPC", func() {
 				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(3).
-				WithOverProvisioning(false).
+				WithThickProvisioning(true).
 				WithPoolType(string(apis.PoolTypeRaidz2CPV)).
 				Build().Object
 

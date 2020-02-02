@@ -99,11 +99,14 @@ type Operations struct {
 
 // SPCConfig provides config to create cstor pools
 type SPCConfig struct {
-	Name               string
-	DiskType           string
-	PoolType           string
-	PoolCount          int
+	Name      string
+	DiskType  string
+	PoolType  string
+	PoolCount int
+	// OverProvisioning field is deprecated and not honoured
 	IsOverProvisioning bool
+
+	IsThickProvisioning bool
 }
 
 // SCConfig provides config to create storage class
@@ -1082,7 +1085,7 @@ func (ops *Operations) BuildAndCreateSPC() *apis.StoragePoolClaim {
 		WithGenerateName(spcConfig.Name).
 		WithDiskType(spcConfig.DiskType).
 		WithMaxPool(spcConfig.PoolCount).
-		WithOverProvisioning(spcConfig.IsOverProvisioning).
+		WithThickProvisioning(spcConfig.IsThickProvisioning).
 		WithPoolType(spcConfig.PoolType).
 		Build().Object
 	newSPCObj, err := ops.SPCClient.Create(spcObj)
