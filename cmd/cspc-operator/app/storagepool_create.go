@@ -68,6 +68,10 @@ var (
 			Name:      "storagepath",
 			MountPath: "/var/openebs/cstor-pool",
 		},
+		corev1.VolumeMount{
+			Name:      "sockfile",
+			MountPath: "/var/run",
+		},
 	}
 	// hostpathType represents the hostpath type
 	hostpathTypeDirectory = corev1.HostPathDirectory
@@ -194,6 +198,9 @@ func (pc *PoolConfig) GetPoolDeploySpec(cspi *apis.CStorPoolInstance) (*appsv1.D
 							env.GetOpenebsBaseDirPath()+"/cstor-pool/"+pc.AlgorithmConfig.CSPC.Name,
 							&hostpathTypeDirectoryOrCreate,
 						),
+					volume.NewBuilder().
+						WithName("sockfile").
+						WithEmptyDir(&corev1.EmptyDirVolumeSource{}),
 				),
 		).
 		Build()
