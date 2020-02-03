@@ -57,6 +57,10 @@ var (
               {
                 "name": "storagepath",
                 "mountPath": "/var/openebs/cstor-pool"
+              },
+              {
+                "name": "sockfile",
+                "mountPath": "/var/run"
               }
             ]
           {{end}}
@@ -68,10 +72,14 @@ var (
               {
                 "name": "storagepath",
                 "mountPath": "/var/openebs/cstor-pool"
+              },
+              {
+                "name": "sockfile",
+                "mountPath": "/var/run"
               }
             ]
           {{end}}
-	  },
+          },
           {
             "name": "maya-exporter",
             "image": "{{.MExporterImage}}:{{.ImageTag}}"{{if lt .CurrentVersion "1.7.0"}},
@@ -79,6 +87,10 @@ var (
               {
                 "name": "storagepath",
                 "mountPath": "/var/openebs/cstor-pool"
+              },
+              {
+                "name": "sockfile",
+                "mountPath": "/var/run"
               }
             ]
           {{end}}
@@ -91,7 +103,11 @@ var (
               "path": "{{.BaseDir}}/cstor-pool/{{.SPCName}}",
               "type": "DirectoryOrCreate"
             }
-          }
+          },
+	   {
+            "name": "sockfile",
+            "emptyDir": {}
+	   }
         ]
       {{end}}
       }
