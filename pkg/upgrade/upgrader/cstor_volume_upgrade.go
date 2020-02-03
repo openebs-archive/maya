@@ -127,7 +127,6 @@ func patchTargetDeploy(d *appsv1.Deployment, ns string) error {
 		}
 		targetPatch := buffer.String()
 		buffer.Reset()
-		fmt.Println(targetPatch)
 		err = patchDelpoyment(
 			d.Name,
 			ns,

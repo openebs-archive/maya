@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
 	"strings"
 	"text/template"
 	"time"
@@ -168,7 +167,6 @@ func patchCSPDeploy(cspDeployObj *appsv1.Deployment, openebsNamespace string) er
 		}
 		cspDeployPatch := buffer.String()
 		buffer.Reset()
-		fmt.Println(cspDeployPatch)
 		err = patchDelpoyment(
 			cspDeployObj.Name,
 			openebsNamespace,
