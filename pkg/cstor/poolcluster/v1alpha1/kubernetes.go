@@ -17,8 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/openebs/maya/pkg/debug"
 	"strings"
+
+	"github.com/openebs/maya/pkg/debug"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 

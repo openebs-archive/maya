@@ -26,6 +26,7 @@ import (
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	listers "github.com/openebs/maya/pkg/client/generated/listers/openebs.io/v1alpha1"
 	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
+	"github.com/openebs/maya/pkg/debug"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -245,6 +246,10 @@ func (c *CVCController) deleteCVC(obj interface{}) {
 func (c *CVCController) Run(threadiness int, stopCh <-chan struct{}) {
 	defer runtime.HandleCrash()
 	defer c.workqueue.ShutDown()
+
+	// Start server only in debug build
+	debug.LogBuildDetails()
+	debug.StartInjectionServer()
 
 	// Start the informer factories to begin populating the informer caches
 	klog.Info("Starting CstorVolumeClaim controller")

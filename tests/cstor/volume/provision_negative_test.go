@@ -98,7 +98,7 @@ var _ = Describe("[Cstor Volume Provisioning Negative] Volume Provisioning", fun
 				ServicePort: servicePort,
 			}
 			ops.Config = serviceConfig
-			serviceObj = ops.BuildAndCreateService()
+			serviceObj = ops.BuildAndCreateService(corev1.ServiceTypeNodePort)
 		})
 	})
 

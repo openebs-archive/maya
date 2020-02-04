@@ -115,3 +115,42 @@ func NewForAPIObject(obj *apis.CStorVolumeClaim) *CStorVolumeClaim {
 		object: obj,
 	}
 }
+
+// IsCVCBounded returns true only if cvc is in bound state
+func (cvc *CStorVolumeClaim) IsCVCBounded() bool {
+	return cvc.object.Status.Phase == apis.CStorVolumeClaimPhaseBound
+}
+
+// IsCVCBounded is a predicate to filter out cstorvolumeclaims based on bound
+// state
+func IsCVCBounded() Predicate {
+	return func(cvc *CStorVolumeClaim) bool {
+		return cvc.IsCVCBounded()
+	}
+}
+
+// IsCVCPending returns true only if cvc is in pending state
+func (cvc *CStorVolumeClaim) IsCVCPending() bool {
+	return cvc.object.Status.Phase == apis.CStorVolumeClaimPhasePending
+}
+
+// IsCVCPending is a predicate to filter out cstorvolumeclaims based on pending state
+func IsCVCPending() Predicate {
+	return func(cvc *CStorVolumeClaim) bool {
+		return cvc.IsCVCPending()
+	}
+}
+
+// HasAnnotation returns true only if cvc annotation has volume name matching to
+// provided arguments
+func (cvc *CStorVolumeClaim) HasAnnotation(key, value string) bool {
+	return cvc.object.GetAnnotations()[key] == value
+}
+
+// HasAnnotation is a predicate to filter out cstorvolumeclaims based on
+// annotaion values
+func HasAnnotation(key, value string) Predicate {
+	return func(cvc *CStorVolumeClaim) bool {
+		return cvc.HasAnnotation(key, value)
+	}
+}

@@ -19,6 +19,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	cspc_v1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -68,7 +69,9 @@ func provisioningAndReconciliationTest(createCSPCObject func()) {
 				SkipTest(skipPositiveCaseIfRequired)
 				ops.DeleteCSPI(cspcObj.Name, i)
 				// We expect 3 cstorPool objects.
-				cspCount := ops.GetHealthyCSPICount(cspcObj.Name, 3)
+				cspCount := ops.GetCSPICountWithCSPCName(
+					cspcObj.Name, 3,
+					[]cspi.Predicate{cspi.IsStatus("ONLINE")})
 				Expect(cspCount).To(Equal(3))
 			})
 		})

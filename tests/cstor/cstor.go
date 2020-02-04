@@ -1,5 +1,4 @@
 /*
-:q
 Copyright 2019 The OpenEBS Authors
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,6 +25,9 @@ var (
 	// PoolCount is the value of
 	// max pool count in spc
 	PoolCount int
+	// PoolType is the value of
+	// pool type i.e which pool needs to be created
+	PoolType string
 )
 
 // ParseFlags gets the flag values at run time
@@ -33,4 +35,5 @@ func ParseFlags() {
 	flag.StringVar(&KubeConfigPath, "kubeconfig", "", "path to kubeconfig to invoke kubernetes API calls")
 	flag.IntVar(&ReplicaCount, "cstor-replicas", 1, "value of replica count")
 	flag.IntVar(&PoolCount, "cstor-maxpools", 1, "value of maxpool count")
+	flag.StringVar(&PoolType, "cstor-pool-type", "", "value of pool type")
 }

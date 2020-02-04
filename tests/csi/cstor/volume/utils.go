@@ -27,6 +27,7 @@ import (
 	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	poolspec "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
 	rgrp "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/raidgroups"
+	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
@@ -141,7 +142,8 @@ func createAndVerifyCstorPoolCluster() {
 		"while creating cspc with prefix {%s}", cspcName)
 
 	By("verifying healthy cstorpool count")
-	cspCount := ops.GetHealthyCSPICount(cspcObj.Name, cstor.PoolCount)
+	cspCount := ops.GetCSPICountWithCSPCName(
+		cspcObj.Name, cstor.PoolCount, []cspi.Predicate{cspi.IsStatus("ONLINE")})
 	Expect(cspCount).To(Equal(cstor.PoolCount),
 		"while checking healthy cstor pool count")
 }

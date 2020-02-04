@@ -46,6 +46,7 @@ type ErrorInjection struct {
 	DeploymentError DeploymentErrorInjection `json:"deploymentError"`
 	ZFSError        ZFSErrorInjection        `json:"zfsError"`
 	CVRError        CVRErrorInjection        `json:"cvrError"`
+	PDBError        PDBErrorInjection        `json:"pdbError"`
 }
 
 // CSPIErrorInjection is used to inject errors for CSPI related operations.
@@ -76,6 +77,12 @@ type ZFSErrorInjection struct {
 // CVRErrorInjection is used to inject errors in API calls for Volume Replica
 // related operations
 type CVRErrorInjection struct {
+	CRUDErrorInjection CRUDErrorInjection       `json:"crudErrorInjection"`
+	ErrorPercentage    ErrorPercentageThreshold `json:"errorPercentage"`
+}
+
+// PDBErrorInjection is used to inject errors for PDB related operations.
+type PDBErrorInjection struct {
 	CRUDErrorInjection CRUDErrorInjection       `json:"crudErrorInjection"`
 	ErrorPercentage    ErrorPercentageThreshold `json:"errorPercentage"`
 }
@@ -343,5 +350,23 @@ func (ei *ErrorInjection) WithCVRDeleteError(ejectOrInject string) *ErrorInjecti
 // WithCVRUpdateError injects/ejects CVR update error.
 func (ei *ErrorInjection) WithCVRUpdateError(ejectOrInject string) *ErrorInjection {
 	ei.CVRError.CRUDErrorInjection.InjectUpdateError = ejectOrInject
+	return ei
+}
+
+// WithPDBCreateError injects/ejects PDB create error.
+func (ei *ErrorInjection) WithPDBCreateError(ejectOrInject string) *ErrorInjection {
+	ei.PDBError.CRUDErrorInjection.InjectCreateError = ejectOrInject
+	return ei
+}
+
+// WithPDBDeleteError injects/ejects PDB deletes error.
+func (ei *ErrorInjection) WithPDBDeleteError(ejectOrInject string) *ErrorInjection {
+	ei.PDBError.CRUDErrorInjection.InjectDeleteError = ejectOrInject
+	return ei
+}
+
+// WithPDBListError injects/ejects PDB list error.
+func (ei *ErrorInjection) WithPDBListError(ejectOrInject string) *ErrorInjection {
+	ei.PDBError.CRUDErrorInjection.InjectListError = ejectOrInject
 	return ei
 }

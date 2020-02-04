@@ -170,3 +170,27 @@ func (ei *ErrorInjection) IsCVRGetErrorInjected() bool {
 func (ei *ErrorInjection) IsCVRUpdateErrorInjected() bool {
 	return false
 }
+
+// IsPDBCreateErrorInjected is production alternative for the same function that
+// exists in debug build
+func (ei *ErrorInjection) IsPDBCreateErrorInjected() bool {
+	return false
+}
+
+// IsPDBDeleteErrorInjected is production alternative for the same function that
+// exists in debug build
+func (ei *ErrorInjection) IsPDBDeleteErrorInjected() bool {
+	return false
+}
+
+// IsPDBGetErrorInjected is production alternative for the same function that
+// exists in debug build
+func (ei *ErrorInjection) IsPDBGetErrorInjected() bool {
+	return false
+}
+
+// IsPDBListErrorInjected is production alternative for the same function that
+// exists in debug build
+func (ei *ErrorInjection) IsPDBListErrorInjected() bool {
+	return false
+}

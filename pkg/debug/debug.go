@@ -334,3 +334,35 @@ func (ei *ErrorInjection) IsCVRGetErrorInjected() bool {
 func (ei *ErrorInjection) IsCVRUpdateErrorInjected() bool {
 	return false
 }
+
+// IsPDBCreateErrorInjected returns true if error is injected for PDB create command
+func (ei *ErrorInjection) IsPDBCreateErrorInjected() bool {
+	if ei.PDBError.CRUDErrorInjection.InjectCreateError == Inject {
+		return true
+	}
+	return false
+}
+
+// IsPDBDeleteErrorInjected returns true if error is injected for PDB delete command
+func (ei *ErrorInjection) IsPDBDeleteErrorInjected() bool {
+	if ei.PDBError.CRUDErrorInjection.InjectDeleteError == Inject {
+		return true
+	}
+	return false
+}
+
+// IsPDBGetErrorInjected returns true if error is injected for PDB get command
+func (ei *ErrorInjection) IsPDBGetErrorInjected() bool {
+	if ei.PDBError.CRUDErrorInjection.InjectGetError == Inject {
+		return true
+	}
+	return false
+}
+
+// IsPDBListErrorInjected returns true if error is injected for PDB list command
+func (ei *ErrorInjection) IsPDBListErrorInjected() bool {
+	if ei.PDBError.CRUDErrorInjection.InjectListError == Inject {
+		return true
+	}
+	return false
+}

@@ -28,4 +28,13 @@ cvc-operator-image.arm64:
 	@cd buildscripts/${CVC_OPERATOR} && sudo docker build -t ${HUB_USER}/${CSTOR_VOLUME_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG} -f Dockerfile.arm64 --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/${CVC_OPERATOR}/${CVC_OPERATOR}
 
-
+.PHONY: cvc-operator-debug-image
+cvc-operator-debug-image:
+	@echo "----------------------------"
+	@echo -n "--> cvc-operator-debug image "
+	@echo "${HUB_USER}/${CVC_OPERATOR_REPO_NAME}:${DEBUG_IMAGE_TAG}"
+	@echo "----------------------------"
+	@PNAME=${CVC_OPERATOR} CTLNAME=${CVC_OPERATOR} BUILD_TAG="-tags=debug" sh -c "'$(PWD)/buildscripts/build.sh'"
+	@cp bin/${CVC_OPERATOR}/${CVC_OPERATOR} buildscripts/cvc-operator/
+	@cd buildscripts/${CVC_OPERATOR} && sudo docker build -t ${HUB_USER}/${CVC_OPERATOR_REPO_NAME}:${DEBUG_IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/${CVC_OPERATOR}/${CVC_OPERATOR}

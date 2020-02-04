@@ -23,11 +23,14 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"
 	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	poolspec "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
+	rgrp "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/raidgroups"
 	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
@@ -38,6 +41,7 @@ import (
 	node "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
+	pdb "github.com/openebs/maya/pkg/kubernetes/poddisruptionbudget"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
@@ -87,6 +91,7 @@ type Operations struct {
 	CVCClient      *cvc.Kubeclient
 	CSPCClient     *cspc.Kubeclient
 	CVRClient      *cvr.Kubeclient
+	PDBClient      *pdb.Kubeclient
 	URClient       *result.Kubeclient
 	UnstructClient *unstruct.Kubeclient
 	DeployClient   *deploy.Kubeclient
@@ -142,6 +147,13 @@ type ServiceConfig struct {
 	Namespace   string
 	Selectors   map[string]string
 	ServicePort []corev1.ServicePort
+}
+
+type CSPCConfig struct {
+	Name      string
+	PoolType  string
+	Namespace string
+	PoolCount int
 }
 
 var (
@@ -245,6 +257,9 @@ func (ops *Operations) withDefaults() {
 	}
 	if ops.CVRClient == nil {
 		ops.CVRClient = cvr.NewKubeclient(cvr.WithKubeConfigPath(ops.KubeConfigPath))
+	}
+	if ops.PDBClient == nil {
+		ops.PDBClient = pdb.KubeClient(pdb.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.URClient == nil {
 		ops.URClient = result.NewKubeClient(result.WithKubeConfigPath(ops.KubeConfigPath))
@@ -794,19 +809,22 @@ func (ops *Operations) GetCSPIResourceCountEventually(labelSelector string, expe
 	return cspiCount
 }
 
-// GetHealthyCSPICount gets healthy csp based on spcName
-func (ops *Operations) GetHealthyCSPICount(cspcName string, expectedCSPICount int) int {
+// GetCSPICountWithCSPCName gets healthy csp based on spcName
+func (ops *Operations) GetCSPICountWithCSPCName(cspcName string, expectedCSPICount int, pred cspi.PredicateList) int {
 	var cspiCount int
 	// as cspi deletion takes more time now for cleanup of its resources
 	// for reconciled cspi to come up it can take additional time.
 	for i := 0; i < (maxRetry + 60); i++ {
-		cspiAPIList, err := ops.CSPIClient.WithNamespace(ops.NameSpace).List(metav1.ListOptions{})
+		cspiAPIList, err := ops.CSPIClient.
+			WithNamespace(ops.NameSpace).
+			List(metav1.ListOptions{LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + cspcName})
 		time.Sleep(5 * time.Second)
 		Expect(err).To(BeNil())
 		cspiCount = cspi.
 			ListBuilderFromAPIList(cspiAPIList).
 			List().
-			Filter(cspi.HasLabel(string(apis.CStorPoolClusterCPK), cspcName), cspi.IsStatus("ONLINE")).
+			//Filter(cspi.HasLabel(string(apis.CStorPoolClusterCPK), cspcName), cspi.IsStatus("ONLINE")).
+			Filter(pred...).
 			Len()
 		if cspiCount == expectedCSPICount {
 			return cspiCount
@@ -1157,14 +1175,14 @@ func (ops *Operations) BuildAndCreateCVR() *apis.CStorVolumeReplica {
 }
 
 // BuildAndCreateService builds and creates Service in cluster
-func (ops *Operations) BuildAndCreateService() *corev1.Service {
+func (ops *Operations) BuildAndCreateService(serviceType corev1.ServiceType) *corev1.Service {
 	svcConfig := ops.Config.(*ServiceConfig)
 	buildSVCObj, err := svc.NewBuilder().
 		WithGenerateName(svcConfig.Name).
 		WithNamespace(svcConfig.Namespace).
 		WithSelectorsNew(svcConfig.Selectors).
 		WithPorts(svcConfig.ServicePort).
-		WithType(corev1.ServiceTypeNodePort).
+		WithType(serviceType).
 		Build()
 	Expect(err).To(BeNil())
 	svcObj, err := ops.SVCClient.
@@ -1281,4 +1299,158 @@ func getCVRLabels(pool *apis.CStorPool, volumeName string) map[string]string {
 		"openebs.io/persistent-volume": volumeName,
 		"openebs.io/version":           version.GetVersion(),
 	}
+}
+
+// BuildAndCreateCSPC build and creates cspc
+func (ops *Operations) BuildAndCreateCSPC() (*apis.CStorPoolCluster, error) {
+	cspcConfig := ops.Config.(*CSPCConfig)
+	minRequiredBD := apis.SupportedPRaidType[apis.PoolType(cspcConfig.PoolType)]
+	blockDeviceAPIList, err := ops.BDClient.
+		WithNamespace(cspcConfig.Namespace).
+		List(metav1.ListOptions{})
+	if err != nil {
+		return nil, errors.Wrapf(err, "while getting blockDeviceList")
+	}
+	bdcList := bd.BlockDeviceList{
+		ObjectList: blockDeviceAPIList,
+	}
+	// Create pools on sparse blockdevices
+	filteredBlockDevices := bdcList.Filter(
+		bd.IsActive(),
+		bd.IsSparse(),
+		bd.IsNonFSType(),
+		bd.IsClaimStateMatched(ndm.BlockDeviceUnclaimed),
+	)
+	nodeBlockDevices := filteredBlockDevices.NodeBlockDeviceTopology()
+	if len(nodeBlockDevices) < cspcConfig.PoolCount {
+		return nil, errors.Errorf(
+			"failed to get required no.of nodes got %d expected %d to build CSPC %s",
+			len(nodeBlockDevices),
+			cspcConfig.PoolCount,
+			cspcConfig.Name,
+		)
+	}
+	cspcBuild := cspc.NewBuilder().
+		WithGenerateName(cspcConfig.Name).
+		WithNamespace(cspcConfig.Namespace)
+
+	//TODO: Move to some package other than test
+	// Build pool spec configurations
+	poolSpecCount := 0
+	for hostName, blockdeviceNames := range nodeBlockDevices {
+		if len(blockdeviceNames) < minRequiredBD {
+			continue
+		}
+		if poolSpecCount == cspcConfig.PoolCount {
+			break
+		}
+		cspcBDList := []*apis.CStorPoolClusterBlockDevice{}
+		for i, bd := range blockdeviceNames {
+			cspcBDList = append(cspcBDList, &apis.CStorPoolClusterBlockDevice{
+				BlockDeviceName: bd,
+			})
+			if i == minRequiredBD-1 {
+				break
+			}
+		}
+		nodeSelector := map[string]string{string(apis.HostNameCPK): hostName}
+		poolSpecBuilder := poolspec.NewBuilder().
+			WithNodeSelector(nodeSelector).
+			WithCompression("off").
+			WithDefaultRaidGroupType(cspcConfig.PoolType).
+			WithRaidGroupBuilder(
+				rgrp.NewBuilder().
+					WithCSPCBlockDeviceList(cspcBDList).
+					WithType(cspcConfig.PoolType),
+			)
+		poolSpecBuilder = poolSpecBuilder.WithCacheFilePath("/tmp/pool1.cache")
+		cspcBuild = cspcBuild.WithPoolSpecBuilder(poolSpecBuilder)
+		poolSpecCount++
+	}
+	if poolSpecCount != cspcConfig.PoolCount {
+		return nil, errors.Errorf(
+			"failed to get required no.of pool configs expected %d but got %d",
+			cspcConfig.PoolCount,
+			poolSpecCount)
+	}
+	cspcBuildObj, err := cspcBuild.GetObj()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to build cstorpoolcluster")
+	}
+
+	By("creating above cstorpoolcluster")
+	cspcObj, err := ops.CSPCClient.WithNamespace(cspcConfig.Namespace).Create(cspcBuildObj)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to build cstorpoolcluster")
+	}
+	return cspcObj, nil
+}
+
+// GetCVCCount gives cstorvolumeclaim count currently based on selecter and
+// predicates
+func (ops *Operations) GetCVCCount(namespace, lselector string, pred ...cvc.Predicate) int {
+	cvcs, err := ops.CVCClient.
+		WithNamespace(namespace).
+		List(metav1.ListOptions{LabelSelector: lselector})
+	Expect(err).ShouldNot(HaveOccurred())
+	return cvc.
+		NewListBuilder().
+		WithAPIList(cvcs).
+		WithFilter(pred...).
+		List().
+		Len()
+}
+
+// VerifyCVCStatusEventually returns true if expected count of CVC are in
+// expected phase
+func (ops *Operations) VerifyCVCStatusEventually(cspcName, namespace string, count int,
+	predicateList cvc.PredicateList) bool {
+	poolLabel := string(apis.CStorPoolClusterCPK) + "=" + cspcName
+	return Eventually(func() int {
+		return ops.GetCVCCount(namespace, poolLabel, predicateList...)
+	},
+		120, 10).Should(Equal(count))
+}
+
+// VerifyPodDisruptionBudget verifies the PDB existence based on volume type(whether it
+// is HA or NON-HA volume).
+func (ops *Operations) VerifyPodDisruptionBudget(volName, namespace string) error {
+	cvcObj, err := ops.CVCClient.
+		WithNamespace(namespace).
+		Get(volName, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to get cstorvolumeclaim object")
+	}
+	if cvcObj.Spec.ReplicaCount >= 3 {
+		return ops.GetPodDisruptionCountEventually(volName, namespace, 1)
+	}
+	return ops.GetPodDisruptionCountEventually(volName, namespace, 0)
+}
+
+// GetPodDisruptionCountEventually verifies whether expected count of PDB's are
+// created or not
+func (ops *Operations) GetPodDisruptionCountEventually(volName, namespace string, count int) error {
+	pvLabel := string(apis.PersistentVolumeCPK) + "=" + volName
+	cvrList, err := ops.CVRClient.
+		WithNamespace(namespace).
+		List(metav1.ListOptions{LabelSelector: pvLabel})
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to list cstorvolumereplicas of volume %s", volName)
+	}
+	poolNames := cvr.GetPoolNames(cvrList)
+	pdbLabels := cvc.GetPDBPoolLabels(poolNames)
+	for i := 0; i < maxRetry; i++ {
+		pdbList, err := ops.PDBClient.
+			WithNamespace(namespace).
+			List(metav1.ListOptions{LabelSelector: pdb.GetPDBLabelSelector(pdbLabels)})
+		if err != nil {
+			return errors.Wrapf(err, "failed to list pod disruption budget of volume %s", volName)
+		}
+		if len(pdbList.Items) == count {
+			return nil
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return errors.Errorf("Failed to verify PDB for volume %s", volName)
 }

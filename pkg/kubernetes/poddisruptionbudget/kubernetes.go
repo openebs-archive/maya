@@ -24,6 +24,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openebs/maya/pkg/debug"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	policy "k8s.io/api/policy/v1beta1"
 
@@ -59,6 +60,10 @@ type listFunc func(cs *kubernetes.Clientset, namespace string, opts metav1.ListO
 // abstracts fetching internal clientset
 type getClientsetFunc func() (cs *kubernetes.Clientset, err error)
 
+// getClientsetFromPathFn is a typed function that
+// abstracts fetching of clientset from kubeConfigPath
+type getClientsetForPathFunc func(path string) (*kubernetes.Clientset, error)
+
 // KubeclientBuildOption defines the abstraction
 // to build a kubeclient instance
 type KubeclientBuildOption func(*Kubeclient)
@@ -69,14 +74,16 @@ type Kubeclient struct {
 	// clientset refers to upgrade's
 	// clientset that will be responsible to
 	// make kubernetes API calls
-	clientset *kubernetes.Clientset
-	namespace string
+	clientset      *kubernetes.Clientset
+	namespace      string
+	kubeConfigPath string
 	// functions useful during mocking
-	getClientset getClientsetFunc
-	list         listFunc
-	create       createFunc
-	get          getFunc
-	del          delFunc
+	getClientset        getClientsetFunc
+	getClientsetForPath getClientsetForPathFunc
+	list                listFunc
+	create              createFunc
+	get                 getFunc
+	del                 delFunc
 }
 
 // withDefaults sets the default options
@@ -100,6 +107,9 @@ func (k *Kubeclient) withDefaults() {
 			})
 			return kubeCS, nil
 		}
+	}
+	if k.getClientsetForPath == nil {
+		k.getClientsetForPath = defaultGetClientsetForPath
 	}
 	if k.del == nil {
 		k.del = func(cs *kubernetes.Clientset, name, namesapce string, opts *metav1.DeleteOptions) error {
@@ -135,6 +145,14 @@ func WithClientset(c *kubernetes.Clientset) KubeclientBuildOption {
 	}
 }
 
+// WithKubeConfigPath sets the kubernetes client against
+// the provided path
+func WithKubeConfigPath(path string) KubeclientBuildOption {
+	return func(k *Kubeclient) {
+		k.kubeConfigPath = path
+	}
+}
+
 // KubeClient returns a new instance of kubeclient meant for
 // admission webhook related operations
 func KubeClient(opts ...KubeclientBuildOption) *Kubeclient {
@@ -153,13 +171,21 @@ func (k *Kubeclient) WithNamespace(namespace string) *Kubeclient {
 	return k
 }
 
+func (k *Kubeclient) getClientsetForPathOrDirect() (
+	*kubernetes.Clientset, error) {
+	if k.kubeConfigPath != "" {
+		return k.getClientsetForPath(k.kubeConfigPath)
+	}
+	return k.getClientset()
+}
+
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
 func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	c, err := k.getClientset()
+	c, err := k.getClientsetForPathOrDirect()
 	if err != nil {
 		return nil, err
 	}
@@ -167,9 +193,27 @@ func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
 	return k.clientset, nil
 }
 
+// defaultGetClientsetForPath is the default implementation to
+// get kubernetes clientset instance based on the given
+// kubeconfig path
+func defaultGetClientsetForPath(
+	kubeConfigPath string,
+) (*kubernetes.Clientset, error) {
+	config, err := client.GetConfig(
+		client.New(client.WithKubeConfigPath(kubeConfigPath)),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return kubernetes.NewForConfig(config)
+}
+
 // Delete deletes poddisruptionbudget object for given name in corresponding
 // namespace
 func (k *Kubeclient) Delete(name string, options *metav1.DeleteOptions) error {
+	if debug.EI.IsPDBDeleteErrorInjected() {
+		return errors.New("PDB delete error via injection")
+	}
 	if strings.TrimSpace(name) == "" {
 		return errors.New("failed to delete poddisruptionbudget: missing name")
 	}
@@ -184,6 +228,9 @@ func (k *Kubeclient) Delete(name string, options *metav1.DeleteOptions) error {
 // List takes label and field selectors, and returns the list of
 // PodDisruptionBudget instances that match those selectors.
 func (k *Kubeclient) List(opts metav1.ListOptions) (*policy.PodDisruptionBudgetList, error) {
+	if debug.EI.IsPDBListErrorInjected() {
+		return nil, errors.New("PDB list error via injection")
+	}
 	cs, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -194,6 +241,9 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*policy.PodDisruptionBudgetL
 // Create creates poddisruptionbudget, and returns the
 // corresponding poddisruptionbudget object, and an error if there is any.
 func (k *Kubeclient) Create(pdb *policy.PodDisruptionBudget) (*policy.PodDisruptionBudget, error) {
+	if debug.EI.IsPDBCreateErrorInjected() {
+		return nil, errors.New("PDB create error via injection")
+	}
 	if pdb == nil {
 		return nil, errors.New("failed to create poddisruptionbudget: nil pdb")
 	}
@@ -207,6 +257,9 @@ func (k *Kubeclient) Create(pdb *policy.PodDisruptionBudget) (*policy.PodDisrupt
 // Get takes name of the poddisruptionbudget, and returns the
 // corresponding poddisruptionbudget object, and an error if there is any.
 func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*policy.PodDisruptionBudget, error) {
+	if debug.EI.IsPDBGetErrorInjected() {
+		return nil, errors.New("PDB get error via injection")
+	}
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("failed to get PodDisruptionBudget: missing poddisruptionbudget name")
 	}

@@ -81,6 +81,11 @@ ifeq (${IMAGE_TAG}, )
   export IMAGE_TAG
 endif
 
+ifeq (${DEBUG_IMAGE_TAG}, )
+  DEBUG_IMAGE_TAG = inject-ci
+  export DEBUG_IMAGE_TAG
+endif
+
 ifeq (${TRAVIS_TAG}, )
   BASE_TAG = ci
   export BASE_TAG

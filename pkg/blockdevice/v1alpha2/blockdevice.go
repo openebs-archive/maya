@@ -104,7 +104,7 @@ func IsSparse() Predicate {
 
 // IsSparse returns true if the block device is of sparse type
 func (bd *BlockDevice) IsSparse() bool {
-	return bd.Object.Spec.Details.DeviceType == string(apis.TypeBlockDeviceCPV)
+	return bd.Object.Spec.Details.DeviceType == string(apis.TypeSparseCPV)
 }
 
 // IsActive filters the block device based on the active status
@@ -328,4 +328,42 @@ func (bd *BlockDevice) GetPath() string {
 // Len returns the length og BlockDeviceList.
 func (l *BlockDeviceList) Len() int {
 	return len(l.ObjectList.Items)
+}
+
+// IsNonFSType filters the blockdeive based on empty file system
+func IsNonFSType() Predicate {
+	return func(bd *BlockDevice) bool {
+		return bd.IsNonFSType()
+	}
+}
+
+// IsNonFSType returns true if blockdevice filesystem type is empty
+func (bd *BlockDevice) IsNonFSType() bool {
+	return bd.Object.Spec.FileSystem.Type == ""
+}
+
+// IsClaimStateMatched filters the blockdeive based on provided
+// claim state
+func IsClaimStateMatched(claimType ndm.DeviceClaimState) Predicate {
+	return func(bd *BlockDevice) bool {
+		return bd.IsClaimStateMatched(claimType)
+	}
+}
+
+// IsClaimStateMatched return true if blockdeive claim state
+// matches to provided claim state
+func (bd *BlockDevice) IsClaimStateMatched(claimType ndm.DeviceClaimState) bool {
+	return bd.Object.Status.ClaimState == claimType
+}
+
+// NodeBlockDeviceTopology froms map of node name and blockdevices present in
+// that node
+func (l *BlockDeviceList) NodeBlockDeviceTopology() map[string][]string {
+	nodeBlockDevices := map[string][]string{}
+	for _, bdObj := range l.ObjectList.Items {
+		bdObj := bdObj
+		hostName := bdObj.GetLabels()[string(apis.HostNameCPK)]
+		nodeBlockDevices[hostName] = append(nodeBlockDevices[hostName], bdObj.Name)
+	}
+	return nodeBlockDevices
 }

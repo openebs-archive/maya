@@ -15,12 +15,14 @@ package provisioning
 
 import (
 	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	"github.com/openebs/maya/pkg/debug"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 )
 
 const HostIpPort = "146.148.72.182:30036"
@@ -145,7 +147,8 @@ func provisioningAndReconciliationNegativeTest(createCSPCObject func()) {
 			Expect(err).To(BeNil())
 			time.Sleep(3 * time.Second)
 			By("Preparing A CSPC Object, No Error Should Occur", createCSPCObject)
-			healthyCSPICount := ops.GetHealthyCSPICount(cspcObj.Name, 3)
+			healthyCSPICount := ops.GetCSPICountWithCSPCName(cspcObj.Name, 3,
+				[]cspi.Predicate{cspi.IsStatus("ONLINE")})
 			if healthyCSPICount == 3 {
 				fmt.Fprint(GinkgoWriter, "Pools got provisioned successfully without requiring errors to be ejected")
 			} else {

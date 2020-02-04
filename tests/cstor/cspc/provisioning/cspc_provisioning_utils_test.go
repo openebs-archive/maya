@@ -20,6 +20,7 @@ import (
 	cspc_v1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	cspcspecs_v1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
 	cspcrg_v1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/raidgroups"
+	cspi "github.com/openebs/maya/pkg/cstor/poolinstance/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -79,7 +80,8 @@ func createCSPCObject(blockDeviceCount int, poolType string) {
 }
 
 func verifyDesiredCSPICount() {
-	cspiCount := ops.GetHealthyCSPICount(cspcObj.Name, 3)
+	cspiCount := ops.GetCSPICountWithCSPCName(cspcObj.Name, 3,
+		[]cspi.Predicate{cspi.IsStatus("ONLINE")})
 	Expect(cspiCount).To(Equal(3))
 
 	// Check are there any extra created csps
@@ -88,7 +90,7 @@ func verifyDesiredCSPICount() {
 }
 
 func verifyDesiredCSPICountTo(count int) {
-	cspiCount := ops.GetHealthyCSPICount(cspcObj.Name, count)
+	cspiCount := ops.GetCSPICountWithCSPCName(cspcObj.Name, count, cspi.PredicateList{cspi.IsStatus("ONLINE")})
 	Expect(cspiCount).To(Equal(count))
 
 	// Check are there any extra created csps
