@@ -60,7 +60,7 @@ var (
               },
               {
                 "name": "sockfile",
-                "mountPath": "/var/run"
+                "mountPath": "/var/cstor-sock"
               }
             ]
           {{end}}
@@ -75,7 +75,7 @@ var (
               },
               {
                 "name": "sockfile",
-                "mountPath": "/var/run"
+                "mountPath": "/var/cstor-sock"
               }
             ]
           {{end}}
@@ -90,7 +90,7 @@ var (
               },
               {
                 "name": "sockfile",
-                "mountPath": "/var/run"
+                "mountPath": "/var/cstor-sock"
               }
             ]
           {{end}}
