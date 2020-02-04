@@ -34,7 +34,8 @@ import (
 )
 
 type cspDeployPatchDetails struct {
-	UpgradeVersion, ImageTag, PoolImage, PoolMgmtImage, MExporterImage string
+	CurrentVersion, UpgradeVersion, ImageTag, PoolImage,
+	BaseDir, PoolMgmtImage, MExporterImage, SPCName string
 }
 
 func getCSPDeployPatchDetails(
@@ -61,6 +62,7 @@ func getCSPDeployPatchDetails(
 	} else {
 		patchDetails.ImageTag = upgradeVersion
 	}
+	patchDetails.SPCName = d.Labels[string(apis.StoragePoolClaimCPK)]
 	return patchDetails, nil
 }
 
@@ -152,6 +154,8 @@ func patchCSPDeploy(cspDeployObj *appsv1.Deployment, openebsNamespace string) er
 			return err
 		}
 		patchDetails.UpgradeVersion = upgradeVersion
+		patchDetails.CurrentVersion = currentVersion
+		patchDetails.BaseDir = baseDir
 		tmpl, err := template.New("cspDeployPatch").
 			Parse(templates.CSPDeployPatch)
 		if err != nil {

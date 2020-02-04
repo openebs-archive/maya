@@ -34,8 +34,13 @@ import (
 )
 
 type cstorTargetPatchDetails struct {
-	UpgradeVersion, ImageTag, IstgtImage, MExporterImage, VolumeMgmtImage string
+	CurrentVersion, UpgradeVersion, ImageTag, IstgtImage,
+	BaseDir, MExporterImage, VolumeMgmtImage, PVName string
 }
+
+const (
+	pvLabelKey = "openebs.io/persistent-volume"
+)
 
 func verifyCSPVersion(cvrList *apis.CStorVolumeReplicaList, namespace string) error {
 	for _, cvrObj := range cvrList.Items {
@@ -86,6 +91,7 @@ func getTargetDeployPatchDetails(
 	} else {
 		patchDetails.ImageTag = upgradeVersion
 	}
+	patchDetails.PVName = d.Labels[pvLabelKey]
 	return patchDetails, nil
 }
 
@@ -113,17 +119,19 @@ func patchTargetDeploy(d *appsv1.Deployment, ns string) error {
 			return err
 		}
 		patchDetails.UpgradeVersion = upgradeVersion
+		patchDetails.CurrentVersion = currentVersion
+		patchDetails.BaseDir = baseDir
 		err = tmpl.Execute(&buffer, patchDetails)
 		if err != nil {
 			return errors.Wrapf(err, "failed to populate template for cstor target deployment patch")
 		}
-		replicaPatch := buffer.String()
+		targetPatch := buffer.String()
 		buffer.Reset()
 		err = patchDelpoyment(
 			d.Name,
 			ns,
 			types.StrategicMergePatchType,
-			[]byte(replicaPatch),
+			[]byte(targetPatch),
 		)
 		if err != nil {
 			return errors.Wrapf(err, "failed to patch target deployment %s", d.Name)
@@ -242,7 +250,7 @@ type cstorVolumeOptions struct {
 func (c *cstorVolumeOptions) preUpgrade(pvName, openebsNamespace string) error {
 	var (
 		err, uerr   error
-		pvLabel     = "openebs.io/persistent-volume=" + pvName
+		pvLabel     = pvLabelKey + "=" + pvName
 		targetLabel = pvLabel + ",openebs.io/target=cstor-target"
 	)
 
@@ -383,7 +391,7 @@ func (c *cstorVolumeOptions) waitForCVCurrentVersion(pvLabel, namespace string) 
 func (c *cstorVolumeOptions) targetUpgrade(pvName, openebsNamespace string) error {
 	var (
 		err, uerr          error
-		pvLabel            = "openebs.io/persistent-volume=" + pvName
+		pvLabel            = pvLabelKey + "=" + pvName
 		targetServiceLabel = pvLabel + ",openebs.io/target-service=cstor-target-svc"
 	)
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.TargetUpgrade}

@@ -562,7 +562,8 @@ func (d *Deploy) VerifyReplicaStatus() error {
 		return errors.New("failed to verify replica status for deployment: nil replicas")
 	}
 	if d.object.Status.ReadyReplicas != *d.object.Spec.Replicas {
-		return errors.New(d.object.Name + " deployment pods are not in running state.")
+		return errors.Errorf(d.object.Name+" deployment pods are not in running state expected: %d got: %d",
+			*d.object.Spec.Replicas, d.object.Status.ReadyReplicas)
 	}
 	return nil
 }

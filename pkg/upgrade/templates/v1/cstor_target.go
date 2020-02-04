@@ -19,35 +19,66 @@ package templates
 var (
 	// CstorTargetPatch is used to patch target deployment for cstor volume
 	CstorTargetPatch = `{
-		"metadata": {
-		   "labels": {
-			  "openebs.io/version": "{{.UpgradeVersion}}"
-		   }
-		},
-		"spec": {
-		   "template": {
-			  "metadata": {
-				 "labels": {
-					"openebs.io/version": "{{.UpgradeVersion}}"
-				 }
-			  },
-			  "spec": {
-				 "containers": [
-					{
-					   "name": "cstor-istgt",
-					   "image": "{{.IstgtImage}}:{{.ImageTag}}"
-					},
-					{
-					   "name": "maya-volume-exporter",
-					   "image": "{{.MExporterImage}}:{{.ImageTag}}"
-					},
-					{
-					   "name": "cstor-volume-mgmt",
-					   "image": "{{.VolumeMgmtImage}}:{{.ImageTag}}"
-					}
-				 ]
-			  }
-		   }
-		}
-	 }`
+  "metadata": {
+    "labels": {
+      "openebs.io/version": "{{.UpgradeVersion}}"
+    }
+  },
+  "spec": {
+    "template": {
+      "metadata": {
+        "labels": {
+          "openebs.io/version": "{{.UpgradeVersion}}"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "cstor-istgt",
+            "image": "{{.IstgtImage}}:{{.ImageTag}}"{{if lt .CurrentVersion "1.7.0"}},
+            "volumeMounts": [
+              {
+                "name": "storagepath",
+                "mountPath": "/var/openebs/cstor-target"
+              }
+            ]
+          {{end}}
+          },
+          {
+            "name": "maya-volume-exporter",
+            "image": "{{.MExporterImage}}:{{.ImageTag}}"{{if lt .CurrentVersion "1.7.0"}},
+            "volumeMounts": [
+              {
+                "name": "storagepath",
+                "mountPath": "/var/openebs/cstor-target"
+              }
+            ]
+          {{end}}
+          },
+          {
+            "name": "cstor-volume-mgmt",
+            "image": "{{.VolumeMgmtImage}}:{{.ImageTag}}"{{if lt .CurrentVersion "1.7.0"}},
+            "volumeMounts": [
+              {
+                "name": "storagepath",
+                "mountPath": "/var/openebs/cstor-target"
+              }
+            ]
+          {{end}}
+          }
+        ]{{if lt .CurrentVersion "1.7.0"}},
+        "volumes": [
+          {
+            "name": "storagepath",
+            "hostPath": {
+              "path": "{{.BaseDir}}/cstor-target/{{.PVName}}",
+              "type": "DirectoryOrCreate"
+            }
+          }
+        ]
+      {{end}}
+      }
+    }
+  }
+}`
 )
