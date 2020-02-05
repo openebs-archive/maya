@@ -24,7 +24,6 @@ import (
 	cvc "github.com/openebs/maya/pkg/cstorvolumeclaim/v1alpha1"
 	"github.com/openebs/maya/pkg/debug"
 	"github.com/openebs/maya/tests/cstor"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 /* To run positive test please run by following commang
@@ -66,18 +65,9 @@ var _ = Describe("[csi] [cstor-negative] TEST VOLUME PROVISIONING BY INJECTING E
 		It("CStorVolumeConfig should be claimed after removing errors", func() {
 			By("Create service for CVC Operator", buildAndCreateService)
 			By("Inject errors in PDB Operations", func() { injectOrEjectPDBErrors(debug.Inject) })
-			By("creating PVC", func() { pvcObj = createPVC() })
+			By("creating and verifying PVC bound status", createAndVerifyPVCStatus)
 			// wait for some random time
 			time.Sleep(20)
-			By("Fetch latest PVC", func() {
-				var err error
-				pvcObj, err = ops.PVCClient.WithNamespace(nsObj.Name).Get(pvcObj.Name, metav1.GetOptions{})
-				Expect(err).To(
-					BeNil(),
-					"while retrieving pvc {%s} in namespace {%s}",
-					pvcName,
-					nsObj.Name)
-			})
 			By("Verify CStorVolumeClaim Pending Status", func() {
 				if cstor.ReplicaCount >= 3 {
 					ops.VerifyCVCStatusEventually(cspcObj.Name, openebsNamespace, 1,
@@ -85,7 +75,6 @@ var _ = Describe("[csi] [cstor-negative] TEST VOLUME PROVISIONING BY INJECTING E
 				}
 			})
 			By("Eject errors in PDB Operations", func() { injectOrEjectPDBErrors(debug.Eject) })
-			By("Verify PVC bound state after ejecting the errors", createOrVerifyPVCStatus)
 			By("Verifying the presence of components related to volume", verifyVolumeComponents)
 			By("Verifying the poddisruption budget of volume", func() {
 				err := ops.VerifyPodDisruptionBudget(pvcObj.Spec.VolumeName, openebsNamespace)
@@ -99,7 +88,7 @@ var _ = Describe("[csi] [cstor-negative] TEST VOLUME PROVISIONING BY INJECTING E
 })
 
 func volumeCreationTest() {
-	By("creating and verifying PVC bound status", createOrVerifyPVCStatus)
+	By("creating and verifying PVC bound status", createAndVerifyPVCStatus)
 	By("Verifying the presence of components related to volume", verifyVolumeComponents)
 	By("Verifying the poddisruption budget of volume", func() {
 		err := ops.VerifyPodDisruptionBudget(pvcObj.Spec.VolumeName, openebsNamespace)
