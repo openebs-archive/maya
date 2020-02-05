@@ -343,7 +343,7 @@ func (bd *BlockDevice) IsNonFSType() bool {
 }
 
 // IsClaimStateMatched filters the blockdeive based on provided
-// claim state
+// claim type
 func IsClaimStateMatched(claimType ndm.DeviceClaimState) Predicate {
 	return func(bd *BlockDevice) bool {
 		return bd.IsClaimStateMatched(claimType)
@@ -351,7 +351,7 @@ func IsClaimStateMatched(claimType ndm.DeviceClaimState) Predicate {
 }
 
 // IsClaimStateMatched return true if blockdeive claim state
-// matches to provided claim state
+// matches to provided claim type
 func (bd *BlockDevice) IsClaimStateMatched(claimType ndm.DeviceClaimState) bool {
 	return bd.Object.Status.ClaimState == claimType
 }

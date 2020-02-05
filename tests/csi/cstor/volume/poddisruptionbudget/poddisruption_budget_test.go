@@ -25,6 +25,11 @@ import (
 	"github.com/openebs/maya/pkg/debug"
 )
 
+/* To run positive test please run by following commang
+ * ginkgo -v -focus="\[csi\]\ \[cstor\]" -- -kubeconfig=<path_to_kube_config>
+ * -cstor-maxpools=<no.of_pool> -cstor-replicas=<replica_count>
+ * -cstor-pool-type=<type of pool>
+ */
 var _ = Describe("[csi] [cstor] TEST VOLUME PROVISIONING WITH POD DISRUPTION BUDGET", func() {
 	BeforeEach(func() {
 		By("Creating and verifying cstorpoolcluster", createAndVerifyCstorPoolCluster)
@@ -40,6 +45,11 @@ var _ = Describe("[csi] [cstor] TEST VOLUME PROVISIONING WITH POD DISRUPTION BUD
 	})
 })
 
+/* To run negative test please run by following commang
+ * ginkgo -v -focus="\[csi\]\ \[cstor-negative\]" -- -kubeconfig=<path_to_kube_config>
+ * -cstor-maxpools=<no.of_pool> -cstor-replicas=<replica_count>
+ * -cstor-pool-type=<type of pool>
+ */
 var _ = Describe("[csi] [cstor-negative] TEST VOLUME PROVISIONING BY INJECTING ERRORS IN PODDISRUPTIONBUDGET OPERATIONS", func() {
 	BeforeEach(func() {
 		By("Creating and verifying cstorpoolcluster", createAndVerifyCstorPoolCluster)
@@ -61,6 +71,7 @@ var _ = Describe("[csi] [cstor-negative] TEST VOLUME PROVISIONING BY INJECTING E
 				ops.VerifyCVCStatusEventually(pvcObj.Spec.VolumeName, openebsNamespace, 1, cvc.PredicateList{cvc.IsCVCPending()})
 			})
 			By("Eject errors in PDB Operations", func() { injectOrEjectPDBErrors(debug.Eject) })
+			By("Verify PVC bound state after ejecting the errors", createOrVerifyPVC)
 			By("Verifying the presence of components related to volume", verifyVolumeComponents)
 			By("Verifying the poddisruption budget of volume", func() {
 				err := ops.VerifyPodDisruptionBudget(pvcObj.Spec.VolumeName, openebsNamespace)
@@ -74,7 +85,7 @@ var _ = Describe("[csi] [cstor-negative] TEST VOLUME PROVISIONING BY INJECTING E
 })
 
 func volumeCreationTest() {
-	By("creating and verifying PVC bound status", createAndVerifyPVC)
+	By("creating and verifying PVC bound status", createOrVerifyPVC)
 	By("Verifying the presence of components related to volume", verifyVolumeComponents)
 	By("Verifying the poddisruption budget of volume", func() {
 		err := ops.VerifyPodDisruptionBudget(pvcObj.Spec.VolumeName, openebsNamespace)

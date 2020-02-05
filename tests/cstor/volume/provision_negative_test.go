@@ -96,9 +96,10 @@ var _ = Describe("[Cstor Volume Provisioning Negative] Volume Provisioning", fun
 				Namespace:   openebsNamespace,
 				Selectors:   poolPodList.Items[0].Labels,
 				ServicePort: servicePort,
+				ServiceType: corev1.ServiceTypeNodePort,
 			}
 			ops.Config = serviceConfig
-			serviceObj = ops.BuildAndCreateService(corev1.ServiceTypeNodePort)
+			serviceObj = ops.BuildAndCreateService()
 		})
 	})
 

@@ -106,7 +106,7 @@ func createPVC() *corev1.PersistentVolumeClaim {
 	return ops.BuildAndCreatePVC()
 }
 
-func createAndVerifyPVC() {
+func createOrVerifyPVC() {
 	var err error
 	if pvcObj == nil {
 		pvcObj = createPVC()
@@ -213,9 +213,10 @@ func buildAndCreateService() {
 		Namespace:   openebsNamespace,
 		Selectors:   poolPodList.Items[0].Labels,
 		ServicePort: servicePort,
+		ServiceType: corev1.ServiceTypeNodePort,
 	}
 	ops.Config = serviceConfig
-	serviceObj = ops.BuildAndCreateService(corev1.ServiceTypeNodePort)
+	serviceObj = ops.BuildAndCreateService()
 }
 
 func injectOrEjectPDBErrors(injectOrEject string) {

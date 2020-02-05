@@ -147,8 +147,10 @@ type ServiceConfig struct {
 	Namespace   string
 	Selectors   map[string]string
 	ServicePort []corev1.ServicePort
+	ServiceType corev1.ServiceType
 }
 
+// CSPCConfig provides config to create CSPC
 type CSPCConfig struct {
 	Name      string
 	PoolType  string
@@ -823,7 +825,6 @@ func (ops *Operations) GetCSPICountWithCSPCName(cspcName string, expectedCSPICou
 		cspiCount = cspi.
 			ListBuilderFromAPIList(cspiAPIList).
 			List().
-			//Filter(cspi.HasLabel(string(apis.CStorPoolClusterCPK), cspcName), cspi.IsStatus("ONLINE")).
 			Filter(pred...).
 			Len()
 		if cspiCount == expectedCSPICount {
@@ -1175,14 +1176,14 @@ func (ops *Operations) BuildAndCreateCVR() *apis.CStorVolumeReplica {
 }
 
 // BuildAndCreateService builds and creates Service in cluster
-func (ops *Operations) BuildAndCreateService(serviceType corev1.ServiceType) *corev1.Service {
+func (ops *Operations) BuildAndCreateService() *corev1.Service {
 	svcConfig := ops.Config.(*ServiceConfig)
 	buildSVCObj, err := svc.NewBuilder().
 		WithGenerateName(svcConfig.Name).
 		WithNamespace(svcConfig.Namespace).
 		WithSelectorsNew(svcConfig.Selectors).
 		WithPorts(svcConfig.ServicePort).
-		WithType(serviceType).
+		WithType(svcConfig.ServiceType).
 		Build()
 	Expect(err).To(BeNil())
 	svcObj, err := ops.SVCClient.
@@ -1301,7 +1302,7 @@ func getCVRLabels(pool *apis.CStorPool, volumeName string) map[string]string {
 	}
 }
 
-// BuildAndCreateCSPC build and creates cspc
+// BuildAndCreateCSPC build and creates cspc based on CSPCConfigurations
 func (ops *Operations) BuildAndCreateCSPC() (*apis.CStorPoolCluster, error) {
 	cspcConfig := ops.Config.(*CSPCConfig)
 	minRequiredBD := apis.SupportedPRaidType[apis.PoolType(cspcConfig.PoolType)]
@@ -1386,7 +1387,7 @@ func (ops *Operations) BuildAndCreateCSPC() (*apis.CStorPoolCluster, error) {
 	return cspcObj, nil
 }
 
-// GetCVCCount gives cstorvolumeclaim count currently based on selecter and
+// GetCVCCount returns cstorvolumeclaim count at present based on selecter and
 // predicates
 func (ops *Operations) GetCVCCount(namespace, lselector string, pred ...cvc.Predicate) int {
 	cvcs, err := ops.CVCClient.
