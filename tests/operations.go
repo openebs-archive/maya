@@ -1402,8 +1402,8 @@ func (ops *Operations) GetCVCCount(namespace, lselector string, pred ...cvc.Pred
 		Len()
 }
 
-// VerifyCVCStatusEventually returns true if expected count of CVC are in
-// expected phase
+// VerifyCVCStatusEventually returns true if expected count of CVC exists in
+// cluster based on provided CSPC name and predicate list
 func (ops *Operations) VerifyCVCStatusEventually(cspcName, namespace string, count int,
 	predicateList cvc.PredicateList) bool {
 	poolLabel := string(apis.CStorPoolClusterCPK) + "=" + cspcName

@@ -106,7 +106,7 @@ func createPVC() *corev1.PersistentVolumeClaim {
 	return ops.BuildAndCreatePVC()
 }
 
-func createOrVerifyPVC() {
+func createOrVerifyPVCStatus() {
 	var err error
 	if pvcObj == nil {
 		pvcObj = createPVC()
