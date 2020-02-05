@@ -70,7 +70,7 @@ var (
 		},
 		corev1.VolumeMount{
 			Name:      "sockfile",
-			MountPath: "/var/cstor-sock",
+			MountPath: "/var/tmp/sock",
 		},
 	}
 	// hostpathType represents the hostpath type
