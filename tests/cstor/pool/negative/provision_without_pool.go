@@ -55,8 +55,8 @@ var _ = Describe("[cstor] [-ve] TEST PROVISION WITHOUT POOL", func() {
 		err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
 		Expect(err).To(BeNil(), "while deleting the storagepoolclaim {%s}", spcObj.Name)
 
-		cspCount := ops.GetCSPCount(getLabelSelector(spcObj))
-		Expect(cspCount).To(Equal(0), "stale CSP")
+		// Retry until CSP count to become zero
+		_ = ops.GetCSPCountEventually(getLabelSelector(spcObj), 0)
 	})
 
 	When("Deleting SPC if the pool does not exist", func() {
