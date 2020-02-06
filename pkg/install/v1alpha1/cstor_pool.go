@@ -289,7 +289,7 @@ spec:
             - name: udev
               mountPath: /run/udev
             - name: sockfile
-              mountPath: /var/run
+              mountPath: /var/tmp/sock
             env:
               # OPENEBS_IO_CSTOR_ID env has UID of cStorPool CR.
             - name: OPENEBS_IO_CSTOR_ID
@@ -329,7 +329,7 @@ spec:
             - name: udev
               mountPath: /run/udev
             - name: sockfile
-              mountPath: /var/run
+              mountPath: /var/tmp/sock
             env:
               # OPENEBS_IO_CSTOR_ID env has UID of cStorPool CR.
             - name: OPENEBS_IO_CSTOR_ID
@@ -380,7 +380,7 @@ spec:
             - mountPath: /run/udev
               name: udev
             - name: sockfile
-              mountPath: /var/run
+              mountPath: /var/tmp/sock
           tolerations:
           {{- if ne $isTolerations "none" }}
           {{- range $k, $v := $tolerationsVal }}
