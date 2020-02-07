@@ -574,7 +574,7 @@ func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
 			return
 		}
 
-		total, free, used := qn[0], qn[1], qn[2]
+		total, _, used := qn[0], qn[1], qn[2]
 		usedCapacity := (used * 100) / total
 		if (int(usedCapacity) >= cStorPool.Spec.PoolSpec.ROThresholdLimit) &&
 			(cStorPool.Spec.PoolSpec.ROThresholdLimit != 0 &&
