@@ -373,7 +373,7 @@ var _ = Describe("RAIDZ2 SPARSE SPC", func() {
 				string(artifacts.MayaAPIServerLabelSelector),
 				1,
 			)
-			Expect(podCount).To(Equal(1), "failed to get restarted maya-apiserver pod")
+			Expect(podCount).To(Equal(1), "failed to get maya-apiserver pod after restart")
 
 			cspCount := ops.GetHealthyCSPCount(spcObj.Name, 3)
 			Expect(cspCount).To(Equal(3))
