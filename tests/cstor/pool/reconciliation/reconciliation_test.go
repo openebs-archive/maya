@@ -368,6 +368,13 @@ var _ = Describe("RAIDZ2 SPARSE SPC", func() {
 			err = ops.RestartPodEventually(&mayaPod)
 			Expect(err).To(BeNil(), "failed to restart maya-apiserver pod")
 
+			podCount := ops.GetPodRunningCountEventually(
+				string(artifacts.OpenebsNamespace),
+				string(artifacts.MayaAPIServerLabelSelector),
+				1,
+			)
+			Expect(podCount).To(Equal(1), "failed to get maya-apiserver pod after restart")
+
 			cspCount := ops.GetHealthyCSPCount(spcObj.Name, 3)
 			Expect(cspCount).To(Equal(3))
 			bdcCount := ops.GetBDCCount(getLabelSelector(spcObj), string(artifacts.OpenebsNamespace))
