@@ -159,6 +159,7 @@ spec:
         poolType: {{$blockDeviceIdList.poolType}}
         cacheFile: {{$blockDeviceIdList.poolCacheFile}}
         overProvisioning: false
+        roThresholdLimit: {{$blockDeviceIdList.poolROThreshold}}
     status:
       phase: Init
     versionDetails:

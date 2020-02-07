@@ -35,6 +35,7 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -132,6 +133,7 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		return err
 	}
 	// Synchronize cstor pool used and free capacity fields on CSP object.
+	// Also verify and handle pool ReadOnly threshold limit
 	// Any kind of sync activity should be done from here.
 	// ToDo: Move status sync (of csp) here from cStorPoolEventHandler function.
 	// ToDo: Instead of having statusSync, capacitySync we can make it generic resource sync which syncs all the
@@ -206,7 +208,10 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 			return status, err
 		}
 		klog.V(4).Infof("Synchronizing cStor pool status for pool %s", cStorPoolGot.ObjectMeta.Name)
-		status, err := c.getPoolStatus(cStorPoolGot)
+		status, readOnly, err := c.getPoolStatus(cStorPoolGot)
+		if err == nil {
+			cStorPoolGot.Status.ReadOnly = readOnly
+		}
 		return status, err
 	}
 	klog.Errorf("ignored event '%s' for cstor pool '%s'", string(operation), string(cStorPoolGot.ObjectMeta.Name))
@@ -394,14 +399,14 @@ func (c *CStorPoolController) cStorPoolDestroyEventHandler(cStorPoolGot *apis.CS
 }
 
 //  getPoolStatus is a wrapper that fetches the status of cstor pool.
-func (c *CStorPoolController) getPoolStatus(cStorPoolGot *apis.CStorPool) (string, error) {
-	poolStatus, err := pool.Status(string(pool.PoolPrefix) + string(cStorPoolGot.ObjectMeta.UID))
+func (c *CStorPoolController) getPoolStatus(cStorPoolGot *apis.CStorPool) (string, bool, error) {
+	poolStatus, readOnly, err := pool.Status(string(pool.PoolPrefix) + string(cStorPoolGot.ObjectMeta.UID))
 	if err != nil {
 		// ToDO : Put error in event recorder
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureStatusSync), string(common.MessageResourceFailStatusSync))
-		return "", err
+		return "", false, err
 	}
-	return poolStatus, nil
+	return poolStatus, readOnly, nil
 }
 
 // getPoolResource returns object corresponding to the resource key
@@ -562,7 +567,58 @@ func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
 		c.recorder.Event(cStorPool, corev1.EventTypeWarning, string(common.FailureCapacitySync), string(common.MessageResourceFailCapacitySync))
 	} else {
 		cStorPool.Status.Capacity = *capacity
+
+		qn, err := convertToBytes([]string{capacity.Total, capacity.Free, capacity.Used})
+		if err != nil {
+			klog.Errorf("Failed to parse capacity.. %s", err)
+			return
+		}
+
+		total, free, used := qn[0], qn[1], qn[2]
+		usedCapacity := (used * 100) / total
+		if (int(usedCapacity) >= cStorPool.Spec.PoolSpec.ROThresholdLimit) &&
+			(cStorPool.Spec.PoolSpec.ROThresholdLimit != 0 &&
+				cStorPool.Spec.PoolSpec.ROThresholdLimit != 100) {
+			if !cStorPool.Status.ReadOnly {
+				if err = pool.SetPoolRDMode(cStorPool, true); err != nil {
+					klog.Errorf("Failed to set pool readOnly mode : %v", err)
+				} else {
+					cStorPool.Status.ReadOnly = true
+				}
+			}
+		} else {
+			if cStorPool.Status.ReadOnly {
+				if err = pool.SetPoolRDMode(cStorPool, false); err != nil {
+					klog.Errorf("Failed to unset pool readOnly mode : %v", err)
+				} else {
+					cStorPool.Status.ReadOnly = false
+				}
+			}
+		}
 	}
+}
+
+func convertToBytes(a []string) ([]int64, error) {
+	//TODO recover panic
+	number := []int64{}
+
+	if len(a) == 0 {
+		return number, errors.New("No input given")
+	}
+
+	parser := func(s string) (int64, error) {
+		d := resource.MustParse(s + "i")
+		return d.Value(), nil
+	}
+
+	for _, v := range a {
+		n, err := parser(v)
+		if err != nil {
+			return number, err
+		}
+		number = append(number, n)
+	}
+	return number, nil
 }
 
 func (c *CStorPoolController) getDeviceIDs(csp *apis.CStorPool) ([]string, error) {

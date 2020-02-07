@@ -72,6 +72,7 @@ func (pc *PoolCreateConfig) getCasPool(spc *apis.StoragePoolClaim) (*apis.CasPoo
 		withPoolCacheFile(spc.Spec.PoolSpec.CacheFile).
 		withAnnotations(spc.Annotations).
 		withMaxPool(spc).
+		WithPoolROThreshold(spc.Spec.PoolSpec.ROThresholdLimit).
 		Build()
 	casPoolWithDisks, err := pc.withDisks(casPool, spc)
 	if err != nil {
@@ -131,6 +132,11 @@ func (cb *CasPoolBuilder) withDiskType(diskType string) *CasPoolBuilder {
 
 func (cb *CasPoolBuilder) withAnnotations(annotations map[string]string) *CasPoolBuilder {
 	cb.CasPool.Annotations = annotations
+	return cb
+}
+
+func (cb *CasPoolBuilder) WithPoolROThreshold(poolROThreshold int) *CasPoolBuilder {
+	cb.CasPool.PoolROThreshold = poolROThreshold
 	return cb
 }
 
