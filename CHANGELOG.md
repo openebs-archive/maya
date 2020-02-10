@@ -7,7 +7,7 @@ v1.7.0-RC1 / 2020-02-07
   [@mittachaitu](https://github.com/mittachaitu))
   * fix(jiva-cleanup): allow cleanup jobs to run as previleged mode ([#1600](https://github.com/openebs/maya/pull/1600),
   [@utkarshmani1997](https://github.com/utkarshmani1997))
-  * patch(upgrade): add volumes and mountpaths for cstor pools and volumes ([#1584](https://github.com/openebs/maya/pull/1584),
+  * refact(upgrade): add volumes and mountpaths for cstor pools and volumes ([#1584](https://github.com/openebs/maya/pull/1584),
   [@shubham14bajpai](https://github.com/shubham14bajpai))
   * fix(new cStor deployments): add OpenEBS base directory in new CStor deployments ([#1599](https://github.com/openebs/maya/pull/1599),
   [@mittachaitu](https://github.com/mittachaitu))
