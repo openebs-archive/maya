@@ -49,7 +49,3 @@ v1.7.0-RC1 / 2020-02-07
   [@shubham14bajpai](https://github.com/shubham14bajpai))
   * fix(cStor, deployments): add OpenEBS base directory in deployments ([#1583](https://github.com/openebs/maya/pull/1583),
   [@mittachaitu](https://github.com/mittachaitu))
-  * feat(localpv-hostpath): support provisioning on nodes with taints ([#1560](https://github.com/openebs/maya/pull/1560),
-  [@rahulchheda](https://github.com/rahulchheda))
-  * fix(logs): remove local errors pkg to avoid loss error messages ([#1555](https://github.com/openebs/maya/pull/1555),
-  [@shubham14bajpai](https://github.com/shubham14bajpai))
