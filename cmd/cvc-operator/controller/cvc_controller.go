@@ -26,6 +26,8 @@ import (
 	errors "github.com/pkg/errors"
 	"k8s.io/klog"
 
+	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
+	cvclaim "github.com/openebs/maya/pkg/cstorvolumeclaim/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	policy "k8s.io/api/policy/v1beta1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -203,6 +205,12 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 	if err != nil {
 		return err
 	}
+
+	if c.isCVCScalePending(cvc) {
+		// process scalingup/scalingdown of volume replicas only if there is
+		// change in curent and desired state of replicas pool information
+		err = c.scaleVolumeReplicas(cvc)
+	}
 	return nil
 }
 
@@ -274,11 +282,19 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 		return nil, err
 	}
 
+	// Fetch the volume replica pool names and use them in PDB and updating in
+	// spec and status of CVC
+	poolNames, err := cvr.GetVolumeReplicaPoolNames(cvc.Name, openebsNamespace)
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"failed to get volume replica pool names of volume %s", cvObj.Name)
+	}
+
 	if isHAVolume(cvc) {
 		// TODO: When multiple threads or multiple CVC controllers are set then
 		// we have to revist entier PDB code path
 		var pdbObj *policy.PodDisruptionBudget
-		pdbObj, err = getOrCreatePodDisruptionBudget(cvObj, getCSPC(cvc))
+		pdbObj, err = getOrCreatePodDisruptionBudget(cvObj, getCSPC(cvc), poolNames)
 		if err != nil {
 			return nil, errors.Wrapf(err,
 				"failed to create PDB for volume: %s", cvc.Name)
@@ -291,6 +307,8 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 		return nil, err
 	}
 
+	// update volume replica pool information on cvc spec and status
+	addReplicaPoolInfo(cvc, poolNames)
 	// update the cstorvolume reference, phase as "Bound" and desired
 	// capacity
 	cvc.Spec.CStorVolumeRef = volumeRef
@@ -366,7 +384,7 @@ func (c *CVCController) removeClaimFinalizer(
 	cvc *apis.CStorVolumeClaim,
 ) error {
 	if isHAVolume(cvc) {
-		err := c.deletePDBIfNotInUse(cvc)
+		err := deletePDBIfNotInUse(cvc)
 		if err != nil {
 			return errors.Wrapf(err,
 				"failed to verify whether PDB %s is in use by other volumes",
@@ -637,14 +655,13 @@ func (c *CVCController) resizeCV(cv *apis.CStorVolume, newCapacity resource.Quan
 
 // deletePDBIfNotInUse deletes the PDB if no volume is refering to the
 // cStorvolumeclaim PDB
-func (c *CVCController) deletePDBIfNotInUse(cvc *apis.CStorVolumeClaim) error {
+func deletePDBIfNotInUse(cvc *apis.CStorVolumeClaim) error {
 	//TODO: If HALease is enabled active-active then below code needs to be
 	//revist
 	pdbName := getPDBName(cvc)
 	cvcLabelSelector := string(apis.PodDisruptionBudgetKey) + "=" + pdbName
-	cvcList, err := c.clientset.
-		OpenebsV1alpha1().
-		CStorVolumeClaims(cvc.Namespace).
+	cvcList, err := cvclaim.NewKubeclient().
+		WithNamespace(cvc.Namespace).
 		List(metav1.ListOptions{LabelSelector: cvcLabelSelector})
 	if err != nil {
 		return errors.Wrapf(err,
@@ -654,9 +671,38 @@ func (c *CVCController) deletePDBIfNotInUse(cvc *apis.CStorVolumeClaim) error {
 		err = apispdb.KubeClient().
 			WithNamespace(openebsNamespace).
 			Delete(pdbName, &metav1.DeleteOptions{})
+		if k8serror.IsNotFound(err) {
+			klog.Infof("pdb %s of volume %s was already deleted", pdbName, cvc.Name)
+			return nil
+		}
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// scaleVolumeReplicas identifies whether it is scaleup or scaledown case of
+// volume replicas. If user added entry of pool info under the spec then changes
+// are treated as scaleup case. If user removed poolInfo entry from spec then
+// changes are treated as scale down case. If user just modifies the pool entry
+// info under the spec then it is a kind of migration which is not yet supported
+func (c *CVCController) scaleVolumeReplicas(cvc *apis.CStorVolumeClaim) error {
+	var err error
+	if len(cvc.Spec.Policy.ReplicaPool.PoolInfo) > len(cvc.Status.PoolInfo) {
+		err = scaleUpVolumeReplicas(cvc)
+	} else if len(cvc.Spec.Policy.ReplicaPool.PoolInfo) < len(cvc.Status.PoolInfo) {
+		err = scaleDownVolumeReplicas(cvc)
+	} else {
+		c.recorder.Event(cvc, corev1.EventTypeWarning, "Migration",
+			"Migration of volume replicas is not yet supported")
+		return nil
+	}
+	if err != nil {
+		c.recorder.Eventf(cvc,
+			corev1.EventTypeWarning,
+			"ScalingVolumeReplicas",
+			"%v", err)
 	}
 	return nil
 }

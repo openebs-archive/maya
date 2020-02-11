@@ -448,3 +448,10 @@ func (csr *CVReplicationDetails) UpdateCVWithReplicationDetails(kubeclient *Kube
 	}
 	return err
 }
+
+// IsScaleDownInProgress return true if length of status replica details is
+// greater than length of spec replica details
+func IsScaleDownInProgress(cvObj *apis.CStorVolume) bool {
+	return len(cvObj.Status.ReplicaDetails.KnownReplicas) >
+		len(cvObj.Spec.ReplicaDetails.KnownReplicas)
+}

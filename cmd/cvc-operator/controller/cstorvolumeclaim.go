@@ -17,6 +17,7 @@ limitations under the License.
 package cstorvolumeclaim
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 	"time"
@@ -30,13 +31,16 @@ import (
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	cvclaim "github.com/openebs/maya/pkg/cstorvolumeclaim/v1alpha1"
+	"github.com/openebs/maya/pkg/hash"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	policy "k8s.io/api/policy/v1beta1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/klog"
 )
 
 const (
@@ -50,7 +54,17 @@ const (
 	// minHAReplicaCount is minimum no.of replicas are required to decide
 	// HighAvailable volume
 	minHAReplicaCount = 3
+	volumeID          = "openebs.io/volumeID"
+	cspiLabel         = "cstorpoolinstance.openebs.io/name"
+	cspiOnline        = "ONLINE"
 )
+
+// replicaInfo struct is used to pass replica information to
+// create CVR
+type replicaInfo struct {
+	replicaID string
+	phase     apis.CStorVolumeReplicaPhase
+}
 
 var (
 	cvPorts = []corev1.ServicePort{
@@ -375,7 +389,10 @@ func (c *CVCController) distributeCVRs(
 	for count, pool := range usablePoolList.Items {
 		pool := pool
 		if count < pendingReplicaCount {
-			_, err = createCVR(service, volume, claim, &pool)
+			rInfo := replicaInfo{
+				phase: apis.CVRStatusEmpty,
+			}
+			_, err = createCVR(service, volume, claim, &pool, rInfo)
 			if err != nil {
 				return err
 			}
@@ -403,6 +420,7 @@ func createCVR(
 	volume *apis.CStorVolume,
 	claim *apis.CStorVolumeClaim,
 	pool *apis.CStorPoolInstance,
+	rInfo replicaInfo,
 ) (*apis.CStorVolumeReplica, error) {
 	var (
 		isClone             string
@@ -440,9 +458,11 @@ func createCVR(
 			WithOwnerRefernceNew(getCVROwnerReference(volume)).
 			WithFinalizers(getCVRFinalizer()).
 			WithTargetIP(service.Spec.ClusterIP).
+			WithReplicaID(rInfo.replicaID).
 			WithCapacity(volume.Spec.Capacity.String()).
 			WithNewVersion(version.GetVersion()).
 			WithDependentsUpgraded().
+			WithStatusPhase(rInfo.phase).
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(
@@ -562,14 +582,13 @@ func randomizePoolList(list *apis.CStorPoolInstanceList) *apis.CStorPoolInstance
 // 2. If PDB exist it returns the PDB.
 // 3. If PDB doesn't exist it creates new PDB(With CSPC hash)
 func getOrCreatePodDisruptionBudget(
-	cvObj *apis.CStorVolume, cspcName string) (*policy.PodDisruptionBudget, error) {
-	pvName := cvObj.Labels[string(apis.PersistentVolumeCPK)]
-	poolNames, err := cvr.GetVolumeReplicaPoolNames(pvName, openebsNamespace)
-	if err != nil {
-		return nil, errors.Wrapf(err,
-			"failed to get volume replica pool names of volume %s",
-			cvObj.Name)
-	}
+	cvObj *apis.CStorVolume, cspcName string, poolNames []string) (*policy.PodDisruptionBudget, error) {
+	// poolNames, err := cvr.GetVolumeReplicaPoolNames(pvName, openebsNamespace)
+	// if err != nil {
+	// 	return nil, errors.Wrapf(err,
+	// 		"failed to get volume replica pool names of volume %s",
+	// 		cvObj.Name)
+	// }
 	pdbLabels := cvclaim.GetPDBPoolLabels(poolNames)
 	labelSelector := apispdb.GetPDBLabelSelector(pdbLabels)
 	pdbList, err := apispdb.KubeClient().
@@ -632,6 +651,15 @@ func getPDBSelector(pools []string) *metav1.LabelSelector {
 	}
 }
 
+// addReplicaPoolInfo updates in-memory replicas pool information on spec and
+// status of CVC
+func addReplicaPoolInfo(cvcObj *apis.CStorVolumeClaim, poolNames []string) {
+	for i, poolName := range poolNames {
+		cvcObj.Spec.Policy.ReplicaPool.PoolInfo[i].PoolName = poolName
+	}
+	cvcObj.Status.PoolInfo = append(cvcObj.Status.PoolInfo, poolNames...)
+}
+
 // addPDBLabelOnCVC will add PodDisruptionBudget label on CVC
 func addPDBLabelOnCVC(
 	cvcObj *apis.CStorVolumeClaim, pdbObj *policy.PodDisruptionBudget) {
@@ -643,7 +671,353 @@ func addPDBLabelOnCVC(
 	cvcObj.SetLabels(cvcLabels)
 }
 
-// isHAVolume returns true if replica count is greater than or equal to 3
+// isHAVolume returns true if no.of replicas are greater than or equal to 3.
+// If CVC doesn't hold any volume replica pool information then verify with
+// ReplicaCount. If CVC holds any volume replica pool information then verify
+// with Status.PoolInfo
 func isHAVolume(cvcObj *apis.CStorVolumeClaim) bool {
-	return cvcObj.Spec.ReplicaCount >= minHAReplicaCount
+	if len(cvcObj.Status.PoolInfo) == 0 {
+		return cvcObj.Spec.ReplicaCount >= minHAReplicaCount
+	}
+	return len(cvcObj.Status.PoolInfo) >= minHAReplicaCount
+}
+
+// 1. If Volume was already pointing to a PDB then check is that same PDB will be
+//    applicable after scalingup/scalingdown(case might be from 4 to 3
+//    replicas) if applicable then return same pdb name. If not applicable do
+//    following changes:
+//    1.1 Delete PDB if no other CVC is pointing to PDB.
+// 2. If current volume was not pointing to any PDB then do nothing.
+// 3. If current volume is HAVolume then check is there any PDB already
+//    existing among the current replica pools. If PDB exists then return
+//    that PDB name. If PDB doesn't exist then create new PDB and return newely
+//    created PDB name.
+// 4. If current volume is not HAVolume then return nothing.
+func updatePDBForVolume(cvcObj *apis.CStorVolumeClaim,
+	cvObj *apis.CStorVolume) (string, error) {
+	pdbName, hasPDB := cvcObj.GetLabels()[string(apis.PodDisruptionBudgetKey)]
+	pdbLabels := cvclaim.GetPDBPoolLabels(cvcObj.Status.PoolInfo)
+	labelSelector := apispdb.GetPDBLabelSelector(pdbLabels)
+	if hasPDB {
+		pdbList, err := apispdb.KubeClient().
+			WithNamespace(openebsNamespace).
+			List(metav1.ListOptions{LabelSelector: labelSelector})
+		if err != nil {
+			return "", errors.Wrapf(err,
+				"failed to get PDB present among pools %v",
+				cvcObj.Status.PoolInfo,
+			)
+		}
+		if pdbList.Items[0].Name == pdbName {
+			return pdbName, nil
+		}
+		err = deletePDBIfNotInUse(cvcObj)
+		if err != nil {
+			return "", err
+		}
+	}
+	if !isHAVolume(cvcObj) {
+		return "", nil
+	}
+	pdbObj, err := getOrCreatePodDisruptionBudget(cvObj,
+		getCSPC(cvcObj), cvcObj.Status.PoolInfo)
+	if err != nil {
+		return "", err
+	}
+	return pdbObj.Name, nil
+}
+
+// isCVCScalePending returns true if there is change in desired replica pool
+// names and current replica pool names
+// 1. Below function will check whether there is any change in desired replica
+//    pool names and current replica pool names.
+func (c *CVCController) isCVCScalePending(cvc *apis.CStorVolumeClaim) bool {
+	desiredPoolNames := cvclaim.GetDesiredReplicaPoolNames(cvc)
+	return util.IsChangeInLists(desiredPoolNames, cvc.Status.PoolInfo)
+}
+
+// handlePostScalingProcess will does the following changes:
+// 1. Handle PDB updation based on no.of volume replicas. It should handle in
+//    following ways:
+//    1.1 If Volume was already pointing to a PDB then check is that same PDB will be
+//        applicable after scalingup/scalingdown(case might be from 4 to 3
+//        replicas) if applicable then return same pdb name. If not applicable do
+//        following changes:
+//        1.1.1 Delete PDB if no other CVC is pointing to PDB.
+//    1.2 If current volume was not pointing to any PDB then do nothing.
+//    1.3 If current volume is HAVolume then check is there any PDB already
+//        existing among the current replica pools. If PDB exists then return
+//        that PDB name. If PDB doesn't exist then create new PDB and return newely
+//        created PDB name.
+// 2. Update CVC label to point it to newely PDB got from above step and also
+//    replicas pool information on status of CVC.
+func handlePostScalingProcess(cvc *apis.CStorVolumeClaim,
+	cvObj *apis.CStorVolume, currentRPNames []string) error {
+	var err error
+	cvcCopy := cvc.DeepCopy()
+	cvc.Status.PoolInfo = []string{}
+	cvc.Status.PoolInfo = append(cvc.Status.PoolInfo, currentRPNames...)
+	pdbName, err := updatePDBForVolume(cvc, cvObj)
+	if err != nil {
+		return errors.Wrapf(err,
+			"failed to handle PDB for scaled volume %s",
+			cvc.Name,
+		)
+	}
+	delete(cvc.Labels, string(apis.PodDisruptionBudgetKey))
+	if pdbName != "" {
+		cvc.Labels[string(apis.PodDisruptionBudgetKey)] = pdbName
+	}
+	cvc, err = cvclaim.NewKubeclient().WithNamespace(cvc.Namespace).Update(cvc)
+	if err != nil {
+		// If error occured point it to old cvc object it self
+		cvc = cvcCopy
+		return errors.Wrapf(err,
+			"failed to update %s CVC status with scaledup replica pool names",
+			cvc.Name,
+		)
+	}
+	return nil
+}
+
+// verifyAndUpdateScaleUpInfo does the following changes:
+// 1. Get list of new replica pool names by using CVC(spec and status)
+// 2. Verify status of ScalingUp Replica(by using CV object) based on the status
+//    does following changes:
+//    2.1: If scalingUp was completed then update PDB accordingly(only if it was
+//         HAVolume) and update the replica pool info on CVC(API calls).
+//    2.2: If scalingUp was going then return error saying scalingUp was in
+//      progress.
+func verifyAndUpdateScaleUpInfo(cvc *apis.CStorVolumeClaim, cvObj *apis.CStorVolume) error {
+	// scaledRPNames contains the new replica pool names where entier data was
+	// reconstructed from other replicas
+	scaledRPNames := []string{}
+	pvName := cvc.GetAnnotations()[volumeID]
+	desiredPoolNames := cvclaim.GetDesiredReplicaPoolNames(cvc)
+	newPoolNames := util.ListDiff(desiredPoolNames, cvc.Status.PoolInfo)
+	for _, poolName := range newPoolNames {
+		cvrName := pvName + "-" + poolName
+		cvrObj, err := cvr.NewKubeclient().
+			WithNamespace(getNamespace()).
+			Get(cvrName, metav1.GetOptions{})
+		if err != nil {
+			klog.Errorf("failed to get CVR %s error: %v", cvrName, err)
+			continue
+		}
+		_, isIDExists := cvObj.Status.ReplicaDetails.KnownReplicas[apis.ReplicaID(cvrObj.Spec.ReplicaID)]
+		// ScalingUp was completed only if CVR replicaID exists on CV status
+		// and also CVR should be Healthy(there might be cases of replica
+		// migration in that case replicaID will be same zvol guid will be
+		// different)
+		if isIDExists && cvrObj.Status.Phase == apis.CVRStatusOnline {
+			scaledRPNames = append(scaledRPNames, poolName)
+		}
+	}
+	if len(scaledRPNames) > 0 {
+		var currentRPNames []string
+		currentRPNames = append(currentRPNames, cvc.Status.PoolInfo...)
+		currentRPNames = append(currentRPNames, scaledRPNames...)
+		// handlePostScalingProcess will handle PDB and CVC status
+		err := handlePostScalingProcess(cvc, cvObj, currentRPNames)
+		if err != nil {
+			return errors.Wrapf(
+				err,
+				"failed to handle post volume replicas scale up process",
+			)
+		}
+		return nil
+	}
+	return errors.Errorf(
+		"scaling replicas from %d to %d in progress",
+		len(cvc.Status.PoolInfo),
+		len(cvc.Spec.Policy.ReplicaPool.PoolInfo),
+	)
+}
+
+func getScaleDownCVR(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeReplica, error) {
+	pvName := cvc.GetAnnotations()[volumeID]
+	desiredPoolNames := cvclaim.GetDesiredReplicaPoolNames(cvc)
+	removedPoolNames := util.ListDiff(cvc.Status.PoolInfo, desiredPoolNames)
+	cvrName := pvName + removedPoolNames[0]
+	return cvr.NewKubeclient().
+		WithNamespace(getNamespace()).
+		Get(cvrName, metav1.GetOptions{})
+}
+
+// handleVolumeReplicaCreation does the following changes:
+// 1. Get the list of new pool names(i.e poolNames which are in spec but not in
+//    status of CVC).
+// 2. Creates new CVR on new pools only if CVR on that pool doesn't exists. If
+//    CVR already created then do nothing.
+func handleVolumeReplicaCreation(cvc *apis.CStorVolumeClaim, cvObj *apis.CStorVolume) error {
+	pvName := cvc.GetAnnotations()[volumeID]
+	desiredPoolNames := cvclaim.GetDesiredReplicaPoolNames(cvc)
+	newPoolNames := util.ListDiff(desiredPoolNames, cvc.Status.PoolInfo)
+	errs := []error{}
+	var errorMsg string
+
+	svcObj, err := svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).
+		Get(cvc.Name, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to get service object %s", cvc.Name)
+	}
+
+	cvrApiList, err := cvr.NewKubeclient().
+		WithNamespace(getNamespace()).
+		List(metav1.ListOptions{LabelSelector: pvSelector + "=" + pvName})
+	if err != nil {
+		return errors.Wrapf(err, "failed to list cstorvolumereplicas of volume %s", pvName)
+	}
+	cvrListbuilder := cvr.NewListBuilder().
+		WithAPIList(cvrApiList)
+
+	for _, poolName := range newPoolNames {
+		if cvrListbuilder.
+			WithFilter(cvr.HasLabel(cspiLabel, poolName)).
+			List().Len() == 0 {
+			cspiObj, err := cspi.NewKubeClient().
+				WithNamespace(getNamespace()).
+				Get(poolName, metav1.GetOptions{})
+			if err != nil {
+				errorMsg = fmt.Sprintf("failed to get cstorpoolinstance %s error: %v", poolName, err)
+				errs = append(errs, errors.Errorf("%v", errorMsg))
+				klog.Errorf("%s", errorMsg)
+				continue
+			}
+			if cspiObj.Status.Phase != cspiOnline {
+				errorMsg = fmt.Sprintf(
+					"failed to create cstorvolumerplica on pool %s error: pool is not in %s",
+					cspiObj.Name,
+					cspiOnline,
+				)
+				errs = append(errs, errors.Errorf("%v", errorMsg))
+				klog.Errorf("%s", errorMsg)
+				continue
+			}
+			hash, err := hash.Hash(pvName + "-" + poolName)
+			if err != nil {
+				errorMsg = fmt.Sprintf(
+					"failed to calculate of hase for new volume replica error: %v",
+					err)
+				errs = append(errs, errors.Errorf("%v", errorMsg))
+				klog.Errorf("%s", errorMsg)
+				continue
+			}
+			// TODO: Add a check for ClonedVolumeReplica scaleup case
+			// Create replica with Recreate state
+			rInfo := replicaInfo{
+				replicaID: hash,
+				phase:     apis.CVRStatusRecreate,
+			}
+			cvr, err := createCVR(svcObj, cvObj, cvc, cspiObj, rInfo)
+			if err != nil {
+				errorMsg = fmt.Sprintf(
+					"failed to create new replica on pool %s error: %v",
+					poolName,
+					err,
+				)
+				errs = append(errs, errors.Errorf("%v", errorMsg))
+				klog.Errorf("%s", errorMsg)
+				continue
+			}
+			// Update cvrListbuilder with new replicas
+			cvrListbuilder = cvrListbuilder.AppendListBuilder(cvr)
+		}
+	}
+	if len(errs) > 0 {
+		return errors.Errorf("%+v", errs)
+	}
+	return nil
+}
+
+// scaleUpVolumeReplicas does the following work
+// 1. Fetch corresponding CStorVolume object of CVC.
+// 2. Verify is there need to update desiredReplicationFactor of CVC(In etcd).
+// 3. Create CVRs if doesn't created on scaled cStor
+//    pool(handleVolumeReplicaCreation will handle new CVR creations).
+// 4. If scalingUp volume replicas was completed then do following
+//    things(verifyAndUpdateScaleUpInfo will does following things). If
+//    scalingUp of volume replicas was not completed then return error
+//    4.1.1 Update PDB according to the new pools(only if volume is HAVolume).
+//    4.1.2 Update PDB label on CVC and replica pool information on status.
+func scaleUpVolumeReplicas(cvc *apis.CStorVolumeClaim) error {
+	drCount := len(cvc.Spec.Policy.ReplicaPool.PoolInfo)
+	cvObj, err := cv.NewKubeclient().
+		WithNamespace(getNamespace()).
+		Get(cvc.Name, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to get cstorvolumes object %s", cvc.Name)
+	}
+	if cvObj.Spec.DesiredReplicationFactor < drCount {
+		cvObj.Spec.DesiredReplicationFactor = drCount
+		cvObj, err = updateCStorVolumeInfo(cvObj)
+		if err != nil {
+			return err
+		}
+	}
+	err = handleVolumeReplicaCreation(cvc, cvObj)
+	if err != nil {
+		return err
+	}
+	err = verifyAndUpdateScaleUpInfo(cvc, cvObj)
+	return err
+}
+
+// scaleDownVolumeReplicas will process the following steps
+// 1. Verify whether operation made by user is valid for scale down
+//    process(Only one replica scaledown at a time is allowed).
+// 2. Update the CV object by decreasing the DRF and removing the
+//    replicaID entry.
+// 3. Check the status of scale down if scale down was completed then
+//    perform post scaling process(updating PDB if applicable and CVC
+//    replica pool status).
+func scaleDownVolumeReplicas(cvc *apis.CStorVolumeClaim) error {
+	drCount := len(cvc.Spec.Policy.ReplicaPool.PoolInfo)
+	cvObj, err := cv.NewKubeclient().
+		WithNamespace(getNamespace()).
+		Get(cvc.Name, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to get cstorvolumes object %s", cvc.Name)
+	}
+	// If more than one replica was scale down at a time keep on return the error
+	if (cvObj.Spec.ReplicationFactor - drCount) > 1 {
+		return errors.Wrapf(err,
+			"cann't perform %d replicas scaledown at a time",
+			(cvObj.Spec.DesiredReplicationFactor - drCount),
+		)
+	}
+	if cvObj.Spec.DesiredReplicationFactor > drCount {
+		cvrObj, err := getScaleDownCVR(cvc)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get scale down CVR object")
+		}
+		cvObj.Spec.DesiredReplicationFactor = drCount
+		delete(cvObj.Spec.ReplicaDetails.KnownReplicas, apis.ReplicaID(cvrObj.Spec.ReplicaID))
+		cvObj, err = updateCStorVolumeInfo(cvObj)
+		if err != nil {
+			return err
+		}
+	}
+	if !cv.IsScaleDownInProgress(cvObj) {
+		desiredPoolNames := cvclaim.GetDesiredReplicaPoolNames(cvc)
+		err = handlePostScalingProcess(cvc, cvObj, desiredPoolNames)
+		if err != nil {
+			return errors.Wrapf(err,
+				"failed to handle post volume replicas scale down process")
+		}
+		return nil
+	}
+	return errors.Errorf(
+		"Scaling down volume replicas from %d to %d is in progress",
+		len(cvc.Status.PoolInfo),
+		drCount,
+	)
+}
+
+// UpdateCStorVolumeInfo modifies the CV Object in etcd by making update API call
+// Note: Caller code should handle the error
+func updateCStorVolumeInfo(cvObj *apis.CStorVolume) (*apis.CStorVolume, error) {
+	return cv.NewKubeclient().
+		WithNamespace(getNamespace()).
+		Update(cvObj)
 }

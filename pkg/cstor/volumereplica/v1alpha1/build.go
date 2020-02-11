@@ -204,8 +204,8 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 
 // WithStatusPhase sets the Status Phase of CStorVolumeReplica with provided
 //arguments
-func (b *Builder) WithStatusPhase(phase string) *Builder {
-	b.cvr.object.Status.Phase = apis.CStorVolumeReplicaPhase(phase)
+func (b *Builder) WithStatusPhase(phase apis.CStorVolumeReplicaPhase) *Builder {
+	b.cvr.object.Status.Phase = phase
 	return b
 }
 
