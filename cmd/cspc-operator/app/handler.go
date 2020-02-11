@@ -332,7 +332,7 @@ func (pc *PoolConfig) removeCSPCFinalizer() error {
 	}
 
 	cspList, err := apiscsp.NewKubeClient().List(metav1.ListOptions{
-		LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + pc.AlgorithmConfig.CSPC.Name,
+		LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + pc.AlgorithmConfig.CSPC.Name,
 	})
 
 	if len(cspList.Items) > 0 {
