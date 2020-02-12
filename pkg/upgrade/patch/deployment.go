@@ -1,20 +1,20 @@
 package patch
 
 import (
-	"bytes"
-	"fmt"
+	"time"
 
-	"github.com/golang/glog"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
+	retry "github.com/openebs/maya/pkg/util/retry"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 )
 
 // Deployment ...
 type Deployment struct {
-	Object appsv1.Deployment
+	Object *appsv1.Deployment
 	Data   []byte
 }
 
@@ -25,9 +25,8 @@ func NewDeployment() *Deployment {
 
 // PreChecks ...
 func (d *Deployment) PreChecks(from, to string) error {
-	name := d.Object.Name
-	if name == "" {
-		return errors.Errorf("missing deployment name")
+	if d.Object == nil {
+		return errors.Errorf("nil deployment object")
 	}
 	version := d.Object.Labels[OpenebsVersionLabel]
 	if version != from && version != to {
@@ -43,16 +42,14 @@ func (d *Deployment) PreChecks(from, to string) error {
 
 // Patch ...
 func (d *Deployment) Patch(from, to string) error {
-	buffer := bytes.Buffer{}
+	klog.Info("patching deployment ", d.Object.Name)
 	client := deploy.NewKubeClient(deploy.WithKubeConfigPath("/var/run/kubernetes/admin.kubeconfig"))
 	version := d.Object.Labels[OpenebsVersionLabel]
 	if version == to {
-		glog.Infof("deployment already in %s version", to)
+		klog.Infof("deployment already in %s version", to)
 		return nil
 	}
 	if version == from {
-		fmt.Println(string(d.Data))
-		buffer.Reset()
 		_, err := client.WithNamespace(d.Object.Namespace).Patch(
 			d.Object.Name,
 			types.StrategicMergePatchType,
@@ -65,8 +62,24 @@ func (d *Deployment) Patch(from, to string) error {
 				d.Object.Name,
 			)
 		}
-		buffer.Reset()
-		glog.Infof("deployment %s patched", d.Object.Name)
+		err = retry.
+			Times(60).
+			Wait(5 * time.Second).
+			Try(func(attempt uint) error {
+				rolloutStatus, err1 := client.WithNamespace(d.Object.Namespace).
+					RolloutStatus(d.Object.Name)
+				if err1 != nil {
+					return err1
+				}
+				if !rolloutStatus.IsRolledout {
+					return errors.Errorf("failed to rollout: %s", rolloutStatus.Message)
+				}
+				return nil
+			})
+		if err != nil {
+			return err
+		}
+		klog.Infof("deployment %s patched successfully", d.Object.Name)
 	}
 	return nil
 }
@@ -85,6 +98,6 @@ func (d *Deployment) Get(label, namespace string) error {
 	if len(deployments.Items) != 1 {
 		return errors.Errorf("no deployments found for label: %s  in namespace %s", label, namespace)
 	}
-	d.Object = deployments.Items[0]
+	d.Object = &deployments.Items[0]
 	return nil
 }

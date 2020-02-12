@@ -1,15 +1,12 @@
 package patch
 
 import (
-	"bytes"
-	"fmt"
-
-	"github.com/golang/glog"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 )
 
 // Service ...
@@ -43,17 +40,15 @@ func (s *Service) PreChecks(from, to string) error {
 
 // Patch ...
 func (s *Service) Patch(from, to string) error {
-	buffer := bytes.Buffer{}
+	klog.Info("patching service ", s.Object.Name)
 	client := svc.NewKubeClient(svc.WithKubeConfigPath("/home/user/.kube/config"))
 	version := s.Object.Labels[OpenebsVersionLabel]
 	if version == to {
-		glog.Infof("service already in %s version", to)
+		klog.Infof("service already in %s version", to)
 		return nil
 	}
 	if version == from {
 		patch := s.Data
-		fmt.Println(patch)
-		buffer.Reset()
 		_, err := client.WithNamespace(s.Object.Namespace).Patch(
 			s.Object.Name,
 			types.StrategicMergePatchType,
@@ -66,8 +61,7 @@ func (s *Service) Patch(from, to string) error {
 				s.Object.Name,
 			)
 		}
-		buffer.Reset()
-		glog.Infof("service %s patched", s.Object.Name)
+		klog.Infof("service %s patched", s.Object.Name)
 	}
 	return nil
 }

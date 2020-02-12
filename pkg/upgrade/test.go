@@ -13,3 +13,5 @@ func main() {
 	)
 	fmt.Println(err)
 }
+
+// upgrade cstor-cspc --from-version=1.6.0 --to-version=1.7.0 --to-version-image-prefix="openebs/" --to-version-image-tag=ci sparse-pool-1 sparse-pool-2

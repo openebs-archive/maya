@@ -1,6 +1,7 @@
 package upgrader
 
 import (
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/upgrade/patch"
 	"github.com/openebs/maya/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -11,6 +12,7 @@ type CSPIPatch struct {
 	*ResourcePatch
 	Namespace string
 	Deploy    *patch.Deployment
+	CSPI      *patch.CSPI
 }
 
 // CSPIPatchOptions ...
@@ -45,12 +47,22 @@ func (obj *CSPIPatch) PreUpgrade() error {
 	if err != nil {
 		return err
 	}
-	return nil
+	err = obj.CSPI.PreChecks(obj.From, obj.To)
+	return err
 }
 
 // DeployUpgrade ...
 func (obj *CSPIPatch) DeployUpgrade() error {
 	err := obj.Deploy.Patch(obj.From, obj.To)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// CSPIUpgrade ...
+func (obj *CSPIPatch) CSPIUpgrade() error {
+	err := obj.CSPI.Patch(obj.From, obj.To)
 	if err != nil {
 		return err
 	}
@@ -68,6 +80,10 @@ func (obj *CSPIPatch) Upgrade() error {
 		return err
 	}
 	err = obj.DeployUpgrade()
+	if err != nil {
+		return err
+	}
+	err = obj.CSPIUpgrade()
 	return err
 }
 
@@ -80,7 +96,16 @@ func (obj *CSPIPatch) Init() error {
 	if err != nil {
 		return err
 	}
+	obj.CSPI = patch.NewCSPI()
+	err = obj.CSPI.Get(obj.Name, obj.Namespace)
+	if err != nil {
+		return err
+	}
 	err = getCSPIDeployPatchData(obj)
+	if err != nil {
+		return err
+	}
+	err = getCSPIPatchData(obj)
 	return err
 }
 
@@ -113,5 +138,21 @@ func transformCSPIDeploy(d *appsv1.Deployment, res *ResourcePatch) error {
 	}
 	d.Labels["openebs.io/version"] = res.To
 	d.Spec.Template.Labels["openebs.io/version"] = res.To
+	return nil
+}
+
+func getCSPIPatchData(obj *CSPIPatch) error {
+	newCSPI := obj.CSPI.Object.DeepCopy()
+	err := transformCSPI(newCSPI, obj.ResourcePatch)
+	if err != nil {
+		return err
+	}
+	obj.CSPI.Data, err = util.GetPatchData(obj.CSPI.Object, newCSPI)
+	return err
+}
+
+func transformCSPI(c *apis.CStorPoolInstance, res *ResourcePatch) error {
+	c.Labels["openebs.io/version"] = res.To
+	c.VersionDetails.Desired = res.To
 	return nil
 }
