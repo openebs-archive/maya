@@ -333,7 +333,7 @@ func (c *CVCController) getVolumePolicy(
 
 	if policyName != "" {
 		klog.Infof("uses cstorvolume policy %q to configure volume %q", policyName, cvc.Name)
-		volumePolicy, err = c.clientset.OpenebsV1alpha1().CStorVolumePolicies(getNamespace()).Get(policyName, metav1.GetOptions{})
+		volumePolicy, err = c.clientset.OpenebsV1alpha1().CStorVolumePolicies(openebsNamespace).Get(policyName, metav1.GetOptions{})
 		if err != nil {
 			return nil, errors.Wrapf(
 				err,
@@ -645,7 +645,7 @@ func (c *CVCController) resizeCV(cv *apis.CStorVolume, newCapacity resource.Quan
 	if err != nil {
 		return fmt.Errorf("can't update capacity of CV %s as generate patch data failed: %v", cv.Name, err)
 	}
-	_, updateErr := c.clientset.OpenebsV1alpha1().CStorVolumes(getNamespace()).
+	_, updateErr := c.clientset.OpenebsV1alpha1().CStorVolumes(openebsNamespace).
 		Patch(cv.Name, types.MergePatchType, patchBytes)
 	if updateErr != nil {
 		return updateErr

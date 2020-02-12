@@ -218,11 +218,6 @@ func listCStorPools(
 		LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + cspcName,
 	})
 
-	//	cspList, err := ncsp.NewKubeClient().WithNamespace(getNamespace()).
-	//		List(metav1.ListOptions{
-	//			LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + cspcName,
-	//		})
-
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
@@ -811,7 +806,7 @@ func verifyAndUpdateScaleUpInfo(cvc *apis.CStorVolumeClaim, cvObj *apis.CStorVol
 	for _, poolName := range newPoolNames {
 		cvrName := pvName + "-" + poolName
 		cvrObj, err := cvr.NewKubeclient().
-			WithNamespace(getNamespace()).
+			WithNamespace(openebsNamespace).
 			Get(cvrName, metav1.GetOptions{})
 		if err != nil {
 			klog.Errorf("failed to get CVR %s error: %v", cvrName, err)
@@ -853,7 +848,7 @@ func getScaleDownCVR(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeReplica, erro
 	removedPoolNames := util.ListDiff(cvc.Status.PoolInfo, desiredPoolNames)
 	cvrName := pvName + "-" + removedPoolNames[0]
 	return cvr.NewKubeclient().
-		WithNamespace(getNamespace()).
+		WithNamespace(openebsNamespace).
 		Get(cvrName, metav1.GetOptions{})
 }
 
@@ -876,7 +871,7 @@ func handleVolumeReplicaCreation(cvc *apis.CStorVolumeClaim, cvObj *apis.CStorVo
 	}
 
 	cvrAPIList, err := cvr.NewKubeclient().
-		WithNamespace(getNamespace()).
+		WithNamespace(openebsNamespace).
 		List(metav1.ListOptions{LabelSelector: pvSelector + "=" + pvName})
 	if err != nil {
 		return errors.Wrapf(err, "failed to list cstorvolumereplicas of volume %s", pvName)
@@ -889,7 +884,7 @@ func handleVolumeReplicaCreation(cvc *apis.CStorVolumeClaim, cvObj *apis.CStorVo
 			WithFilter(cvr.HasLabel(cspiLabel, poolName)).
 			List().Len() == 0 {
 			cspiObj, err := cspi.NewKubeClient().
-				WithNamespace(getNamespace()).
+				WithNamespace(openebsNamespace).
 				Get(poolName, metav1.GetOptions{})
 			if err != nil {
 				errorMsg = fmt.Sprintf("failed to get cstorpoolinstance %s error: %v", poolName, err)
@@ -956,7 +951,7 @@ func handleVolumeReplicaCreation(cvc *apis.CStorVolumeClaim, cvObj *apis.CStorVo
 func scaleUpVolumeReplicas(cvc *apis.CStorVolumeClaim) error {
 	drCount := len(cvc.Spec.Policy.ReplicaPool.PoolInfo)
 	cvObj, err := cv.NewKubeclient().
-		WithNamespace(getNamespace()).
+		WithNamespace(openebsNamespace).
 		Get(cvc.Name, metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "failed to get cstorvolumes object %s", cvc.Name)
@@ -989,7 +984,7 @@ func scaleDownVolumeReplicas(cvc *apis.CStorVolumeClaim) error {
 	var cvrObj *apis.CStorVolumeReplica
 	drCount := len(cvc.Spec.Policy.ReplicaPool.PoolInfo)
 	cvObj, err := cv.NewKubeclient().
-		WithNamespace(getNamespace()).
+		WithNamespace(openebsNamespace).
 		Get(cvc.Name, metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "failed to get cstorvolumes object %s", cvc.Name)
@@ -1017,7 +1012,7 @@ func scaleDownVolumeReplicas(cvc *apis.CStorVolumeClaim) error {
 	}
 	if cvrObj != nil {
 		err = cvr.NewKubeclient().
-			WithNamespace(getNamespace()).
+			WithNamespace(openebsNamespace).
 			Delete(cvrObj.Name)
 		if err != nil {
 			return errors.Wrapf(err, "failed to delete cstorvolumereplica %s", cvrObj.Name)
@@ -1043,6 +1038,6 @@ func scaleDownVolumeReplicas(cvc *apis.CStorVolumeClaim) error {
 // Note: Caller code should handle the error
 func updateCStorVolumeInfo(cvObj *apis.CStorVolume) (*apis.CStorVolume, error) {
 	return cv.NewKubeclient().
-		WithNamespace(getNamespace()).
+		WithNamespace(openebsNamespace).
 		Update(cvObj)
 }
