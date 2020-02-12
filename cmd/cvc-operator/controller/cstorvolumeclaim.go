@@ -695,8 +695,7 @@ func isHAVolume(cvcObj *apis.CStorVolumeClaim) bool {
 //    that PDB name. If PDB doesn't exist then create new PDB and return newely
 //    created PDB name.
 // 4. If current volume is not HAVolume then return nothing.
-func updatePDBForVolume(cvcObj *apis.CStorVolumeClaim,
-	cvObj *apis.CStorVolume) (string, error) {
+func updatePDBForVolume(cvcObj *apis.CStorVolumeClaim) (string, error) {
 	pdbName, hasPDB := cvcObj.GetLabels()[string(apis.PodDisruptionBudgetKey)]
 	pdbLabels := cvclaim.GetPDBPoolLabels(cvcObj.Status.PoolInfo)
 	labelSelector := apispdb.GetPDBLabelSelector(pdbLabels)
@@ -764,12 +763,12 @@ func (c *CVCController) isCVCScalePending(cvc *apis.CStorVolumeClaim) bool {
 // 2. Update CVC label to point it to newely PDB got from above step and also
 //    replicas pool information on status of CVC.
 func handlePostScalingProcess(cvc *apis.CStorVolumeClaim,
-	cvObj *apis.CStorVolume, currentRPNames []string) error {
+	currentRPNames []string) error {
 	var err error
 	cvcCopy := cvc.DeepCopy()
 	cvc.Status.PoolInfo = []string{}
 	cvc.Status.PoolInfo = append(cvc.Status.PoolInfo, currentRPNames...)
-	pdbName, err := updatePDBForVolume(cvc, cvObj)
+	pdbName, err := updatePDBForVolume(cvc)
 	if err != nil {
 		return errors.Wrapf(err,
 			"failed to handle PDB for scaled volume %s",
@@ -832,7 +831,7 @@ func verifyAndUpdateScaleUpInfo(cvc *apis.CStorVolumeClaim, cvObj *apis.CStorVol
 		currentRPNames = append(currentRPNames, cvc.Status.PoolInfo...)
 		currentRPNames = append(currentRPNames, scaledRPNames...)
 		// handlePostScalingProcess will handle PDB and CVC status
-		err := handlePostScalingProcess(cvc, cvObj, currentRPNames)
+		err := handlePostScalingProcess(cvc, currentRPNames)
 		if err != nil {
 			return errors.Wrapf(
 				err,
@@ -982,10 +981,12 @@ func scaleUpVolumeReplicas(cvc *apis.CStorVolumeClaim) error {
 //    process(Only one replica scaledown at a time is allowed).
 // 2. Update the CV object by decreasing the DRF and removing the
 //    replicaID entry.
-// 3. Check the status of scale down if scale down was completed then
+// 3. Delete the CVR that belongs to removed pool entry.
+// 4. Check the status of scale down if scale down was completed then
 //    perform post scaling process(updating PDB if applicable and CVC
 //    replica pool status).
 func scaleDownVolumeReplicas(cvc *apis.CStorVolumeClaim) error {
+	var cvrObj *apis.CStorVolumeReplica
 	drCount := len(cvc.Spec.Policy.ReplicaPool.PoolInfo)
 	cvObj, err := cv.NewKubeclient().
 		WithNamespace(getNamespace()).
@@ -1000,12 +1001,13 @@ func scaleDownVolumeReplicas(cvc *apis.CStorVolumeClaim) error {
 			(cvObj.Spec.DesiredReplicationFactor - drCount),
 		)
 	}
-	if cvObj.Spec.DesiredReplicationFactor > drCount {
-		var cvrObj *apis.CStorVolumeReplica
-		cvrObj, err = getScaleDownCVR(cvc)
-		if err != nil {
+	cvrObj, err = getScaleDownCVR(cvc)
+	if err != nil {
+		if !k8serror.IsNotFound(err) {
 			return errors.Wrapf(err, "failed to get scale down CVR object")
 		}
+	}
+	if cvObj.Spec.DesiredReplicationFactor > drCount {
 		cvObj.Spec.DesiredReplicationFactor = drCount
 		delete(cvObj.Spec.ReplicaDetails.KnownReplicas, apis.ReplicaID(cvrObj.Spec.ReplicaID))
 		cvObj, err = updateCStorVolumeInfo(cvObj)
@@ -1013,9 +1015,17 @@ func scaleDownVolumeReplicas(cvc *apis.CStorVolumeClaim) error {
 			return err
 		}
 	}
+	if cvrObj != nil {
+		err = cvr.NewKubeclient().
+			WithNamespace(getNamespace()).
+			Delete(cvrObj.Name)
+		if err != nil {
+			return errors.Wrapf(err, "failed to delete cstorvolumereplica %s", cvrObj.Name)
+		}
+	}
 	if !cv.IsScaleDownInProgress(cvObj) {
 		desiredPoolNames := cvclaim.GetDesiredReplicaPoolNames(cvc)
-		err = handlePostScalingProcess(cvc, cvObj, desiredPoolNames)
+		err = handlePostScalingProcess(cvc, desiredPoolNames)
 		if err != nil {
 			return errors.Wrapf(err,
 				"failed to handle post volume replicas scale down process")

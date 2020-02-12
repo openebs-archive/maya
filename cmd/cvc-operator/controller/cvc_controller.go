@@ -209,7 +209,7 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 	if c.isCVCScalePending(cvc) {
 		// process scalingup/scalingdown of volume replicas only if there is
 		// change in curent and desired state of replicas pool information
-		err = c.scaleVolumeReplicas(cvc)
+		_ = c.scaleVolumeReplicas(cvc)
 	}
 	return nil
 }
