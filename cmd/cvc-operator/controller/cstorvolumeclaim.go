@@ -582,7 +582,7 @@ func randomizePoolList(list *apis.CStorPoolInstanceList) *apis.CStorPoolInstance
 // 2. If PDB exist it returns the PDB.
 // 3. If PDB doesn't exist it creates new PDB(With CSPC hash)
 func getOrCreatePodDisruptionBudget(
-	cvObj *apis.CStorVolume, cspcName string, poolNames []string) (*policy.PodDisruptionBudget, error) {
+	cspcName string, poolNames []string) (*policy.PodDisruptionBudget, error) {
 	// poolNames, err := cvr.GetVolumeReplicaPoolNames(pvName, openebsNamespace)
 	// if err != nil {
 	// 	return nil, errors.Wrapf(err,
@@ -654,8 +654,10 @@ func getPDBSelector(pools []string) *metav1.LabelSelector {
 // addReplicaPoolInfo updates in-memory replicas pool information on spec and
 // status of CVC
 func addReplicaPoolInfo(cvcObj *apis.CStorVolumeClaim, poolNames []string) {
-	for i, poolName := range poolNames {
-		cvcObj.Spec.Policy.ReplicaPool.PoolInfo[i].PoolName = poolName
+	for _, poolName := range poolNames {
+		cvcObj.Spec.Policy.ReplicaPool.PoolInfo = append(
+			cvcObj.Spec.Policy.ReplicaPool.PoolInfo,
+			apis.ReplicaPoolInfo{PoolName: poolName})
 	}
 	cvcObj.Status.PoolInfo = append(cvcObj.Status.PoolInfo, poolNames...)
 }
@@ -699,6 +701,7 @@ func updatePDBForVolume(cvcObj *apis.CStorVolumeClaim,
 	pdbLabels := cvclaim.GetPDBPoolLabels(cvcObj.Status.PoolInfo)
 	labelSelector := apispdb.GetPDBLabelSelector(pdbLabels)
 	if hasPDB {
+		// Get PDB if exists among newely updated volume replicas pools
 		pdbList, err := apispdb.KubeClient().
 			WithNamespace(openebsNamespace).
 			List(metav1.ListOptions{LabelSelector: labelSelector})
@@ -708,8 +711,18 @@ func updatePDBForVolume(cvcObj *apis.CStorVolumeClaim,
 				cvcObj.Status.PoolInfo,
 			)
 		}
-		if pdbList.Items[0].Name == pdbName {
-			return pdbName, nil
+		if len(pdbList.Items) >= 1 && isHAVolume(cvcObj) {
+			for _, pdbObj := range pdbList.Items {
+				pdbPoolCount := len(pdbObj.Spec.Selector.MatchExpressions[0].Values)
+				// Let us assume that volume replicas was scale down from 4 to
+				// 3(i.e PDB was created on top of 4 pools). Now when scale down
+				// happens better to delete the PDB(if no one refering to it) and
+				// create PDB among 3 pools so that scaling down of cluster will
+				// not hold unnecessarily(i.e draining the node).
+				if pdbObj.Name == pdbName && pdbPoolCount < len(cvcObj.Status.PoolInfo) {
+					return pdbName, nil
+				}
+			}
 		}
 		err = deletePDBIfNotInUse(cvcObj)
 		if err != nil {
@@ -719,8 +732,7 @@ func updatePDBForVolume(cvcObj *apis.CStorVolumeClaim,
 	if !isHAVolume(cvcObj) {
 		return "", nil
 	}
-	pdbObj, err := getOrCreatePodDisruptionBudget(cvObj,
-		getCSPC(cvcObj), cvcObj.Status.PoolInfo)
+	pdbObj, err := getOrCreatePodDisruptionBudget(getCSPC(cvcObj), cvcObj.Status.PoolInfo)
 	if err != nil {
 		return "", err
 	}
@@ -768,7 +780,7 @@ func handlePostScalingProcess(cvc *apis.CStorVolumeClaim,
 	if pdbName != "" {
 		cvc.Labels[string(apis.PodDisruptionBudgetKey)] = pdbName
 	}
-	cvc, err = cvclaim.NewKubeclient().WithNamespace(cvc.Namespace).Update(cvc)
+	newCVCObj, err := cvclaim.NewKubeclient().WithNamespace(cvc.Namespace).Update(cvc)
 	if err != nil {
 		// If error occured point it to old cvc object it self
 		cvc = cvcCopy
@@ -777,6 +789,8 @@ func handlePostScalingProcess(cvc *apis.CStorVolumeClaim,
 			cvc.Name,
 		)
 	}
+	// Point cvc to updated cvc object
+	cvc = newCVCObj
 	return nil
 }
 
@@ -838,7 +852,7 @@ func getScaleDownCVR(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeReplica, erro
 	pvName := cvc.GetAnnotations()[volumeID]
 	desiredPoolNames := cvclaim.GetDesiredReplicaPoolNames(cvc)
 	removedPoolNames := util.ListDiff(cvc.Status.PoolInfo, desiredPoolNames)
-	cvrName := pvName + removedPoolNames[0]
+	cvrName := pvName + "-" + removedPoolNames[0]
 	return cvr.NewKubeclient().
 		WithNamespace(getNamespace()).
 		Get(cvrName, metav1.GetOptions{})
@@ -862,14 +876,14 @@ func handleVolumeReplicaCreation(cvc *apis.CStorVolumeClaim, cvObj *apis.CStorVo
 		return errors.Wrapf(err, "failed to get service object %s", cvc.Name)
 	}
 
-	cvrApiList, err := cvr.NewKubeclient().
+	cvrAPIList, err := cvr.NewKubeclient().
 		WithNamespace(getNamespace()).
 		List(metav1.ListOptions{LabelSelector: pvSelector + "=" + pvName})
 	if err != nil {
 		return errors.Wrapf(err, "failed to list cstorvolumereplicas of volume %s", pvName)
 	}
 	cvrListbuilder := cvr.NewListBuilder().
-		WithAPIList(cvrApiList)
+		WithAPIList(cvrAPIList)
 
 	for _, poolName := range newPoolNames {
 		if cvrListbuilder.
@@ -987,7 +1001,8 @@ func scaleDownVolumeReplicas(cvc *apis.CStorVolumeClaim) error {
 		)
 	}
 	if cvObj.Spec.DesiredReplicationFactor > drCount {
-		cvrObj, err := getScaleDownCVR(cvc)
+		var cvrObj *apis.CStorVolumeReplica
+		cvrObj, err = getScaleDownCVR(cvc)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get scale down CVR object")
 		}

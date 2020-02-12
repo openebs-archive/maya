@@ -294,7 +294,7 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 		// TODO: When multiple threads or multiple CVC controllers are set then
 		// we have to revist entier PDB code path
 		var pdbObj *policy.PodDisruptionBudget
-		pdbObj, err = getOrCreatePodDisruptionBudget(cvObj, getCSPC(cvc), poolNames)
+		pdbObj, err = getOrCreatePodDisruptionBudget(getCSPC(cvc), poolNames)
 		if err != nil {
 			return nil, errors.Wrapf(err,
 				"failed to create PDB for volume: %s", cvc.Name)
@@ -307,14 +307,14 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 		return nil, err
 	}
 
-	// update volume replica pool information on cvc spec and status
-	addReplicaPoolInfo(cvc, poolNames)
 	// update the cstorvolume reference, phase as "Bound" and desired
 	// capacity
 	cvc.Spec.CStorVolumeRef = volumeRef
 	cvc.Spec.Policy = volumePolicy.Spec
 	cvc.Status.Phase = apis.CStorVolumeClaimPhaseBound
 	cvc.Status.Capacity = cvc.Spec.Capacity
+	// update volume replica pool information on cvc spec and status
+	addReplicaPoolInfo(cvc, poolNames)
 
 	err = c.updateCVCObj(cvc, cvObj)
 	if err != nil {
@@ -678,6 +678,7 @@ func deletePDBIfNotInUse(cvc *apis.CStorVolumeClaim) error {
 		if err != nil {
 			return err
 		}
+		klog.Infof("Successfully deleted the PDB %s of volume %s", pdbName, cvc.Name)
 	}
 	return nil
 }
@@ -703,6 +704,11 @@ func (c *CVCController) scaleVolumeReplicas(cvc *apis.CStorVolumeClaim) error {
 			corev1.EventTypeWarning,
 			"ScalingVolumeReplicas",
 			"%v", err)
+		return err
 	}
+	c.recorder.Eventf(cvc,
+		corev1.EventTypeNormal,
+		"ScalingVolumeReplicas",
+		"successfully scaled volume replicas to %d", len(cvc.Status.PoolInfo))
 	return nil
 }
