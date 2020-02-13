@@ -51,6 +51,10 @@ func (p *poolMetrics) setRequestToFalse() {
 	p.Unlock()
 }
 
+func (p *poolMetrics) isRequestInProgress() bool {
+	return p.request
+}
+
 // collectors returns the list of the collectors
 func (p *poolMetrics) collectors() []prometheus.Collector {
 	return []prometheus.Collector{
@@ -110,6 +114,10 @@ func (p *poolMetrics) get() *poolfields {
 // Collect is implementation of prometheus's prometheus.Collector interface
 func (p *poolMetrics) Collect(ch chan<- prometheus.Metric) {
 	p.Lock()
+	if p.isRequestInProgress() {
+		p.Unlock()
+		return
+	}
 	p.request = true
 	p.Unlock()
 
