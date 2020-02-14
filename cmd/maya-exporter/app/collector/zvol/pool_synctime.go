@@ -40,9 +40,14 @@ func NewPoolSyncMetric(runner types.Runner) col.Collector {
 		poolSyncMetrics: newPoolMetrics().
 			withZpoolLastSyncTime().
 			withZpoolStateUnknown().
+			withRequestRejectCounter().
 			withzpoolLastSyncTimeCommandError(),
 		runner: runner,
 	}
+}
+
+func (p *poolMetrics) isRequestInProgress() bool {
+	return p.request
 }
 
 func (p *poolMetrics) setRequestToFalse() {
@@ -110,6 +115,12 @@ func (p *poolMetrics) get() *poolfields {
 // Collect is implementation of prometheus's prometheus.Collector interface
 func (p *poolMetrics) Collect(ch chan<- prometheus.Metric) {
 	p.Lock()
+	if p.isRequestInProgress() {
+		p.zpoolListRequestRejectCounter.Inc()
+		p.Unlock()
+		p.zpoolListRequestRejectCounter.Collect(ch)
+		return
+	}
 	p.request = true
 	p.Unlock()
 

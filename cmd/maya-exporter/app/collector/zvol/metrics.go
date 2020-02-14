@@ -68,6 +68,7 @@ type poolSyncMetrics struct {
 	zpoolLastSyncTime             *prometheus.GaugeVec
 	zpoolStateUnknown             *prometheus.GaugeVec
 	zpoolLastSyncTimeCommandError *prometheus.GaugeVec
+	zpoolListRequestRejectCounter prometheus.Gauge
 }
 
 // poolfields struct is for pool last sync time metric
@@ -435,6 +436,17 @@ func (p *poolSyncMetrics) withZpoolStateUnknown() *poolSyncMetrics {
 		[]string{"pool"},
 	)
 	return p
+}
+
+func (l *poolSyncMetrics) withRequestRejectCounter() *poolSyncMetrics {
+	l.zpoolListRequestRejectCounter = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "zpool_list_request_reject_count",
+			Help:      "Total no of rejected requests of zpool list",
+		},
+	)
+	return l
 }
 
 func (p *poolSyncMetrics) withzpoolLastSyncTimeCommandError() *poolSyncMetrics {
