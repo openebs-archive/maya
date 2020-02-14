@@ -116,9 +116,9 @@ func (p *poolMetrics) get() *poolfields {
 func (p *poolMetrics) Collect(ch chan<- prometheus.Metric) {
 	p.Lock()
 	if p.isRequestInProgress() {
-		p.zpoolListRequestRejectCounter.Inc()
+		p.cspiRequestRejectCounter.Inc()
 		p.Unlock()
-		p.zpoolListRequestRejectCounter.Collect(ch)
+		p.cspiRequestRejectCounter.Collect(ch)
 		return
 	}
 	p.request = true
