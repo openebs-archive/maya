@@ -49,6 +49,7 @@ import (
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/openebs/maya/tests/artifacts"
 	errors "github.com/pkg/errors"
@@ -1454,4 +1455,64 @@ func (ops *Operations) GetPodDisruptionCountEventually(volName, namespace string
 		time.Sleep(5 * time.Second)
 	}
 	return errors.Errorf("Failed to verify PDB for volume %s", volName)
+}
+
+// ScaleUpCVC increases the volume replicas for provided volume
+func (ops *Operations) ScaleUpCVC(cvcName, namespace string, count int) error {
+	cvcObj, err := ops.CVCClient.
+		WithNamespace(namespace).
+		Get(cvcName, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to get CVC %s", cvcName)
+	}
+	cspcName := cvcObj.Labels[string(apis.CStorPoolClusterCPK)]
+	cspcLabels := string(apis.CStorPoolClusterCPK) + "=" + cspcName
+	cspiList, err := ops.CSPIClient.
+		WithNamespace(namespace).
+		List(metav1.ListOptions{LabelSelector: cspcLabels})
+	if err != nil {
+		return errors.Wrapf(err, "failed to list CSPIs of CSPC %s", cspcName)
+	}
+	cspiNames := []string{}
+	for _, cspiObj := range cspiList.Items {
+		cspiNames = append(cspiNames, cspiObj.Name)
+	}
+	freePoolNames := util.ListDiff(cspiNames, cvcObj.Status.PoolInfo)
+
+	if len(freePoolNames) < count {
+		return errors.Errorf("No pools are available to perform scale up of volume replicas")
+	}
+	for _, cspiName := range freePoolNames {
+		cvcObj.Spec.Policy.ReplicaPool.PoolInfo = append(
+			cvcObj.Spec.Policy.ReplicaPool.PoolInfo, apis.ReplicaPoolInfo{PoolName: cspiName})
+	}
+	_, err = ops.CVCClient.
+		WithNamespace(namespace).
+		Update(cvcObj)
+	return err
+}
+
+// ScaleDownCVC decreases the volume replicas for provided volume
+func (ops *Operations) ScaleDownCVC(cvcName, namespace string, count int) error {
+	cvcObj, err := ops.CVCClient.
+		WithNamespace(namespace).
+		Get(cvcName, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to get CVC %s", cvcName)
+	}
+	replicaPoolCount := len(cvcObj.Spec.Policy.ReplicaPool.PoolInfo)
+	if replicaPoolCount < count {
+		return errors.Errorf(
+			"failed to scaledown the volume replicas required " +
+				"no.of replicas are not availbe to perform scale down")
+	}
+	replicasPoolInfo := []apis.ReplicaPoolInfo{}
+	for i := 0; i < (replicaPoolCount - count); i++ {
+		replicasPoolInfo = append(replicasPoolInfo, cvcObj.Spec.Policy.ReplicaPool.PoolInfo[i])
+	}
+	cvcObj.Spec.Policy.ReplicaPool.PoolInfo = replicasPoolInfo
+	_, err = ops.CVCClient.
+		WithNamespace(namespace).
+		Update(cvcObj)
+	return err
 }

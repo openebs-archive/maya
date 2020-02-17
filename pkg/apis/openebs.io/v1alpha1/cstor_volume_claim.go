@@ -95,6 +95,8 @@ type CStorVolumeClaimStatus struct {
 	// Capacity the actual resources of the underlying volume.
 	Capacity   corev1.ResourceList         `json:"capacity,omitempty"`
 	Conditions []CStorVolumeClaimCondition `json:"condition,omitempty"`
+	// PoolInfo represents current pool names where volume replicas exists
+	PoolInfo []string `json:"poolInfo"`
 }
 
 // CStorVolumeClaimCondition contains details about state of cstor volume
