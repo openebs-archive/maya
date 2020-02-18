@@ -136,8 +136,8 @@ func verifyVolumeComponents(replicaCount int) {
 		cvcObj, err := ops.CVCClient.WithNamespace(openebsNamespace).Get(pvcObj.Spec.VolumeName, metav1.GetOptions{})
 		Expect(err).To(BeNil())
 		return len(cvcObj.Status.PoolInfo) == replicaCount
-        },
-                120, 10).Should(BeTrue())
+	},
+		120, 10).Should(BeTrue())
 }
 
 func verifyTargetPodCount(count int) {

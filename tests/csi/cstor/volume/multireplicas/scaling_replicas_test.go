@@ -59,7 +59,7 @@ var _ = Describe("[csi] [cstor-scaling] TEST SCALING OF CSTORVOLUMEREPLICAS", fu
 				err := ops.ScaleDownCVC(pvcObj.Spec.VolumeName, openebsNamespace, 1)
 				Expect(err).To(BeNil(), "error occuered while scaling the volume replicas")
 			})
-			By("Verifying the volume components after scaling volume replicas", func() { verifyVolumeComponents(currentReplicaCount) })
+			By("Verifying the volume components after scaling volume replicas", func() { verifyVolumeComponents(replicaCount) })
 
 			By("Deleting pvc", deletePVC)
 			By("Verifying deletion of components related to volume", verifyVolumeComponentsDeletion)
