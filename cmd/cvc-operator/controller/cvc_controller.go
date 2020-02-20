@@ -313,6 +313,11 @@ func (c *CVCController) createVolumeOperation(cvc *apis.CStorVolumeClaim) (*apis
 	cvc.Spec.Policy = volumePolicy.Spec
 	cvc.Status.Phase = apis.CStorVolumeClaimPhaseBound
 	cvc.Status.Capacity = cvc.Spec.Capacity
+
+	// TODO: Below function needs to be converted into
+	// cvc.addReplicaPoolInfo(poolNames) while moving to cstor-operators
+	// repo(Currently in Maya writing functions in API package is not encouraged)
+
 	// update volume replica pool information on cvc spec and status
 	addReplicaPoolInfo(cvc, poolNames)
 
@@ -353,7 +358,8 @@ func (c *CVCController) isReplicaAffinityEnabled(policy *apis.CStorVolumePolicy)
 }
 
 // distributePendingCVRs trigers create and distribute pending cstorvolumereplica
-// resource among the available cstor pools
+// resource among the available cstor pools. This func returns error even when
+// required no.of CVRs are Not created
 func (c *CVCController) distributePendingCVRs(
 	cvc *apis.CStorVolumeClaim,
 	cv *apis.CStorVolume,
@@ -690,9 +696,9 @@ func deletePDBIfNotInUse(cvc *apis.CStorVolumeClaim) error {
 // info under the spec then it is a kind of migration which is not yet supported
 func (c *CVCController) scaleVolumeReplicas(cvc *apis.CStorVolumeClaim) error {
 	var err error
-	if len(cvc.Spec.Policy.ReplicaPool.PoolInfo) > len(cvc.Status.PoolInfo) {
+	if len(cvc.Spec.Policy.ReplicaPoolInfo) > len(cvc.Status.PoolInfo) {
 		err = scaleUpVolumeReplicas(cvc)
-	} else if len(cvc.Spec.Policy.ReplicaPool.PoolInfo) < len(cvc.Status.PoolInfo) {
+	} else if len(cvc.Spec.Policy.ReplicaPoolInfo) < len(cvc.Status.PoolInfo) {
 		err = scaleDownVolumeReplicas(cvc)
 	} else {
 		c.recorder.Event(cvc, corev1.EventTypeWarning, "Migration",

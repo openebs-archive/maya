@@ -45,9 +45,9 @@ type CStorVolumePolicySpec struct {
 	Target TargetSpec `json:"target"`
 	// ReplicaSpec represents configuration related to replicas resources
 	Replica ReplicaSpec `json:"replica"`
-	// ReplicaPool holds the pool information of volume replicas.
+	// ReplicaPoolInfo holds the pool information of volume replicas.
 	// Ex: If volume is provisioned on which CStor pool volume replicas exist
-	ReplicaPool ReplicaPoolSpec `json:"replicaPool"`
+	ReplicaPoolInfo []ReplicaPoolInfo `json:"replicaPoolInfo"`
 }
 
 // TargetSpec represents configuration related to cstor target and its resources
@@ -96,12 +96,6 @@ type ReplicaSpec struct {
 	ZvolWorkers string `json:"zvolWorkers"`
 	// Affinity if specified, are the replica affinities
 	Affinity *corev1.PodAffinity `json:"affinity"`
-}
-
-// ReplicaPoolSpec represents the volume replicas pool information
-type ReplicaPoolSpec struct {
-	// PoolInfo represents the pool information of replicas
-	PoolInfo []ReplicaPoolInfo `json:"poolInfo"`
 }
 
 // Provision represents volume provisioning configuration

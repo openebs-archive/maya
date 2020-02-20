@@ -65,7 +65,7 @@ func GetPDBLabels(poolNames []string, cspcName string) map[string]string {
 // GetDesiredReplicaPoolNames returns list of desired pool names
 func GetDesiredReplicaPoolNames(cvc *apis.CStorVolumeClaim) []string {
 	poolNames := []string{}
-	for _, poolInfo := range cvc.Spec.Policy.ReplicaPool.PoolInfo {
+	for _, poolInfo := range cvc.Spec.Policy.ReplicaPoolInfo {
 		poolNames = append(poolNames, poolInfo.PoolName)
 	}
 	return poolNames
