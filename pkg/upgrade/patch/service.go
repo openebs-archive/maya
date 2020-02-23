@@ -1,6 +1,22 @@
+/*
+Copyright 2019 The OpenEBS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package patch
 
 import (
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -26,7 +42,7 @@ func (s *Service) PreChecks(from, to string) error {
 	if name == "" {
 		return errors.Errorf("missing service name")
 	}
-	version := s.Object.Labels[OpenebsVersionLabel]
+	version := s.Object.Labels[string(apis.OpenEBSVersionKey)]
 	if version != from && version != to {
 		return errors.Errorf(
 			"service version %s is neither %s nor %s",
@@ -42,7 +58,7 @@ func (s *Service) PreChecks(from, to string) error {
 func (s *Service) Patch(from, to string) error {
 	klog.Info("patching service ", s.Object.Name)
 	client := svc.NewKubeClient(svc.WithKubeConfigPath("/home/user/.kube/config"))
-	version := s.Object.Labels[OpenebsVersionLabel]
+	version := s.Object.Labels[string(apis.OpenEBSVersionKey)]
 	if version == to {
 		klog.Infof("service already in %s version", to)
 		return nil

@@ -1,3 +1,18 @@
+/*
+Copyright 2019 The OpenEBS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package patch
 
 import (
@@ -25,7 +40,7 @@ func (c *CSPI) PreChecks(from, to string) error {
 	if c.Object == nil {
 		return errors.Errorf("nil cspi object")
 	}
-	version := c.Object.Labels[OpenebsVersionLabel]
+	version := c.Object.Labels[string(apis.OpenEBSVersionKey)]
 	if version != from && version != to {
 		return errors.Errorf(
 			"cspi version %s is neither %s nor %s",
@@ -41,7 +56,7 @@ func (c *CSPI) PreChecks(from, to string) error {
 func (c *CSPI) Patch(from, to string) error {
 	klog.Info("patching cspi ", c.Object.Name)
 	client := cspi.NewKubeClient(cspi.WithKubeConfigPath("/var/run/kubernetes/admin.kubeconfig"))
-	version := c.Object.Labels[OpenebsVersionLabel]
+	version := c.Object.Labels[string(apis.OpenEBSVersionKey)]
 	if version == to {
 		klog.Infof("cspi already in %s version", to)
 		return nil
