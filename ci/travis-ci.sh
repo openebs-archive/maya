@@ -27,8 +27,10 @@ rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 curl https://raw.githubusercontent.com/openebs/openebs/fb0100f6a2f343b3c77e52f922dd40f0e7ded417/k8s/ci/test-script.sh > test-script.sh
 
 ## Compile udev c code and build binary in /var/openebs/sparse
-mkdir -p /var/openebs/sparse/udev_checks
-gcc ci/udev_check.c -ludev -o /var/openebs/sparse/udev_checks/udev_check
+echo "Creating /var/openebs/sparse/udev_checks directory"
+sudo mkdir -p /var/openebs/sparse/udev_checks
+echo "Compiling and building the binary"
+sudo gcc ci/udev_check.c -ludev -o /var/openebs/sparse/udev_checks/udev_check
 
 # append mayactl tests to this script 
 cat ./ci/mayactl.sh >> ./test-script.sh
