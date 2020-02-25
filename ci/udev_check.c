@@ -11,7 +11,7 @@ int main(int argc, char **argv)
 	int rc = -1;
 
 	if ((udev = udev_new()) == NULL) {
-	        printf("failed to get udev device\n");
+	        fprintf(stderr, "failed to get udev device\n");
 	        return (-1);
 	}
 
