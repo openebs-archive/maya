@@ -58,7 +58,7 @@ var APIUnixSockVar util.UnixSock
 
 // Server represents the gRPC server
 type Server struct {
-	Client *clientset.Clientset
+	Client clientset.Interface
 }
 
 type snapshotInfo struct {
@@ -200,7 +200,7 @@ func (s *Server) removeSnapInfoFromCVR(volume, snapshot string) error {
 	return nil
 }
 
-func updateCVRWithSnapshot(client *clientset.Clientset, cvr *apis.CStorVolumeReplica, snap map[string]apis.CStorSnapshotInfo, isAdd bool) error {
+func updateCVRWithSnapshot(client clientset.Interface, cvr *apis.CStorVolumeReplica, snap map[string]apis.CStorSnapshotInfo, isAdd bool) error {
 	retryCount := 0
 retry:
 	if retryCount == 5 {
@@ -272,7 +272,7 @@ func parseSnapshot(snaplist []snapshotInfo) map[string]apis.CStorSnapshotInfo {
 	return smap
 }
 
-func getCVRList(client *clientset.Clientset, volume string) (*apis.CStorVolumeReplicaList, error) {
+func getCVRList(client clientset.Interface, volume string) (*apis.CStorVolumeReplicaList, error) {
 	listOptions := v1.ListOptions{
 		LabelSelector: "openebs.io/persistent-volume=" + volume,
 	}

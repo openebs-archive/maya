@@ -15,8 +15,10 @@
 package v1alpha1
 
 import (
+	"strings"
 	"testing"
 
+	fakeclientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	"github.com/openebs/maya/pkg/client/generated/cstor-volume-mgmt/v1alpha1"
 )
 
@@ -24,7 +26,12 @@ type TestUnixSock struct{}
 
 //SendCommand for the dummy unix sock for the test program,
 func (r TestUnixSock) SendCommand(cmd string) ([]string, error) {
-	ret := []string{"OK " + cmd}
+	ret := []string{}
+	if strings.Contains(cmd, "SNAPCREATE") || strings.Contains(cmd, "SNAPDESTROY") {
+		ret = append(ret, "OK "+cmd)
+	} else if strings.Contains(cmd, "SNAPLIST") {
+		ret = append(ret, "SNAPLIST {\"snapshots\":[{\"replica_id\":\"E89CDC9473E86A938C51F048DE8341E5\",\"snapshot\":[{\"name\":\"pvc-e4e29de2-52d2-11ea-b66e-42010a9a0080_snap2_1582091556611449485\",\"properties\":{\"io.openebs:volname\":\"pvc-e4e29de2-52d2-11ea-b66e-42010a9a0080-cstor-pool-7sqf\",\"io.openebs:livenesstimestamp\":\"1582113150\",\"io.openebs:poolname\":\"cstor-pool-7sqf\",\"refcompressratio\":\"108\",\"logicalreferenced\":\"723259904\",\"compressratio\":\"108\",\"used\":\"6144\",\"available\":\"9667151360\",\"referenced\":\"668972544\",\"creation\":\"1582091556\",\"createtxg\":\"732\",\"refquota\":\"0\",\"refreservation\":\"0\",\"guid\":\"2099668115632562841\",\"unique\":\"6144\",\"objsetid\":\"18\",\"userrefs\":\"0\",\"defer_destroy\":\"0\",\"written\":\"321503744\",\"type\":\"3\",\"useraccounting\":\"0\",\"volsize\":\"10737418240\",\"volblocksize\":\"4096\"}},{\"name\":\"pvc-e4e29de2-52d2-11ea-b66e-42010a9a0080_snap1_1582088954475131276\",\"properties\":{\"io.openebs:volname\":\"pvc-e4e29de2-52d2-11ea-b66e-42010a9a0080-cstor-pool-7sqf\",\"io.openebs:livenesstimestamp\":\"1582113150\",\"io.openebs:poolname\":\"cstor-pool-7sqf\",\"refcompressratio\":\"114\",\"logicalreferenced\":\"396610560\",\"compressratio\":\"114\",\"used\":\"104960\",\"available\":\"9667151360\",\"referenced\":\"347573760\",\"creation\":\"1582088954\",\"createtxg\":\"275\",\"refquota\":\"0\",\"refreservation\":\"0\",\"guid\":\"4881578479253596844\",\"unique\":\"104960\",\"objsetid\":\"125\",\"userrefs\":\"0\",\"defer_destroy\":\"0\",\"written\":\"347573760\",\"type\":\"3\",\"useraccounting\":\"0\",\"volsize\":\"10737418240\",\"volblocksize\":\"4096\"}}]}]}")
+	}
 	return ret, nil
 }
 
@@ -47,7 +54,9 @@ func TestRunVolumeSnapCreateCommand(t *testing.T) {
 		},
 	}
 
-	var s Server
+	s := Server{
+		Client: fakeclientset.NewSimpleClientset(),
+	}
 	for i, c := range cases {
 		t.Run(i, func(t *testing.T) {
 			resp, obtainedErr := s.RunVolumeSnapCreateCommand(nil, c.test)
@@ -87,7 +96,9 @@ func TestRunVolumeSnapDeleteCommand(t *testing.T) {
 		},
 	}
 
-	var s Server
+	s := Server{
+		Client: fakeclientset.NewSimpleClientset(),
+	}
 	for i, c := range cases {
 		t.Run(i, func(t *testing.T) {
 			resp, obtainedErr := s.RunVolumeSnapDeleteCommand(nil, c.test)
