@@ -23,8 +23,7 @@ export MAYACTL="$GOPATH/src/github.com/openebs/maya/bin/maya/mayactl"
 ./ci/build-maya.sh
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
-#curl https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/test-script.sh > test-script.sh
-curl https://raw.githubusercontent.com/openebs/openebs/fb0100f6a2f343b3c77e52f922dd40f0e7ded417/k8s/ci/test-script.sh > test-script.sh
+curl https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/test-script.sh > test-script.sh
 
 ## Compile udev c code and build binary in /var/openebs/sparse
 echo "Creating /var/openebs/sparse/udev_checks directory"
@@ -32,10 +31,10 @@ sudo mkdir -p /var/openebs/sparse/udev_checks
 echo "Compiling and building the binary"
 sudo gcc ci/udev_check.c -ludev -o /var/openebs/sparse/udev_checks/udev_check
 
-# append mayactl tests to this script 
+# append mayactl tests to this script
 cat ./ci/mayactl.sh >> ./test-script.sh
 
-# append local pv tests to this script 
+# append local pv tests to this script
 #cat ./ci/local_pv.sh >> ./test-script.sh
 
 chmod +x test-script.sh && ./test-script.sh
