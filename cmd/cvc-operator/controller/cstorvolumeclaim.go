@@ -595,14 +595,11 @@ func getOrCreatePodDisruptionBudget(
 		return nil, errors.Wrapf(err,
 			"failed to list PDB belongs to pools %v", pdbLabels)
 	}
-	if len(pdbList.Items) > 1 {
-		return nil, errors.Wrapf(err,
-			"current PDB count %d of pools %v",
-			len(pdbList.Items),
-			pdbLabels)
-	}
-	if len(pdbList.Items) == 1 {
-		return &pdbList.Items[0], nil
+	for _, pdbObj := range pdbList.Items {
+		pdbObj := pdbObj
+		if !util.IsChangeInLists(pdbObj.Spec.Selector.MatchExpressions[0].Values, poolNames) {
+			return &pdbObj, nil
+		}
 	}
 	return createPDB(poolNames, cspcName)
 }
@@ -681,17 +678,13 @@ func isHAVolume(cvcObj *apis.CStorVolumeClaim) bool {
 	return len(cvcObj.Status.PoolInfo) >= minHAReplicaCount
 }
 
-// 1. If Volume was already pointing to a PDB then check is that same PDB will be
-//    applicable after scalingup/scalingdown(case might be from 4 to 3
-//    replicas) if applicable then return same pdb name. If not applicable do
-//    following changes:
-//    1.1 Delete PDB if no other CVC is pointing to PDB.
-// 2. If current volume was not pointing to any PDB then do nothing.
-// 3. If current volume is HAVolume then check is there any PDB already
+// 1. If Volume was pointing to PDB then delete PDB if no other CVC is
+//    pointing to PDB.
+// 2. If current volume is HAVolume then check is there any PDB already
 //    existing among the current replica pools. If PDB exists then return
 //    that PDB name. If PDB doesn't exist then create new PDB and return newely
 //    created PDB name.
-// 4. If current volume is not HAVolume then return nothing.
+// 3. If current volume is not HAVolume then return nothing.
 func getUpdatePDBForVolume(cvcObj *apis.CStorVolumeClaim) (string, error) {
 	_, hasPDB := cvcObj.GetLabels()[string(apis.PodDisruptionBudgetKey)]
 	if hasPDB {
@@ -763,12 +756,12 @@ func updatePDBForScaledVolume(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeClai
 
 // updateCVCWithScaledUpInfo does the following changes:
 // 1. Get list of new replica pool names by using CVC(spec and status)
-// 2. Verify status of ScalingUp Replica(by using CV object) based on the status
-//    does following changes:
-//    2.1: If scalingUp was completed then update PDB accordingly(only if it was
+// 2. Get the list of CVR pool names and verify whether CVRs exist on new pools.
+//    If new pools exist then does following changes:
+//    2.1: Then update PDB accordingly(only if it was
 //         HAVolume) and update the replica pool info on CVC(API calls).
-//    2.2: If scalingUp was going then return error saying scalingUp was in
-//      progress.
+// 3. If CVR doesn't exist on new pool names then return error saying scaledown
+//    is in progress.
 func updateCVCWithScaledUpInfo(cvc *apis.CStorVolumeClaim,
 	cvObj *apis.CStorVolume) (*apis.CStorVolumeClaim, error) {
 	pvName := cvc.GetAnnotations()[volumeID]
@@ -909,8 +902,7 @@ func scaleUpVolumeReplicas(cvc *apis.CStorVolumeClaim) (*apis.CStorVolumeClaim, 
 	if err != nil {
 		return cvc, err
 	}
-	cvc, err = updateCVCWithScaledUpInfo(cvc, cvObj)
-	return cvc, err
+	return updateCVCWithScaledUpInfo(cvc, cvObj)
 }
 
 // scaleDownVolumeReplicas will process the following steps
