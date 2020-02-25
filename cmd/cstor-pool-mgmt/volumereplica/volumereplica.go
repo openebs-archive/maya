@@ -19,10 +19,12 @@ package volumereplica
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/openebs/maya/pkg/alertlog"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 
 	"encoding/json"
 
@@ -32,6 +34,7 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
 	"github.com/pkg/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 )
 
@@ -106,6 +109,9 @@ type Stats struct {
 
 // RunnerVar the runner variable for executing binaries.
 var RunnerVar util.Runner
+
+// SnapshotVerification to track snapshot verification for CVR
+var SnapshotVerification map[string]bool
 
 // PoolNameFromCVR gets the name of cstorpool from cstorvolumereplica label
 // if not found then gets cstorpoolinstance name from the OPENEBS_IO_POOL_NAME
@@ -665,7 +671,174 @@ func GetAndUpdateReplicaID(cvr *apis.CStorVolumeReplica) error {
 	}
 
 	if err := SetReplicaID(cvr); err != nil {
-		return errors.Errorf("Failed to set ReplicaID for CVR(%s).. %s", cvr.Name, err)
+		return errors.Errorf("failed to set ReplicaID for CVR(%s).. %s", cvr.Name, err)
 	}
 	return nil
+}
+
+// UpdateSnapshots update the snapshot list for given CVR
+func UpdateSnapshots(client clientset.Interface, cvr *apis.CStorVolumeReplica) error {
+	volname := cvr.Labels[string(apis.PersistentVolumeCPK)]
+	dsname := PoolNameFromCVR(cvr) + "/" + cvr.Labels[string(apis.PersistentVolumeCPK)]
+
+	// update the snapshot list if not updated
+	if cvr.Status.Snapshots == nil {
+		snapshots, err := getSnapshotInfoList(volname)
+		if err == nil {
+			cvr.Status.Snapshots = snapshots
+		}
+	}
+
+	switch cvr.Status.Phase {
+	case apis.CVRStatusOnline:
+		if len(cvr.Status.PendingSnapshots) == 0 {
+			if _, ok := SnapshotVerification[cvr.Name]; ok {
+				// snapshots are already verified
+				break
+			}
+			// snapshots are not verified
+			SnapshotVerification[cvr.Name] = true
+		}
+		fallthrough
+	default:
+		if cvr.Status.PendingSnapshots == nil {
+			cvr.Status.PendingSnapshots = map[string]apis.CStorSnapshotInfo{}
+		}
+
+		allSnapshots, err := getSnapshotInfoFromHealthyCVRs(client, volname)
+		if err != nil {
+			return errors.Errorf("failed to fetch snapshots from other/healthy replica err=%v", err)
+		}
+
+		for k, v := range allSnapshots {
+			if _, ok := cvr.Status.Snapshots[k]; !ok {
+				if sinfo, err := getSnapshotInfo(dsname, k); err == nil {
+					cvr.Status.Snapshots[k] = sinfo
+					delete(cvr.Status.PendingSnapshots, k)
+					continue
+				} else {
+					klog.Errorf("failed to get snapinfo for snap=%s vol=%s.. adding it to pending list err=%v", k, volname, err)
+				}
+
+				if _, ok := cvr.Status.PendingSnapshots[k]; !ok {
+					cvr.Status.PendingSnapshots[k] = v
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// getSnapshotInfoList list the snapshot info for given volume
+func getSnapshotInfoList(volumename string) (map[string]apis.CStorSnapshotInfo, error) {
+	snaplist := []string{}
+	snapinfo := map[string]apis.CStorSnapshotInfo{}
+
+	RunnerVar := util.RealRunner{}
+	cmd := []string{"list", "-t", "all", "-Hp", "-oname"}
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, cmd...)
+	if err != nil {
+		return nil, errors.Errorf("unable to get snapshot list. %s", string(stdoutStderr))
+	}
+
+	if strings.TrimSpace(string(stdoutStderr)) != "" {
+		outputStr := strings.Split(string(stdoutStderr), "\n")
+		for _, v := range outputStr {
+			if strings.Contains(v, volumename) && strings.Contains(v, "@") {
+				snapname := strings.Split(v, "@")
+				snaplist = append(snaplist, snapname[1])
+			}
+		}
+	}
+
+	if len(snaplist) == 0 {
+		return map[string]apis.CStorSnapshotInfo{}, nil
+	}
+
+	for _, s := range snaplist {
+		if s == "rebuild_snap" || strings.HasPrefix(s, ".io_snap") {
+			continue
+		}
+		sinfo, err := getSnapshotInfo(volumename, s)
+		if err != nil {
+			return snapinfo, errors.Errorf("failed to fetch snapshot=%s@%s properties err=%s", volumename, s, err)
+		}
+		snapinfo[s] = sinfo
+	}
+
+	return snapinfo, nil
+}
+
+func getSnapshotInfoFromHealthyCVRs(client clientset.Interface, volume string) (map[string]apis.CStorSnapshotInfo, error) {
+	healthyCVRSnapInfo := map[string]apis.CStorSnapshotInfo{}
+	allCVRSnapInfo := map[string]apis.CStorSnapshotInfo{}
+
+	listOptions := v1.ListOptions{
+		LabelSelector: "openebs.io/persistent-volume=" + volume,
+	}
+
+	cvrList, err := client.OpenebsV1alpha1().CStorVolumeReplicas("").List(listOptions)
+	if err != nil {
+		return allCVRSnapInfo, errors.Errorf("failed to fetch cvr list err=%s", err)
+	}
+
+	for _, cvr := range cvrList.Items {
+		if cvr.Status.Phase == apis.CVRStatusOnline {
+			healthyCVRSnapInfo = cvr.Status.Snapshots
+			break
+		} else {
+			for s, v := range cvr.Status.Snapshots {
+				if _, ok := allCVRSnapInfo[s]; !ok {
+					allCVRSnapInfo[s] = v
+				}
+			}
+		}
+	}
+
+	if len(healthyCVRSnapInfo) != 0 {
+		return healthyCVRSnapInfo, nil
+	}
+	return allCVRSnapInfo, nil
+
+}
+
+// getSnapshotInfo list the snapshot info for given volume@snapshot
+func getSnapshotInfo(volumename, snapname string) (apis.CStorSnapshotInfo, error) {
+	ret, err := zfs.NewVolumeGetProperty().
+		WithScriptedMode(true).
+		WithParsableMode(true).
+		WithField("value").
+		WithProperty("referenced").
+		WithProperty("written").
+		WithProperty("logicalreferenced").
+		WithProperty("used").
+		WithProperty("compressratio").
+		WithDataset(volumename + "@" + snapname).
+		Execute()
+	if err != nil {
+		return apis.CStorSnapshotInfo{}, errors.Errorf("failed to fetch snapshot properties %s", err)
+	}
+
+	varr := strings.Split(string(ret), "\n")
+
+	pvalue := []int64{}
+	var d int64
+	for _, v := range []string{varr[0], varr[1], varr[2], varr[3]} {
+		d, err = strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			break
+		}
+		pvalue = append(pvalue, d)
+	}
+	if err != nil {
+		return apis.CStorSnapshotInfo{}, errors.Errorf("failed to parse snapshot properties err=%s", err)
+	}
+
+	return apis.CStorSnapshotInfo{
+		Referenced:        pvalue[0],
+		Written:           pvalue[1],
+		LogicalReferenced: pvalue[2],
+		Used:              pvalue[3],
+		Compression:       varr[4],
+	}, nil
 }

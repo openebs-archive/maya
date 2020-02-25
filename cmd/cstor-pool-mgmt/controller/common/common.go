@@ -282,4 +282,7 @@ func Init() {
 	// Making RunnerVar to use RealRunner
 	pool.RunnerVar = util.RealRunner{}
 	volumereplica.RunnerVar = util.RealRunner{}
+
+	// Initializing SnapshotVerification var
+	volumereplica.SnapshotVerification = map[string]bool{}
 }

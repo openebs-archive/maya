@@ -21,9 +21,11 @@ import (
 	"net"
 	"strconv"
 
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	"github.com/openebs/maya/pkg/client/generated/cstor-volume-mgmt/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"google.golang.org/grpc"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 )
 
@@ -52,8 +54,21 @@ func RunCStorVolumeGrpcServer(port int) error {
 	if err != nil {
 		klog.Fatalf("failed to listen: %v", err)
 	}
+
+	cfg, err := rest.InClusterConfig()
+	if err != nil {
+		klog.Fatalf("failed to fetch cluster config err=%v", err)
+	}
+
+	openebsClient, err := clientset.NewForConfig(cfg)
+	if err != nil {
+		klog.Fatalf("failed to generate openebs client err=%v", err)
+	}
+
 	// create a server instance
-	s := Server{}
+	s := Server{
+		Client: openebsClient,
+	}
 	// create a gRPC server object
 	grpcServer := grpc.NewServer()
 	// attach the RunCommand service to the server

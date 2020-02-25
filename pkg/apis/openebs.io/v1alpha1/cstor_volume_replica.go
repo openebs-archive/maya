@@ -124,6 +124,12 @@ type CStorVolumeReplicaStatus struct {
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 	LastUpdateTime     metav1.Time `json:"lastUpdateTime,omitempty"`
 	Message            string      `json:"message,omitempty"`
+
+	// Snapshots contains list of snapshots, and their properties, created on given CVR
+	Snapshots map[string]CStorSnapshotInfo `json:"snapshots"`
+
+	// PendingSnapshots contains list of pending snapshots, and their properties, for given CVR
+	PendingSnapshots map[string]CStorSnapshotInfo `json:"pendingSnapshots"`
 }
 
 // CStorVolumeCapacityAttr is for storing the volume capacity.
@@ -141,4 +147,22 @@ type CStorVolumeReplicaList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	Items []CStorVolumeReplica `json:"items"`
+}
+
+// CStorSnapshotInfo defines spec for cStor volume snapshot information
+type CStorSnapshotInfo struct {
+	// LogicalReferenced bytes for given snapshot
+	LogicalReferenced int64 `json:"logicalReferenced"`
+
+	// Written bytes for given snapshot
+	Written int64 `json:"written"`
+
+	// Compression for given snapshot, format "1.34x"
+	Compression string `json:"compression"`
+
+	// Referenced bytes for given snapshot
+	Referenced int64 `json:"referenced"`
+
+	// Used bytes for given snapshot
+	Used int64 `json:"used"`
 }
