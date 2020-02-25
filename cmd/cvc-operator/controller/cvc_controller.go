@@ -207,7 +207,7 @@ func (c *CVCController) syncCVC(cvc *apis.CStorVolumeClaim) error {
 	}
 
 	if c.isCVCScalePending(cvc) {
-		// process scalingup/scalingdown of volume replicas only if there is
+		// process scale-up/scale-down of volume replicas only if there is
 		// change in curent and desired state of replicas pool information
 		_ = c.scaleVolumeReplicas(cvc)
 	}
@@ -697,9 +697,9 @@ func deletePDBIfNotInUse(cvc *apis.CStorVolumeClaim) error {
 func (c *CVCController) scaleVolumeReplicas(cvc *apis.CStorVolumeClaim) error {
 	var err error
 	if len(cvc.Spec.Policy.ReplicaPoolInfo) > len(cvc.Status.PoolInfo) {
-		err = scaleUpVolumeReplicas(cvc)
+		cvc, err = scaleUpVolumeReplicas(cvc)
 	} else if len(cvc.Spec.Policy.ReplicaPoolInfo) < len(cvc.Status.PoolInfo) {
-		err = scaleDownVolumeReplicas(cvc)
+		cvc, err = scaleDownVolumeReplicas(cvc)
 	} else {
 		c.recorder.Event(cvc, corev1.EventTypeWarning, "Migration",
 			"Migration of volume replicas is not yet supported")
