@@ -390,19 +390,12 @@ func Capacity(poolName string) (*apis.CStorPoolCapacityAttr, error) {
 }
 
 // PoolStatus finds the status of the pool.
-// The ouptut of command(`zpool status <pool-name>`) executed is as follows:
+// The ouptut of command(`zpool get -Hp  -ovalue health,io.openebs:readonly <pool-name>`) executed is as follows:
 
 /*
-		  pool: cstor-530c9c4f-e0df-11e8-94a8-42010a80013b
-	 state: ONLINE
-	  scan: none requested
-	config:
-
-		NAME                                        STATE     READ WRITE CKSUM
-		cstor-530c9c4f-e0df-11e8-94a8-42010a80013b  ONLINE       0     0     0
-		  scsi-0Google_PersistentDisk_ashu-disk2    ONLINE       0     0     0
-
-	errors: No known data errors
+root@cstor-pool-1dvj-854db8dc56-prblp:/# zpool get -Hp  -ovalue health,io.openebs:readonly  cstor-3cbec7b9-578d-11ea-b66e-42010a9a0080
+ONLINE
+off
 */
 // The output is then parsed by poolStatusOutputParser function to get the status of the pool
 func Status(poolName string) (string, bool, error) {

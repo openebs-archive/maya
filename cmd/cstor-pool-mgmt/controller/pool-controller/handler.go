@@ -570,7 +570,7 @@ func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
 
 		qn, err := convertToBytes([]string{capacity.Total, capacity.Free, capacity.Used})
 		if err != nil {
-			klog.Errorf("Failed to parse capacity.. %s", err)
+			klog.Errorf("Failed to parse capacity.. err=%s", err)
 			return
 		}
 
@@ -584,6 +584,11 @@ func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
 					klog.Errorf("Failed to set pool readOnly mode : %v", err)
 				} else {
 					cStorPool.Status.ReadOnly = true
+					c.recorder.Event(cStorPool,
+						corev1.EventTypeWarning,
+						string(common.PoolROThreshold),
+						string(common.MessagePoolROThreshold),
+					)
 				}
 			}
 		} else {
@@ -598,27 +603,27 @@ func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
 	}
 }
 
-func convertToBytes(a []string) ([]int64, error) {
-	//TODO recover panic
-	number := []int64{}
-
+func convertToBytes(a []string) (number []int64, err error) {
 	if len(a) == 0 {
-		return number, errors.New("No input given")
+		err = errors.New("empty input")
+		return
 	}
 
-	parser := func(s string) (int64, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New("unable to parse")
+		}
+	}()
+
+	parser := func(s string) int64 {
 		d := resource.MustParse(s + "i")
-		return d.Value(), nil
+		return d.Value()
 	}
 
 	for _, v := range a {
-		n, err := parser(v)
-		if err != nil {
-			return number, err
-		}
-		number = append(number, n)
+		number = append(number, parser(v))
 	}
-	return number, nil
+	return
 }
 
 func (c *CStorPoolController) getDeviceIDs(csp *apis.CStorPool) ([]string, error) {

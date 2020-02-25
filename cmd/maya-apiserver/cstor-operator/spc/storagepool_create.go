@@ -135,6 +135,7 @@ func (cb *CasPoolBuilder) withAnnotations(annotations map[string]string) *CasPoo
 	return cb
 }
 
+// WithPoolROThreshold set PoolROThreshold value
 func (cb *CasPoolBuilder) WithPoolROThreshold(poolROThreshold int) *CasPoolBuilder {
 	cb.CasPool.PoolROThreshold = poolROThreshold
 	return cb

@@ -119,11 +119,15 @@ const (
 type CStorPoolStatus struct {
 	Phase    CStorPoolPhase        `json:"phase"`
 	Capacity CStorPoolCapacityAttr `json:"capacity"`
+
 	// LastTransitionTime refers to the time when the phase changes
-	ReadOnly           bool        `json:"readOnly"`
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
-	LastUpdateTime     metav1.Time `json:"lastUpdateTime,omitempty"`
-	Message            string      `json:"message,omitempty"`
+
+	//ReadOnly if pool is readOnly or not
+	ReadOnly bool `json:"readOnly"`
+
+	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
+	Message        string      `json:"message,omitempty"`
 }
 
 // CStorPoolCapacityAttr stores the pool capacity related attributes.
