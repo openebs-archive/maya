@@ -50,7 +50,8 @@ type upgradeParams struct {
 type upgradeFunc func(u *upgradeParams) (*apis.CStorPool, error)
 
 var (
-	upgradeMap = map[string]upgradeFunc{}
+	upgradeMap   = map[string]upgradeFunc{}
+	cspROUpdated bool
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -141,9 +142,11 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	c.syncCsp(cspObject)
 	_, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObject)
 	if err != nil {
+		cspROUpdated = false
 		c.recorder.Event(cspObject, corev1.EventTypeWarning, string(common.FailedSynced), string(common.MessageResourceSyncFailure)+err.Error())
 		return err
 	}
+	cspROUpdated = true
 	if string(cspObject.Status.Phase) == string(apis.CStorPoolStatusOnline) {
 		klog.V(4).Infof("cStorPool:%v, %v; Status: Online", cspObject.Name, string(cspObject.GetUID()))
 	} else {
@@ -567,40 +570,48 @@ func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
 		c.recorder.Event(cStorPool, corev1.EventTypeWarning, string(common.FailureCapacitySync), string(common.MessageResourceFailCapacitySync))
 	} else {
 		cStorPool.Status.Capacity = *capacity
+		c.updateROMode(cStorPool)
+	}
+}
 
-		qn, err := convertToBytes([]string{capacity.Total, capacity.Free, capacity.Used})
-		if err != nil {
-			klog.Errorf("Failed to parse capacity.. err=%s", err)
-			return
-		}
+func (c *CStorPoolController) updateROMode(cStorPool *apis.CStorPool) {
+	capacity := cStorPool.Status.Capacity
+	rOThresholdLimit := cStorPool.Spec.PoolSpec.ROThresholdLimit
 
-		total, _, used := qn[0], qn[1], qn[2]
-		usedCapacity := (used * 100) / total
-		if (int(usedCapacity) >= cStorPool.Spec.PoolSpec.ROThresholdLimit) &&
-			(cStorPool.Spec.PoolSpec.ROThresholdLimit != 0 &&
-				cStorPool.Spec.PoolSpec.ROThresholdLimit != 100) {
-			if !cStorPool.Status.ReadOnly {
-				if err = pool.SetPoolRDMode(cStorPool, true); err != nil {
-					klog.Errorf("Failed to set pool readOnly mode : %v", err)
-				} else {
-					cStorPool.Status.ReadOnly = true
-					c.recorder.Event(cStorPool,
-						corev1.EventTypeWarning,
-						string(common.PoolROThreshold),
-						string(common.MessagePoolROThreshold),
-					)
-				}
+	qn, err := convertToBytes([]string{capacity.Total, capacity.Free, capacity.Used})
+	if err != nil {
+		klog.Errorf("Failed to parse capacity.. err=%s", err)
+		return
+	}
+
+	total, _, used := qn[0], qn[1], qn[2]
+	usedCapacity := (used * 100) / total
+
+	if (int(usedCapacity) >= rOThresholdLimit) &&
+		(rOThresholdLimit != 0 &&
+			rOThresholdLimit != 100) {
+		if !cStorPool.Status.ReadOnly {
+			if err = pool.SetPoolRDMode(cStorPool, true); err != nil {
+				klog.Errorf("Failed to set pool readOnly mode : %v", err)
+			} else {
+				cStorPool.Status.ReadOnly = true
+				c.recorder.Event(cStorPool,
+					corev1.EventTypeWarning,
+					string(common.PoolROThreshold),
+					string(common.MessagePoolROThreshold),
+				)
 			}
-		} else {
-			if cStorPool.Status.ReadOnly {
-				if err = pool.SetPoolRDMode(cStorPool, false); err != nil {
-					klog.Errorf("Failed to unset pool readOnly mode : %v", err)
-				} else {
-					cStorPool.Status.ReadOnly = false
-				}
+		}
+	} else {
+		if cStorPool.Status.ReadOnly || !cspROUpdated {
+			if err = pool.SetPoolRDMode(cStorPool, false); err != nil {
+				klog.Errorf("Failed to unset pool readOnly mode : %v", err)
+			} else {
+				cStorPool.Status.ReadOnly = false
 			}
 		}
 	}
+	return
 }
 
 func convertToBytes(a []string) (number []int64, err error) {
