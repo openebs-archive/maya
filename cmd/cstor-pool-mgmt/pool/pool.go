@@ -439,15 +439,14 @@ func poolStatusOutputParser(output string) (bool, string) {
 	var poolStatus string
 	var readOnly bool
 
-	output = strings.TrimSpace(string(output))
 	outputStr = strings.Split(string(output), "\n")
 
-	if len(outputStr) != 2 {
+	if len(outputStr) != 3 {
 		klog.Errorf("Invalid input='%s' for poolStatusOutputParser", output)
 		return readOnly, poolStatus
 	}
 
-	poolStatus = outputStr[0]
+	poolStatus = strings.TrimSpace(string(outputStr[0]))
 	if outputStr[1] == "on" {
 		readOnly = true
 	}

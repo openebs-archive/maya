@@ -62,22 +62,24 @@ func (r TestRunner) RunCombinedOutput(command string, args ...string) ([]byte, e
 		cs = []string{"-test.run=TestLabelClearerProcess", "--"}
 		env = []string{"labelClearErr=nil"}
 		break
-	case "status":
-		if len(r.expectedError) != 0 {
-			return []byte(r.expectedError), nil
-		}
-		// Create command arguments
-		cs = []string{"-test.run=TestStatusHelperProcess", "--", command}
-		// Set env varibles for the 'TestStatusHelperProcess' function which runs as a process.
-		env = []string{"GO_WANT_STATUS_HELPER_PROCESS=1", "StatusType=" + os.Getenv("StatusType")}
 	case "get":
-		if len(r.expectedError) != 0 {
-			return []byte(r.expectedError), nil
+		if args[1] == "-Hp" {
+			if len(r.expectedError) != 0 {
+				return []byte(r.expectedError), nil
+			}
+			// Create command arguments
+			cs = []string{"-test.run=TestStatusHelperProcess", "--", command}
+			// Set env varibles for the 'TestStatusHelperProcess' function which runs as a process.
+			env = []string{"GO_WANT_STATUS_HELPER_PROCESS=1", "StatusType=" + os.Getenv("StatusType")}
+		} else {
+			if len(r.expectedError) != 0 {
+				return []byte(r.expectedError), nil
+			}
+			// Create command arguments
+			cs = []string{"-test.run=TestCapacityHelperProcess", "--", command}
+			// Set env varibles for the 'TestCapacityHelperProcess' function which runs as a process.
+			env = []string{"GO_WANT_CAPACITY_HELPER_PROCESS=1"}
 		}
-		// Create command arguments
-		cs = []string{"-test.run=TestCapacityHelperProcess", "--", command}
-		// Set env varibles for the 'TestCapacityHelperProcess' function which runs as a process.
-		env = []string{"GO_WANT_CAPACITY_HELPER_PROCESS=1"}
 	case "set":
 		cs = []string{"-test.run=TestSetCachefileProcess", "--"}
 		env = []string{"SetErr=nil"}
@@ -174,67 +176,31 @@ func TestStatusHelperProcess(*testing.T) {
 	// Following constants are different mocked output for `zpool status` command for
 	// different statuses.
 	const (
-		mockedStatusOutputOnline = `pool: cstor-530c9c4f-e0df-11e8-94a8-42010a80013b
-		 state: ONLINE
-		  scan: none requested
-		config:
+		mockedStatusOutputOnline = `ONLINE
 
-			NAME                                        STATE     READ WRITE CKSUM
-			cstor-530c9c4f-e0df-11e8-94a8-42010a80013b  ONLINE       0     0     0
-			  scsi-0Google_PersistentDisk_ashu-disk2    ONLINE       0     0     0
+`
 
-		errors: No known data errors`
-		mockedStatusOutputOffline = `pool: cstor-530c9c4f-e0df-11e8-94a8-42010a80013b
-		 state: OFFLINE
-		  scan: none requested
-		config:
+		mockedStatusOutputOffline = `OFFLINE
+off
+`
 
-			NAME                                        STATE     READ WRITE CKSUM
-			cstor-530c9c4f-e0df-11e8-94a8-42010a80013b  OFFLINE       0     0     0
-			  scsi-0Google_PersistentDisk_ashu-disk2    OFFLINE       0     0     0
+		mockedStatusOutputRemoved = `REMOVED
+on
+`
 
-		errors: No known data errors`
-		mockedStatusOutputRemoved = `pool: cstor-530c9c4f-e0df-11e8-94a8-42010a80013b
-		 state: REMOVED
-		  scan: none requested
-		config:
+		mockedStatusOutputUnavail = `UNAVAIL
 
-			NAME                                        STATE     READ WRITE CKSUM
-			cstor-530c9c4f-e0df-11e8-94a8-42010a80013b  REMOVED       0     0     0
-			  scsi-0Google_PersistentDisk_ashu-disk2    REMOVED       0     0     0
+`
 
-		errors: No known data errors`
-		mockedStatusOutputUnavail = `pool: cstor-530c9c4f-e0df-11e8-94a8-42010a80013b
-		 state: UNAVAIL
-		  scan: none requested
-		config:
+		mockedStatusOutputFaulted = `FAULTED
+off
+`
 
-			NAME                                        STATE     READ WRITE CKSUM
-			cstor-530c9c4f-e0df-11e8-94a8-42010a80013b  UNAVAIL       0     0     0
-			  scsi-0Google_PersistentDisk_ashu-disk2    UNAVAIL       0     0     0
-
-		errors: No known data errors`
-		mockedStatusOutputFaulted = `pool: cstor-530c9c4f-e0df-11e8-94a8-42010a80013b
-		 state: FAULTED
-		  scan: none requested
-		config:
-
-			NAME                                        STATE     READ WRITE CKSUM
-			cstor-530c9c4f-e0df-11e8-94a8-42010a80013b  FAULTED       0     0     0
-			  scsi-0Google_PersistentDisk_ashu-disk2    FAULTED       0     0     0
-
-		errors: No known data errors`
-		mockedStatusOutputDegraded = `pool: cstor-530c9c4f-e0df-11e8-94a8-42010a80013b
-		 state: DEGRADED
-		  scan: none requested
-		config:
-
-			NAME                                        STATE     READ WRITE CKSUM
-			cstor-530c9c4f-e0df-11e8-94a8-42010a80013b  DEGRADED       0     0     0
-			  scsi-0Google_PersistentDisk_ashu-disk2    DEGRADED       0     0     0
-
-		errors: No known data errors`
+		mockedStatusOutputDegraded = `DEGRADED
+on
+`
 	)
+
 	if os.Getenv("GO_WANT_STATUS_HELPER_PROCESS") != "1" {
 		return
 	}
@@ -846,36 +812,44 @@ func TestPoolStatus(t *testing.T) {
 		mockedOutputType string
 		// expectedStatus is the status that is expected for the test case.
 		expectedStatus string
+		// expectedRO is pool readOnly value that is expected for the test case.
+		expectedRO bool
 	}{
 		"#1 OnlinePoolStatus": {
 			poolName:         "cstor-530c9c4f-e0df-11e8-94a8-42010a80013b",
 			mockedOutputType: ZpoolStatusOnline,
 			expectedStatus:   "Healthy",
+			expectedRO:       false,
 		},
 		"#2 OfflinePoolStatus": {
 			poolName:         "cstor-530c9c4f-e0df-11e8-94a8-42010a80013b",
 			mockedOutputType: ZpoolStatusOffline,
 			expectedStatus:   "Offline",
+			expectedRO:       false,
 		},
 		"#3 UnavailPoolStatus": {
 			poolName:         "cstor-530c9c4f-e0df-11e8-94a8-42010a80013b",
 			mockedOutputType: ZpoolStatusUnavail,
-			expectedStatus:   "Offline",
+			expectedStatus:   "Error",
+			expectedRO:       false,
 		},
 		"#4 RemovedPoolStatus": {
 			poolName:         "cstor-530c9c4f-e0df-11e8-94a8-42010a80013b",
 			mockedOutputType: ZpoolStatusRemoved,
 			expectedStatus:   "Degraded",
+			expectedRO:       true,
 		},
 		"#5 FaultedPoolStatus": {
 			poolName:         "cstor-530c9c4f-e0df-11e8-94a8-42010a80013b",
 			mockedOutputType: ZpoolStatusFaulted,
 			expectedStatus:   "Offline",
+			expectedRO:       false,
 		},
 		"#6 DegradedPoolStatus": {
 			poolName:         "cstor-530c9c4f-e0df-11e8-94a8-42010a80013b",
 			mockedOutputType: ZpoolStatusDegraded,
 			expectedStatus:   "Degraded",
+			expectedRO:       true,
 		},
 	}
 	for name, test := range testPoolResource {
@@ -884,12 +858,15 @@ func TestPoolStatus(t *testing.T) {
 			// It will help to decide which mocked output should be considered as a std output.
 			os.Setenv("StatusType", test.mockedOutputType)
 			RunnerVar = TestRunner{}
-			gotStatus, err := Status(test.poolName)
+			gotStatus, gotRO, err := Status(test.poolName)
 			if err != nil {
 				t.Fatal("Some error occured in getting pool status:", err)
 			}
 			if test.expectedStatus != gotStatus {
 				t.Errorf("Test case failed as expected status '%s' but got '%s'", test.expectedStatus, gotStatus)
+			}
+			if test.expectedRO != gotRO {
+				t.Errorf("Test case failed as expected status '%v' but got '%v'", test.expectedRO, gotRO)
 			}
 			// Unset the "StatusType" env variable
 			os.Unsetenv("StatusType")
