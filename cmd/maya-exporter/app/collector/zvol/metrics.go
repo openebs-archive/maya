@@ -68,6 +68,7 @@ type poolSyncMetrics struct {
 	zpoolLastSyncTime             *prometheus.GaugeVec
 	zpoolStateUnknown             *prometheus.GaugeVec
 	zpoolLastSyncTimeCommandError *prometheus.GaugeVec
+	cspiRequestRejectCounter      prometheus.Counter
 }
 
 // poolfields struct is for pool last sync time metric
@@ -433,6 +434,17 @@ func (p *poolSyncMetrics) withZpoolStateUnknown() *poolSyncMetrics {
 			Help:      "zpool state unknown",
 		},
 		[]string{"pool"},
+	)
+	return p
+}
+
+func (p *poolSyncMetrics) withRequestRejectCounter() *poolSyncMetrics {
+	p.cspiRequestRejectCounter = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "zfs_get_livenesstimestamp_request_reject_count",
+			Help:      "Total no of rejected requests for pool liveness",
+		},
 	)
 	return p
 }
