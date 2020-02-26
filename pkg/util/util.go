@@ -218,3 +218,26 @@ func RemoveString(slice []string, s string) (result []string) {
 	}
 	return result
 }
+
+// IsChangeInLists returns true if there is any difference in listA and listB
+func IsChangeInLists(listA, listB []string) bool {
+	listAMap := map[string]bool{}
+	listBMap := map[string]bool{}
+	for _, name := range listA {
+		listAMap[name] = true
+	}
+	for _, name := range listB {
+		listBMap[name] = true
+	}
+	for _, name := range listA {
+		if !listBMap[name] {
+			return true
+		}
+	}
+	for _, name := range listB {
+		if !listAMap[name] {
+			return true
+		}
+	}
+	return false
+}

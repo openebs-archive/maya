@@ -61,3 +61,12 @@ func GetPDBLabels(poolNames []string, cspcName string) map[string]string {
 	pdbLabels[string(apis.CStorPoolClusterCPK)] = cspcName
 	return pdbLabels
 }
+
+// GetDesiredReplicaPoolNames returns list of desired pool names
+func GetDesiredReplicaPoolNames(cvc *apis.CStorVolumeClaim) []string {
+	poolNames := []string{}
+	for _, poolInfo := range cvc.Spec.Policy.ReplicaPoolInfo {
+		poolNames = append(poolNames, poolInfo.PoolName)
+	}
+	return poolNames
+}

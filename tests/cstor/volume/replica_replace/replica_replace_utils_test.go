@@ -206,7 +206,7 @@ func buildCVRFromExistingCVR(
 		WithCapacity(cvrObj.Spec.Capacity).
 		WithReplicaID(cvrObj.Spec.ReplicaID).
 		WithFinalizers([]string{cvr.CStorVolumeReplicaFinalizer}).
-		WithStatusPhase("Recreate")
+		WithStatusPhase(apis.CVRStatusRecreate)
 	cvrObj, err := buildCVRObj.Build()
 	Expect(err).To(BeNil())
 	return cvrObj

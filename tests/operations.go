@@ -1145,7 +1145,7 @@ func (ops *Operations) BuildAndCreateCVR() *apis.CStorVolumeReplica {
 		WithFinalizers([]string{cvr.CStorVolumeReplicaFinalizer}).
 		WithCapacity(cvrConfig.Capacity).
 		WithTargetIP(cvrConfig.TargetIP).
-		WithStatusPhase(cvrConfig.Phase).
+		WithStatusPhase(apis.CStorVolumeReplicaPhase(cvrConfig.Phase)).
 		WithReplicaID(cvrConfig.ReplicaID).
 		Build()
 	Expect(err).To(BeNil())
