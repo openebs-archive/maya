@@ -390,62 +390,67 @@ func Capacity(poolName string) (*apis.CStorPoolCapacityAttr, error) {
 }
 
 // PoolStatus finds the status of the pool.
-// The ouptut of command(`zpool status <pool-name>`) executed is as follows:
+// The ouptut of command(`zpool get -Hp  -ovalue health,io.openebs:readonly <pool-name>`) executed is as follows:
 
 /*
-		  pool: cstor-530c9c4f-e0df-11e8-94a8-42010a80013b
-	 state: ONLINE
-	  scan: none requested
-	config:
-
-		NAME                                        STATE     READ WRITE CKSUM
-		cstor-530c9c4f-e0df-11e8-94a8-42010a80013b  ONLINE       0     0     0
-		  scsi-0Google_PersistentDisk_ashu-disk2    ONLINE       0     0     0
-
-	errors: No known data errors
+root@cstor-pool-1dvj-854db8dc56-prblp:/# zpool get -Hp  -ovalue health,io.openebs:readonly  cstor-3cbec7b9-578d-11ea-b66e-42010a9a0080
+ONLINE
+off
 */
 // The output is then parsed by poolStatusOutputParser function to get the status of the pool
-func Status(poolName string) (string, error) {
+func Status(poolName string) (string, bool, error) {
 	var poolStatus string
-	statusPoolStr := []string{"status", poolName}
+	var readOnly bool
+
+	statusPoolStr := []string{"get", "-Hp", "-ovalue", "health,io.openebs:readonly", poolName}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, statusPoolStr...)
 	if err != nil {
 		klog.Errorf("Unable to get pool status: %v", string(stdoutStderr))
-		return "", err
+		return "", readOnly, err
 	}
-	poolStatus = poolStatusOutputParser(string(stdoutStderr))
-	if poolStatus == ZpoolStatusDegraded {
-		return string(apis.CStorPoolStatusDegraded), nil
-	} else if poolStatus == ZpoolStatusFaulted {
-		return string(apis.CStorPoolStatusOffline), nil
-	} else if poolStatus == ZpoolStatusOffline {
-		return string(apis.CStorPoolStatusOffline), nil
-	} else if poolStatus == ZpoolStatusOnline {
-		return string(apis.CStorPoolStatusOnline), nil
-	} else if poolStatus == ZpoolStatusRemoved {
-		return string(apis.CStorPoolStatusDegraded), nil
-	} else if poolStatus == ZpoolStatusUnavail {
-		return string(apis.CStorPoolStatusOffline), nil
-	} else {
-		return string(apis.CStorPoolStatusError), nil
-	}
+	readOnly, poolStatus = poolStatusOutputParser(string(stdoutStderr))
+
+	poolStatus = func(s string) string {
+		switch s {
+		case ZpoolStatusDegraded:
+			return string(apis.CStorPoolStatusDegraded)
+		case ZpoolStatusFaulted:
+			return string(apis.CStorPoolStatusOffline)
+		case ZpoolStatusOffline:
+			return string(apis.CStorPoolStatusOffline)
+		case ZpoolStatusOnline:
+			return string(apis.CStorPoolStatusOnline)
+		case ZpoolStatusRemoved:
+			return string(apis.CStorPoolStatusDegraded)
+		case ZpoolStatusUnavail:
+			return string(apis.CStorPoolStatusError)
+		default:
+			return string(apis.CStorPoolStatusError)
+		}
+	}(poolStatus)
+
+	return poolStatus, readOnly, nil
 }
 
 // poolStatusOutputParser parse output of `zpool status` command to extract the status of the pool.
 // ToDo: Need to find some better way e.g contract for zpool command outputs.
-func poolStatusOutputParser(output string) string {
+func poolStatusOutputParser(output string) (bool, string) {
 	var outputStr []string
 	var poolStatus string
-	if strings.TrimSpace(string(output)) != "" {
-		outputStr = strings.Split(string(output), "\n")
-		if !(len(outputStr) < 2) {
-			poolStatusArr := strings.Split(outputStr[1], ":")
-			if !(len(outputStr) < 2) {
-				poolStatus = strings.TrimSpace(poolStatusArr[1])
-			}
-		}
+	var readOnly bool
+
+	outputStr = strings.Split(string(output), "\n")
+
+	if len(outputStr) != 3 {
+		klog.Errorf("Invalid input='%s' for poolStatusOutputParser", output)
+		return readOnly, poolStatus
 	}
-	return poolStatus
+
+	poolStatus = strings.TrimSpace(string(outputStr[0]))
+	if outputStr[1] == "on" {
+		readOnly = true
+	}
+	return readOnly, poolStatus
 }
 
 // capacityOutputParser parse output of `zpool get` command to extract the capacity of the pool.
@@ -551,4 +556,23 @@ func GetDeviceIDs(csp *apis.CStorPool) ([]string, error) {
 		return nil, errors.Errorf("No device IDs found on the csp %s", csp.Name)
 	}
 	return bdDeviceID, nil
+}
+
+// SetPoolRDMode set/unset pool readonly
+func SetPoolRDMode(csp *apis.CStorPool, isROMode bool) error {
+	mode := "off"
+	if isROMode {
+		mode = "on"
+	}
+
+	cmd := []string{"set",
+		"io.openebs:readonly=" + mode,
+		string(PoolPrefix) + string(csp.ObjectMeta.UID),
+	}
+
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, cmd...)
+	if err != nil {
+		return errors.Errorf("Failed to update readOnly mode out:%v err:%v", string(stdoutStderr), err)
+	}
+	return nil
 }

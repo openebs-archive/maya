@@ -131,6 +131,8 @@ const (
 	InitPhaseCTP StoragePoolTLPProperty = "phase"
 	// PoolCacheFileCTP is the cache file used in case of imporitng pool
 	PoolCacheFileCTP StoragePoolTLPProperty = "poolCacheFile"
+	// PoolROThresholdLimitCTP is pool read only threshold limit
+	PoolROThresholdLimitCTP StoragePoolTLPProperty = "poolROThreshold"
 )
 
 // VolumeTLPProperty is used to define properties that comes

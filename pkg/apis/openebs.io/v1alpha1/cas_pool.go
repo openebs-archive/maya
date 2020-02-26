@@ -120,4 +120,7 @@ type CasPool struct {
 
 	DeviceID           []string
 	APIBlockDeviceList ndm.BlockDeviceList
+
+	// PoolROThreshold is threshold limit for pool read only mode
+	PoolROThreshold int
 }

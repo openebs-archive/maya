@@ -74,6 +74,8 @@ type CStorPoolAttr struct {
 	OverProvisioning bool `json:"overProvisioning"` //true or false
 	// ThickProvisioning, If true disables OverProvisioning
 	ThickProvisioning bool `json:"thickProvisioning"` // true or false
+	// ROThresholdLimit is threshold(percentage base) limit for pool read only mode, if ROThresholdLimit(%) of pool storage is used then pool will become readonly, CVR also. (0 < ROThresholdLimit < 100, default:100)
+	ROThresholdLimit int `json:"roThresholdLimit"` //optional
 }
 
 // CStorPoolPhase is a typed string for phase field of CStorPool.
@@ -117,10 +119,15 @@ const (
 type CStorPoolStatus struct {
 	Phase    CStorPoolPhase        `json:"phase"`
 	Capacity CStorPoolCapacityAttr `json:"capacity"`
+
 	// LastTransitionTime refers to the time when the phase changes
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
-	LastUpdateTime     metav1.Time `json:"lastUpdateTime,omitempty"`
-	Message            string      `json:"message,omitempty"`
+
+	//ReadOnly if pool is readOnly or not
+	ReadOnly bool `json:"readOnly"`
+
+	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
+	Message        string      `json:"message,omitempty"`
 }
 
 // CStorPoolCapacityAttr stores the pool capacity related attributes.

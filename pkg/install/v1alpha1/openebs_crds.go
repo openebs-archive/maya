@@ -199,6 +199,10 @@ spec:
     name: Status
     description: Identifies the current health of the pool
     type: string
+  - JSONPath: .status.readOnly
+    description: Identifies the pool read only mode
+    name: ReadOnly
+    type: boolean
   - JSONPath: .spec.poolSpec.poolType
     name: Type
     description: The type of the storage pool

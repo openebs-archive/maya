@@ -127,14 +127,14 @@ spec:
     {{- jsonpath .JsonResult "{.metadata.uid}" | trim | addTo "putcstorpoolcr.objectUID" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.metadata.labels.kubernetes\\.io/hostname}" | trim | addTo "putcstorpoolcr.nodeName" .TaskResult | noop -}}
   task: |-
-    {{- $blockDeviceIdList:= toYaml .Storagepool | fromYaml -}}
+    {{- $storagePool:= toYaml .Storagepool | fromYaml -}}
     apiVersion: openebs.io/v1alpha1
     kind: CStorPool
     metadata:
-      name: {{$blockDeviceIdList.owner}}-{{randAlphaNum 4 |lower }}
+      name: {{$storagePool.owner}}-{{randAlphaNum 4 |lower }}
       labels:
-        openebs.io/storage-pool-claim: {{$blockDeviceIdList.owner}}
-        kubernetes.io/hostname: {{$blockDeviceIdList.nodeName}}
+        openebs.io/storage-pool-claim: {{$storagePool.owner}}
+        kubernetes.io/hostname: {{$storagePool.nodeName}}
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
         openebs.io/cas-type: cstor
@@ -143,11 +143,11 @@ spec:
         blockOwnerDeletion: true
         controller: true
         kind: StoragePoolClaim
-        name: {{$blockDeviceIdList.owner}}
+        name: {{$storagePool.owner}}
         uid: {{ .TaskResult.getspc.objectUID }}
     spec:
       group:
-        {{- range $k, $v := $blockDeviceIdList.blockDeviceList }}
+        {{- range $k, $v := $storagePool.blockDeviceList }}
         - blockDevice:
           {{- range $ki, $blockDevice := $v.blockDevice }}
           - name: {{$blockDevice.name}}
@@ -156,9 +156,10 @@ spec:
           {{- end }}
         {{- end }}
       poolSpec:
-        poolType: {{$blockDeviceIdList.poolType}}
-        cacheFile: {{$blockDeviceIdList.poolCacheFile}}
+        poolType: {{$storagePool.poolType}}
+        cacheFile: {{$storagePool.poolCacheFile}}
         overProvisioning: false
+        roThresholdLimit: {{$storagePool.poolROThreshold}}
     status:
       phase: Init
     versionDetails:
