@@ -839,7 +839,7 @@ func handleVolumeReplicaCreation(cvc *apis.CStorVolumeClaim, cvObj *apis.CStorVo
 		hash, err := hash.Hash(pvName + "-" + poolName)
 		if err != nil {
 			errorMsg = fmt.Sprintf(
-				"failed to calculate of hase for new volume replica error: %v",
+				"failed to calculate of hash for new volume replica error: %v",
 				err)
 			errs = append(errs, errors.Errorf("%v", errorMsg))
 			klog.Errorf("%s", errorMsg)
