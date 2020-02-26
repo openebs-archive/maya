@@ -155,6 +155,36 @@ func (b *Builder) WithNodeAffinity(nodeName string) *Builder {
 	b.pv.object.Spec.NodeAffinity = nodeAffinity
 	return b
 }
+func (b *Builder) WithAllowedTopologies(topologies []corev1.TopologySelectorTerm) *Builder {
+	if len(topologies) == 0 {
+		b.errs = append(b.errs, errors.New("failed to build PV Object: missing PV AllowedTopologies"))
+		return b
+	}
+	var terms []corev1.NodeSelectorTerm
+	for _, topology := range topologies {
+		var expressions []corev1.NodeSelectorRequirement
+		for _, expression := range topology.MatchLabelExpressions {
+			expressions = append(expressions, corev1.NodeSelectorRequirement{
+				Key:      expression.Key,
+				Operator: corev1.NodeSelectorOpIn,
+				Values:   expression.Values,
+			})
+		}
+		terms = append(terms, corev1.NodeSelectorTerm{
+			MatchExpressions: expressions,
+		})
+
+	}
+
+	volumeNodeAffinity := &corev1.VolumeNodeAffinity{
+		Required: &corev1.NodeSelector{
+			NodeSelectorTerms: terms,
+		},
+	}
+	b.pv.object.Spec.NodeAffinity = volumeNodeAffinity
+	return b
+
+}
 
 // Build returns the PV API instance
 func (b *Builder) Build() (*corev1.PersistentVolume, error) {
