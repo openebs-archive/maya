@@ -388,6 +388,8 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 	case "CStorPoolCluster":
 		klog.V(2).Infof("Admission webhook request for type %s", req.Kind.Kind)
 		return wh.validateCSPC(ar)
+	case "CStorVolumeClaim":
+		return wh.validateCVC(ar)
 	default:
 		klog.V(2).Infof("Admission webhook not configured for type %s", req.Kind.Kind)
 		return response
@@ -474,4 +476,17 @@ func (wh *webhook) Serve(w http.ResponseWriter, r *http.Request) {
 		klog.Errorf("Can't write response: %v", err)
 		http.Error(w, fmt.Sprintf("could not write response: %v", err), http.StatusInternalServerError)
 	}
+}
+
+func (wh *webhook) validateCVC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+	req := ar.Request
+	response := &v1beta1.AdmissionResponse{}
+	response.Allowed = true
+	// validates only if requested operation is UPDATE
+	if req.Operation == v1beta1.Update {
+		return wh.validateCVCUpdateRequest(req, getCVCObject)
+	}
+	klog.V(2).Info("Admission wehbook for CVC module not " +
+		"configured for operations other than UPDATE")
+	return response
 }
