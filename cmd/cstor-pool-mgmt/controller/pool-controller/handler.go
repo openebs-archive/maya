@@ -50,8 +50,7 @@ type upgradeParams struct {
 type upgradeFunc func(u *upgradeParams) (*apis.CStorPool, error)
 
 var (
-	upgradeMap   = map[string]upgradeFunc{}
-	cspROUpdated bool
+	upgradeMap = map[string]upgradeFunc{}
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -142,11 +141,9 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	c.syncCsp(cspObject)
 	_, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObject)
 	if err != nil {
-		cspROUpdated = false
 		c.recorder.Event(cspObject, corev1.EventTypeWarning, string(common.FailedSynced), string(common.MessageResourceSyncFailure)+err.Error())
 		return err
 	}
-	cspROUpdated = true
 	if string(cspObject.Status.Phase) == string(apis.CStorPoolStatusOnline) {
 		klog.V(4).Infof("cStorPool:%v, %v; Status: Online", cspObject.Name, string(cspObject.GetUID()))
 	} else {
@@ -574,7 +571,10 @@ func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
 	}
 }
 
+// updateROMode update pool readOnly mode and csp status
 func (c *CStorPoolController) updateROMode(cStorPool *apis.CStorPool) {
+	// Note: cStorPool status has been updated by handler prior to this call.
+	// So it can be different than etcd version. So below checks are done on latest values.
 	capacity := cStorPool.Status.Capacity
 	rOThresholdLimit := cStorPool.Spec.PoolSpec.ROThresholdLimit
 
@@ -603,7 +603,7 @@ func (c *CStorPoolController) updateROMode(cStorPool *apis.CStorPool) {
 			}
 		}
 	} else {
-		if cStorPool.Status.ReadOnly || !cspROUpdated {
+		if cStorPool.Status.ReadOnly {
 			if err = pool.SetPoolRDMode(cStorPool, false); err != nil {
 				klog.Errorf("Failed to unset pool readOnly mode : %v", err)
 			} else {
