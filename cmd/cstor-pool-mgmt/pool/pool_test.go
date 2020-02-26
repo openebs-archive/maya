@@ -80,6 +80,14 @@ func (r TestRunner) RunCombinedOutput(command string, args ...string) ([]byte, e
 			// Set env varibles for the 'TestCapacityHelperProcess' function which runs as a process.
 			env = []string{"GO_WANT_CAPACITY_HELPER_PROCESS=1"}
 		}
+	case "status":
+		if len(r.expectedError) != 0 {
+			return []byte(r.expectedError), nil
+		}
+		// Create command arguments
+		cs = []string{"-test.run=TestStatusHelperProcess", "--", command}
+		// Set env varibles for the 'TestStatusHelperProcess' function which runs as a process.
+		env = []string{"GO_WANT_STATUS_HELPER_PROCESS=1", "StatusType=" + os.Getenv("StatusType")}
 	case "set":
 		cs = []string{"-test.run=TestSetCachefileProcess", "--"}
 		env = []string{"SetErr=nil"}
