@@ -205,10 +205,7 @@ func getPDBName(claim *apis.CStorVolumeClaim) string {
 
 // listCStorPools get the list of available pool using the storagePoolClaim
 // as labelSelector.
-func listCStorPools(
-	cspcName string,
-	replicaCount int,
-) (*apis.CStorPoolInstanceList, error) {
+func listCStorPools(cspcName string) (*apis.CStorPoolInstanceList, error) {
 
 	if cspcName == "" {
 		return nil, errors.New("failed to list cstorpool: cspc name missing")
@@ -358,7 +355,7 @@ func (c *CVCController) distributeCVRs(
 		return errors.New("failed to get cspc name from cstorvolumeclaim")
 	}
 
-	poolList, err := listCStorPools(cspcName, pendingReplicaCount)
+	poolList, err := listCStorPools(cspcName)
 	if err != nil {
 		return err
 	}
