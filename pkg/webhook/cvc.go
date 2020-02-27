@@ -66,7 +66,6 @@ func validateCVCSpecChanges(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
 	validateFuncList := []validateFunc{validateReplicaCount,
 		validatePoolListChanges,
 		validateReplicaScaling,
-		validateScaleDown,
 		validateStatusPoolList}
 	for _, f := range validateFuncList {
 		err := f(cvcOldObj, cvcNewObj)
@@ -105,14 +104,27 @@ func validateReplicaCount(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
 
 // validatePoolListChanges returns error if user modified only the pool names
 func validatePoolListChanges(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
-	if len(cvcNewObj.Spec.Policy.ReplicaPoolInfo) >= len(cvcOldObj.Spec.Policy.ReplicaPoolInfo) {
-		oldDesiredPoolNames := cvc.GetDesiredReplicaPoolNames(cvcOldObj)
-		newDesiredPoolNames := cvc.GetDesiredReplicaPoolNames(cvcNewObj)
-		modifiedPoolNames := util.ListDiff(oldDesiredPoolNames, newDesiredPoolNames)
+	oldDesiredPoolNames := cvc.GetDesiredReplicaPoolNames(cvcOldObj)
+	newDesiredPoolNames := cvc.GetDesiredReplicaPoolNames(cvcNewObj)
+	modifiedPoolNames := util.ListDiff(oldDesiredPoolNames, newDesiredPoolNames)
+	if len(newDesiredPoolNames) >= len(oldDesiredPoolNames) {
+		// If no.of pools on new spec >= no.of pools in old spec(scaleup as well
+		// as migration then there all the pools in old spec must present in new
+		// spec)
 		if len(modifiedPoolNames) > 0 {
 			return errors.Errorf(
 				"volume replica migration directly by modifying pool names %v is not yet supported",
 				modifiedPoolNames,
+			)
+		}
+	} else {
+		// If no.of pools in new spec < no.of pools in old spec(scale down
+		// volume replica case) then there should at most one change in
+		// oldSpec.PoolInfo - newSpec.PoolInfo
+		if len(modifiedPoolNames) > 1 {
+			return errors.Errorf(
+				"Can't perform more than one replica scale down requested scale down count %d",
+				len(modifiedPoolNames),
 			)
 		}
 	}
@@ -128,21 +140,6 @@ func validateReplicaScaling(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
 		if len(cvcOldObj.Spec.Policy.ReplicaPoolInfo) != len(cvcNewObj.Spec.Policy.ReplicaPoolInfo) {
 			return errors.Errorf("scaling of CVC %s is already in progress", cvcOldObj.Name)
 		}
-	}
-	return nil
-}
-
-// validateScaleDown returns error if user performed more than one replica scale
-// down at a time
-func validateScaleDown(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
-	oldDesiredPoolNames := cvc.GetDesiredReplicaPoolNames(cvcOldObj)
-	newDesiredPoolNames := cvc.GetDesiredReplicaPoolNames(cvcNewObj)
-	scaledDownPoolNames := util.ListDiff(oldDesiredPoolNames, newDesiredPoolNames)
-	if len(scaledDownPoolNames) > 1 {
-		return errors.Errorf(
-			"Can't perform more than one replica scale down requested scale down count %d",
-			len(scaledDownPoolNames),
-		)
 	}
 	return nil
 }
