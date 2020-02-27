@@ -340,7 +340,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 		"When Spec & Status Pool Names Was Updated By Controller With Invalid Pool Names Under Status": {
 			existingObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc8",
+					Name:      "cvc9",
 					Namespace: "openebs",
 				},
 				Spec: apis.CStorVolumeClaimSpec{
@@ -349,7 +349,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 			},
 			requestedObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc8",
+					Name:      "cvc9",
 					Namespace: "openebs",
 				},
 				Spec: apis.CStorVolumeClaimSpec{
@@ -372,7 +372,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 		"When Scale Up Alone Performed": {
 			existingObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc9",
+					Name:      "cvc10",
 					Namespace: "openebs",
 				},
 				Spec: apis.CStorVolumeClaimSpec{
@@ -389,7 +389,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 			},
 			requestedObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc9",
+					Name:      "cvc10",
 					Namespace: "openebs",
 				},
 				Spec: apis.CStorVolumeClaimSpec{
@@ -412,7 +412,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 		"When Scale Down Alone Performed": {
 			existingObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc10",
+					Name:      "cvc11",
 					Namespace: "openebs",
 				},
 				Spec: apis.CStorVolumeClaimSpec{
@@ -430,7 +430,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 			},
 			requestedObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc10",
+					Name:      "cvc11",
 					Namespace: "openebs",
 				},
 				Spec: apis.CStorVolumeClaimSpec{
@@ -451,7 +451,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 		"When Scale Up Status Was Updated Success": {
 			existingObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc11",
+					Name:      "cvc12",
 					Namespace: "openebs",
 				},
 				Spec: apis.CStorVolumeClaimSpec{
@@ -469,7 +469,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 			},
 			requestedObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc11",
+					Name:      "cvc12",
 					Namespace: "openebs",
 				},
 				Spec: apis.CStorVolumeClaimSpec{
@@ -491,7 +491,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 		"When Scale Down Status Was Updated Success": {
 			existingObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc12",
+					Name:      "cvc13",
 					Namespace: "openebs",
 				},
 				Spec: apis.CStorVolumeClaimSpec{
@@ -508,7 +508,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 			},
 			requestedObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc12",
+					Name:      "cvc13",
 					Namespace: "openebs",
 				},
 				Spec: apis.CStorVolumeClaimSpec{
@@ -529,7 +529,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 		"When CVC Spec Pool Names Were Repeated": {
 			existingObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc13",
+					Name:      "cvc14",
 					Namespace: "openebs",
 				},
 				Spec: apis.CStorVolumeClaimSpec{
@@ -547,7 +547,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 			},
 			requestedObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc13",
+					Name:      "cvc14",
 					Namespace: "openebs",
 				},
 				Spec: apis.CStorVolumeClaimSpec{
@@ -570,7 +570,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 		"When CVC Status Pool Names Were Repeated": {
 			existingObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc14",
+					Name:      "cvc15",
 					Namespace: "openebs",
 				},
 				Spec: apis.CStorVolumeClaimSpec{
@@ -589,7 +589,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 			},
 			requestedObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc14",
+					Name:      "cvc15",
 					Namespace: "openebs",
 				},
 				Spec: apis.CStorVolumeClaimSpec{
@@ -619,8 +619,19 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 					Raw: serialize(test.requestedObj),
 				},
 			}
-			fakeFixture := f.withOpenebsObjects(test.existingObj)
-			resp := fakeFixture.wh.validateCVCUpdateRequest(ar, test.getCVCObj)
+			// Create fake object in etcd
+			_, err := f.wh.clientset.OpenebsV1alpha1().
+				CStorVolumeClaims(test.existingObj.Namespace).
+				Create(test.existingObj)
+			if err != nil {
+				t.Fatalf(
+					"failed to create fake CVC %s Object in Namespace %s error: %v",
+					test.existingObj.Name,
+					test.existingObj.Namespace,
+					err,
+				)
+			}
+			resp := f.wh.validateCVCUpdateRequest(ar, test.getCVCObj)
 			if resp.Allowed != test.expectedRsp {
 				t.Errorf(
 					"%s test case failed expected response: %t but got %t error: %s",
