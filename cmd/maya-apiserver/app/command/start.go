@@ -28,18 +28,17 @@ import (
 	"syscall"
 	"time"
 
-	cvc "github.com/openebs/maya/cmd/cstorvolumeclaim"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/server"
 	"github.com/openebs/maya/cmd/maya-apiserver/cstor-operator/spc"
 	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	install "github.com/openebs/maya/pkg/install/v1alpha1"
 	"github.com/openebs/maya/pkg/usage"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
+	errors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
@@ -213,13 +212,6 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 
 	}()
 
-	go func() {
-		err := cvc.Start(&ControllerMutex)
-		if err != nil {
-			klog.Errorf("Failed to start cstorvolume claim controller: %s", err.Error())
-		}
-	}()
-
 	if env.Truthy(env.OpenEBSEnableAnalytics) {
 		usage.New().Build().InstallBuilder(true).Send()
 		go usage.PingCheck()
@@ -294,6 +286,12 @@ func (c *CmdStartOptions) setupMayaServer(mconfig *config.MayaConfig) error {
 	}
 
 	klog.Info("resources applied successfully by installer")
+
+	// clean older CASTemplates and RunTasks
+	cleanErr := install.SimpleInstaller().Clean()
+	if cleanErr != nil {
+		klog.Errorf("failed to clean old resources: %s", cleanErr.Error())
+	}
 
 	// Setup maya service i.e. maya api server
 	maya, err := server.NewMayaApiServer(mconfig, os.Stdout)

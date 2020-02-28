@@ -44,3 +44,29 @@ func getPatchData(oldObj, newObj interface{}) ([]byte, error) {
 	}
 	return patchBytes, nil
 }
+
+// GetPDBPoolLabels returns the pool labels from poolNames
+func GetPDBPoolLabels(poolNames []string) map[string]string {
+	pdbLabels := map[string]string{}
+	for _, poolName := range poolNames {
+		key := fmt.Sprintf("openebs.io/%s", poolName)
+		pdbLabels[key] = "true"
+	}
+	return pdbLabels
+}
+
+// GetPDBLabels returns the labels required for building PDB based on arguments
+func GetPDBLabels(poolNames []string, cspcName string) map[string]string {
+	pdbLabels := GetPDBPoolLabels(poolNames)
+	pdbLabels[string(apis.CStorPoolClusterCPK)] = cspcName
+	return pdbLabels
+}
+
+// GetDesiredReplicaPoolNames returns list of desired pool names
+func GetDesiredReplicaPoolNames(cvc *apis.CStorVolumeClaim) []string {
+	poolNames := []string{}
+	for _, poolInfo := range cvc.Spec.Policy.ReplicaPoolInfo {
+		poolNames = append(poolNames, poolInfo.PoolName)
+	}
+	return poolNames
+}

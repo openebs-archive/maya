@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -72,14 +72,14 @@ type CStorPoolClusterSpec struct {
 	// container.
 	// If the resources at PoolConfig is not specified, this is written
 	// to CSPI PoolConfig.
-	DefaultResources *v1.ResourceRequirements `json:"resources"`
+	DefaultResources *corev1.ResourceRequirements `json:"resources"`
 	// AuxResources are the compute resources required by the cstor-pool pod
 	// side car containers.
-	AuxResources v1.ResourceRequirements `json:"auxResources"`
+	DefaultAuxResources *corev1.ResourceRequirements `json:"auxResources"`
 	// Tolerations, if specified, are the pool pod's tolerations
 	// If tolerations at PoolConfig is empty, this is written to
 	// CSPI PoolConfig.
-	Tolerations []v1.Toleration `json:"tolerations"`
+	Tolerations []corev1.Toleration `json:"tolerations"`
 
 	// DefaultPriorityClassName if specified applies to all the pool pods
 	// in the pool spec if the priorityClass at the pool level is
@@ -121,10 +121,12 @@ type PoolConfig struct {
 	Compression string `json:"compression"`
 	// Resources are the compute resources required by the cstor-pool
 	// container.
-	Resources *v1.ResourceRequirements `json:"resources"`
-
+	Resources *corev1.ResourceRequirements `json:"resources"`
+	// AuxResources are the compute resources required by the cstor-pool pod
+	// side car containers.
+	AuxResources *corev1.ResourceRequirements `json:"auxResources"`
 	// Tolerations, if specified, the pool pod's tolerations.
-	Tolerations []v1.Toleration `json:"tolerations"`
+	Tolerations []corev1.Toleration `json:"tolerations"`
 
 	// PriorityClassName if specified applies to this pool pod
 	// If left empty, DefaultPriorityClassName is applied.

@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -48,9 +47,6 @@ type CStorPoolInstanceSpec struct {
 	// PoolConfig is the default pool config that applies to the
 	// pool on node.
 	PoolConfig PoolConfig `json:"poolConfig"`
-	// AuxResources are the compute resources required by the cstor-pool pod
-	// side car containers.
-	AuxResources v1.ResourceRequirements `json:"auxResources"`
 	// RaidGroups is the group containing block devices
 	RaidGroups []RaidGroup `json:"raidGroup"`
 }

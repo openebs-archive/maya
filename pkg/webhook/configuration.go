@@ -21,11 +21,13 @@ import (
 	"os"
 	"strings"
 
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	secret "github.com/openebs/maya/pkg/kubernetes/secret"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	validate "github.com/openebs/maya/pkg/kubernetes/webhook/validate/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
 	"k8s.io/api/admissionregistration/v1beta1"
@@ -54,6 +56,10 @@ const (
 	rootCrt             = "ca.crt"
 )
 
+type transformSvcFunc func(*corev1.Service)
+type transformSecretFunc func(*corev1.Secret)
+type transformConfigFunc func(*v1beta1.ValidatingWebhookConfiguration)
+
 var (
 	// TimeoutSeconds specifies the timeout for this webhook. After the timeout passes,
 	// the webhook call will be ignored or the API call will fail based on the
@@ -62,6 +68,12 @@ var (
 	five = int32(5)
 	// Ignore means that an error calling the webhook is ignored.
 	Ignore = v1beta1.Ignore
+	// transformation function lists to upgrade webhook resources
+	transformSecret = []transformSecretFunc{}
+	transformSvc    = []transformSvcFunc{}
+	transformConfig = []transformConfigFunc{
+		addCSPCDeleteRule,
+	}
 )
 
 // createWebhookService creates our webhook Service resource if it does not
@@ -99,9 +111,9 @@ func createWebhookService(
 			Namespace: namespace,
 			Name:      serviceName,
 			Labels: map[string]string{
-				"app":                       "admission-webhook",
-				"openebs.io/component-name": "admission-webhook-svc",
-				"openebs.io/version":        version.GetVersion(),
+				"app":                          "admission-webhook",
+				"openebs.io/component-name":    "admission-webhook-svc",
+				string(apis.OpenEBSVersionKey): version.GetVersion(),
 			},
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
 		},
@@ -146,7 +158,7 @@ func createAdmissionService(
 		)
 	}
 
-	webhookHandler := v1beta1.Webhook{
+	webhookHandler := v1beta1.ValidatingWebhook{
 		Name: webhookHandlerName,
 		Rules: []v1beta1.RuleWithOperations{{
 			Operations: []v1beta1.OperationType{
@@ -163,6 +175,7 @@ func createAdmissionService(
 				Operations: []v1beta1.OperationType{
 					v1beta1.Create,
 					v1beta1.Update,
+					v1beta1.Delete,
 				},
 				Rule: v1beta1.Rule{
 					APIGroups:   []string{"*"},
@@ -190,13 +203,13 @@ func createAdmissionService(
 		ObjectMeta: metav1.ObjectMeta{
 			Name: validatorWebhook,
 			Labels: map[string]string{
-				"app":                       "admission-webhook",
-				"openebs.io/component-name": "admission-webhook",
-				"openebs.io/version":        version.GetVersion(),
+				"app":                          "admission-webhook",
+				"openebs.io/component-name":    "admission-webhook",
+				string(apis.OpenEBSVersionKey): version.GetVersion(),
 			},
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
 		},
-		Webhooks: []v1beta1.Webhook{webhookHandler},
+		Webhooks: []v1beta1.ValidatingWebhook{webhookHandler},
 	}
 
 	_, err = validate.KubeClient().Create(validator)
@@ -244,9 +257,9 @@ func createCertsSecret(
 			Name:      secretName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app":                       "admission-webhook",
-				"openebs.io/component-name": "admission-webhook",
-				"openebs.io/version":        version.GetVersion(),
+				"app":                          "admission-webhook",
+				"openebs.io/component-name":    "admission-webhook",
+				string(apis.OpenEBSVersionKey): version.GetVersion(),
 			},
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
 		},
@@ -423,20 +436,53 @@ func GetAdmissionReference() (*metav1.OwnerReference, error) {
 	return nil, fmt.Errorf("failed to create deployment ownerReference")
 }
 
+// addCSPCDeleteRule adds the DELETE operation to for CSPC if coming from 1.6.0
+// or older version
+func addCSPCDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
+	if config.Labels[string(apis.OpenEBSVersionKey)] < "1.7.0" {
+		index := -1
+		// find the index of the RuleWithOperations having CSPC
+		for i, rule := range config.Webhooks[0].Rules {
+			if util.ContainsString(rule.Rule.Resources, "cstorpoolclusters") {
+				index = i
+				break
+			}
+		}
+		// if CSPC RuleWithOperations is found append DELETE operation
+		if index != -1 {
+			config.Webhooks[0].Rules[index].Operations = append(
+				config.Webhooks[0].Rules[index].Operations,
+				v1beta1.Delete,
+			)
+		}
+	}
+}
+
 // preUpgrade checks for the required older webhook configs,older
 // then 1.4.0 if exists delete them.
 func preUpgrade(openebsNamespace string) error {
-
 	secretlist, err := secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).List(metav1.ListOptions{LabelSelector: webhookLabel})
 	if err != nil {
 		return fmt.Errorf("failed to list old secret: %s", err.Error())
 	}
 
 	for _, scrt := range secretlist.Items {
-		if len(scrt.Labels["openebs.io/version"]) == 0 {
-			err = secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).Delete(scrt.Name, &metav1.DeleteOptions{})
-			if err != nil {
-				return fmt.Errorf("failed to delete old secret %s: %s", scrt.Name, err.Error())
+		if scrt.Labels[string(apis.OpenEBSVersionKey)] != version.Current() {
+			if scrt.Labels[string(apis.OpenEBSVersionKey)] == "" {
+				err = secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).Delete(scrt.Name, &metav1.DeleteOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to delete old secret %s: %s", scrt.Name, err.Error())
+				}
+			} else {
+				newScrt := scrt
+				for _, t := range transformSecret {
+					t(&newScrt)
+				}
+				newScrt.Labels[string(apis.OpenEBSVersionKey)] = version.Current()
+				_, err = secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).Update(&newScrt)
+				if err != nil {
+					return fmt.Errorf("failed to update old secret %s: %s", scrt.Name, err.Error())
+				}
 			}
 		}
 	}
@@ -447,10 +493,22 @@ func preUpgrade(openebsNamespace string) error {
 	}
 
 	for _, service := range svcList.Items {
-		if len(service.Labels["openebs.io/version"]) == 0 {
-			err = svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).Delete(service.Name, &metav1.DeleteOptions{})
-			if err != nil {
-				return fmt.Errorf("failed to delete old service %s: %s", service.Name, err.Error())
+		if service.Labels[string(apis.OpenEBSVersionKey)] != version.Current() {
+			if service.Labels[string(apis.OpenEBSVersionKey)] == "" {
+				err = svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).Delete(service.Name, &metav1.DeleteOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to delete old service %s: %s", service.Name, err.Error())
+				}
+			} else {
+				newSvc := service
+				for _, t := range transformSvc {
+					t(&newSvc)
+				}
+				newSvc.Labels[string(apis.OpenEBSVersionKey)] = version.Current()
+				_, err = svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).Update(&newSvc)
+				if err != nil {
+					return fmt.Errorf("failed to update old service %s: %s", service.Name, err.Error())
+				}
 			}
 		}
 	}
@@ -460,10 +518,22 @@ func preUpgrade(openebsNamespace string) error {
 	}
 
 	for _, config := range webhookConfigList.Items {
-		if len(config.Labels["openebs.io/version"]) == 0 {
-			err = validate.KubeClient().Delete(config.Name, &metav1.DeleteOptions{})
-			if err != nil {
-				return fmt.Errorf("failed to delete older webhook config %s: %s", config.Name, err.Error())
+		if config.Labels[string(apis.OpenEBSVersionKey)] != version.Current() {
+			if config.Labels[string(apis.OpenEBSVersionKey)] == "" {
+				err = validate.KubeClient().Delete(config.Name, &metav1.DeleteOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to delete older webhook config %s: %s", config.Name, err.Error())
+				}
+			} else {
+				newConfig := config
+				for _, t := range transformConfig {
+					t(&newConfig)
+				}
+				newConfig.Labels[string(apis.OpenEBSVersionKey)] = version.Current()
+				_, err = validate.KubeClient().Update(&newConfig)
+				if err != nil {
+					return fmt.Errorf("failed to update older webhook config %s: %s", config.Name, err.Error())
+				}
 			}
 		}
 	}

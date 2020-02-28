@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
@@ -46,7 +47,7 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(cstor.PoolCount).
-				WithOverProvisioning(false).
+				WithThickProvisioning(true).
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
 				Build().Object
 
@@ -131,7 +132,7 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 				nsObj.Name,
 			)
 			cvrLabel := pvLabel + pvcObj.Spec.VolumeName
-			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, cstor.ReplicaCount)
+			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, cstor.ReplicaCount, cvr.IsHealthy())
 			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
 
 			By("verifying pvc status as bound")

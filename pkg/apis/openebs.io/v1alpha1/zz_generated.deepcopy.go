@@ -141,7 +141,7 @@ func (in *CASTemplate) DeepCopyObject() runtime.Object {
 func (in *CASTemplateList) DeepCopyInto(out *CASTemplateList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CASTemplate, len(*in))
@@ -220,7 +220,7 @@ func (in *CASVolumeList) DeepCopyInto(out *CASVolumeList) {
 	*out = *in
 	in.ListOptions.DeepCopyInto(&out.ListOptions)
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CASVolume, len(*in))
@@ -304,7 +304,7 @@ func (in *CStorBackup) DeepCopyObject() runtime.Object {
 func (in *CStorBackupList) DeepCopyInto(out *CStorBackupList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorBackup, len(*in))
@@ -380,7 +380,7 @@ func (in *CStorCompletedBackup) DeepCopyObject() runtime.Object {
 func (in *CStorCompletedBackupList) DeepCopyInto(out *CStorCompletedBackupList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorCompletedBackup, len(*in))
@@ -519,7 +519,7 @@ func (in *CStorPoolClusterBlockDevice) DeepCopy() *CStorPoolClusterBlockDevice {
 func (in *CStorPoolClusterList) DeepCopyInto(out *CStorPoolClusterList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorPoolCluster, len(*in))
@@ -563,7 +563,11 @@ func (in *CStorPoolClusterSpec) DeepCopyInto(out *CStorPoolClusterSpec) {
 		*out = new(v1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}
-	in.AuxResources.DeepCopyInto(&out.AuxResources)
+	if in.DefaultAuxResources != nil {
+		in, out := &in.DefaultAuxResources, &out.DefaultAuxResources
+		*out = new(v1.ResourceRequirements)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
 		*out = make([]v1.Toleration, len(*in))
@@ -634,7 +638,7 @@ func (in *CStorPoolInstance) DeepCopyObject() runtime.Object {
 func (in *CStorPoolInstanceList) DeepCopyInto(out *CStorPoolInstanceList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorPoolInstance, len(*in))
@@ -674,7 +678,6 @@ func (in *CStorPoolInstanceSpec) DeepCopyInto(out *CStorPoolInstanceSpec) {
 		}
 	}
 	in.PoolConfig.DeepCopyInto(&out.PoolConfig)
-	in.AuxResources.DeepCopyInto(&out.AuxResources)
 	if in.RaidGroups != nil {
 		in, out := &in.RaidGroups, &out.RaidGroups
 		*out = make([]RaidGroup, len(*in))
@@ -699,7 +702,7 @@ func (in *CStorPoolInstanceSpec) DeepCopy() *CStorPoolInstanceSpec {
 func (in *CStorPoolList) DeepCopyInto(out *CStorPoolList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorPool, len(*in))
@@ -802,7 +805,7 @@ func (in *CStorRestore) DeepCopyObject() runtime.Object {
 func (in *CStorRestoreList) DeepCopyInto(out *CStorRestoreList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorRestore, len(*in))
@@ -944,7 +947,7 @@ func (in *CStorVolumeClaimCondition) DeepCopy() *CStorVolumeClaimCondition {
 func (in *CStorVolumeClaimList) DeepCopyInto(out *CStorVolumeClaimList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorVolumeClaim, len(*in))
@@ -1004,6 +1007,7 @@ func (in *CStorVolumeClaimSpec) DeepCopyInto(out *CStorVolumeClaimSpec) {
 		*out = new(v1.ObjectReference)
 		**out = **in
 	}
+	in.Policy.DeepCopyInto(&out.Policy)
 	return
 }
 
@@ -1033,6 +1037,11 @@ func (in *CStorVolumeClaimStatus) DeepCopyInto(out *CStorVolumeClaimStatus) {
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	if in.PoolInfo != nil {
+		in, out := &in.PoolInfo, &out.PoolInfo
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	return
 }
@@ -1069,7 +1078,7 @@ func (in *CStorVolumeCondition) DeepCopy() *CStorVolumeCondition {
 func (in *CStorVolumeList) DeepCopyInto(out *CStorVolumeList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorVolume, len(*in))
@@ -1096,6 +1105,107 @@ func (in *CStorVolumeList) DeepCopyObject() runtime.Object {
 		return c
 	}
 	return nil
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *CStorVolumePolicy) DeepCopyInto(out *CStorVolumePolicy) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	in.Spec.DeepCopyInto(&out.Spec)
+	out.Status = in.Status
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new CStorVolumePolicy.
+func (in *CStorVolumePolicy) DeepCopy() *CStorVolumePolicy {
+	if in == nil {
+		return nil
+	}
+	out := new(CStorVolumePolicy)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *CStorVolumePolicy) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	}
+	return nil
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *CStorVolumePolicyList) DeepCopyInto(out *CStorVolumePolicyList) {
+	*out = *in
+	out.TypeMeta = in.TypeMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]CStorVolumePolicy, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new CStorVolumePolicyList.
+func (in *CStorVolumePolicyList) DeepCopy() *CStorVolumePolicyList {
+	if in == nil {
+		return nil
+	}
+	out := new(CStorVolumePolicyList)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyObject is an autogenerated deepcopy function, copying the receiver, creating a new runtime.Object.
+func (in *CStorVolumePolicyList) DeepCopyObject() runtime.Object {
+	if c := in.DeepCopy(); c != nil {
+		return c
+	}
+	return nil
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *CStorVolumePolicySpec) DeepCopyInto(out *CStorVolumePolicySpec) {
+	*out = *in
+	out.Provision = in.Provision
+	in.Target.DeepCopyInto(&out.Target)
+	in.Replica.DeepCopyInto(&out.Replica)
+	if in.ReplicaPoolInfo != nil {
+		in, out := &in.ReplicaPoolInfo, &out.ReplicaPoolInfo
+		*out = make([]ReplicaPoolInfo, len(*in))
+		copy(*out, *in)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new CStorVolumePolicySpec.
+func (in *CStorVolumePolicySpec) DeepCopy() *CStorVolumePolicySpec {
+	if in == nil {
+		return nil
+	}
+	out := new(CStorVolumePolicySpec)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *CStorVolumePolicyStatus) DeepCopyInto(out *CStorVolumePolicyStatus) {
+	*out = *in
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new CStorVolumePolicyStatus.
+func (in *CStorVolumePolicyStatus) DeepCopy() *CStorVolumePolicyStatus {
+	if in == nil {
+		return nil
+	}
+	out := new(CStorVolumePolicyStatus)
+	in.DeepCopyInto(out)
+	return out
 }
 
 // DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
@@ -1154,7 +1264,7 @@ func (in *CStorVolumeReplicaDetails) DeepCopy() *CStorVolumeReplicaDetails {
 func (in *CStorVolumeReplicaList) DeepCopyInto(out *CStorVolumeReplicaList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CStorVolumeReplica, len(*in))
@@ -1462,6 +1572,11 @@ func (in *PoolConfig) DeepCopyInto(out *PoolConfig) {
 		*out = new(v1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.AuxResources != nil {
+		in, out := &in.AuxResources, &out.AuxResources
+		*out = new(v1.ResourceRequirements)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
 		*out = make([]v1.Toleration, len(*in))
@@ -1575,6 +1690,22 @@ func (in *PoolStats) DeepCopy() *PoolStats {
 }
 
 // DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *Provision) DeepCopyInto(out *Provision) {
+	*out = *in
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new Provision.
+func (in *Provision) DeepCopy() *Provision {
+	if in == nil {
+		return nil
+	}
+	out := new(Provision)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
 func (in *Quantile) DeepCopyInto(out *Quantile) {
 	*out = *in
 	return
@@ -1607,6 +1738,43 @@ func (in *RaidGroup) DeepCopy() *RaidGroup {
 		return nil
 	}
 	out := new(RaidGroup)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ReplicaPoolInfo) DeepCopyInto(out *ReplicaPoolInfo) {
+	*out = *in
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ReplicaPoolInfo.
+func (in *ReplicaPoolInfo) DeepCopy() *ReplicaPoolInfo {
+	if in == nil {
+		return nil
+	}
+	out := new(ReplicaPoolInfo)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *ReplicaSpec) DeepCopyInto(out *ReplicaSpec) {
+	*out = *in
+	if in.Affinity != nil {
+		in, out := &in.Affinity, &out.Affinity
+		*out = new(v1.PodAffinity)
+		(*in).DeepCopyInto(*out)
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new ReplicaSpec.
+func (in *ReplicaSpec) DeepCopy() *ReplicaSpec {
+	if in == nil {
+		return nil
+	}
+	out := new(ReplicaSpec)
 	in.DeepCopyInto(out)
 	return out
 }
@@ -1658,7 +1826,7 @@ func (in *RunTask) DeepCopyObject() runtime.Object {
 func (in *RunTaskList) DeepCopyInto(out *RunTaskList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]RunTask, len(*in))
@@ -1832,7 +2000,7 @@ func (in *StoragePoolClaim) DeepCopyObject() runtime.Object {
 func (in *StoragePoolClaimList) DeepCopyInto(out *StoragePoolClaimList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]StoragePoolClaim, len(*in))
@@ -1904,7 +2072,7 @@ func (in *StoragePoolClaimStatus) DeepCopy() *StoragePoolClaimStatus {
 func (in *StoragePoolList) DeepCopyInto(out *StoragePoolList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]StoragePool, len(*in))
@@ -1968,6 +2136,51 @@ func (in *Summary) DeepCopy() *Summary {
 		return nil
 	}
 	out := new(Summary)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *TargetSpec) DeepCopyInto(out *TargetSpec) {
+	*out = *in
+	if in.Resources != nil {
+		in, out := &in.Resources, &out.Resources
+		*out = new(v1.ResourceRequirements)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.AuxResources != nil {
+		in, out := &in.AuxResources, &out.AuxResources
+		*out = new(v1.ResourceRequirements)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.Tolerations != nil {
+		in, out := &in.Tolerations, &out.Tolerations
+		*out = make([]v1.Toleration, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.Affinity != nil {
+		in, out := &in.Affinity, &out.Affinity
+		*out = new(v1.PodAffinity)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.NodeSelector != nil {
+		in, out := &in.NodeSelector, &out.NodeSelector
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	return
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new TargetSpec.
+func (in *TargetSpec) DeepCopy() *TargetSpec {
+	if in == nil {
+		return nil
+	}
+	out := new(TargetSpec)
 	in.DeepCopyInto(out)
 	return out
 }

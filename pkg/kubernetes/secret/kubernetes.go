@@ -17,8 +17,8 @@ limitations under the License.
 package secret
 
 import (
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -39,6 +39,10 @@ type getFn func(cli *kubernetes.Clientset, namespace, name string, opts metav1.G
 // createFn is a typed function that abstracts
 // to create secret
 type createFn func(cli *kubernetes.Clientset, namespace string, secret *corev1.Secret) (*corev1.Secret, error)
+
+// updateFn is a typed function that abstracts
+// to update secret
+type updateFn func(cli *kubernetes.Clientset, namespace string, secret *corev1.Secret) (*corev1.Secret, error)
 
 // listFn is a typed function that abstracts listing of secret instances
 type listFn func(cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*corev1.SecretList, error)
@@ -68,6 +72,7 @@ type Kubeclient struct {
 	create              createFn
 	del                 deleteFn
 	list                listFn
+	update              updateFn
 }
 
 // KubeClientBuildOption defines the abstraction
@@ -100,7 +105,11 @@ func (k *Kubeclient) withDefaults() {
 			return cli.CoreV1().Secrets(namespace).List(opts)
 		}
 	}
-
+	if k.update == nil {
+		k.update = func(cli *kubernetes.Clientset, namespace string, secret *corev1.Secret) (*corev1.Secret, error) {
+			return cli.CoreV1().Secrets(namespace).Update(secret)
+		}
+	}
 	if k.del == nil {
 		k.del = func(cli *kubernetes.Clientset, namespace, name string, opts *metav1.DeleteOptions) error {
 			return cli.CoreV1().Secrets(namespace).Delete(name, opts)
@@ -201,4 +210,16 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*corev1.SecretList, error) {
 		return nil, errors.Wrapf(err, "failed to lists secret in namespace: {%s}", k.namespace)
 	}
 	return k.list(cli, k.namespace, opts)
+}
+
+// Update updates and returns updated secret instance
+func (k *Kubeclient) Update(secret *corev1.Secret) (*corev1.Secret, error) {
+	if secret == nil {
+		return nil, errors.New("failed to update secret: nil secret object")
+	}
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update secret %s", secret.Name)
+	}
+	return k.update(cli, k.namespace, secret)
 }

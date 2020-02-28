@@ -389,7 +389,7 @@ func (in *UpgradeResultConfig) DeepCopy() *UpgradeResultConfig {
 func (in *UpgradeResultList) DeepCopyInto(out *UpgradeResultList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]UpgradeResult, len(*in))
@@ -511,7 +511,7 @@ func (in *UpgradeTask) DeepCopyObject() runtime.Object {
 func (in *UpgradeTaskList) DeepCopyInto(out *UpgradeTaskList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]UpgradeTask, len(*in))

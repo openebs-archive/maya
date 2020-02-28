@@ -17,9 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
+	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -38,6 +38,30 @@ type Builder struct {
 // NewBuilder returns new instance of Builder
 func NewBuilder() *Builder {
 	return &Builder{pod: &Pod{object: &corev1.Pod{}}}
+}
+
+// WithTolerationsForTaints sets the Spec.Tolerations with provided taints.
+func (b *Builder) WithTolerationsForTaints(taints ...corev1.Taint) *Builder {
+
+	tolerations := []corev1.Toleration{}
+	for i := range taints {
+		var toleration corev1.Toleration
+		toleration.Key = taints[i].Key
+		toleration.Effect = taints[i].Effect
+		if len(taints[i].Value) == 0 {
+			toleration.Operator = corev1.TolerationOpExists
+		} else {
+			toleration.Value = taints[i].Value
+			toleration.Operator = corev1.TolerationOpEqual
+		}
+		tolerations = append(tolerations, toleration)
+	}
+
+	b.pod.object.Spec.Tolerations = append(
+		b.pod.object.Spec.Tolerations,
+		tolerations...,
+	)
+	return b
 }
 
 // WithName sets the Name field of Pod with provided value.

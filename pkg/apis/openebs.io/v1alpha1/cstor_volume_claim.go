@@ -59,6 +59,8 @@ type CStorVolumeClaimSpec struct {
 	// CstorVolumeSource contains the source volumeName@snapShotname
 	// combaination.  This will be filled only if it is a clone creation.
 	CstorVolumeSource string `json:"cstorVolumeSource,omitempty"`
+	// Policy contains volume specific required policies target and replicas
+	Policy CStorVolumePolicySpec `json:"policy"`
 }
 
 // CStorVolumeClaimPublish contains info related to attachment of a volume to a node.
@@ -93,6 +95,8 @@ type CStorVolumeClaimStatus struct {
 	// Capacity the actual resources of the underlying volume.
 	Capacity   corev1.ResourceList         `json:"capacity,omitempty"`
 	Conditions []CStorVolumeClaimCondition `json:"condition,omitempty"`
+	// PoolInfo represents current pool names where volume replicas exists
+	PoolInfo []string `json:"poolInfo"`
 }
 
 // CStorVolumeClaimCondition contains details about state of cstor volume

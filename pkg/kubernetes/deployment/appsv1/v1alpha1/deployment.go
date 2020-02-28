@@ -15,8 +15,8 @@ package v1alpha1
 
 import (
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	templatespec "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
+	errors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -562,7 +562,8 @@ func (d *Deploy) VerifyReplicaStatus() error {
 		return errors.New("failed to verify replica status for deployment: nil replicas")
 	}
 	if d.object.Status.ReadyReplicas != *d.object.Spec.Replicas {
-		return errors.New(d.object.Name + " deployment pods are not in running state.")
+		return errors.Errorf(d.object.Name+" deployment pods are not in running state expected: %d got: %d",
+			*d.object.Spec.Replicas, d.object.Status.ReadyReplicas)
 	}
 	return nil
 }

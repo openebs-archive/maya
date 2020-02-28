@@ -19,6 +19,11 @@ addons:
   apt:
     update: true
 
+before_install:
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  - sudo apt-get update -qq
+  - sudo apt-get install --yes -qq gcc
+  - sudo apt-get install --yes -qq libudev-dev
 install:
   - make bootstrap
   - make format
