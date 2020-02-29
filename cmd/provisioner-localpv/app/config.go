@@ -54,6 +54,7 @@ const (
 	// is specified with PVC and is useful for granting shared access
 	// to underlying hostpaths across multiple pods.
 	//KeyPVAbsolutePath = "AbsolutePath"
+	//KeyShared defines the usage of sharedMount
 	KeyShared = "Shared"
 )
 
@@ -122,12 +123,7 @@ func (p *Provisioner) GetVolumeConfig(pvName string, pvc *v1.PersistentVolumeCla
 //GetSharedMountValue return the value of KeyShared value configured
 // in StorageClass. Default is false.
 func (c *VolumeConfig) GetSharedMountValue() bool {
-	sharedMountValue := c.getValue(KeyShared)
-	if strings.TrimSpace(sharedMountValue) == "true" {
-		return true
-	} else {
-		return false
-	}
+	return util.CheckTruthy(c.getValue(KeyShared))
 }
 
 //GetStorageType returns the StorageType value configured

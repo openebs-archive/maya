@@ -39,6 +39,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 	name := opts.PVName
 	stgType := volumeConfig.GetStorageType()
 	saName := getOpenEBSServiceAccountName()
+	shared := volumeConfig.GetSharedMountValue()
 
 	path, err := volumeConfig.GetPath()
 	if err != nil {
@@ -96,7 +97,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 	//labels[string(v1alpha1.StorageClassKey)] = *className
 
 	//TODO Change the following to a builder pattern
-	pvObj, err := persistentvolume.NewBuilder().
+	pvBuilder := persistentvolume.NewBuilder().
 		WithName(name).
 		WithLabels(labels).
 		WithReclaimPolicy(opts.PersistentVolumeReclaimPolicy).
@@ -104,8 +105,13 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 		WithVolumeMode(fs).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
 		WithLocalHostDirectory(path).
-		WithNodeAffinity(nodeHostname).
-		Build()
+		WithNodeAffinity(nodeHostname)
+
+	if shared == true {
+		pvBuilder.WithAllowedTopologies(opts.AllowedTopologies)
+	}
+
+	pvObj, err := pvBuilder.Build()
 
 	if err != nil {
 		alertlog.Logger.Errorw("",
