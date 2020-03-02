@@ -231,6 +231,10 @@ func getLastBackupSnap(openebsClient *versioned.Clientset, bkp *v1alpha1.CStorBa
 		klog.Infof("LastBackup resource created for backup:%s volume:%s", bk.Spec.BackupName, bk.Spec.VolumeName)
 		return "", nil
 	}
+
+	if b.Spec.SnapName == "" {
+		return "", nil
+	}
 	return b.Spec.PrevSnapName, nil
 }
 
