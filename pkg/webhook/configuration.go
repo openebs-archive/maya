@@ -73,6 +73,7 @@ var (
 	transformSvc    = []transformSvcFunc{}
 	transformConfig = []transformConfigFunc{
 		addCSPCDeleteRule,
+		addCVCWithUpdateRule,
 	}
 	cvcRuleWithOperations = v1beta1.RuleWithOperations{
 		Operations: []v1beta1.OperationType{
