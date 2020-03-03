@@ -241,3 +241,13 @@ func IsChangeInLists(listA, listB []string) bool {
 	}
 	return false
 }
+
+// RemoveItemFromSlice removes the string passed as argument from the slice
+func RemoveItemFromSlice(slice []string, str string) []string {
+	for index, value := range slice {
+		if value == str {
+			slice = append(slice[:index], slice[index+1:]...)
+		}
+	}
+	return slice
+}

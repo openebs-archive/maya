@@ -24,6 +24,7 @@ import (
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+	"github.com/openebs/maya/pkg/version"
 
 	"github.com/openebs/maya/pkg/util"
 	errors "github.com/pkg/errors"
@@ -99,6 +100,9 @@ func (v *Operation) getCloneLabels() (map[string]interface{}, error) {
 
 // Create provisions an OpenEBS volume
 func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
+	var casConfigPVC string
+	var isRestoreVol string
+
 	if v.k8sClient == nil {
 		return nil, errors.Errorf("failed to create volume: nil k8s client: %s", v.volume)
 	}
@@ -107,6 +111,18 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 
 	if len(capacity) == 0 {
 		return nil, errors.Errorf("failed to create volume: missing volume capacity: %s", v.volume)
+	}
+
+	pvcName := v.volume.Labels[string(v1alpha1.PersistentVolumeClaimKey)]
+	if len(pvcName) != 0 {
+		// fetch the pvc specifications
+		pvc, err := v.k8sClient.GetPVC(pvcName, mach_apis_meta_v1.GetOptions{})
+		if err != nil {
+			return nil, errors.Wrapf(errors.WithStack(err), "failed to create volume: %s", v.volume)
+		}
+
+		// extract the cas volume config from pvc
+		casConfigPVC = pvc.Annotations[string(v1alpha1.CASConfigKey)]
 	}
 
 	cloneLabels, err := v.getCloneLabels()
@@ -144,10 +160,13 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 		return nil, errors.Wrapf(errors.WithStack(err), "failed to create volume: %s", v.volume)
 	}
 
-	var isRestoreVol string
 	createdBy := v.volume.Annotations[v1alpha1.PVCreatedByKey]
 	if createdBy == "restore" {
 		isRestoreVol = "true"
+		cast.Spec.RunTasks.Tasks = util.RemoveItemFromSlice(
+			cast.Spec.RunTasks.Tasks,
+			version.WithSuffix("cstor-volume-create-getpvc-default"),
+		)
 	} else {
 		isRestoreVol = "false"
 	}
@@ -156,6 +175,7 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 		string(v1alpha1.OwnerVTP):                   v.volume.Name,
 		string(v1alpha1.CapacityVTP):                capacity,
 		string(v1alpha1.RunNamespaceVTP):            v.volume.Namespace,
+		string(v1alpha1.PersistentVolumeClaimVTP):   pvcName,
 		string(v1alpha1.IsRestoreVolumePropertyVTP): isRestoreVol,
 	}
 
@@ -163,7 +183,7 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 
 	// provision CAS volume via CAS volume specific CAS template engine
 	engine, err := NewVolumeEngine(
-		"",
+		casConfigPVC,
 		casConfigSC,
 		cast,
 		string(v1alpha1.VolumeTLP),

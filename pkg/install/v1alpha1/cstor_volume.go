@@ -113,6 +113,7 @@ spec:
   run:
     tasks:
     - cstor-volume-create-getstorageclass-default
+    - cstor-volume-create-getpvc-default
     - cstor-volume-create-listclonecstorvolumereplicacr-default
     - cstor-volume-create-listcstorpoolcr-default
     - cstor-volume-create-puttargetservice-default
@@ -314,6 +315,7 @@ spec:
           name: {{ .Volume.storageclass }}
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
       labels:
+        openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
         openebs.io/target-service: cstor-target-svc
         openebs.io/storage-engine-type: cstor
         openebs.io/cas-type: cstor
@@ -445,6 +447,7 @@ spec:
         openebs.io/cas-type: cstor
         openebs.io/target: cstor-target
         openebs.io/persistent-volume: {{ .Volume.owner }}
+        openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
         openebs.io/storage-pool-claim: {{ .Config.StoragePoolClaim.value }}
@@ -475,6 +478,7 @@ spec:
             openebs.io/target: cstor-target
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/storage-class: {{ .Volume.storageclass }}
+            openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
             openebs.io/version: {{ .CAST.version }}
           annotations:
             openebs.io/storage-class-ref: |
@@ -689,11 +693,11 @@ spec:
     Calculate the replica count
     Add as many poolUid to resources as there is replica count
     */}}
-    {{- $hostName := .TaskResult.creategetpvc.hostName -}}
+    {{- $hostName := .TaskResult.creategetpvc.hostName | default "" -}}
     {{- $capacity := .Volume.capacity -}}
     {{- $spc := .Config.StoragePoolClaim.value }}
-    {{- $replicaAntiAffinity := .TaskResult.creategetpvc.replicaAntiAffinity }}
-    {{- $preferredReplicaAntiAffinity := .TaskResult.creategetpvc.preferredReplicaAntiAffinity }}
+    {{- $replicaAntiAffinity := .TaskResult.creategetpvc.replicaAntiAffinity  | default "" -}}
+    {{- $preferredReplicaAntiAffinity := .TaskResult.creategetpvc.preferredReplicaAntiAffinity | default "" -}}
     {{- $antiAffinityLabelSelector := printf "openebs.io/replica-anti-affinity=%s" $replicaAntiAffinity | IfNotNil $replicaAntiAffinity }}
     {{- $preferredAntiAffinityLabelSelector := printf "openebs.io/preferred-replica-anti-affinity=%s" $preferredReplicaAntiAffinity | IfNotNil $preferredReplicaAntiAffinity }}
     {{- $preferedScheduleOnHostAnnotationSelector := printf "volume.kubernetes.io/selected-node=%s" $hostName | IfNotNil $hostName }}
