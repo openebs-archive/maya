@@ -26,7 +26,7 @@ import (
 var (
 	validCurrentVersions = map[string]bool{
 		"1.0.0": true, "1.1.0": true, "1.2.0": true, "1.3.0": true,
-		"1.4.0": true, "1.5.0": true, "1.6.0": true,
+		"1.4.0": true, "1.5.0": true, "1.6.0": true, "1.7.0": true,
 	}
 	validDesiredVersion = version.GetVersion()
 )
