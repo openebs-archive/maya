@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
 	"strings"
 	"text/template"
 	"time"
@@ -139,7 +138,6 @@ func patchCSP(cspObj *apis.CStorPool) error {
 			return errors.Wrapf(err, "failed to populate template for csp patch")
 		}
 		cspPatch := buffer.String()
-		fmt.Println(cspPatch)
 		buffer.Reset()
 		_, err = cspClient.Patch(
 			cspObj.Name,
