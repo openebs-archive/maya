@@ -705,6 +705,8 @@ func UpdateSnapshots(client clientset.Interface, cvr *apis.CStorVolumeReplica) e
 			cvr.Status.PendingSnapshots = map[string]apis.CStorSnapshotInfo{}
 		}
 
+		klog.Infof("Updating snapshots for CVR %v", cvr.Name)
+
 		allSnapshots, err := getSnapshotInfoFromHealthyCVRs(client, volname)
 		if err != nil {
 			return errors.Errorf("failed to fetch snapshots from other/healthy replica err=%v", err)

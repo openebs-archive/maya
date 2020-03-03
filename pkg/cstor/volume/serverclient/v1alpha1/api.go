@@ -69,6 +69,7 @@ type snapshotInfo struct {
 		Used              int64  `json:"used,string"`
 		Referenced        int64  `json:"referenced,string"`
 		Written           int64  `json:"written,string"`
+		Error             string `json:"error,string"`
 	} `json:"properties"`
 }
 
@@ -92,7 +93,8 @@ func (s *Server) RunVolumeSnapCreateCommand(ctx context.Context, in *v1alpha1.Vo
 		if err != nil {
 			klog.Errorf("failed to update CVR's snapshot err=%s", err)
 			// destroy the created snapshot
-			DeleteSnapshot(ctx, &v1alpha1.VolumeSnapDeleteRequest{Volume: in.Volume, Snapname: in.Snapname})
+			_, _ = DeleteSnapshot(ctx, &v1alpha1.VolumeSnapDeleteRequest{Volume: in.Volume, Snapname: in.Snapname})
+			_ = s.removeSnapInfoFromCVR(in.Volume, in.Snapname)
 		}
 	}
 	return volcmd, err
@@ -166,7 +168,10 @@ func (s *Server) addSnapInfoToCVR(volume, snapshot string) error {
 				len(snap.Snapshot), snap.ReplicaID)
 			continue
 		}
-		rsnap := parseSnapshot(snap.Snapshot)
+		rsnap, err := parseSnapshot(snap.Snapshot)
+		if err != nil {
+			return errors.Errorf("failed to parse snap shot err=%s", err)
+		}
 		cvr, err := getCVRFromReplicaID(cvrlist, snap.ReplicaID)
 		if err != nil {
 			return err
@@ -209,6 +214,9 @@ retry:
 	isDirty := false
 	for snapname, snapinfo := range snap {
 		if _, ok := cvr.Status.Snapshots[snapname]; !ok && isAdd {
+			if cvr.Status.Snapshots == nil {
+				cvr.Status.Snapshots = map[string]apis.CStorSnapshotInfo{}
+			}
 			cvr.Status.Snapshots[snapname] = snapinfo
 			isDirty = true
 		} else if !isAdd {
@@ -249,10 +257,15 @@ func getCVRFromReplicaID(cvrlist *apis.CStorVolumeReplicaList, replicaid string)
 	return apis.CStorVolumeReplica{}, errors.Errorf("no CVR found for replica=%v", replicaid)
 }
 
-func parseSnapshot(snaplist []snapshotInfo) map[string]apis.CStorSnapshotInfo {
+func parseSnapshot(snaplist []snapshotInfo) (map[string]apis.CStorSnapshotInfo, error) {
 	smap := map[string]apis.CStorSnapshotInfo{}
 
 	for _, v := range snaplist {
+		if len(v.Props.Error) != 0 {
+			err := errors.Errorf("failed to fetch snapshot.. %s", v.Props.Error)
+			return smap, err
+		}
+
 		cratio, err := strconv.ParseInt(v.Props.Compressratio, 10, 64)
 		if err != nil {
 			klog.Warningf("failed to convert compressratio=%s for snap=%s. using default=0 err=%s", v.Props.Compressratio, v.Name, err)
@@ -269,7 +282,7 @@ func parseSnapshot(snaplist []snapshotInfo) map[string]apis.CStorSnapshotInfo {
 
 		smap[v.Name] = rsnap
 	}
-	return smap
+	return smap, nil
 }
 
 func getCVRList(client clientset.Interface, volume string) (*apis.CStorVolumeReplicaList, error) {
