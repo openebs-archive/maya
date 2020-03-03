@@ -396,7 +396,7 @@ func CreateVolumeRestore(rst *apis.CStorRestore) error {
 			"rname", rst.Spec.VolumeName,
 		)
 	} else {
-		alertlog.Logger.Errorw("",
+		alertlog.Logger.Infow("",
 			"eventcode", "cstor.volume.restore.success",
 			"msg", "Successfully restored CStor volume",
 			"rname", rst.Spec.VolumeName,
