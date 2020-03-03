@@ -486,7 +486,7 @@ func (wh *webhook) validateCVC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRe
 	if req.Operation == v1beta1.Update {
 		return wh.validateCVCUpdateRequest(req, getCVCObject)
 	}
-	klog.V(2).Info("Admission wehbook for CVC module not " +
+	klog.V(4).Info("Admission wehbook for CVC module not " +
 		"configured for operations other than UPDATE")
 	return response
 }

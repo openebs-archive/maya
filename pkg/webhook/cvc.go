@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The OpenEBS Authors.
+Copyright 2020 The OpenEBS Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -66,7 +66,8 @@ func validateCVCSpecChanges(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
 	validateFuncList := []validateFunc{validateReplicaCount,
 		validatePoolListChanges,
 		validateReplicaScaling,
-		validateStatusPoolList}
+		validateStatusPoolList,
+	}
 	for _, f := range validateFuncList {
 		err := f(cvcOldObj, cvcNewObj)
 		if err != nil {
@@ -102,7 +103,8 @@ func validateReplicaCount(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
 	return nil
 }
 
-// validatePoolListChanges returns error if user modified only the pool names
+// validatePoolListChanges returns error if user modified existing pool names with new
+// pool name(s) or if user performed more than one replica scale down at a time
 func validatePoolListChanges(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
 	oldDesiredPoolNames := cvc.GetDesiredReplicaPoolNames(cvcOldObj)
 	newDesiredPoolNames := cvc.GetDesiredReplicaPoolNames(cvcNewObj)
@@ -132,7 +134,9 @@ func validatePoolListChanges(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error 
 }
 
 // validateReplicaScaling returns error if user updated pool list when scaling is
-// already in progress
+// already in progress.
+// Note: User can perform scaleup of multiple replicas by adding multiple pool
+//       names at time but not by updating CVC pool names with multiple edits.
 func validateReplicaScaling(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
 	if isScalingInProgress(cvcOldObj) {
 		// if old and new CVC has same count of pools then return true else
@@ -144,8 +148,10 @@ func validateReplicaScaling(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
 	return nil
 }
 
-// validateStatusPoolList return error if pools under status doesn't exist under
-// existing spec else return nil
+// validateStatusPoolList return error if content of pools under status doesn't
+// match with desired pool names(spec.poolNames)
+// NOTE: This validation is only to reject invalid changes of pool information
+// on CVC status.
 func validateStatusPoolList(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
 	replicaPoolNames := []string{}
 	if len(cvcOldObj.Spec.Policy.ReplicaPoolInfo) == 0 &&
@@ -159,8 +165,7 @@ func validateStatusPoolList(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
 	// get pool names which are in status but not under spec
 	invalidStatusPoolNames := util.ListDiff(cvcNewObj.Status.PoolInfo, replicaPoolNames)
 	if len(invalidStatusPoolNames) > 0 {
-		return errors.Errorf(
-			"replica status pool names %v doesn't exist under spec pool list",
+		return errors.Errorf("invalid poolInfo %v changes on CVC status",
 			invalidStatusPoolNames,
 		)
 	}
@@ -175,7 +180,7 @@ func validatePoolNames(cvcObj *apis.CStorVolumeClaim) error {
 	// Check repeatition of pool names under Spec of CVC Object
 	if !util.IsUniqueList(replicaPoolNames) {
 		return errors.Errorf(
-			"repeatition of pool names %v under spec of cvc %s",
+			"duplicate pool names %v found under spec of cvc %s",
 			replicaPoolNames,
 			cvcObj.Name,
 		)
@@ -183,7 +188,7 @@ func validatePoolNames(cvcObj *apis.CStorVolumeClaim) error {
 	// Check repeatition of pool names under Status of CVC Object
 	if !util.IsUniqueList(cvcObj.Status.PoolInfo) {
 		return errors.Errorf(
-			"repeatition of pool names %v under status of cvc %s",
+			"duplicate pool names %v found under status of cvc %s",
 			cvcObj.Status.PoolInfo,
 			cvcObj.Name,
 		)
