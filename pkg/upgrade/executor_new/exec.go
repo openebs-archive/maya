@@ -13,28 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package executor
 
 import (
 	upgrader "github.com/openebs/maya/pkg/upgrade/upgrader_new"
 )
-
-// UpgradeOptions ...
-type UpgradeOptions func(*upgrader.ResourcePatch) upgrader.Upgrader
-
-// Upgrade ...
-type Upgrade struct {
-	UpgradeMap map[string]UpgradeOptions
-}
-
-// NewUpgrade ...
-func NewUpgrade() *Upgrade {
-	u := &Upgrade{
-		UpgradeMap: map[string]UpgradeOptions{},
-	}
-	u.RegisterAll()
-	return u
-}
 
 // Exec ...
 func Exec(fromVersion, toVersion, kind, name,
@@ -47,8 +31,8 @@ func Exec(fromVersion, toVersion, kind, name,
 		upgrader.WithBaseURL(urlprefix),
 		upgrader.WithImageTag(imagetag),
 	)
-	u := NewUpgrade()
-	err := u.UpgradeMap[kind](rp).Upgrade()
+	u := upgrader.NewUpgrade()
+	err := u.UpgradeMap[kind](rp, u.Client).Upgrade()
 	if err != nil {
 		return err
 	}

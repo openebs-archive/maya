@@ -13,10 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package upgrader
 
 import (
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	// apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	apis "github.com/openebs/api/pkg/apis/cstor/v1"
 	"github.com/openebs/maya/pkg/upgrade/patch"
 	"github.com/openebs/maya/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -28,6 +30,7 @@ type CSPIPatch struct {
 	Namespace string
 	Deploy    *patch.Deployment
 	CSPI      *patch.CSPI
+	*Client
 }
 
 // CSPIPatchOptions ...
@@ -37,6 +40,13 @@ type CSPIPatchOptions func(*CSPIPatch)
 func WithCSPIResorcePatch(r *ResourcePatch) CSPIPatchOptions {
 	return func(obj *CSPIPatch) {
 		obj.ResourcePatch = r
+	}
+}
+
+// WithCSPIClient ...
+func WithCSPIClient(c *Client) CSPIPatchOptions {
+	return func(obj *CSPIPatch) {
+		obj.Client = c
 	}
 }
 

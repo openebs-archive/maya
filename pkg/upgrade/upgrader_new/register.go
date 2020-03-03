@@ -13,11 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package executor
 
-import (
-	upgrader "github.com/openebs/maya/pkg/upgrade/upgrader_new"
-)
+package upgrader
 
 func (u *Upgrade) registerUpgrade(kind string, obj UpgradeOptions) *Upgrade {
 	u.UpgradeMap[kind] = obj
@@ -34,17 +31,19 @@ func (u *Upgrade) RegisterAll() *Upgrade {
 }
 
 // RegisterCstorPoolInstance ....
-func RegisterCstorPoolInstance(r *upgrader.ResourcePatch) upgrader.Upgrader {
-	obj := upgrader.NewCSPIPatch(
-		upgrader.WithCSPIResorcePatch(r),
+func RegisterCstorPoolInstance(r *ResourcePatch, c *Client) Upgrader {
+	obj := NewCSPIPatch(
+		WithCSPIResorcePatch(r),
+		WithCSPIClient(c),
 	)
 	return obj
 }
 
 // RegisterCstorPoolCluster ...
-func RegisterCstorPoolCluster(r *upgrader.ResourcePatch) upgrader.Upgrader {
-	obj := upgrader.NewCSPCPatch(
-		upgrader.WithCSPCResorcePatch(r),
+func RegisterCstorPoolCluster(r *ResourcePatch, c *Client) Upgrader {
+	obj := NewCSPCPatch(
+		WithCSPCResorcePatch(r),
+		WithCSPCClient(c),
 	)
 	return obj
 }

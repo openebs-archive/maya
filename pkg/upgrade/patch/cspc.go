@@ -13,13 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package patch
 
 import (
 	"strings"
 
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
+	apis "github.com/openebs/api/pkg/apis/cstor/v1"
+	clientset "github.com/openebs/api/pkg/client/clientset/versioned"
+	//apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,6 +33,7 @@ import (
 type CSPC struct {
 	Object *apis.CStorPoolCluster
 	Data   []byte
+	Client *clientset.Clientset
 }
 
 // NewCSPC ...
@@ -57,7 +61,6 @@ func (c *CSPC) PreChecks(from, to string) error {
 // Patch ...
 func (c *CSPC) Patch(from, to string) error {
 	klog.Info("patching cspc ", c.Object.Name)
-	client := cspc.NewKubeClient(cspc.WithKubeConfigPath("/var/run/kubernetes/admin.kubeconfig"))
 	version := c.Object.VersionDetails.Desired
 	if version == to {
 		klog.Infof("cspc already in %s version", to)
@@ -65,7 +68,7 @@ func (c *CSPC) Patch(from, to string) error {
 	}
 	if version == from {
 		patch := c.Data
-		_, err := client.WithNamespace(c.Object.Namespace).Patch(
+		_, err := c.Client.CstorV1().CStorPoolClusters(c.Object.Namespace).Patch(
 			c.Object.Name,
 			types.MergePatchType,
 			[]byte(patch),
@@ -84,11 +87,11 @@ func (c *CSPC) Patch(from, to string) error {
 
 // Get ...
 func (c *CSPC) Get(name, namespace string) error {
-	cspc, err := cspc.NewKubeClient(cspc.WithKubeConfigPath("/var/run/kubernetes/admin.kubeconfig")).WithNamespace(namespace).
+	cspcObj, err := c.Client.CstorV1().CStorPoolClusters(namespace).
 		Get(name, metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "failed to get cspc %s in %s namespace", name, namespace)
 	}
-	c.Object = cspc
+	c.Object = cspcObj
 	return nil
 }

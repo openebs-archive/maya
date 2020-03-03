@@ -97,6 +97,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:1ba1d79f2810270045c328ae5d674321db34e3aae468eb4233883b473c5c0467"
+  name = "github.com/golang/glog"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
+
+[[projects]]
+  branch = "master"
   digest = "1:b7cb6054d3dff43b38ad2e92492f220f57ae6087ee797dca298139776749ace8"
   name = "github.com/golang/groupcache"
   packages = ["lru"]
@@ -329,6 +337,25 @@
   pruneopts = "UT"
   revision = "bdebf9e0ece900259084cfa4121b97ce1a540939"
   version = "v1.7.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:f7c02a02c2b8cc9eb7f0ffe65783ce1c5af6636be42bcea5f2baf5ae39a886ff"
+  name = "github.com/openebs/api"
+  packages = [
+    "pkg/apis/cstor",
+    "pkg/apis/cstor/v1",
+    "pkg/apis/openebs.io",
+    "pkg/apis/openebs.io/v1alpha1",
+    "pkg/apis/types",
+    "pkg/client/clientset/versioned",
+    "pkg/client/clientset/versioned/scheme",
+    "pkg/client/clientset/versioned/typed/cstor/v1",
+    "pkg/client/clientset/versioned/typed/openebs.io/v1alpha1",
+    "pkg/util",
+  ]
+  pruneopts = "UT"
+  revision = "8d473e5ce2f6601232ca9980655607a764156b77"
 
 [[projects]]
   digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
@@ -1118,6 +1145,7 @@
     "github.com/Masterminds/sprig",
     "github.com/docker/go-units",
     "github.com/ghodss/yaml",
+    "github.com/golang/glog",
     "github.com/golang/protobuf/proto",
     "github.com/google/gofuzz",
     "github.com/hashicorp/hcl",
@@ -1126,6 +1154,7 @@
     "github.com/mitchellh/mapstructure",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/openebs/api/pkg/client/clientset/versioned",
     "github.com/pkg/errors",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/prometheus/client_golang/prometheus/promhttp",
