@@ -69,6 +69,9 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 					Name:      "cvc1",
 					Namespace: "openebs",
 				},
+				Status: apis.CStorVolumeClaimStatus{
+					Phase: apis.CStorVolumeClaimPhaseBound,
+				},
 			},
 			expectedRsp: false,
 			getCVCObj:   fakeGetCVCError,
@@ -82,6 +85,9 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				Spec: apis.CStorVolumeClaimSpec{
 					ReplicaCount: 3,
 				},
+				Status: apis.CStorVolumeClaimStatus{
+					Phase: apis.CStorVolumeClaimPhaseBound,
+				},
 			},
 			requestedObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
@@ -90,6 +96,9 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeClaimSpec{
 					ReplicaCount: 4,
+				},
+				Status: apis.CStorVolumeClaimStatus{
+					Phase: apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			expectedRsp: false,
@@ -121,6 +130,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 					},
 				},
 				Status: apis.CStorVolumeClaimStatus{
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 					PoolInfo: []string{"pool1", "pool2", "pool3"},
 				},
 			},
@@ -145,6 +155,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2", "pool3"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			requestedObj: &apis.CStorVolumeClaim{
@@ -165,6 +176,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2", "pool3"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			expectedRsp: false,
@@ -188,6 +200,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2", "pool3"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			requestedObj: &apis.CStorVolumeClaim{
@@ -207,6 +220,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2", "pool3"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			expectedRsp: false,
@@ -230,6 +244,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			requestedObj: &apis.CStorVolumeClaim{
@@ -250,6 +265,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			expectedRsp: false,
@@ -273,6 +289,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2", "pool3"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			requestedObj: &apis.CStorVolumeClaim{
@@ -290,12 +307,13 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2", "pool3"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			expectedRsp: false,
 			getCVCObj:   getCVCObject,
 		},
-		"When Status Was Updated With Non Spec Pool Names": {
+		"When ScaleUp was Performed Before CVC In Bound State": {
 			existingObj: &apis.CStorVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cvc8",
@@ -303,16 +321,6 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Spec: apis.CStorVolumeClaimSpec{
 					ReplicaCount: 3,
-					Policy: apis.CStorVolumePolicySpec{
-						ReplicaPoolInfo: []apis.ReplicaPoolInfo{
-							apis.ReplicaPoolInfo{PoolName: "pool1"},
-							apis.ReplicaPoolInfo{PoolName: "pool2"},
-							apis.ReplicaPoolInfo{PoolName: "pool3"},
-						},
-					},
-				},
-				Status: apis.CStorVolumeClaimStatus{
-					PoolInfo: []string{"pool1", "pool2", "pool3"},
 				},
 			},
 			requestedObj: &apis.CStorVolumeClaim{
@@ -329,41 +337,6 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 							apis.ReplicaPoolInfo{PoolName: "pool3"},
 						},
 					},
-				},
-				Status: apis.CStorVolumeClaimStatus{
-					PoolInfo: []string{"pool1", "pool2", "pool3", "pool4"},
-				},
-			},
-			expectedRsp: false,
-			getCVCObj:   getCVCObject,
-		},
-		"When Spec & Status Pool Names Was Updated By Controller With Invalid Pool Names Under Status": {
-			existingObj: &apis.CStorVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc9",
-					Namespace: "openebs",
-				},
-				Spec: apis.CStorVolumeClaimSpec{
-					ReplicaCount: 3,
-				},
-			},
-			requestedObj: &apis.CStorVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cvc9",
-					Namespace: "openebs",
-				},
-				Spec: apis.CStorVolumeClaimSpec{
-					ReplicaCount: 3,
-					Policy: apis.CStorVolumePolicySpec{
-						ReplicaPoolInfo: []apis.ReplicaPoolInfo{
-							apis.ReplicaPoolInfo{PoolName: "pool1"},
-							apis.ReplicaPoolInfo{PoolName: "pool2"},
-							apis.ReplicaPoolInfo{PoolName: "pool3"},
-						},
-					},
-				},
-				Status: apis.CStorVolumeClaimStatus{
-					PoolInfo: []string{"pool1", "pool2", "pool3", "pool4"},
 				},
 			},
 			expectedRsp: false,
@@ -385,6 +358,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			requestedObj: &apis.CStorVolumeClaim{
@@ -404,6 +378,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			expectedRsp: true,
@@ -426,6 +401,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			requestedObj: &apis.CStorVolumeClaim{
@@ -443,6 +419,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			expectedRsp: true,
@@ -465,6 +442,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			requestedObj: &apis.CStorVolumeClaim{
@@ -483,6 +461,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			expectedRsp: true,
@@ -504,6 +483,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			requestedObj: &apis.CStorVolumeClaim{
@@ -521,6 +501,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			expectedRsp: true,
@@ -543,6 +524,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			requestedObj: &apis.CStorVolumeClaim{
@@ -562,6 +544,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			expectedRsp: false,
@@ -585,6 +568,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			requestedObj: &apis.CStorVolumeClaim{
@@ -604,6 +588,7 @@ func TestValidateCVCUpdateRequest(t *testing.T) {
 				},
 				Status: apis.CStorVolumeClaimStatus{
 					PoolInfo: []string{"pool1", "pool2", "pool2"},
+					Phase:    apis.CStorVolumeClaimPhaseBound,
 				},
 			},
 			expectedRsp: false,

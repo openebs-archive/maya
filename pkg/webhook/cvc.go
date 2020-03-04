@@ -66,7 +66,6 @@ func validateCVCSpecChanges(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
 	validateFuncList := []validateFunc{validateReplicaCount,
 		validatePoolListChanges,
 		validateReplicaScaling,
-		validateStatusPoolList,
 	}
 	for _, f := range validateFuncList {
 		err := f(cvcOldObj, cvcNewObj)
@@ -106,12 +105,14 @@ func validateReplicaCount(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
 // validatePoolListChanges returns error if user modified existing pool names with new
 // pool name(s) or if user performed more than one replica scale down at a time
 func validatePoolListChanges(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
-	oldDesiredPoolNames := cvc.GetDesiredReplicaPoolNames(cvcOldObj)
+	// Check the new CVC spec changes with old CVC status(Comparing with status
+	// is more appropriate than comparing with spec)
+	oldCurrentPoolNames := cvcOldObj.Status.PoolInfo
 	newDesiredPoolNames := cvc.GetDesiredReplicaPoolNames(cvcNewObj)
-	modifiedPoolNames := util.ListDiff(oldDesiredPoolNames, newDesiredPoolNames)
-	if len(newDesiredPoolNames) >= len(oldDesiredPoolNames) {
-		// If no.of pools on new spec >= no.of pools in old spec(scaleup as well
-		// as migration then there all the pools in old spec must present in new
+	modifiedPoolNames := util.ListDiff(oldCurrentPoolNames, newDesiredPoolNames)
+	if len(newDesiredPoolNames) >= len(oldCurrentPoolNames) {
+		// If no.of pools on new spec >= no.of pools in old status(scaleup as well
+		// as migration case then all the pools in old status must present in new
 		// spec)
 		if len(modifiedPoolNames) > 0 {
 			return errors.Errorf(
@@ -120,13 +121,30 @@ func validatePoolListChanges(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error 
 			)
 		}
 	} else {
-		// If no.of pools in new spec < no.of pools in old spec(scale down
+		// If no.of pools in new spec < no.of pools in old status(scale down
 		// volume replica case) then there should at most one change in
 		// oldSpec.PoolInfo - newSpec.PoolInfo
 		if len(modifiedPoolNames) > 1 {
 			return errors.Errorf(
 				"Can't perform more than one replica scale down requested scale down count %d",
 				len(modifiedPoolNames),
+			)
+		}
+	}
+	// Reject the request if someone perform scaling when CVC is not in Bound
+	// state
+	// NOTE: We should not reject the controller request which Updates status as
+	// Bound as well as pool info in status and spec
+	// TODO: Make below check as cvcOldObj.ISBound()
+	// If CVC Status is not bound then reject
+	if cvcOldObj.Status.Phase != apis.CStorVolumeClaimPhaseBound {
+		// If controller is updating pool info then new CVC will be in bound state
+		if cvcNewObj.Status.Phase != apis.CStorVolumeClaimPhaseBound &&
+			// Performed scaling operation on CVC
+			len(oldCurrentPoolNames) != len(newDesiredPoolNames) {
+			return errors.Errorf(
+				"Can't perform scaling of volume replicas when CVC is not in %s state",
+				apis.CStorVolumeClaimPhaseBound,
 			)
 		}
 	}
@@ -144,30 +162,6 @@ func validateReplicaScaling(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
 		if len(cvcOldObj.Spec.Policy.ReplicaPoolInfo) != len(cvcNewObj.Spec.Policy.ReplicaPoolInfo) {
 			return errors.Errorf("scaling of CVC %s is already in progress", cvcOldObj.Name)
 		}
-	}
-	return nil
-}
-
-// validateStatusPoolList return error if content of pools under status doesn't
-// match with desired pool names(spec.poolNames)
-// NOTE: This validation is only to reject invalid changes of pool information
-// on CVC status.
-func validateStatusPoolList(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error {
-	replicaPoolNames := []string{}
-	if len(cvcOldObj.Spec.Policy.ReplicaPoolInfo) == 0 &&
-		len(cvcOldObj.Status.PoolInfo) == 0 {
-		// Might be a case where controller updating Bound status along with
-		// spec and status pool names
-		replicaPoolNames = cvc.GetDesiredReplicaPoolNames(cvcNewObj)
-	} else {
-		replicaPoolNames = cvc.GetDesiredReplicaPoolNames(cvcOldObj)
-	}
-	// get pool names which are in status but not under spec
-	invalidStatusPoolNames := util.ListDiff(cvcNewObj.Status.PoolInfo, replicaPoolNames)
-	if len(invalidStatusPoolNames) > 0 {
-		return errors.Errorf("invalid poolInfo %v changes on CVC status",
-			invalidStatusPoolNames,
-		)
 	}
 	return nil
 }
