@@ -129,6 +129,16 @@ func (b *Builder) WithLocalHostPathFormat(path, fstype string) *Builder {
 	return b
 }
 
+// WithPersistentVolumeSource sets the volume source field of PV with provided source
+func (b *Builder) WithPersistentVolumeSource(source *corev1.PersistentVolumeSource) *Builder {
+	if source == nil {
+		b.errs = append(b.errs, errors.New("failed to build PV object: missing PV source"))
+		return b
+	}
+	b.pv.object.Spec.PersistentVolumeSource = *source
+	return b
+}
+
 // WithNodeAffinity sets the NodeAffinity field of PV with provided node name
 func (b *Builder) WithNodeAffinity(nodeName string) *Builder {
 	if len(nodeName) == 0 {
