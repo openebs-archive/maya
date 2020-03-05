@@ -110,6 +110,25 @@ func validatePoolListChanges(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error 
 	oldCurrentPoolNames := cvcOldObj.Status.PoolInfo
 	newDesiredPoolNames := cvc.GetDesiredReplicaPoolNames(cvcNewObj)
 	modifiedPoolNames := util.ListDiff(oldCurrentPoolNames, newDesiredPoolNames)
+	// Reject the request if someone perform scaling when CVC is not in Bound
+	// state
+	// NOTE: We should not reject the controller request which Updates status as
+	// Bound as well as pool info in status and spec
+	// TODO: Make below check as cvcOldObj.ISBound()
+	// If CVC Status is not bound then reject
+	if cvcOldObj.Status.Phase != apis.CStorVolumeClaimPhaseBound {
+		// If controller is updating pool info then new CVC will be in bound state
+		if cvcNewObj.Status.Phase != apis.CStorVolumeClaimPhaseBound &&
+			// Performed scaling operation on CVC
+			len(oldCurrentPoolNames) != len(newDesiredPoolNames) {
+			return errors.Errorf(
+				"Can't perform scaling of volume replicas when CVC is not in %s state",
+				apis.CStorVolumeClaimPhaseBound,
+			)
+		}
+	}
+
+	// Validing Scaling process
 	if len(newDesiredPoolNames) >= len(oldCurrentPoolNames) {
 		// If no.of pools on new spec >= no.of pools in old status(scaleup as well
 		// as migration case then all the pools in old status must present in new
@@ -128,23 +147,6 @@ func validatePoolListChanges(cvcOldObj, cvcNewObj *apis.CStorVolumeClaim) error 
 			return errors.Errorf(
 				"Can't perform more than one replica scale down requested scale down count %d",
 				len(modifiedPoolNames),
-			)
-		}
-	}
-	// Reject the request if someone perform scaling when CVC is not in Bound
-	// state
-	// NOTE: We should not reject the controller request which Updates status as
-	// Bound as well as pool info in status and spec
-	// TODO: Make below check as cvcOldObj.ISBound()
-	// If CVC Status is not bound then reject
-	if cvcOldObj.Status.Phase != apis.CStorVolumeClaimPhaseBound {
-		// If controller is updating pool info then new CVC will be in bound state
-		if cvcNewObj.Status.Phase != apis.CStorVolumeClaimPhaseBound &&
-			// Performed scaling operation on CVC
-			len(oldCurrentPoolNames) != len(newDesiredPoolNames) {
-			return errors.Errorf(
-				"Can't perform scaling of volume replicas when CVC is not in %s state",
-				apis.CStorVolumeClaimPhaseBound,
 			)
 		}
 	}
