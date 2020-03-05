@@ -39,7 +39,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 	name := opts.PVName
 	stgType := volumeConfig.GetStorageType()
 	saName := getOpenEBSServiceAccountName()
-	shared := volumeConfig.GetSharedMountValue()
+	isShared := volumeConfig.GetSharedMountValue()
 
 	path, err := volumeConfig.GetPath()
 	if err != nil {
@@ -107,7 +107,7 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 		WithLocalHostDirectory(path).
 		WithNodeAffinity(nodeHostname)
 
-	if shared == true {
+	if isShared == true {
 		pvBuilder.WithAllowedTopologies(opts.AllowedTopologies)
 	}
 
