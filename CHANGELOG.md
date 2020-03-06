@@ -42,3 +42,27 @@ v1.7.0-RC1 / 2020-02-07
   [#1603](https://github.com/openebs/maya/pull/1603),
   [#1601](https://github.com/openebs/maya/pull/1601),
   [@mittachaitu](https://github.com/mittachaitu))
+
+
+v1.8.0-RC1 / 2020-03-06
+========================
+
+ * feat(validation): add webhook validations for CVC replica scale  ([#1621](https://github.com/openebs/maya/pull/1621),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * fix(backup, cstor): fetching correct snap name in case of base backup failure ([#1622](https://github.com/openebs/maya/pull/1622),
+ [@mynktl](https://github.com/mynktl))
+ * refact(upgrade): add support for 1.8.0 upgrades ([#1624](https://github.com/openebs/maya/pull/1624),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * chore(version): bump master to 1.8.0 and Go version to 1.12.16 ([#1614](https://github.com/openebs/maya/pull/1614),
+ [@prateekpandey14](https://github.com/prateekpandey14))
+ * feat(csp, poolROThreshold): setting default poolROThreshold to 85 for CSP ([#1623](https://github.com/openebs/maya/pull/1623),
+ [@mynktl](https://github.com/mynktl))
+ * feat(spc,csp): adding support for pool ReadOnly Threshold limit ([#1609](https://github.com/openebs/maya/pull/1609),
+ [@mynktl](https://github.com/mynktl))
+ * feat(cvc-operator): add automatic scaling of volumereplicas for CSI volumes ([#1613](https://github.com/openebs/maya/pull/1613),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * fix(exporter): handle pool sync time metrics collection gracefully ([#1616](https://github.com/openebs/maya/pull/1616),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * fix(travis): add check to verify existence of udev ([#1619](https://github.com/openebs/maya/pull/1619),
+ [@mittachaitu](https://github.com/mittachaitu))
+
