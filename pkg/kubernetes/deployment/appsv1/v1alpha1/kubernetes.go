@@ -17,8 +17,9 @@ package v1alpha1
 
 import (
 	"encoding/json"
-	"github.com/openebs/maya/pkg/debug"
 	"strings"
+
+	"github.com/openebs/maya/pkg/debug"
 
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	"github.com/pkg/errors"
@@ -56,6 +57,14 @@ type listFn func(
 // createFn is a typed function that abstracts
 // creating a deployment instance in kubernetes cluster
 type createFn func(
+	cli *kubernetes.Clientset,
+	namespace string,
+	deploy *appsv1.Deployment,
+) (*appsv1.Deployment, error)
+
+// updateFn is a typed function that abstracts
+// updating a deployment instance in kubernetes cluster
+type updateFn func(
 	cli *kubernetes.Clientset,
 	namespace string,
 	deploy *appsv1.Deployment,
@@ -137,6 +146,17 @@ func defaultCreate(
 	return cli.AppsV1().Deployments(namespace).Create(deploy)
 }
 
+// defaultUpdate is the default implementation to update
+// a deployment instance in kubernetes cluster
+func defaultUpdate(
+	cli *kubernetes.Clientset,
+	namespace string,
+	deploy *appsv1.Deployment,
+) (*appsv1.Deployment, error) {
+
+	return cli.AppsV1().Deployments(namespace).Update(deploy)
+}
+
 // defaultDel is the default implementation to delete a
 // deployment instance in kubernetes cluster
 func defaultDel(
@@ -193,6 +213,7 @@ type Kubeclient struct {
 	get                 getFn
 	list                listFn
 	create              createFn
+	update              updateFn
 	del                 deleteFn
 	patch               patchFn
 	rolloutStatus       rolloutStatusFn
@@ -221,6 +242,9 @@ func (k *Kubeclient) withDefaults() {
 	}
 	if k.create == nil {
 		k.create = defaultCreate
+	}
+	if k.update == nil {
+		k.update = defaultUpdate
 	}
 	if k.del == nil {
 		k.del = defaultDel
@@ -392,6 +416,30 @@ func (k *Kubeclient) Create(deployment *appsv1.Deployment) (*appsv1.Deployment, 
 	}
 
 	return k.create(cli, k.namespace, deployment)
+}
+
+// Update updates a deployment in specified namespace in kubernetes cluster
+func (k *Kubeclient) Update(deployment *appsv1.Deployment) (*appsv1.Deployment, error) {
+
+	if debug.EI.IsDeploymentCreateErrorInjected() {
+		return nil, errors.New("Deployment update error via injection")
+	}
+
+	if deployment == nil {
+		return nil, errors.New("failed to update deployment: nil deployment object")
+	}
+
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to update deployment {%s} in namespace {%s}",
+			deployment.Name,
+			deployment.Namespace,
+		)
+	}
+
+	return k.update(cli, k.namespace, deployment)
 }
 
 // RolloutStatusf returns deployment's rollout status for given name
