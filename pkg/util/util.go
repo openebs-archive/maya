@@ -251,3 +251,17 @@ func RemoveItemFromSlice(slice []string, str string) []string {
 	}
 	return slice
 }
+
+// IsUniqueList returns true if values in list are not repeated else return
+// false
+func IsUniqueList(list []string) bool {
+	listMap := map[string]bool{}
+
+	for _, str := range list {
+		if _, ok := listMap[str]; ok {
+			return false
+		}
+		listMap[str] = true
+	}
+	return true
+}

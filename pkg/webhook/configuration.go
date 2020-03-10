@@ -73,6 +73,17 @@ var (
 	transformSvc    = []transformSvcFunc{}
 	transformConfig = []transformConfigFunc{
 		addCSPCDeleteRule,
+		addCVCWithUpdateRule,
+	}
+	cvcRuleWithOperations = v1beta1.RuleWithOperations{
+		Operations: []v1beta1.OperationType{
+			v1beta1.Update,
+		},
+		Rule: v1beta1.Rule{
+			APIGroups:   []string{"*"},
+			APIVersions: []string{"*"},
+			Resources:   []string{"cstorvolumeclaims"},
+		},
 	}
 )
 
@@ -133,9 +144,9 @@ func createWebhookService(
 	return err
 }
 
-// createAdmissionService creates our ValidatingWebhookConfiguration resource
+// createValidatingWebhookConfig creates our ValidatingWebhookConfiguration resource
 // if it does not exist.
-func createAdmissionService(
+func createValidatingWebhookConfig(
 	ownerReference metav1.OwnerReference,
 	validatorWebhook string,
 	namespace string,
@@ -160,17 +171,18 @@ func createAdmissionService(
 
 	webhookHandler := v1beta1.ValidatingWebhook{
 		Name: webhookHandlerName,
-		Rules: []v1beta1.RuleWithOperations{{
-			Operations: []v1beta1.OperationType{
-				v1beta1.Create,
-				v1beta1.Delete,
+		Rules: []v1beta1.RuleWithOperations{
+			{
+				Operations: []v1beta1.OperationType{
+					v1beta1.Create,
+					v1beta1.Delete,
+				},
+				Rule: v1beta1.Rule{
+					APIGroups:   []string{"*"},
+					APIVersions: []string{"*"},
+					Resources:   []string{"persistentvolumeclaims"},
+				},
 			},
-			Rule: v1beta1.Rule{
-				APIGroups:   []string{"*"},
-				APIVersions: []string{"*"},
-				Resources:   []string{"persistentvolumeclaims"},
-			},
-		},
 			{
 				Operations: []v1beta1.OperationType{
 					v1beta1.Create,
@@ -182,7 +194,9 @@ func createAdmissionService(
 					APIVersions: []string{"*"},
 					Resources:   []string{"cstorpoolclusters"},
 				},
-			}},
+			},
+			cvcRuleWithOperations,
+		},
 		ClientConfig: v1beta1.WebhookClientConfig{
 			Service: &v1beta1.ServiceReference{
 				Namespace: namespace,
@@ -356,7 +370,7 @@ func InitValidationServer(
 		)
 	}
 
-	validatorErr := createAdmissionService(
+	validatorErr := createValidatingWebhookConfig(
 		ownerReference,
 		validatorWebhook,
 		openebsNamespace,
@@ -455,6 +469,17 @@ func addCSPCDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
 				v1beta1.Delete,
 			)
 		}
+	}
+}
+
+// addCVCWithUpdateRule adds the CVC webhook config with UPDATE operation if coming from
+// previous versions
+func addCVCWithUpdateRule(config *v1beta1.ValidatingWebhookConfiguration) {
+	if config.Labels[string(apis.OpenEBSVersionKey)] < "1.8.0" {
+		// Currenly we have only one webhook validation so CVC rule in under
+		// same webhook.
+		// https://github.com/openebs/maya/blob/9417d96abdaf41a2dbfcdbfb113fb73c83e6cf42/pkg/webhook/configuration.go#L212
+		config.Webhooks[0].Rules = append(config.Webhooks[0].Rules, cvcRuleWithOperations)
 	}
 }
 

@@ -38,6 +38,10 @@ type cspDeployPatchDetails struct {
 	BaseDir, PoolMgmtImage, MExporterImage, SPCName string
 }
 
+type cspPatchDetails struct {
+	CurrentVersion, UpgradeVersion string
+}
+
 func getCSPDeployPatchDetails(
 	d *appsv1.Deployment,
 ) (*cspDeployPatchDetails, error) {
@@ -118,14 +122,18 @@ func getCSPDeployment(cspName, openebsNamespace string) (*appsv1.Deployment, err
 }
 
 func patchCSP(cspObj *apis.CStorPool) error {
+	patchDetails := cspPatchDetails{
+		CurrentVersion: currentVersion,
+		UpgradeVersion: upgradeVersion,
+	}
 	cspVersion := cspObj.Labels["openebs.io/version"]
 	if cspVersion == currentVersion {
 		tmpl, err := template.New("cspPatch").
-			Parse(templates.VersionDetailsPatch)
+			Parse(templates.CSPPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for csp patch")
 		}
-		err = tmpl.Execute(&buffer, upgradeVersion)
+		err = tmpl.Execute(&buffer, patchDetails)
 		if err != nil {
 			return errors.Wrapf(err, "failed to populate template for csp patch")
 		}

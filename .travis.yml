@@ -1,6 +1,5 @@
 sudo: required
 dist: xenial
-#group: edge
 env:
   global:
     - CHANGE_MINIKUBE_NONE_USER=true
@@ -12,8 +11,11 @@ env:
 services:
   - docker
 language: go
+cache:
+  directories:
+    - $HOME/.cache/go-build
 go:
-  - 1.12.10
+  - 1.12.16
 
 addons:
   apt:

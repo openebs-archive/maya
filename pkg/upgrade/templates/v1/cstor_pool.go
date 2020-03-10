@@ -17,6 +17,25 @@ limitations under the License.
 package templates
 
 var (
+	// CSPPatch is used for patching cstor pool
+	CSPPatch = `{
+    "metadata": {
+        "labels": {
+            "openebs.io/version": "{{.UpgradeVersion}}"
+        }
+    },{{if lt .CurrentVersion "1.8.0"}}
+    "spec": {
+        "poolSpec": {
+            "roThresholdLimit": 85
+        }
+    },{{end}}
+    "versionDetails": {
+      "desired": "{{.UpgradeVersion}}",
+      "status": {
+         "state": "ReconcilePending"
+      }
+    }
+}`
 	// CSPDeployPatch is used for patching cstor pool deployment
 	CSPDeployPatch = `{
   "metadata": {

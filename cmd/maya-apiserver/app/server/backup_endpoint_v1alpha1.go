@@ -217,9 +217,8 @@ func getLastBackupSnap(openebsClient *versioned.Clientset, bkp *v1alpha1.CStorBa
 				Labels:    bkp.Labels,
 			},
 			Spec: v1alpha1.CStorBackupSpec{
-				BackupName:   bkp.Spec.BackupName,
-				VolumeName:   bkp.Spec.VolumeName,
-				PrevSnapName: bkp.Spec.SnapName,
+				BackupName: bkp.Spec.BackupName,
+				VolumeName: bkp.Spec.VolumeName,
 			},
 		}
 
@@ -231,6 +230,7 @@ func getLastBackupSnap(openebsClient *versioned.Clientset, bkp *v1alpha1.CStorBa
 		klog.Infof("LastBackup resource created for backup:%s volume:%s", bk.Spec.BackupName, bk.Spec.VolumeName)
 		return "", nil
 	}
+
 	return b.Spec.PrevSnapName, nil
 }
 
