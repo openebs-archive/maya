@@ -420,7 +420,7 @@ func (j *jivaVolumeOptions) preupgrade(pvName, openebsNamespace string) error {
 	return nil
 }
 
-func scaleDownDeploy(name, namespace string) error {
+func scaleDownTargetDeploy(name, namespace string) error {
 	klog.Infof("Scaling down target deploy %s in %s namespace", name, namespace)
 	deployObj, err := deployClient.WithNamespace(namespace).Get(name)
 	if err != nil {
@@ -468,7 +468,7 @@ func (j *jivaVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 
 	statusObj.Phase = utask.StepErrored
 
-	err = scaleDownDeploy(j.controllerObj.name, j.ns)
+	err = scaleDownTargetDeploy(j.controllerObj.name, j.ns)
 	if err != nil {
 		statusObj.Message = "failed to scale down target depoyment"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
