@@ -19,31 +19,32 @@ package templates
 var (
 	// JivaTargetPatch is generic template for target patch
 	JivaTargetPatch = `{
-		"metadata": {
-		   "labels": {
-			 "openebs.io/version": "{{.UpgradeVersion}}"
-		   }
-		},
-		"spec": {
-		   "template": {
-			  "metadata": {
-				 "labels":{
-					"openebs.io/version": "{{.UpgradeVersion}}"
-				 }
-			  },
-			 "spec": {
-			   "containers": [
-				 {
-					"name": "{{.ControllerContainerName}}",
-					"image": "{{.ControllerImage}}:{{.ImageTag}}"
-				 },
-				 {
-					"name": "maya-volume-exporter",
-					"image": "{{.MExporterImage}}:{{.ImageTag}}"
-				 }
-			   ]
-			 }
-		   }
-		}
-	  }`
+  "metadata": {
+    "labels": {
+      "openebs.io/version": "{{.UpgradeVersion}}"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "template": {
+      "metadata": {
+        "labels": {
+          "openebs.io/version": "{{.UpgradeVersion}}"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "{{.ControllerContainerName}}",
+            "image": "{{.ControllerImage}}:{{.ImageTag}}"
+          },
+          {
+            "name": "maya-volume-exporter",
+            "image": "{{.MExporterImage}}:{{.ImageTag}}"
+          }
+        ]
+      }
+    }
+  }
+}`
 )

@@ -29,6 +29,7 @@ import (
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 	errors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -419,6 +420,45 @@ func (j *jivaVolumeOptions) preupgrade(pvName, openebsNamespace string) error {
 	return nil
 }
 
+func scaleDownTargetDeploy(name, namespace string) error {
+	klog.Infof("Scaling down target deploy %s in %s namespace", name, namespace)
+	deployObj, err := deployClient.WithNamespace(namespace).Get(name)
+	if err != nil {
+		return err
+	}
+	pvLabelKey := "openebs.io/persistent-volume"
+	pvName := deployObj.Labels[pvLabelKey]
+	controllerLabel := "openebs.io/controller=jiva-controller," +
+		pvLabelKey + "=" + pvName
+	var zero int32
+	deployObj.Spec.Replicas = &zero
+	_, err = deployClient.WithNamespace(namespace).Update(deployObj)
+	if err != nil {
+		return err
+	}
+	podList := &corev1.PodList{}
+	// Wait for up to 5 minutes for target pod to go away.
+	for i := 0; i < 60; i++ {
+		podList, err = podClient.WithNamespace(namespace).List(
+			metav1.ListOptions{
+				LabelSelector: controllerLabel,
+			})
+		if err != nil {
+			return err
+		}
+		if len(podList.Items) > 0 {
+			time.Sleep(time.Second * 5)
+		} else {
+			break
+		}
+	}
+	// If pod is not deleted within 5 minutes return error.
+	if len(podList.Items) > 0 {
+		return errors.Errorf("target pod still present")
+	}
+	return nil
+}
+
 func (j *jivaVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 	var err, uerr error
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.ReplicaUpgrade}
@@ -429,6 +469,18 @@ func (j *jivaVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 	}
 
 	statusObj.Phase = utask.StepErrored
+
+	err = scaleDownTargetDeploy(j.controllerObj.name, j.ns)
+	if err != nil {
+		statusObj.Message = "failed to scale down target depoyment"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
+		return errors.Wrap(err, "failed to scale down target depoyment")
+	}
+
 	// replica patch
 	err = patchReplica(j.replicaObj, j.ns)
 	if err != nil {
