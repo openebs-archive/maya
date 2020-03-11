@@ -421,7 +421,7 @@ func (k *Kubeclient) Create(deployment *appsv1.Deployment) (*appsv1.Deployment, 
 // Update updates a deployment in specified namespace in kubernetes cluster
 func (k *Kubeclient) Update(deployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 
-	if debug.EI.IsDeploymentCreateErrorInjected() {
+	if debug.EI.IsDeploymentUpdateErrorInjected() {
 		return nil, errors.New("Deployment update error via injection")
 	}
 

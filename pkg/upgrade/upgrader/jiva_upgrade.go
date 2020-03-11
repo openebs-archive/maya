@@ -437,6 +437,7 @@ func scaleDownTargetDeploy(name, namespace string) error {
 		return err
 	}
 	podList := &corev1.PodList{}
+	// Wait for up to 5 minutes targe pod to go away.
 	for i := 0; i < 60; i++ {
 		podList, err = podClient.WithNamespace(namespace).List(
 			metav1.ListOptions{
@@ -451,6 +452,7 @@ func scaleDownTargetDeploy(name, namespace string) error {
 			break
 		}
 	}
+	// If pod is not deleted within 5 minutes return error.
 	if len(podList.Items) > 0 {
 		return errors.Errorf("target pod still present")
 	}
