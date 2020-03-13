@@ -19,6 +19,7 @@ package tests
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -36,6 +37,7 @@ import (
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	node "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
+	pv "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
@@ -77,6 +79,7 @@ type Operations struct {
 	PodClient      *pod.KubeClient
 	SCClient       *sc.Kubeclient
 	PVCClient      *pvc.Kubeclient
+	PVClient       *pv.Kubeclient
 	NSClient       *ns.Kubeclient
 	SnapClient     *snap.Kubeclient
 	CSPClient      *csp.Kubeclient
@@ -220,6 +223,9 @@ func (ops *Operations) withDefaults() {
 	}
 	if ops.PVCClient == nil {
 		ops.PVCClient = pvc.NewKubeClient(pvc.WithKubeConfigPath(ops.KubeConfigPath))
+	}
+	if ops.PVClient == nil {
+		ops.PVClient = pv.NewKubeClient(pv.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.SnapClient == nil {
 		ops.SnapClient = snap.NewKubeClient(snap.WithKubeConfigPath(ops.KubeConfigPath))
@@ -1035,6 +1041,18 @@ func (ops *Operations) GetPodCompletedCount(namespace, lselector string) int {
 		Len()
 }
 
+// GetPodList gives list of running pods for given namespace + label
+func (ops *Operations) GetPodList(namespace, lselector string) *pod.PodList {
+	pods, err := ops.PodClient.
+		WithNamespace(namespace).
+		List(metav1.ListOptions{LabelSelector: lselector})
+	Expect(err).ShouldNot(HaveOccurred())
+	return pod.
+		ListBuilderForAPIList(pods).
+		WithFilter(pod.IsRunning()).
+		List()
+}
+
 // VerifyUpgradeResultTasksIsNotFail checks whether all the tasks in upgraderesult
 // have success
 func (ops *Operations) VerifyUpgradeResultTasksIsNotFail(namespace, lselector string) bool {
@@ -1263,6 +1281,33 @@ func (ops *Operations) GetUnUsedCStorPool(
 	err = errors.Errorf("pools are not available to migrate storage replica")
 	Expect(err).To(BeNil())
 	return nil
+}
+
+//GetSVCClusterIP returns list of IP address of the services, having given label and namespace
+func (ops *Operations) GetSVCClusterIP(ns, lselector string) ([]string, error) {
+	addr := []string{}
+	svclist, err := ops.SVCClient.
+		WithNamespace(ns).
+		List(
+			metav1.ListOptions{
+				LabelSelector: lselector,
+			},
+		)
+	if err != nil {
+		return addr, errors.Errorf("failed to get service err=%v", err)
+	}
+
+	if len(svclist.Items) == 0 {
+		return addr, errors.Errorf("no service with label=%s in ns=%s", lselector, openebsNamespace)
+	}
+
+	for _, s := range svclist.Items {
+		if len(s.Spec.ClusterIP) != 0 {
+			addr = append(addr, s.Spec.ClusterIP+":"+strconv.FormatInt(int64(s.Spec.Ports[0].Port), 10))
+		}
+	}
+
+	return addr, nil
 }
 
 // getCVRAnnotations get the annotations for cstorvolumereplica

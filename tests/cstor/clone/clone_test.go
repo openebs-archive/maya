@@ -367,6 +367,17 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 			By("veryfing data consistency")
 			Expect(podOutput).To(Equal(clonePodOutput), "while checking data consistency")
 
+			// try to delete source PVC
+			By("try deleting source persistentvolumeclaim")
+			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
+			Expect(err).NotTo(BeNil())
+			Expect(strings.Contains(err.Error(), "admission webhook \"admission-webhook.openebs.io\" denied the request")).
+				To(Equal(true),
+					"while deleting source pvc {%s} in namespace {%s} without deleting clone",
+					pvcName,
+					nsObj.Name,
+				)
+
 			By("deleting application pod")
 			err = ops.PodClient.WithNamespace(nsObj.Name).
 				Delete(podObj.Name, &metav1.DeleteOptions{})

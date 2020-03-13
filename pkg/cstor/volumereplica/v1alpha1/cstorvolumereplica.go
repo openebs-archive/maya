@@ -152,6 +152,12 @@ func (p *CVR) IsHealthy() bool {
 	return p.object.Status.Phase == "Healthy"
 }
 
+// IsErrored returns true if the CVR is in
+// Error state
+func (p *CVR) IsErrored() bool {
+	return p.object.Status.Phase == "Error"
+}
+
 // HasLabel returns true only if label key value matched to provided
 // value.
 func (p *CVR) HasLabel(key, value string) bool {
@@ -171,6 +177,14 @@ func HasLabel(key, value string) Predicate {
 func IsHealthy() Predicate {
 	return func(p *CVR) bool {
 		return p.IsHealthy()
+	}
+}
+
+// IsErrored is a Predicate to filter out cvrs
+// which is in errored state
+func IsErrored() Predicate {
+	return func(p *CVR) bool {
+		return p.IsErrored()
 	}
 }
 
