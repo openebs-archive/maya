@@ -430,7 +430,7 @@ spec:
     {{- $auxResourceRequestsVal := fromYaml .Config.AuxResourceRequests.value -}}
     {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
     {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
-    {{- $targetAffinityVal := .TaskResult.creategetpvc.targetAffinity -}}
+    {{- $targetAffinityVal := .TaskResult.creategetpvc.targetAffinity | default "none" -}}
     {{- $hasNodeSelector := .Config.TargetNodeSelector.value | default "none" -}}
     {{- $nodeSelectorVal := fromYaml .Config.TargetNodeSelector.value -}}
     {{- $hasTargetToleration := .Config.TargetTolerations.value | default "none" -}}
@@ -693,11 +693,11 @@ spec:
     Calculate the replica count
     Add as many poolUid to resources as there is replica count
     */}}
-    {{- $hostName := .TaskResult.creategetpvc.hostName -}}
+    {{- $hostName := .TaskResult.creategetpvc.hostName | default "" -}}
     {{- $capacity := .Volume.capacity -}}
     {{- $spc := .Config.StoragePoolClaim.value }}
-    {{- $replicaAntiAffinity := .TaskResult.creategetpvc.replicaAntiAffinity }}
-    {{- $preferredReplicaAntiAffinity := .TaskResult.creategetpvc.preferredReplicaAntiAffinity }}
+    {{- $replicaAntiAffinity := .TaskResult.creategetpvc.replicaAntiAffinity  | default "" -}}
+    {{- $preferredReplicaAntiAffinity := .TaskResult.creategetpvc.preferredReplicaAntiAffinity | default "" -}}
     {{- $antiAffinityLabelSelector := printf "openebs.io/replica-anti-affinity=%s" $replicaAntiAffinity | IfNotNil $replicaAntiAffinity }}
     {{- $preferredAntiAffinityLabelSelector := printf "openebs.io/preferred-replica-anti-affinity=%s" $preferredReplicaAntiAffinity | IfNotNil $preferredReplicaAntiAffinity }}
     {{- $preferedScheduleOnHostAnnotationSelector := printf "volume.kubernetes.io/selected-node=%s" $hostName | IfNotNil $hostName }}
@@ -718,8 +718,8 @@ spec:
       {{- end }}
       {{- end }}
   task: |
-    {{- $replicaAntiAffinity := .TaskResult.creategetpvc.replicaAntiAffinity -}}
-    {{- $preferredReplicaAntiAffinity := .TaskResult.creategetpvc.preferredReplicaAntiAffinity }}
+    {{- $replicaAntiAffinity := .TaskResult.creategetpvc.replicaAntiAffinity | default "" -}}
+    {{- $preferredReplicaAntiAffinity := .TaskResult.creategetpvc.preferredReplicaAntiAffinity | default "" -}}
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $zvolWorkers := .Config.ZvolWorkers.value | default "" -}}
     kind: CStorVolumeReplica

@@ -90,7 +90,7 @@ const (
 	// CStor pool. This key is present on CVR labels
 	CStorPoolKey CASKey = "cstorpool.openebs.io/name"
 
-	// cstorVolumeKey is the key to getch CStorVolume CR of a
+	// CStorVolumeKey is the key to getch CStorVolume CR of a
 	// CVR. This key is present on CVR label.
 	CStorVolumeKey CASKey = "cstorvolume.openebs.io/name"
 
@@ -99,6 +99,9 @@ const (
 
 	// CStorpoolInstanceLabel is the key used on pool dependent resources
 	CStorpoolInstanceLabel = "cstorpoolinstance.openebs.io/name"
+
+	// PVCreatedByKey is key to fetch the details of pv creation in case of restore
+	PVCreatedByKey = "openebs.io/created-through"
 )
 
 // CASPlainKey represents a openebs key used either in resource annotation

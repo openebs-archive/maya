@@ -23,6 +23,7 @@ import (
 	"time"
 
 	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 )
@@ -158,16 +159,6 @@ func (c *cstor) readHeader() error {
 	return nil
 }
 
-// removeItem removes the string passed as argument from the slice
-func (c *cstor) removeItem(slice []string, str string) []string {
-	for index, value := range slice {
-		if value == str {
-			slice = append(slice[:index], slice[index+1:]...)
-		}
-	}
-	return slice
-}
-
 // unmarshal the result into VolumeStats instances.
 func (c *cstor) unmarshal(result string) (v1.VolumeStats, error) {
 	metrics := v1.VolumeStats{}
@@ -185,7 +176,7 @@ func (c *cstor) unmarshal(result string) (v1.VolumeStats, error) {
 func (c *cstor) splitter(resp string) string {
 	var result []string
 	result = strings.Split(resp, EOF)
-	result = c.removeItem(result, Footer)
+	result = util.RemoveItemFromSlice(result, Footer)
 	if len(result[0]) == 0 {
 		return ""
 	}
