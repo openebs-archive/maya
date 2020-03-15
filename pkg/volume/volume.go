@@ -101,7 +101,7 @@ func (v *Operation) getCloneLabels() (map[string]interface{}, error) {
 // Create provisions an OpenEBS volume
 func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	var casConfigPVC string
-	var isRestoreVol string
+	isRestoreVol := "false"
 
 	if v.k8sClient == nil {
 		return nil, errors.Errorf("nil k8s client: %s", v.volume)
@@ -123,6 +123,12 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 
 		// extract the cas volume config from pvc
 		casConfigPVC = pvc.Annotations[string(v1alpha1.CASConfigKey)]
+
+		// check if pvc has annotation about restore, updated by velero-plugin
+		createdBy := pvc.Annotations[v1alpha1.PVCreatedByKey]
+		if createdBy == "restore" {
+			isRestoreVol = "true"
+		}
 	}
 
 	cloneLabels, err := v.getCloneLabels()
@@ -160,11 +166,10 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 		return nil, errors.Wrapf(errors.WithStack(err), "failed to get CASTemplate=%s", castName)
 	}
 
+	// check if volume has annotation about restore, updated by maya/backup
 	createdBy := v.volume.Annotations[v1alpha1.PVCreatedByKey]
 	if createdBy == "restore" {
 		isRestoreVol = "true"
-	} else {
-		isRestoreVol = "false"
 	}
 
 	// PVC not given, so remove PVC related runtask from volume-create-engine
