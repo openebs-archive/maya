@@ -21,7 +21,6 @@ package v1alpha1
 import (
 	v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/generated/clientset/versioned/scheme"
-	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	rest "k8s.io/client-go/rest"
 )
 
@@ -36,6 +35,7 @@ type OpenebsV1alpha1Interface interface {
 	CStorRestoresGetter
 	CStorVolumesGetter
 	CStorVolumeClaimsGetter
+	CStorVolumePoliciesGetter
 	CStorVolumeReplicasGetter
 	RunTasksGetter
 	StoragePoolsGetter
@@ -81,6 +81,10 @@ func (c *OpenebsV1alpha1Client) CStorVolumes(namespace string) CStorVolumeInterf
 
 func (c *OpenebsV1alpha1Client) CStorVolumeClaims(namespace string) CStorVolumeClaimInterface {
 	return newCStorVolumeClaims(c, namespace)
+}
+
+func (c *OpenebsV1alpha1Client) CStorVolumePolicies(namespace string) CStorVolumePolicyInterface {
+	return newCStorVolumePolicies(c, namespace)
 }
 
 func (c *OpenebsV1alpha1Client) CStorVolumeReplicas(namespace string) CStorVolumeReplicaInterface {
@@ -131,7 +135,7 @@ func setConfigDefaults(config *rest.Config) error {
 	gv := v1alpha1.SchemeGroupVersion
 	config.GroupVersion = &gv
 	config.APIPath = "/apis"
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
 
 	if config.UserAgent == "" {
 		config.UserAgent = rest.DefaultKubernetesUserAgent()

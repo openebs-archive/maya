@@ -9,7 +9,7 @@ run:
 
   # timeout for analysis, e.g. 30s, 5m
   # default is 1m
-  deadline: 1m
+  deadline: 5m
 
   # exit code when at least one issue was found
   # default is 1
@@ -41,7 +41,8 @@ run:
   #
   # Default value is empty list
   skip-files:
-    - 
+    - ".*_gen\\.go$"
+    - "zz_generated\\..*\\.go$"
 
   # by default isn't set
   # If set we pass it to "go list -mod={option}"

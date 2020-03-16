@@ -64,6 +64,10 @@ func (c *FakeOpenebsV1alpha1) CStorVolumeClaims(namespace string) v1alpha1.CStor
 	return &FakeCStorVolumeClaims{c, namespace}
 }
 
+func (c *FakeOpenebsV1alpha1) CStorVolumePolicies(namespace string) v1alpha1.CStorVolumePolicyInterface {
+	return &FakeCStorVolumePolicies{c, namespace}
+}
+
 func (c *FakeOpenebsV1alpha1) CStorVolumeReplicas(namespace string) v1alpha1.CStorVolumeReplicaInterface {
 	return &FakeCStorVolumeReplicas{c, namespace}
 }

@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
@@ -126,6 +126,16 @@ func (b *Builder) WithLocalHostPathFormat(path, fstype string) *Builder {
 	}
 
 	b.pv.object.Spec.PersistentVolumeSource = volumeSource
+	return b
+}
+
+// WithPersistentVolumeSource sets the volume source field of PV with provided source
+func (b *Builder) WithPersistentVolumeSource(source *corev1.PersistentVolumeSource) *Builder {
+	if source == nil {
+		b.errs = append(b.errs, errors.New("failed to build PV object: missing PV source"))
+		return b
+	}
+	b.pv.object.Spec.PersistentVolumeSource = *source
 	return b
 }
 

@@ -218,3 +218,50 @@ func RemoveString(slice []string, s string) (result []string) {
 	}
 	return result
 }
+
+// IsChangeInLists returns true if there is any difference in listA and listB
+func IsChangeInLists(listA, listB []string) bool {
+	listAMap := map[string]bool{}
+	listBMap := map[string]bool{}
+	for _, name := range listA {
+		listAMap[name] = true
+	}
+	for _, name := range listB {
+		listBMap[name] = true
+	}
+	for _, name := range listA {
+		if !listBMap[name] {
+			return true
+		}
+	}
+	for _, name := range listB {
+		if !listAMap[name] {
+			return true
+		}
+	}
+	return false
+}
+
+// RemoveItemFromSlice removes the string passed as argument from the slice
+func RemoveItemFromSlice(slice []string, str string) []string {
+	for index, value := range slice {
+		if value == str {
+			slice = append(slice[:index], slice[index+1:]...)
+		}
+	}
+	return slice
+}
+
+// IsUniqueList returns true if values in list are not repeated else return
+// false
+func IsUniqueList(list []string) bool {
+	listMap := map[string]bool{}
+
+	for _, str := range list {
+		if _, ok := listMap[str]; ok {
+			return false
+		}
+		listMap[str] = true
+	}
+	return true
+}

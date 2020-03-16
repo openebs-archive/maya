@@ -15,9 +15,9 @@
 package v1alpha1
 
 import (
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
+	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -203,6 +203,18 @@ func (b *Builder) WithNodeSelectorNew(nodeselectors map[string]string) *Builder 
 		return b
 	}
 
+	// copy of original map
+	newnodeselectors := map[string]string{}
+	for key, value := range nodeselectors {
+		newnodeselectors[key] = value
+	}
+
+	// override
+	b.podtemplatespec.Object.Spec.NodeSelector = newnodeselectors
+	return b
+}
+
+func (b *Builder) WithNodeSelectorByValue(nodeselectors map[string]string) *Builder {
 	// copy of original map
 	newnodeselectors := map[string]string{}
 	for key, value := range nodeselectors {

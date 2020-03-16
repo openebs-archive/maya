@@ -90,6 +90,21 @@ func (l predicateList) all(c *SPC) bool {
 	return true
 }
 
+// IsOverProvisioningEnabled returns OverProvisioning truth value.
+// OverProvisioning field is deprecated and not honoured
+func IsOverProvisioningEnabled() Predicate {
+	return func(spc *SPC) bool {
+		return spc.Object.Spec.PoolSpec.OverProvisioning
+	}
+}
+
+// IsThickProvisioningEnabled returns ThickProvisioning truth value.
+func IsThickProvisioningEnabled() Predicate {
+	return func(spc *SPC) bool {
+		return spc.Object.Spec.PoolSpec.ThickProvisioning
+	}
+}
+
 // HasAnnotation returns true if provided annotation key and value are present in the provided spc instance.
 func HasAnnotation(key, value string) Predicate {
 	return func(c *SPC) bool {
@@ -255,6 +270,12 @@ func (sb *Builder) WithPoolType(poolType string) *Builder {
 // WithOverProvisioning sets the OverProvisioning field of spc with provided argument value.
 func (sb *Builder) WithOverProvisioning(val bool) *Builder {
 	sb.Spc.Object.Spec.PoolSpec.OverProvisioning = val
+	return sb
+}
+
+// WithThickProvisioning sets the ThickProvisioning field of spc with provided argument value.
+func (sb *Builder) WithThickProvisioning(val bool) *Builder {
+	sb.Spc.Object.Spec.PoolSpec.ThickProvisioning = val
 	return sb
 }
 

@@ -65,10 +65,10 @@ baseline-image:
      - git status
      - git commit -m "updated $CI_PROJECT_NAME commit:$COMMIT"
      - git push  https://$user:$pass@github.com/openebs/e2e-infrastructure.git --all
-     - curl -X POST -F variable[INFRA_BRANCH]=$BRANCH -F token=$PACKET -F ref=k8s-ultimate https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
-     - curl -X POST -F variable[INFRA_BRANCH]=$BRANCH -F token=$PACKET -F ref=k8s-penultimate https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
-     - curl -X POST -F variable[INFRA_BRANCH]=$BRANCH -F token=$PACKET -F ref=k8s-antepenultimate https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
-     - curl -X POST -F token=$KONVOY -F ref=$KONVOY_BRANCH https://gitlab.openebs100.io/api/v4/projects/34/trigger/pipeline
+       #     - curl -X POST -F variable[INFRA_BRANCH]=$BRANCH -F token=$PACKET -F ref=k8s-ultimate https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
+       #     - curl -X POST -F variable[INFRA_BRANCH]=$BRANCH -F token=$PACKET -F ref=k8s-penultimate https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
+       #     - curl -X POST -F variable[INFRA_BRANCH]=$BRANCH -F token=$PACKET -F ref=k8s-antepenultimate https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
+       #     - curl -X POST -F token=$KONVOY -F ref=$KONVOY_BRANCH https://gitlab.openebs100.io/api/v4/projects/34/trigger/pipeline
 clean-maya:
   when: always
   stage: cleanup

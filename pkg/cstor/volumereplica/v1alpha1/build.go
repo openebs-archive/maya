@@ -16,7 +16,7 @@ package v1alpha1
 
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -204,8 +204,8 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 
 // WithStatusPhase sets the Status Phase of CStorVolumeReplica with provided
 //arguments
-func (b *Builder) WithStatusPhase(phase string) *Builder {
-	b.cvr.object.Status.Phase = apis.CStorVolumeReplicaPhase(phase)
+func (b *Builder) WithStatusPhase(phase apis.CStorVolumeReplicaPhase) *Builder {
+	b.cvr.object.Status.Phase = phase
 	return b
 }
 

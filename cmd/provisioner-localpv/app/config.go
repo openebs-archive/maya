@@ -27,7 +27,7 @@ import (
 	"k8s.io/klog"
 
 	//"github.com/pkg/errors"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	errors "github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	//storagev1 "k8s.io/api/storage/v1"
@@ -226,4 +226,10 @@ func GetNodeHostname(n *v1.Node) string {
 		return ""
 	}
 	return hostname
+}
+
+// GetTaints extracts the Taints from the Spec on the node
+// If Taints are empty, it just returns empty structure of corev1.Taints
+func GetTaints(n *v1.Node) []v1.Taint {
+	return n.Spec.Taints
 }

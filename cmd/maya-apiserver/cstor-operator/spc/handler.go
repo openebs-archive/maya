@@ -339,6 +339,7 @@ var validateFuncList = []validateFunc{
 	validatePoolType,
 	validateDiskType,
 	validateAutoSpcMaxPool,
+	validateROThresholdLimit,
 }
 
 // validatePoolType validates pool type in spc.
@@ -371,6 +372,16 @@ func validateAutoSpcMaxPool(spc *apis.StoragePoolClaim) error {
 			return errors.Errorf("aborting storagepool create operation for %s as invalid maxPool value %d", spc.Name, maxPools)
 		}
 	}
+	return nil
+}
+
+// validateROThresholdLimit validated the RO threshold limit
+func validateROThresholdLimit(spc *apis.StoragePoolClaim) error {
+	if spc.Spec.PoolSpec.ROThresholdLimit < 0 ||
+		spc.Spec.PoolSpec.ROThresholdLimit > 100 {
+		return errors.Errorf("Invalid pool ROThreshold limit, it should be between 0 to 100")
+	}
+
 	return nil
 }
 

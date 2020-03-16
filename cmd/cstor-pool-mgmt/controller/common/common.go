@@ -97,6 +97,10 @@ const (
 	MessageResourceAlreadyPresent EventReason = "Resource already present"
 	// MessageImproperPoolStatus holds message for corresponding failed validate resource.
 	MessageImproperPoolStatus EventReason = "Improper pool status"
+	// PoolROThreshold holds status for pool read only state
+	PoolROThreshold EventReason = "PoolReadOnlyThreshold"
+	// MessagePoolROThreshold holds descriptive message for PoolROThreshold
+	MessagePoolROThreshold EventReason = "Pool storage limit reached to threshold. Pool expansion is required to make it's replica RW"
 )
 
 // Periodic interval duration.

@@ -27,6 +27,7 @@ import (
 	cspc "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	poolspec "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/cstorpoolspecs"
 	rgrp "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1/raidgroups"
+	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
@@ -295,7 +296,7 @@ func verifyTargetPodCount(count int) {
 
 func verifyCstorVolumeReplicaCount(count int) {
 	targetVolumeLabel := pvLabel + pvcObj.Spec.VolumeName
-	isReqCVRCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, targetVolumeLabel, count)
+	isReqCVRCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, targetVolumeLabel, count, cvr.IsHealthy())
 	Expect(isReqCVRCount).To(Equal(true), "while checking cstorvolume replica count")
 }
 

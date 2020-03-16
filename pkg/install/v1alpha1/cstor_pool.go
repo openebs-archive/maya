@@ -44,6 +44,9 @@ spec:
   # nothing exists at the given path i.e. an empty directory will be created.
   - name: HostPathType
     value: DirectoryOrCreate
+  # OpenebsBaseDir is a hostPath directory to store process files on host machine
+  - name: OpenebsBaseDir
+    value: {{env "OPENEBS_IO_BASE_DIR" | default "/var/openebs"}}
   # SparseDir is a hostPath directory where to look for sparse files
   - name: SparseDir
     value: {{env "OPENEBS_IO_CSTOR_POOL_SPARSE_DIR" | default "/var/openebs/sparse"}}
@@ -124,14 +127,14 @@ spec:
     {{- jsonpath .JsonResult "{.metadata.uid}" | trim | addTo "putcstorpoolcr.objectUID" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.metadata.labels.kubernetes\\.io/hostname}" | trim | addTo "putcstorpoolcr.nodeName" .TaskResult | noop -}}
   task: |-
-    {{- $blockDeviceIdList:= toYaml .Storagepool | fromYaml -}}
+    {{- $storagePool:= toYaml .Storagepool | fromYaml -}}
     apiVersion: openebs.io/v1alpha1
     kind: CStorPool
     metadata:
-      name: {{$blockDeviceIdList.owner}}-{{randAlphaNum 4 |lower }}
+      name: {{$storagePool.owner}}-{{randAlphaNum 4 |lower }}
       labels:
-        openebs.io/storage-pool-claim: {{$blockDeviceIdList.owner}}
-        kubernetes.io/hostname: {{$blockDeviceIdList.nodeName}}
+        openebs.io/storage-pool-claim: {{$storagePool.owner}}
+        kubernetes.io/hostname: {{$storagePool.nodeName}}
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
         openebs.io/cas-type: cstor
@@ -140,11 +143,11 @@ spec:
         blockOwnerDeletion: true
         controller: true
         kind: StoragePoolClaim
-        name: {{$blockDeviceIdList.owner}}
+        name: {{$storagePool.owner}}
         uid: {{ .TaskResult.getspc.objectUID }}
     spec:
       group:
-        {{- range $k, $v := $blockDeviceIdList.blockDeviceList }}
+        {{- range $k, $v := $storagePool.blockDeviceList }}
         - blockDevice:
           {{- range $ki, $blockDevice := $v.blockDevice }}
           - name: {{$blockDevice.name}}
@@ -153,9 +156,10 @@ spec:
           {{- end }}
         {{- end }}
       poolSpec:
-        poolType: {{$blockDeviceIdList.poolType}}
-        cacheFile: {{$blockDeviceIdList.poolCacheFile}}
+        poolType: {{$storagePool.poolType}}
+        cacheFile: {{$storagePool.poolCacheFile}}
         overProvisioning: false
+        roThresholdLimit: {{$storagePool.poolROThreshold}}
     status:
       phase: Init
     versionDetails:
@@ -277,12 +281,16 @@ spec:
             volumeMounts:
             - name: device
               mountPath: /dev
+            - name: storagepath
+              mountPath: /var/openebs/cstor-pool
             - name: tmp
               mountPath: /tmp
             - name: sparse
               mountPath: {{ .Config.SparseDir.value }}
             - name: udev
               mountPath: /run/udev
+            - name: sockfile
+              mountPath: /var/tmp/sock
             env:
               # OPENEBS_IO_CSTOR_ID env has UID of cStorPool CR.
             - name: OPENEBS_IO_CSTOR_ID
@@ -315,10 +323,14 @@ spec:
               mountPath: /dev
             - name: tmp
               mountPath: /tmp
+            - name: storagepath
+              mountPath: /var/openebs/cstor-pool
             - name: sparse
               mountPath: {{ .Config.SparseDir.value }}
             - name: udev
               mountPath: /run/udev
+            - name: sockfile
+              mountPath: /var/tmp/sock
             env:
               # OPENEBS_IO_CSTOR_ID env has UID of cStorPool CR.
             - name: OPENEBS_IO_CSTOR_ID
@@ -360,12 +372,16 @@ spec:
             volumeMounts:
             - mountPath: /dev
               name: device
-            - mountPath: /tmp
-              name: tmp
+            - name: tmp
+              mountPath: /tmp
+            - name: storagepath
+              mountPath: /var/openebs/cstor-pool
             - mountPath: {{ .Config.SparseDir.value }}
               name: sparse
             - mountPath: /run/udev
               name: udev
+            - name: sockfile
+              mountPath: /var/tmp/sock
           tolerations:
           {{- if ne $isTolerations "none" }}
           {{- range $k, $v := $tolerationsVal }}
@@ -382,10 +398,19 @@ spec:
               path: /dev
               # this field is optional
               type: Directory
+          - name: storagepath
+            hostPath:
+              # host dir {{ .Config.OpenebsBaseDir.value }}/cstor-pool/<spc_name> is
+              # created to avoid clash if two pool pods run on same node.
+              path: {{ .Config.OpenebsBaseDir.value }}/cstor-pool/{{.Storagepool.owner}}
+              type: {{ .Config.HostPathType.value }}
+            ## sockfile is used to communicates between side cars and pool container
+          - name: sockfile
+            emptyDir: {}
           - name: tmp
             hostPath:
               # host dir {{ .Config.SparseDir.value }}/shared-<uid> is
-              # created to avoid clash if two replicas run on same node.
+              # created to avoid clash if two pool pods run on same node.
               path: {{ .Config.SparseDir.value }}/shared-{{.Storagepool.owner}}
               type: {{ .Config.HostPathType.value }}
           - name: sparse

@@ -18,11 +18,14 @@ package v1alpha1
 
 import (
 	"encoding/json"
+	"net/http"
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 
 	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	jivaClient "github.com/openebs/maya/pkg/client/jiva"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 	errors "github.com/pkg/errors"
@@ -281,47 +284,62 @@ func getPVCDeploymentsNamespace(
 	return ns, nil
 }
 
-func validateSync(ctrlLabel, namespace string) error {
-	klog.Infof("Verifying replica sync")
-	quorum := false
+func getReplicationFactor(ctrlLabel, namespace string) (int, error) {
 	ctrlList, err := podClient.WithNamespace(namespace).List(
 		metav1.ListOptions{
 			LabelSelector: ctrlLabel,
 		})
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if len(ctrlList.Items) == 0 {
-		return errors.Errorf("no deployments found for %s in %s", ctrlLabel, namespace)
+		return 0, errors.Errorf("no deployments found for %s in %s", ctrlLabel, namespace)
 	}
 	ctrlPod := ctrlList.Items[0]
+	// the only env in jiva target pod is "REPLICATION_FACTOR"
+	return strconv.Atoi(ctrlPod.Spec.Containers[0].Env[0].Value)
+}
+
+func getAPIURL(svcLabel, namespace string) (string, error) {
+	svcList, err := serviceClient.WithNamespace(namespace).List(
+		metav1.ListOptions{
+			LabelSelector: svcLabel,
+		})
+	if err != nil {
+		return "", err
+	}
+	if len(svcList.Items) == 0 {
+		return "", errors.Errorf("no service found for %s in %s", svcLabel, namespace)
+	}
+	targetIP := svcList.Items[0].Spec.ClusterIP
+	apiURL := "http://" + targetIP + ":9501/v1/replicas"
+	return apiURL, nil
+}
+
+func validateSync(pvLabel, namespace string) error {
+	klog.Infof("Verifying replica sync")
+	ctrlLabel := "openebs.io/controller=jiva-controller," + pvLabel
+	svcLabel := "openebs.io/controller-service=jiva-controller-svc," + pvLabel
+	quorum := false
 	syncedReplicas := 0
-	replicationFactor, err := strconv.Atoi(ctrlPod.Spec.Containers[0].Env[0].Value)
+	replicationFactor, err := getReplicationFactor(ctrlLabel, namespace)
+	if err != nil {
+		return err
+	}
+	apiURL, err := getAPIURL(svcLabel, namespace)
 	if err != nil {
 		return err
 	}
 	for syncedReplicas != replicationFactor {
 		syncedReplicas = 0
-		out, err := podClient.WithNamespace(ctrlPod.Namespace).
-			Exec(
-				ctrlPod.Name,
-				&corev1.PodExecOptions{
-					Command: []string{
-						"/bin/bash",
-						"-c",
-						"curl http://localhost:9501/v1/replicas",
-					},
-					Container: ctrlPod.Spec.Containers[0].Name,
-					Stdin:     false,
-					Stdout:    true,
-					Stderr:    true,
-				},
-			)
+		httpClient := &http.Client{Timeout: 30 * time.Second}
+		resp, err := httpClient.Get(apiURL)
 		if err != nil {
 			return err
 		}
+		defer resp.Body.Close()
 		replicas := jivaClient.ReplicaCollection{}
-		err = json.Unmarshal([]byte(out.Stdout), &replicas)
+		err = json.NewDecoder(resp.Body).Decode(&replicas)
 		if err != nil {
 			return err
 		}
@@ -403,6 +421,44 @@ func (j *jivaVolumeOptions) preupgrade(pvName, openebsNamespace string) error {
 	return nil
 }
 
+func scaleTargetDeploy(name, namespace string, rc int) error {
+	klog.Infof("Scaling down target deploy %s in %s namespace", name, namespace)
+	deployObj, err := deployClient.WithNamespace(namespace).Get(name)
+	if err != nil {
+		return err
+	}
+	pvName := deployObj.Labels[string(apis.PersistentVolumeCPK)]
+	controllerLabel := "openebs.io/controller=jiva-controller," +
+		string(apis.PersistentVolumeCPK) + "=" + pvName
+	replicas := int32(rc)
+	deployObj.Spec.Replicas = &replicas
+	_, err = deployClient.WithNamespace(namespace).Update(deployObj)
+	if err != nil {
+		return err
+	}
+	podList := &corev1.PodList{}
+	// Wait for up to 5 minutes for target pod to go away.
+	for i := 0; i < 60; i++ {
+		podList, err = podClient.WithNamespace(namespace).List(
+			metav1.ListOptions{
+				LabelSelector: controllerLabel,
+			})
+		if err != nil {
+			return err
+		}
+		if len(podList.Items) != rc {
+			time.Sleep(time.Second * 5)
+		} else {
+			break
+		}
+	}
+	// If pod is not deleted within 5 minutes return error.
+	if len(podList.Items) != rc {
+		return errors.Errorf("expected pods: %d, found: %d", rc, len(podList.Items))
+	}
+	return nil
+}
+
 func (j *jivaVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 	var err, uerr error
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.ReplicaUpgrade}
@@ -413,9 +469,32 @@ func (j *jivaVolumeOptions) replicaUpgrade(openebsNamespace string) error {
 	}
 
 	statusObj.Phase = utask.StepErrored
+
+	// Scaling down controller deployment before patching replica deployment
+	// if the replica is not upgraded already.
+	if j.replicaObj.version == currentVersion {
+		err = scaleTargetDeploy(j.controllerObj.name, j.ns, 0)
+		if err != nil {
+			statusObj.Message = "failed to scale down target depoyment"
+			statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+			j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+			if uerr != nil && isENVPresent {
+				return uerr
+			}
+			return errors.Wrap(err, "failed to scale down target depoyment")
+		}
+	}
+
 	// replica patch
 	err = patchReplica(j.replicaObj, j.ns)
 	if err != nil {
+		// If patching of replica fails the controller needs to be reverted
+		// as the upgrade will not proceed with controller patch.
+		scaleErr := scaleTargetDeploy(j.controllerObj.name, j.ns, 1)
+		if scaleErr != nil {
+			klog.Infof("failed to scale up controller delpoyment. Please scale up deployment "+
+				"%s in %s namespace to 1 manually.", j.controllerObj.name, j.ns)
+		}
 		statusObj.Message = "failed to patch replica depoyment"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
 		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
@@ -480,7 +559,7 @@ func (j *jivaVolumeOptions) targetUpgrade(pvName, openebsNamespace string) error
 	return nil
 }
 
-func (j *jivaVolumeOptions) verify(controllerLabel, openebsNamespace string) error {
+func (j *jivaVolumeOptions) verify(pvLabel, openebsNamespace string) error {
 	var err, uerr error
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.Verify}
 	statusObj.Phase = utask.StepWaiting
@@ -491,7 +570,7 @@ func (j *jivaVolumeOptions) verify(controllerLabel, openebsNamespace string) err
 
 	statusObj.Phase = utask.StepErrored
 	// Verify synced replicas
-	err = validateSync(controllerLabel, j.ns)
+	err = validateSync(pvLabel, j.ns)
 	if err != nil {
 		statusObj.Message = "failed to verify synced replicas. Please check it manually using the steps mentioned in https://docs.openebs.io/docs/next/mayactl.html"
 		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
@@ -519,9 +598,8 @@ func (j *jivaVolumeOptions) verify(controllerLabel, openebsNamespace string) err
 func jivaUpgrade(pvName, openebsNamespace string, utaskObj *utask.UpgradeTask) (*utask.UpgradeTask, error) {
 
 	var (
-		pvLabel         = "openebs.io/persistent-volume=" + pvName
-		controllerLabel = "openebs.io/controller=jiva-controller," + pvLabel
-		err             error
+		pvLabel = "openebs.io/persistent-volume=" + pvName
+		err     error
 	)
 
 	options := &jivaVolumeOptions{}
@@ -547,7 +625,7 @@ func jivaUpgrade(pvName, openebsNamespace string, utaskObj *utask.UpgradeTask) (
 	}
 
 	// Verify
-	err = options.verify(controllerLabel, openebsNamespace)
+	err = options.verify(pvLabel, openebsNamespace)
 	if err != nil {
 		return options.utaskObj, err
 	}

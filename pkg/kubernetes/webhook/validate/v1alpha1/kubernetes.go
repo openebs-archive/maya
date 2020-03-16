@@ -52,6 +52,14 @@ type createFunc func(cli *kubernetes.Clientset,
 	error,
 )
 
+// updateFn is a typed function that abstracts
+// to update admissionwebhook configuration
+type updateFn func(cli *kubernetes.Clientset,
+	config *admission.ValidatingWebhookConfiguration) (
+	*admission.ValidatingWebhookConfiguration,
+	error,
+)
+
 // Kubeclient enables kubernetes API operations
 // on upgrade result instance
 type Kubeclient struct {
@@ -66,6 +74,7 @@ type Kubeclient struct {
 	create       createFunc
 	get          getFunc
 	del          delFunc
+	update       updateFn
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -103,9 +112,12 @@ func (k *Kubeclient) withDefaults() {
 		k.del = func(cs *kubernetes.Clientset, name string, opts *metav1.DeleteOptions) error {
 			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Delete(name, opts)
 		}
-
 	}
-
+	if k.update == nil {
+		k.update = func(cs *kubernetes.Clientset, config *admission.ValidatingWebhookConfiguration) (*admission.ValidatingWebhookConfiguration, error) {
+			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Update(config)
+		}
+	}
 }
 
 // WithClientset sets the kubernetes clientset against
@@ -196,4 +208,17 @@ func (k *Kubeclient) Delete(name string, options *metav1.DeleteOptions) error {
 		return err
 	}
 	return k.del(cli, name, options)
+}
+
+// Update updates validatingWebhookConfiguration, and returns the updated
+// corresponding validatingWebhookConfiguration object, and an error if there is any.
+func (k *Kubeclient) Update(config *admission.ValidatingWebhookConfiguration) (*admission.ValidatingWebhookConfiguration, error) {
+	if config == nil {
+		return nil, errors.New("failed to update validating configuration: nil configuration")
+	}
+	cs, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	return k.update(cs, config)
 }

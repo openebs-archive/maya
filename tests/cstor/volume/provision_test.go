@@ -17,6 +17,8 @@ limitations under the License.
 package volume
 
 import (
+	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -24,11 +26,22 @@ import (
 	. "github.com/onsi/gomega"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
+	pv "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/openebs/maya/tests/cstor"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	// mayaAPIServiceLabel is label for Maya-API server Service
+	mayaAPIServiceLabel = "openebs.io/component-name=maya-apiserver-svc"
+
+	// mayaAPIPodLabel is label for Maya-API server Pod
+	mayaAPIPodLabel = "openebs.io/component-name=maya-apiserver"
 )
 
 var _ = Describe("[Cstor Volume Provisioning Positive] TEST VOLUME PROVISIONING", func() {
@@ -44,7 +57,7 @@ var _ = Describe("[Cstor Volume Provisioning Positive] TEST VOLUME PROVISIONING"
 				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(cstor.PoolCount).
-				WithOverProvisioning(false).
+				WithThickProvisioning(true).
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
 				Build().Object
 
@@ -72,7 +85,6 @@ var _ = Describe("[Cstor Volume Provisioning Positive] TEST VOLUME PROVISIONING"
 			By("creating storageclass")
 			scObj, err = ops.SCClient.Create(scObj)
 			Expect(err).To(BeNil(), "while creating storageclass", scName)
-
 		})
 	})
 
@@ -131,7 +143,7 @@ var _ = Describe("[Cstor Volume Provisioning Positive] TEST VOLUME PROVISIONING"
 
 			By("verifying cstorvolume replica count")
 			cvrLabel := pvLabel + pvcObj.Spec.VolumeName
-			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, cstor.ReplicaCount)
+			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, cstor.ReplicaCount, cvr.IsHealthy())
 			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
 
 			By("verifying pvc status as bound")
@@ -189,4 +201,207 @@ var _ = Describe("[Cstor Volume Provisioning Positive] TEST VOLUME PROVISIONING"
 			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
 		})
 	})
+
+	When("cstor PV with replicacount n is created without PVC", func() {
+		It("should create cstor volume target pod", func() {
+			_ = pvcName
+			_ = err
+			volname := "pv-created-without-pvc"
+
+			maddr, err := ops.GetSVCClusterIP(openebsNamespace, mayaAPIServiceLabel)
+			Expect(err).To(BeNil(), "While fetching maya-apiserver address")
+			Expect(len(maddr)).To(Equal(1), "maya-apiserver address")
+
+			podList := ops.GetPodList(openebsNamespace, mayaAPIPodLabel)
+			Expect(err).To(BeNil(), "maya-apiserver pod fetch error")
+			mPodList := podList.ToAPIList()
+			Expect(len(mPodList.Items)).To(Equal(1), "maya-apiserver pod count")
+
+			mpod := mPodList.Items[0]
+			capacity := "200M"
+			vol := newCASVolumeWithoutPVC(volname, capacity, scObj.Name, false)
+
+			volData, err := json.Marshal(vol)
+			Expect(err).To(BeNil())
+
+			command := "curl -XPOST -d '" + string(volData) + "'" + " http://" + maddr[0] + "/latest/volumes/"
+			res := ops.ExecuteCMDEventually(&mpod, "", command, true)
+			Expect(res).NotTo(BeEmpty())
+			Expect(strings.Contains(res, "failed to create volume")).To(Equal(false), fmt.Sprintf("volume creation error=%s", res))
+
+			var rvol apis.CASVolume
+			err = json.Unmarshal([]byte(res), &rvol)
+			Expect(err).To(BeNil())
+			Expect(rvol.Spec.TargetPortal).NotTo(BeEmpty())
+			Expect(rvol.Spec.TargetIP).NotTo(BeEmpty())
+			Expect(rvol.Spec.TargetPort).NotTo(BeEmpty())
+
+			// create pv object
+			pvobj, err := createPVObj(volname, scObj.Name, capacity, rvol)
+			Expect(err).To(BeNil())
+			pvobj, err = ops.PVClient.Create(pvobj)
+			Expect(err).To(BeNil())
+
+			By("verifying target pod count as 1")
+			targetVolumeLabel := pvLabel + volname
+			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, targetVolumeLabel, 1)
+			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
+
+			By("verifying cstorvolume replica count")
+			cvrLabel := pvLabel + volname
+			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, cstor.ReplicaCount, cvr.IsHealthy())
+			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
+
+			// delete the volume
+			command = "curl -XDELETE " + " http://" + maddr[0] + "/latest/volumes/" + volname
+			res = ops.ExecuteCMDEventually(&mpod, "", command, true)
+			Expect(res).NotTo(BeEmpty())
+			Expect(strings.Contains(res, "failed to delete volume")).To(Equal(false), fmt.Sprintf("volume deletion error=%s", res))
+
+			// delete pv object
+			err = ops.PVClient.Delete(pvobj.Name, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil())
+
+			By("verifying target pod count as 0")
+			targetVolumeLabel = pvLabel + volname
+			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, targetVolumeLabel, 1)
+			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
+
+			By("verifying cstorvolume replica count")
+			cvrLabel = pvLabel + volname
+			cvrCount = ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, 0, cvr.IsErrored())
+			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
+		})
+	})
+
+	When("cstor PV with replicacount n is created without PVC and restore label", func() {
+		It("should create cstor volume target pod", func() {
+			_ = pvcName
+			_ = err
+			volname := "restore-pv-created-without-pvc"
+
+			maddr, err := ops.GetSVCClusterIP(openebsNamespace, mayaAPIServiceLabel)
+			Expect(err).To(BeNil(), "While fetching maya-apiserver address")
+			Expect(len(maddr)).To(Equal(1), "maya-apiserver address")
+
+			podList := ops.GetPodList(openebsNamespace, mayaAPIPodLabel)
+			Expect(err).To(BeNil(), "maya-apiserver pod fetch error")
+			mPodList := podList.ToAPIList()
+			Expect(len(mPodList.Items)).To(Equal(1), "maya-apiserver pod count")
+
+			mpod := mPodList.Items[0]
+			capacity := "200M"
+			vol := newCASVolumeWithoutPVC(volname, capacity, scObj.Name, true)
+
+			volData, err := json.Marshal(vol)
+			Expect(err).To(BeNil())
+
+			command := "curl -XPOST -d '" + string(volData) + "'" + " http://" + maddr[0] + "/latest/volumes/"
+			res := ops.ExecuteCMDEventually(&mpod, "", command, true)
+			Expect(res).NotTo(BeEmpty())
+			Expect(strings.Contains(res, "failed to create volume")).To(Equal(false), fmt.Sprintf("volume creation error=%s", res))
+
+			var rvol apis.CASVolume
+			err = json.Unmarshal([]byte(res), &rvol)
+			Expect(err).To(BeNil())
+			Expect(rvol.Spec.TargetPortal).NotTo(BeEmpty())
+			Expect(rvol.Spec.TargetIP).NotTo(BeEmpty())
+			Expect(rvol.Spec.TargetPort).NotTo(BeEmpty())
+
+			// create pv object
+			pvobj, err := createPVObj(volname, scObj.Name, capacity, rvol)
+			Expect(err).To(BeNil())
+			pvobj, err = ops.PVClient.Create(pvobj)
+			Expect(err).To(BeNil())
+
+			By("verifying target pod count as 1")
+			targetVolumeLabel := pvLabel + volname
+			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, targetVolumeLabel, 1)
+			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
+
+			By("verifying cstorvolume replica count")
+			cvrLabel := pvLabel + volname
+			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, cstor.ReplicaCount, cvr.IsErrored())
+			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
+
+			// delete the volume
+			command = "curl -XDELETE " + " http://" + maddr[0] + "/latest/volumes/" + volname
+			res = ops.ExecuteCMDEventually(&mpod, "", command, true)
+			Expect(res).NotTo(BeEmpty())
+			Expect(strings.Contains(res, "failed to delete volume")).To(Equal(false), fmt.Sprintf("volume deletion error=%s", res))
+
+			// delete pv object
+			err = ops.PVClient.Delete(pvobj.Name, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil())
+
+			By("verifying target pod count as 0")
+			targetVolumeLabel = pvLabel + volname
+			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, targetVolumeLabel, 1)
+			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
+
+			By("verifying cstorvolume replica count")
+			cvrLabel = pvLabel + volname
+			cvrCount = ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, 0, cvr.IsErrored())
+			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
+		})
+
+	})
 })
+
+func createPVObj(pvname, scname, size string, cas apis.CASVolume) (*v1.PersistentVolume, error) {
+	iscsiVolSource := &v1.PersistentVolumeSource{
+		ISCSI: &v1.ISCSIPersistentVolumeSource{
+			TargetPortal: cas.Spec.TargetPortal,
+			IQN:          cas.Spec.Iqn,
+			Lun:          cas.Spec.Lun,
+			FSType:       cas.Spec.FSType,
+			ReadOnly:     false,
+		},
+	}
+
+	pvObj, err := pv.NewBuilder().
+		WithName(pvname).
+		WithAnnotations(
+			map[string]string{
+				"openebs.io/cas-type":             "cstor",
+				"pv.kubernetes.io/provisioned-by": "openebs.io/provisioner-iscsi",
+			},
+		).
+		WithLabels(
+			map[string]string{
+				"openebs.io/cas-type":     "cstor",
+				"openebs.io/storageclass": scname,
+			},
+		).
+		WithReclaimPolicy(v1.PersistentVolumeReclaimDelete).
+		WithVolumeMode(v1.PersistentVolumeFilesystem).
+		WithCapacity(size).
+		WithPersistentVolumeSource(iscsiVolSource).
+		WithAccessModes([]v1.PersistentVolumeAccessMode{v1.ReadWriteOnce}).
+		Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return pvObj, nil
+}
+
+func newCASVolumeWithoutPVC(name, capacity, sc string, isRestore bool) *apis.CASVolume {
+	casAnn := map[string]string{}
+
+	if isRestore {
+		casAnn[apis.PVCreatedByKey] = "restore"
+	}
+	return &apis.CASVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				string(apis.StorageClassKey): sc,
+			},
+			Annotations: casAnn,
+			Name:        name,
+		},
+		Spec: apis.CASVolumeSpec{
+			Capacity: capacity,
+		},
+	}
+}

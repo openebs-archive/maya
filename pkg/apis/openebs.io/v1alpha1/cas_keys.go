@@ -72,8 +72,8 @@ const (
 	// StorageClassKey is the key to fetch name of StorageClass
 	StorageClassKey CASKey = "openebs.io/storageclass"
 
-	// ConfigClassKey is the key to fetch name of CStorVolume ConfigClass
-	ConfigClassKey CASKey = "openebs.io/config-class"
+	// VolumePolicyKey is the key to fetch name of CStorVolume Policies
+	VolumePolicyKey CASKey = "openebs.io/volume-policy"
 
 	// CASTypeKey is the key to fetch storage engine for the volume
 	CASTypeKey CASKey = "openebs.io/cas-type"
@@ -86,11 +86,22 @@ const (
 	// block device replacement.
 	PredecessorBDKey = "openebs.io/bd-predecessor"
 
+	// CStorPoolKey is the key to fetch the CVRs on a specific
+	// CStor pool. This key is present on CVR labels
+	CStorPoolKey CASKey = "cstorpool.openebs.io/name"
+
+	// CStorVolumeKey is the key to getch CStorVolume CR of a
+	// CVR. This key is present on CVR label.
+	CStorVolumeKey CASKey = "cstorvolume.openebs.io/name"
+
+	//PodDisruptionBudgetKey is the key used to identify the PDB
+	PodDisruptionBudgetKey = "openebs.io/pod-disruption-budget"
+
+	// CStorpoolInstanceLabel is the key used on pool dependent resources
+	CStorpoolInstanceLabel = "cstorpoolinstance.openebs.io/name"
+
 	// PVCreatedByKey is key to fetch the details of pv creation in case of restore
 	PVCreatedByKey = "openebs.io/created-through"
-
-	// AnnPVCASVolKey is key to fetch the name of PV resources for cStor
-	AnnPVCASVolKey = "openebs.io/pv-resource-name"
 )
 
 // CASPlainKey represents a openebs key used either in resource annotation

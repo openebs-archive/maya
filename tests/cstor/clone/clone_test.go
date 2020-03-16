@@ -31,6 +31,7 @@ import (
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/openebs/maya/tests/cstor"
 
+	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -54,7 +55,7 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(cstor.PoolCount).
-				WithOverProvisioning(false).
+				WithThickProvisioning(true).
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
 				Build().Object
 
@@ -138,7 +139,7 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 				nsObj.Name,
 			)
 			cvrLabel := pvLabel + pvcObj.Spec.VolumeName
-			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, cstor.ReplicaCount)
+			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, cstor.ReplicaCount, cvr.IsHealthy())
 			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
 
 			By("verifying pvc status as bound")
@@ -365,6 +366,17 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 
 			By("veryfing data consistency")
 			Expect(podOutput).To(Equal(clonePodOutput), "while checking data consistency")
+
+			// try to delete source PVC
+			By("try deleting source persistentvolumeclaim")
+			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
+			Expect(err).NotTo(BeNil())
+			Expect(strings.Contains(err.Error(), "admission webhook \"admission-webhook.openebs.io\" denied the request")).
+				To(Equal(true),
+					"while deleting source pvc {%s} in namespace {%s} without deleting clone",
+					pvcName,
+					nsObj.Name,
+				)
 
 			By("deleting application pod")
 			err = ops.PodClient.WithNamespace(nsObj.Name).

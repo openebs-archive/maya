@@ -111,6 +111,13 @@ func (b *ListBuilder) WithAPIList(
 	return b
 }
 
+// AppendListBuilder append the provided CVR API object into existing ListBuilder
+func (b *ListBuilder) AppendListBuilder(
+	cvr *apis.CStorVolumeReplica) *ListBuilder {
+	b.list.items = append(b.list.items, &CVR{object: cvr})
+	return b
+}
+
 // List returns the list of cvr
 // instances that was built by this
 // builder
@@ -145,11 +152,39 @@ func (p *CVR) IsHealthy() bool {
 	return p.object.Status.Phase == "Healthy"
 }
 
+// IsErrored returns true if the CVR is in
+// Error state
+func (p *CVR) IsErrored() bool {
+	return p.object.Status.Phase == "Error"
+}
+
+// HasLabel returns true only if label key value matched to provided
+// value.
+func (p *CVR) HasLabel(key, value string) bool {
+	return p.object.Labels[key] == value
+}
+
+// HasLabel returns predicate to filter out CVRs based on the
+// provided key and values
+func HasLabel(key, value string) Predicate {
+	return func(p *CVR) bool {
+		return p.HasLabel(key, value)
+	}
+}
+
 // IsHealthy is a Predicate to filter out cvrs
 // which is healthy
 func IsHealthy() Predicate {
 	return func(p *CVR) bool {
 		return p.IsHealthy()
+	}
+}
+
+// IsErrored is a Predicate to filter out cvrs
+// which is in errored state
+func IsErrored() Predicate {
+	return func(p *CVR) bool {
+		return p.IsErrored()
 	}
 }
 

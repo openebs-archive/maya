@@ -251,7 +251,6 @@ func (e *envInstall) List() (l *envList, err error) {
 		Key: menv.CASTemplateToListVolumeENVK,
 		Value: strings.Join(ver.WithSuffixesIf(
 			[]string{
-				"jiva-volume-list-default-0.6.0",
 				"jiva-volume-list-default",
 				"cstor-volume-list-default",
 			},

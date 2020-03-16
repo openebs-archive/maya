@@ -166,7 +166,7 @@ func TestFilterList(t *testing.T) {
 		filters        predicateList
 	}{
 		"Nodes Set 1": {
-			availableNodes: map[string]corev1.NodeConditionType{"Node 1": corev1.NodeReady, "Node 2": corev1.NodeOutOfDisk},
+			availableNodes: map[string]corev1.NodeConditionType{"Node 1": corev1.NodeReady},
 			filteredNodes:  []string{"Node 1"},
 			filters:        predicateList{IsReady()},
 		},

@@ -396,7 +396,7 @@ func CreateVolumeRestore(rst *apis.CStorRestore) error {
 			"rname", rst.Spec.VolumeName,
 		)
 	} else {
-		alertlog.Logger.Errorw("",
+		alertlog.Logger.Infow("",
 			"eventcode", "cstor.volume.restore.success",
 			"msg", "Successfully restored CStor volume",
 			"rname", rst.Spec.VolumeName,
@@ -448,7 +448,7 @@ func DeleteVolume(fullVolName string) error {
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, deleteVolStr...)
 	if err != nil {
 		// If volume is missing then do not return error
-		if strings.Contains(err.Error(), "dataset does not exist") {
+		if strings.Contains(string(stdoutStderr), "dataset does not exist") {
 			klog.Infof("Assuming volume deletion successful for error: %v", string(stdoutStderr))
 			return nil
 		}
@@ -458,7 +458,7 @@ func DeleteVolume(fullVolName string) error {
 			"msg", "Failed to delete CStor volume",
 			"rname", fullVolName,
 		)
-		return err
+		return errors.Wrapf(err, "failed to delete volume.. %s", string(stdoutStderr))
 	}
 	alertlog.Logger.Infow("",
 		"eventcode", "cstor.volume.delete.success",

@@ -14,12 +14,12 @@ limitations under the License.
 package provisioning
 
 import (
+	"strconv"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cspc_v1alpha1 "github.com/openebs/maya/pkg/cstor/poolcluster/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strconv"
 )
 
 var skipPositiveCaseIfRequired = false
@@ -35,6 +35,9 @@ var _ = Describe("[CSPC] CSTOR RAIDZ POOL PROVISIONING AND RECONCILIATION ", fun
 })
 var _ = Describe("[CSPC] CSTOR RAIDZ2 POOL PROVISIONING AND RECONCILIATION ", func() {
 	provisioningAndReconciliationTest(createCSPCObjectForRaidz2)
+})
+var _ = Describe("[CSPC] CSTOR STRIPE POOL PROVISIONING AND DownScaling With BDC cleanup ", func() {
+	provisioningAndCleanupTest(createCSPCObjectForStripe)
 })
 
 func provisioningAndReconciliationTest(createCSPCObject func()) {
@@ -70,19 +73,30 @@ func provisioningAndReconciliationTest(createCSPCObject func()) {
 			})
 		})
 	}
+	// cleanup cspcObj after each test
+	cleanCSPCObject()
+}
 
-	// TODO : Improve this cleanup BDD
-	When("Cleaning up cspc", func() {
-		It("should delete the cspc", func() {
+func provisioningAndCleanupTest(createCSPCObject func()) {
+	When("A CSPC Is Created", func() {
+		It("cStor Pools Should be Provisioned ", func() {
 			SkipTest(skipPositiveCaseIfRequired)
-			err := ops.CSPCClient.Delete(cspcObj.Name, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil())
-			bdcCount := ops.GetBDCCountEventually(
-				metav1.ListOptions{
-					LabelSelector: string(apis.CStorPoolClusterCPK) + "=" + cspcObj.Name},
-				0, string(ops.NameSpace))
-			Expect(bdcCount).To(BeZero())
-			Expect(ops.IsCSPCNotExists(cspcObj.Name)).To(BeTrue())
+			By("Preparing A CSPC Object, No Error Should Occur", createCSPCObject)
+
+			By("Creating A CSPC Object, Desired Number of CSPIs Should Be Created", verifyDesiredCSPICount)
 		})
 	})
+
+	When("The CSPC Is DownScaled ", func() {
+		It("Extra BDCs Should Be Removed", func() {
+			SkipTest(skipPositiveCaseIfRequired)
+			downScaleCSPCObject()
+			listOpts := metav1.ListOptions{
+				LabelSelector: getLabelSelector(cspcObj),
+			}
+			Expect(ops.GetBDCCountEventually(listOpts, 2, ops.NameSpace)).Should(Equal(2))
+		})
+	})
+	// cleanup cspcObj after each test
+	cleanCSPCObject()
 }
