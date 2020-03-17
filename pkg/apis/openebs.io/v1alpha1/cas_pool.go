@@ -71,6 +71,8 @@ const (
 )
 
 const (
+	// PoolProtectionFinalizer will make sure that pool will be destroyed
+	// on the disks before removing the CSP from etcd
 	PoolProtectionFinalizer = "openebs.io/pool-protection"
 )
 
