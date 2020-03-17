@@ -61,6 +61,7 @@ notifications:
   email:
     recipients:
     - kiran.mova@cloudbyte.com
+    - shubham.bajpai@mayadata.io
 deploy:
   provider: releases
   api_key:
