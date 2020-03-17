@@ -104,6 +104,13 @@ ifeq (${BASE_DOCKER_IMAGE_ARM64}, )
   export BASE_DOCKER_IMAGE_ARM64
 endif
 
+# Specify the name of base image for PPC64LE
+ifeq (${BASE_DOCKER_IMAGE_PPC64LE}, )
+  BASE_DOCKER_IMAGE_PPC64LE = "ubuntu:18.04"
+  export BASE_DOCKER_IMAGE_PPC64LE
+endif
+
+
 # Specify the name for the binaries
 WEBHOOK=admission-server
 CSPC_OPERATOR=cspc-operator

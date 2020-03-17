@@ -48,6 +48,8 @@ elif [ "${ARCH}" = "x86_64" ] ; then
     XC_ARCH='amd64'
 elif [ "${ARCH}" = "aarch64" ] ; then
     XC_ARCH='arm64'
+elif [ "${ARCH}" = "ppc64le" ] ; then
+    XC_ARCH='ppc64le'
 else
     echo "Unusable architecture: ${ARCH}"
     exit 1
