@@ -78,17 +78,20 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		return err
 	}
 	klog.V(4).Infof("Lease acquired successfully on csp %s ", cspObject.Name)
-	newCSPObj, err := c.addPoolProtectionFinalizer(cspObject)
-	if err != nil {
-		c.recorder.Eventf(
-			cspObject,
-			corev1.EventTypeWarning,
-			"Failed to update",
-			"Error: %s", err.Error(),
-		)
-		return nil
+	// Add pool protection finalizer only if deletion timestamp is not set
+	if !IsDestroyEvent(cspObject) {
+		newCSPObj, err := c.addPoolProtectionFinalizer(cspObject)
+		if err != nil {
+			c.recorder.Eventf(
+				cspObject,
+				corev1.EventTypeWarning,
+				"Failed to update",
+				"Error: %s", err.Error(),
+			)
+			return nil
+		}
+		cspObject = newCSPObj
 	}
-	cspObject = newCSPObj
 	cspObject, err = c.populateVersion(cspObject)
 	if err != nil {
 		klog.Errorf("failed to add versionDetails to csp %s:%s", cspObject.Name, err.Error())
