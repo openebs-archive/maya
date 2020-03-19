@@ -78,6 +78,20 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		return err
 	}
 	klog.V(4).Infof("Lease acquired successfully on csp %s ", cspObject.Name)
+	// Add pool protection finalizer only if deletion timestamp is not set
+	if !IsDestroyEvent(cspObject) {
+		newCSPObj, err := c.addPoolProtectionFinalizer(cspObject)
+		if err != nil {
+			c.recorder.Eventf(
+				cspObject,
+				corev1.EventTypeWarning,
+				"Failed to update",
+				"Error: %s", err.Error(),
+			)
+			return nil
+		}
+		cspObject = newCSPObj
+	}
 	cspObject, err = c.populateVersion(cspObject)
 	if err != nil {
 		klog.Errorf("failed to add versionDetails to csp %s:%s", cspObject.Name, err.Error())
@@ -434,15 +448,37 @@ func (c *CStorPoolController) getPoolResource(key string) (*apis.CStorPool, erro
 
 // removeFinalizer is to remove finalizer of cstorpool resource.
 func (c *CStorPoolController) removeFinalizer(cStorPoolGot *apis.CStorPool) error {
-	if len(cStorPoolGot.Finalizers) > 0 {
-		cStorPoolGot.Finalizers = []string{}
+	if !util.ContainsString(cStorPoolGot.Finalizers, apis.PoolProtectionFinalizer) {
+		return nil
 	}
+	cStorPoolGot.Finalizers = util.RemoveString(cStorPoolGot.Finalizers, apis.PoolProtectionFinalizer)
 	_, err := c.clientset.OpenebsV1alpha1().CStorPools().Update(cStorPoolGot)
 	if err != nil {
 		return err
 	}
 	klog.Infof("Removed Finalizer: %v, %v", cStorPoolGot.Name, string(cStorPoolGot.GetUID()))
 	return nil
+}
+
+// addPoolProtectionFinalizer will updates the CStorPool object
+// with poolProtectionFinalizer in etcd only if finalizer doesn't exist
+func (c *CStorPoolController) addPoolProtectionFinalizer(
+	cStorPool *apis.CStorPool) (*apis.CStorPool, error) {
+	if util.ContainsString(cStorPool.Finalizers, apis.PoolProtectionFinalizer) {
+		return cStorPool, nil
+	}
+	cStorPool.Finalizers = append(cStorPool.Finalizers, apis.PoolProtectionFinalizer)
+	cspObj, err := c.clientset.
+		OpenebsV1alpha1().
+		CStorPools().
+		Update(cStorPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to add %s finalizer on csp %s", apis.PoolProtectionFinalizer, cStorPool.Name)
+	}
+	klog.Infof("Added Finalizer: %v", cStorPool.Name)
+	return cspObj, nil
 }
 
 func (c *CStorPoolController) triggerImportPool(cStorPoolGot *apis.CStorPool, importOptions *pool.ImportOptions) (string, error) {
