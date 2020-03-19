@@ -24,8 +24,8 @@ import (
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/generated/clientset/versioned"
-	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	"github.com/openebs/maya/pkg/volume"
+	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/kubernetes"
@@ -63,6 +63,11 @@ func (rOps *restoreAPIOps) create() (interface{}, error) {
 		return nil, err
 	}
 
+	// namespace is expected
+	if !restore.Spec.Local && len(strings.TrimSpace(restore.Namespace)) == 0 {
+		return nil, CodedError(400, fmt.Sprintf("failed to create restore '%v': missing namespace", restore.Name))
+	}
+
 	// restore name is expected
 	if len(strings.TrimSpace(restore.Spec.RestoreName)) == 0 {
 		return nil, CodedError(400, fmt.Sprintf("failed to create restore: missing restore name "))
@@ -78,13 +83,13 @@ func (rOps *restoreAPIOps) create() (interface{}, error) {
 		return nil, CodedError(400, fmt.Sprintf("failed to create restore '%v': missing restoreSrc", restore.Name))
 	}
 
-	// storageClass is expected
-	if len(strings.TrimSpace(restore.Spec.StorageClass)) == 0 {
+	// storageClass is expected if restore is for local snapshot
+	if restore.Spec.Local && len(strings.TrimSpace(restore.Spec.StorageClass)) == 0 {
 		return nil, CodedError(400, fmt.Sprintf("failed to create restore '%v': missing storageClass", restore.Name))
 	}
 
-	// size is expected
-	if len(strings.TrimSpace(restore.Spec.Size.String())) == 0 {
+	// size is expected if restore is for local snapshot
+	if restore.Spec.Local && len(strings.TrimSpace(restore.Spec.Size.String())) == 0 {
 		return nil, CodedError(400, fmt.Sprintf("failed to create restore '%v': missing size", restore.Name))
 	}
 
@@ -98,6 +103,10 @@ func (rOps *restoreAPIOps) create() (interface{}, error) {
 		return nil, CodedError(400, fmt.Sprintf("Failed to create resources for volume: {%v}", err))
 	}
 	klog.Infof("Restore volume '%v' created successfully ", cvol.Name)
+
+	if restore.Spec.Local {
+		return cvol, nil
+	}
 
 	return createRestoreResource(openebsClient, restore, cvol)
 }
@@ -278,8 +287,14 @@ func createVolumeForRestore(r *v1alpha1.CStorRestore) (*v1alpha1.CASVolume, erro
 	}
 	vol.Spec.Capacity = r.Spec.Size.String()
 
-	vol.Annotations = map[string]string{
-		v1alpha1.PVCreatedByKey: "restore",
+	if r.Spec.Local {
+		vol.CloneSpec.IsClone = true
+		vol.CloneSpec.SourceVolume = r.Spec.RestoreSrc
+		vol.CloneSpec.SnapshotName = r.Spec.RestoreName
+	} else {
+		vol.Annotations = map[string]string{
+			v1alpha1.PVCreatedByKey: "restore",
+		}
 	}
 
 	vOps, err := volume.NewOperation(vol)

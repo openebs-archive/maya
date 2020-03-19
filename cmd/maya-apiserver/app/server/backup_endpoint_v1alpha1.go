@@ -80,8 +80,8 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 		return nil, CodedError(400, fmt.Sprintf("Failed to create backup '%v': missing volume name", bkp.Spec.BackupName))
 	}
 
-	// backupIP is expected
-	if len(strings.TrimSpace(bkp.Spec.BackupDest)) == 0 {
+	// backupIP is expected for cloud snapshot
+	if !bkp.Spec.LocalSnap && len(strings.TrimSpace(bkp.Spec.BackupDest)) == 0 {
 		return nil, CodedError(400, fmt.Sprintf("Failed to create backup '%v': missing backupIP", bkp.Spec.BackupName))
 	}
 
@@ -105,6 +105,10 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 	cvr, err := findHealthyCVR(openebsClient, bkp.Spec.VolumeName)
 	if err != nil {
 		return nil, CodedError(400, fmt.Sprintf("Failed to find healthy replica"))
+	}
+
+	if bkp.Spec.LocalSnap {
+		return "", nil
 	}
 
 	bkp.ObjectMeta.Labels = map[string]string{

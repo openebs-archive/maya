@@ -49,6 +49,9 @@ type CStorBackupSpec struct {
 
 	// BackupDest is the remote address for backup transfer
 	BackupDest string `json:"backupDest"`
+
+	// LocalSnap is flag to enable local snapshot only
+	LocalSnap bool `json:"localSnap"`
 }
 
 // CStorBackupStatus is to hold status of backup
