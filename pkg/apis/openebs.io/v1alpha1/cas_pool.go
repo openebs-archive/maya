@@ -70,6 +70,12 @@ const (
 	PersistentVolumeCPK CasPoolKey = "openebs.io/persistent-volume"
 )
 
+const (
+	// PoolProtectionFinalizer will make sure that pool will be destroyed
+	// on the disks before removing the CSP from etcd
+	PoolProtectionFinalizer = "openebs.io/pool-protection"
+)
+
 // CasPool is a type which will be utilised by CAS engine to perform
 // storagepool related operation.
 // TODO: Restrucutre CasPool struct.

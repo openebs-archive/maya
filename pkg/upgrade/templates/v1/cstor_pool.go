@@ -22,7 +22,10 @@ var (
     "metadata": {
         "labels": {
             "openebs.io/version": "{{.UpgradeVersion}}"
-        }
+        }{{if lt .CurrentVersion "1.9.0"}},
+        "finalizers": [
+            "openebs.io/pool-protection"
+        ]{{end}}
     },{{if lt .CurrentVersion "1.8.0"}}
     "spec": {
         "poolSpec": {

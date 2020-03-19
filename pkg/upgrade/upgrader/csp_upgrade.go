@@ -138,6 +138,7 @@ func patchCSP(cspObj *apis.CStorPool) error {
 			return errors.Wrapf(err, "failed to populate template for csp patch")
 		}
 		cspPatch := buffer.String()
+		klog.V(6).Infof("Patching CSP %s with %s", cspObj.Name, cspPatch)
 		buffer.Reset()
 		_, err = cspClient.Patch(
 			cspObj.Name,
