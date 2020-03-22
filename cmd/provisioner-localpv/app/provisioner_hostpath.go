@@ -104,10 +104,12 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 		WithAccessModes(pvc.Spec.AccessModes).
 		WithVolumeMode(fs).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
-		WithLocalHostDirectory(path).
-		WithNodeAffinity(nodeHostname)
+		WithLocalHostDirectory(path)
+		//WithNodeAffinity(nodeHostname).
 
-	if isShared == true {
+	if isShared == false {
+		pvBuilder.WithNodeAffinity(nodeHostname)
+	} else if isShared == true && opts.AllowedTopologies != nil {
 		pvBuilder.WithAllowedTopologies(opts.AllowedTopologies)
 	}
 
