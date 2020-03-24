@@ -18,6 +18,7 @@ package templatefuncs
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -282,6 +283,15 @@ func runlog(resultpath, debugpath string, store map[string]interface{}, given *c
 	return
 }
 
+func mkNumberedSlice(n string) []string {
+	slice := []string{}
+	x, _ := strconv.Atoi(n)
+	for i := 1; i <= x; i++ {
+		slice = append(slice, strconv.Itoa(i))
+	}
+	return slice
+}
+
 // runCommandFuncs returns the set of runtask command based template functions
 func runCommandFuncs() template.FuncMap {
 	return template.FuncMap{
@@ -309,5 +319,6 @@ func runCommandFuncs() template.FuncMap {
 		"runas":           runas,
 		"runAlways":       runAlways,
 		"toJsonObj":       toJsonObj,
+		"mkNumberedSlice": mkNumberedSlice,
 	}
 }
