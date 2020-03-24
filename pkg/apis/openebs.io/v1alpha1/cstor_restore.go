@@ -41,9 +41,9 @@ type CStorRestoreSpec struct {
 	RestoreSrc    string            `json:"restoreSrc"` // it can be ip:port in case of restore from remote or volumeName in case of local restore
 	MaxRetryCount int               `json:"maxretrycount"`
 	RetryCount    int               `json:"retrycount"`
-	StorageClass  string            `json:"storageClass"`
-	Size          resource.Quantity `json:"size"`
-	Local         bool              `json:"localRestore"` // if restore is from local backup/snapshot
+	StorageClass  string            `json:"storageClass,omitempty"`
+	Size          resource.Quantity `json:"size,omitempty"`
+	Local         bool              `json:"localRestore,omitempty"` // if restore is from local backup/snapshot
 }
 
 // CStorRestoreStatus is to hold result of action.
