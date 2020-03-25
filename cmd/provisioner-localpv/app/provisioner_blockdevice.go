@@ -51,7 +51,7 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 	if err != nil {
 		klog.Infof("Initialize volume %v failed: %v", name, err)
 		alertlog.Logger.Errorw("",
-			"eventcode", "cstor.local.pv.provision.failure",
+			"eventcode", "local.pv.provision.failure",
 			"msg", "Failed to provision Local PV",
 			"rname", opts.PVName,
 			"reason", "Block device initialization failed",
@@ -102,7 +102,7 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 
 	if err != nil {
 		alertlog.Logger.Errorw("",
-			"eventcode", "cstor.local.pv.provision.failure",
+			"eventcode", "local.pv.provision.failure",
 			"msg", "Failed to provision Local PV",
 			"rname", opts.PVName,
 			"reason", "Building volume failed",
@@ -111,7 +111,7 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 		return nil, err
 	}
 	alertlog.Logger.Infow("",
-		"eventcode", "cstor.local.pv.provision.success",
+		"eventcode", "local.pv.provision.success",
 		"msg", "Successfully provisioned Local PV",
 		"rname", opts.PVName,
 		"storagetype", stgType,
