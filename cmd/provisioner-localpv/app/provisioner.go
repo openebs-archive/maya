@@ -133,7 +133,7 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 	}
 	alertlog.Logger.Errorw("",
 		"eventcode", "cstor.local.pv.provision.failure",
-		"msg", "Failed to provision CStor Local PV",
+		"msg", "Failed to provision Local PV",
 		"rname", opts.PVName,
 		"reason", "StorageType not supported",
 		"storagetype", stgType,
@@ -165,7 +165,7 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 			if err != nil {
 				alertlog.Logger.Errorw("",
 					"eventcode", "cstor.local.pv.delete.failure",
-					"msg", "Failed to delete CStor Local PV",
+					"msg", "Failed to delete Local PV",
 					"rname", pv.Name,
 					"reason", "failed to delete block device",
 					"storagetype", pvType,
@@ -178,7 +178,7 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 		if err != nil {
 			alertlog.Logger.Errorw("",
 				"eventcode", "cstor.local.pv.delete.failure",
-				"msg", "Failed to delete CStor Local PV",
+				"msg", "Failed to delete Local PV",
 				"rname", pv.Name,
 				"reason", "failed to delete host path",
 				"storagetype", pvType,
@@ -189,7 +189,7 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 	klog.Infof("Retained volume %v", pv.Name)
 	alertlog.Logger.Infow("",
 		"eventcode", "cstor.local.pv.delete.success",
-		"msg", "Successfully deleted CStor Local PV",
+		"msg", "Successfully deleted Local PV",
 		"rname", pv.Name,
 	)
 	return nil
