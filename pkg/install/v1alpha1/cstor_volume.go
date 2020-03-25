@@ -696,17 +696,20 @@ spec:
     {{- $hostName := .TaskResult.creategetpvc.hostName | default "" -}}
     {{- $capacity := .Volume.capacity -}}
     {{- $spc := .Config.StoragePoolClaim.value }}
+    {{- $replicaCount := .Config.ReplicaCount.value | int64 -}}
     {{- $replicaAntiAffinity := .TaskResult.creategetpvc.replicaAntiAffinity  | default "" -}}
     {{- $preferredReplicaAntiAffinity := .TaskResult.creategetpvc.preferredReplicaAntiAffinity | default "" -}}
     {{- $antiAffinityLabelSelector := printf "openebs.io/replica-anti-affinity=%s" $replicaAntiAffinity | IfNotNil $replicaAntiAffinity }}
     {{- $preferredAntiAffinityLabelSelector := printf "openebs.io/preferred-replica-anti-affinity=%s" $preferredReplicaAntiAffinity | IfNotNil $preferredReplicaAntiAffinity }}
-    {{- $preferedScheduleOnHostAnnotationSelector := printf "volume.kubernetes.io/selected-node=%s" $hostName | IfNotNil $hostName }}
+    {{- $preferedScheduleOnHostAnnotationSelector := "" -}}
+    {{- if and (ne $hostName "") (eq $replicaCount 1) -}}
+    {{- $preferedScheduleOnHostAnnotationSelector = printf "volume.kubernetes.io/selected-node=%s" $hostName -}}
+    {{- end -}}
     {{- $volumeCapacity := printf "volume.kubernetes.io/capacity=%s" $capacity | IfNotNil $capacity }}
     {{- $spcName := printf "openebs.io/storage-pool-claim=%s" $spc | IfNotNil $spc }}
     {{- $selectionPolicies := cspGetPolicies $antiAffinityLabelSelector $preferredAntiAffinityLabelSelector $preferedScheduleOnHostAnnotationSelector $volumeCapacity $spcName }}
     {{- $pools :=  createCSPListFromUIDNodeMap (getMapofString .ListItems.cvolPoolNodeList "pools") (getMapofString .ListItems.cvolPoolCapList "poolsCapacity") }}
     {{- $poolUids := cspFilterPoolIDs $pools $selectionPolicies | randomize }}
-    {{- $replicaCount := .Config.ReplicaCount.value | int64 -}}
     {{- if lt (len $poolUids) $replicaCount -}}
     {{- printf "Not enough pools to provision replica: expected replica count %d actual count %d" $replicaCount (len $poolUids) | fail -}}
     {{- end -}}
