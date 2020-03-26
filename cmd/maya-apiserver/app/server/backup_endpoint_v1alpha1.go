@@ -80,7 +80,7 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 		return nil, CodedError(400, fmt.Sprintf("Failed to create backup '%v': missing volume name", bkp.Spec.BackupName))
 	}
 
-	// backupIP is expected for cloud snapshot
+	// backupIP is expected for remote snapshot
 	if !bkp.Spec.LocalSnap && len(strings.TrimSpace(bkp.Spec.BackupDest)) == 0 {
 		return nil, CodedError(400, fmt.Sprintf("Failed to create backup '%v': missing backupIP", bkp.Spec.BackupName))
 	}

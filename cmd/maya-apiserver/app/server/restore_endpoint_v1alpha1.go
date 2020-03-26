@@ -302,6 +302,8 @@ func createVolumeForRestore(r *v1alpha1.CStorRestore) (*v1alpha1.CASVolume, erro
 		return nil, errors.Wrapf(err, "Failed to create volume operation")
 	}
 
+	// If Restore is from remote backup then volume creation is handled by velero-plugin
+	// So let's check if volume exist or not
 	cvol, err := vOps.Read()
 	if err != nil {
 		if !isNotFound(err) {
