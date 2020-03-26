@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -35,11 +36,14 @@ type CStorRestore struct {
 
 // CStorRestoreSpec is the spec for a CStorRestore resource
 type CStorRestoreSpec struct {
-	RestoreName   string `json:"restoreName"` // set restore name
-	VolumeName    string `json:"volumeName"`
-	RestoreSrc    string `json:"restoreSrc"`
-	MaxRetryCount int    `json:"maxretrycount"`
-	RetryCount    int    `json:"retrycount"`
+	RestoreName   string            `json:"restoreName"` // set restore name
+	VolumeName    string            `json:"volumeName"`
+	RestoreSrc    string            `json:"restoreSrc"` // it can be ip:port in case of restore from remote or volumeName in case of local restore
+	MaxRetryCount int               `json:"maxretrycount"`
+	RetryCount    int               `json:"retrycount"`
+	StorageClass  string            `json:"storageClass,omitempty"`
+	Size          resource.Quantity `json:"size,omitempty"`
+	Local         bool              `json:"localRestore,omitempty"` // if restore is from local backup/snapshot
 }
 
 // CStorRestoreStatus is to hold result of action.

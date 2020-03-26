@@ -240,7 +240,6 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 	if len(vol.Name) == 0 {
 		return nil, CodedErrorf(400, "failed to delete volume: missing volume name: %s", vol)
 	}
-
 	// use namespace from req headers if volume ns is still not set
 	if len(vol.Namespace) == 0 {
 		vol.Namespace = hdrNS
