@@ -58,8 +58,8 @@ spec:
   # backward compatability. However in the future releases
   # if more and more deployments prefer to use this option,
   # the default can be set to deploy in openebs.
-  - name: DeployInPVCNamespace
-    enabled: "false"
+  - name: DeployInOpenEBSNamespace
+    enabled: "true"
   - name: ControllerImage
     value: {{env "OPENEBS_IO_JIVA_CONTROLLER_IMAGE" | default "openebs/jiva:latest"}}
   - name: ReplicaImage
@@ -671,9 +671,9 @@ metadata:
   name: jiva-volume-create-puttargetservice-default
 spec:
   meta: |
-    {{- $deployInPVCNamespace := .Config.DeployInPVCNamespace.enabled | default "false" | lower -}}
+    {{- $deployInOpenEBSNamespace := .Config.DeployInOpenEBSNamespace.enabled | default "true" | lower -}}
     id: createputsvc
-    {{- if eq $deployInPVCNamespace "false" }}
+    {{- if eq $deployInOpenEBSNamespace "true" }}
     runNamespace: {{ .Config.OpenEBSNamespace.value | trim | saveAs "createputsvc.jivapodsns" .TaskResult }}
     {{ else }}
     runNamespace: {{ .Volume.runNamespace | trim | saveAs "createputsvc.jivapodsns" .TaskResult }}
@@ -1263,7 +1263,6 @@ spec:
   post: |
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "deletelistsvc.names" .TaskResult | noop -}}
     {{- .TaskResult.deletelistsvc.names | notFoundErr "controller service not found" | saveIf "deletelistsvc.notFoundErr" .TaskResult | noop -}}
-    {{- .TaskResult.deletelistsvc.names | default "" | splitList " " | isLen 1 | not | verifyErr "total no. of controller services is not 1" | saveIf "deletelistsvc.verifyErr" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -1282,7 +1281,6 @@ spec:
   post: |
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "deletelistctrl.names" .TaskResult | noop -}}
     {{- .TaskResult.deletelistctrl.names | notFoundErr "controller deployment not found" | saveIf "deletelistctrl.notFoundErr" .TaskResult | noop -}}
-    {{- .TaskResult.deletelistctrl.names | default "" | splitList " " | isLen 1 | not | verifyErr "total no. of controller deployments is not 1" | saveIf "deletelistctrl.verifyErr" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -1299,11 +1297,8 @@ spec:
     options: |-
       labelSelector: openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ .Volume.owner }}
   post: |
-    {{- $expectedReplicaCount := .Config.ReplicaCount.value | int -}}
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "deletelistrep.names" .TaskResult | noop -}}
     {{- .TaskResult.deletelistrep.names | notFoundErr "replica deployment not found" | saveIf "deletelistrep.notFoundErr" .TaskResult | noop -}}
-    {{- $msg := printf "total no. of replica deployments is not %v" .Config.ReplicaCount.value -}}
-    {{- .TaskResult.deletelistrep.names | default "" | splitList " " | isLen $expectedReplicaCount | not | verifyErr $msg | saveIf "deletelistrep.verifyErr" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
