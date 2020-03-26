@@ -263,8 +263,6 @@ spec:
   # should be cleared or retained.
   - name: RetainReplicaData
     enabled: "false"
-  - name: ReplicaCount
-    value: {{env "OPENEBS_IO_JIVA_REPLICA_COUNT" | default "3" | quote }}
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
