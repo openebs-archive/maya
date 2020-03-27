@@ -19,6 +19,7 @@ package volumereplica
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	"encoding/json"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	"github.com/openebs/maya/pkg/debug"
 	"github.com/openebs/maya/pkg/hash"
 	"github.com/openebs/maya/pkg/util"
@@ -668,4 +670,173 @@ func GetAndUpdateReplicaID(cvr *apis.CStorVolumeReplica) error {
 		return errors.Errorf("Failed to set ReplicaID for CVR(%s).. %s", cvr.Name, err)
 	}
 	return nil
+}
+
+// GetAndUpdateSnapshotInfo get the snapshot list from ZFS and updated in CVR status.
+// It doesn in following steps:
+// 1. Get snapshot list from ZFS
+// 2. Checks whether above snapshots exist on CVR under Status.Snapshots:
+//    2.1 If snapshot doesn't exist then get the info of snapshot from ZFS and update
+//        the details in CVR.Status.Snapshots
+// 3. Verify and delete the snapshot details on CVR if it is deleted from ZFS
+// 4. Update the pending list of snapshots by verifying with snapshot list obtained from step1
+// 5. If replica is under rebuilding get the snapshot list from peer CVR and update them
+//    under pending snapshot list
+func GetAndUpdateSnapshotInfo(
+	clientset clientset.Interface, cvr *apis.CStorVolumeReplica) error {
+	volName := cvr.GetLabels()[string(apis.PersistentVolumeCPK)]
+	dsName := PoolNameFromCVR(cvr) + "/" + volName
+
+	snapList, err := getSnapshotList(dsName)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get the list of snapshots")
+	}
+
+	// Add snapshot if it doesn't exist on CVR but exist on ZFS
+	err = addSnapshotListInfo(cvr.Status.Snapshots, snapList, dsName)
+	if err != nil {
+		return errors.Wrapf(err, "failed to add snapshot list info")
+	}
+
+	// Delete snapshot if exist on CVR but not in ZFS
+	for snapName, _ := range cvr.Status.Snapshots {
+		if _, ok := snapList[snapName]; !ok {
+			delete(cvr.Status.Snapshots, snapName)
+		}
+	}
+
+	// Delete pending snapshots on CVR if exist in ZFS
+	for snapName, _ := range cvr.Status.PendingSnapshots {
+		if _, ok := snapList[snapName]; ok {
+			delete(cvr.Status.PendingSnapshots, snapName)
+		}
+	}
+
+	// If CVR is in rebuilding go and get snapshot information
+	// from other replicas
+	//if cvr.Status.Phase == apis.CVRStatusRebuilding {
+	//	err = getAndUpdatePendingSnapshotsList(clientset, cvr)
+	//}
+	return nil
+}
+
+//func getAndUpdatePendingSnapshotsList(
+//	clientset clientset.Interface, cvr *apis.CStorVolumeReplica) error {
+//	peerCVRList, err := getPeerReplicas(clientset, cvr)
+//	if err != nil {
+//		return errors.Wrapf(err, "failed to get peer CVRs info of volume %s", volName)
+//	}
+// TODO: Perform following steps
+// 1. Get the snapshot info from peer replicas
+// 2. If snapshot info doesn't exist under CVR.Status.Snapshots then
+// add it under CVR.Status.PendingSnapshots
+//}
+
+// addSnapshotListInfo adds the current snapshot info if snapshot doesn't
+// exist in existingSnapInfoList
+// NOTE: Below function will get the snapshot info from ZFS
+func addSnapshotListInfo(
+	existingSnapInfoList map[string]apis.CStorSnapshotInfo,
+	currentSnapList map[string]string,
+	dsName string) error {
+	var err error
+	var snapInfo apis.CStorSnapshotInfo
+	if existingSnapInfoList == nil {
+		existingSnapInfoList = map[string]apis.CStorSnapshotInfo{}
+	}
+
+	for snapName, _ := range currentSnapList {
+		// If snapshot doesn't exist in existingSnapInfoList then
+		// get the snapshot info from zfs and Update info in existingSnapInfoList
+		if _, ok := existingSnapInfoList[snapName]; !ok {
+			snapInfo, err = getSnapshotInfo(dsName, snapName)
+			if err != nil {
+				return errors.Wrapf(err, "failed to get the properties of snapshot %s", snapName)
+			}
+			existingSnapInfoList[snapName] = snapInfo
+		}
+	}
+	return nil
+}
+
+// getSnapshotList get the list of snapshots by executing
+// command: `zfs listsnap <dataset_name>` and returns error if
+// there are any
+func getSnapshotList(dsName string) (map[string]string, error) {
+	ret, err := zfs.NewVolumeGetProperty().
+		WithScriptedMode(true).
+		WithParsableMode(true).
+		WithField("value").
+		WithProperty("listsnap").
+		WithDataset(dsName).
+		Execute()
+	if err != nil {
+		return nil, err
+	}
+	snapList := map[string]string{}
+	err = json.Unmarshal([]byte(ret), snapList)
+	if err != nil {
+		return nil, err
+	}
+	return snapList, nil
+}
+
+// getSnapshotInfo get the snapshot properties from pool by executing zfs commands
+// and returns error if there are any
+func getSnapshotInfo(dsName, snapName string) (apis.CStorSnapshotInfo, error) {
+	ret, err := zfs.NewVolumeGetProperty().
+		WithScriptedMode(true).
+		WithParsableMode(true).
+		WithField("value").
+		WithProperty("referenced").
+		WithProperty("written").
+		WithProperty("logicalreferenced").
+		WithProperty("used").
+		WithProperty("compressionratio").
+		WithDataset(dsName + "@" + snapName).
+		Execute()
+	if err != nil {
+		return apis.CStorSnapshotInfo{}, errors.Wrapf(err, "failed to get snapshot properties")
+	}
+	valueList := strings.Split(string(ret), "\n")
+	// Since we made zfs query in following order referenced, written,
+	// logicalreferenced, used and compressionratio output also will be
+	// in the same order
+
+	// referenced and written values are of type int64
+	var pInt64 []int64
+	var valI int64
+	for _, v := range []string{valueList[0], valueList[1]} {
+		valI, err = strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			break
+		}
+		pInt64 = append(pInt64, valI)
+	}
+	if err != nil {
+		return apis.CStorSnapshotInfo{}, errors.Wrapf(err, "failed to parse the snapshot properties")
+	}
+
+	// logicalReferenced and Used values are of type uint64
+	var pUint64 []uint64
+	var valU uint64
+	for _, v := range []string{valueList[2], valueList[3]} {
+		valU, err = strconv.ParseUint(v, 10, 64)
+		if err != nil {
+			break
+		}
+		pUint64 = append(pUint64, valU)
+	}
+	if err != nil {
+		return apis.CStorSnapshotInfo{}, errors.Wrapf(err, "failed to parse the snapshot properties")
+	}
+
+	snapInfo := apis.CStorSnapshotInfo{
+		Referenced:        pInt64[0],
+		Written:           pInt64[1],
+		LogicalReferenced: pUint64[0],
+		Used:              pUint64[1],
+		CompressionRatio:  valueList[4],
+	}
+	return snapInfo, nil
 }
