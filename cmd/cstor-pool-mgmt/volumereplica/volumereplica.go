@@ -687,7 +687,7 @@ func GetAndUpdateSnapshotInfo(
 	volName := cvr.GetLabels()[string(apis.PersistentVolumeCPK)]
 	dsName := PoolNameFromCVR(cvr) + "/" + volName
 
-	snapList, err := getSnapshotList(dsName)
+	snapList, err := GetSnapshotList(dsName)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get the list of snapshots")
 	}
@@ -759,26 +759,29 @@ func addSnapshotListInfo(
 	return nil
 }
 
-// getSnapshotList get the list of snapshots by executing
+// snapshotList is used to convert json format into go structure
+type snapshotList struct {
+	Name     string            `json:"name"`
+	SnapList map[string]string `json:"snaplist"`
+}
+
+// GetSnapshotList get the list of snapshots by executing
 // command: `zfs listsnap <dataset_name>` and returns error if
 // there are any
-func getSnapshotList(dsName string) (map[string]string, error) {
-	ret, err := zfs.NewVolumeGetProperty().
-		WithScriptedMode(true).
-		WithParsableMode(true).
-		WithField("value").
-		WithProperty("listsnap").
+func GetSnapshotList(dsName string) (map[string]string, error) {
+	ret, err := zfs.NewVolumeJSONProperty().
+		WithCLICommand("listsnap").
 		WithDataset(dsName).
 		Execute()
 	if err != nil {
 		return nil, err
 	}
-	snapList := map[string]string{}
-	err = json.Unmarshal([]byte(ret), snapList)
+	snapshotList := snapshotList{SnapList: map[string]string{}}
+	err = json.Unmarshal(ret, &snapshotList)
 	if err != nil {
 		return nil, err
 	}
-	return snapList, nil
+	return snapshotList.SnapList, nil
 }
 
 // getSnapshotInfo get the snapshot properties from pool by executing zfs commands
