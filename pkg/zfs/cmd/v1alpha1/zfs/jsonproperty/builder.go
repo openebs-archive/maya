@@ -81,7 +81,6 @@ func (v *VolumeJSONProperty) Validate() *VolumeJSONProperty {
 func (v *VolumeJSONProperty) Execute() ([]byte, error) {
 	v = v.Build()
 
-	fmt.Printf("Command: %v\n", v.Command)
 	// execute command here
 	// #nosec
 	return exec.Command(bin.BASH, "-c", v.Command).CombinedOutput()

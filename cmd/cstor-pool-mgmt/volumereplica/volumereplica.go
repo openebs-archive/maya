@@ -693,7 +693,7 @@ func GetAndUpdateSnapshotInfo(
 	}
 
 	// Add snapshot if it doesn't exist on CVR but exist on ZFS
-	err = addSnapshotListInfo(cvr.Status.Snapshots, snapList, dsName)
+	err = addSnapshotListInfo(cvr, snapList)
 	if err != nil {
 		return errors.Wrapf(err, "failed to add snapshot list info")
 	}
@@ -733,27 +733,29 @@ func GetAndUpdateSnapshotInfo(
 //}
 
 // addSnapshotListInfo adds the current snapshot info if snapshot doesn't
-// exist in existingSnapInfoList
+// exist on CVR.Status.Snapshots
 // NOTE: Below function will get the snapshot info from ZFS
 func addSnapshotListInfo(
-	existingSnapInfoList map[string]apis.CStorSnapshotInfo,
-	currentSnapList map[string]string,
-	dsName string) error {
+	cvr *apis.CStorVolumeReplica,
+	currentSnapList map[string]string) error {
 	var err error
 	var snapInfo apis.CStorSnapshotInfo
-	if existingSnapInfoList == nil {
-		existingSnapInfoList = map[string]apis.CStorSnapshotInfo{}
+	volName := cvr.GetLabels()[string(apis.PersistentVolumeCPK)]
+	dsName := PoolNameFromCVR(cvr) + "/" + volName
+
+	if cvr.Status.Snapshots == nil {
+		cvr.Status.Snapshots = map[string]apis.CStorSnapshotInfo{}
 	}
 
 	for snapName, _ := range currentSnapList {
-		// If snapshot doesn't exist in existingSnapInfoList then
+		// If snapshot doesn't exist in CVR.Status.Snapshots then
 		// get the snapshot info from zfs and Update info in existingSnapInfoList
-		if _, ok := existingSnapInfoList[snapName]; !ok {
+		if _, ok := cvr.Status.Snapshots[snapName]; !ok {
 			snapInfo, err = getSnapshotInfo(dsName, snapName)
 			if err != nil {
 				return errors.Wrapf(err, "failed to get the properties of snapshot %s", snapName)
 			}
-			existingSnapInfoList[snapName] = snapInfo
+			cvr.Status.Snapshots[snapName] = snapInfo
 		}
 	}
 	return nil
@@ -795,7 +797,7 @@ func getSnapshotInfo(dsName, snapName string) (apis.CStorSnapshotInfo, error) {
 		WithProperty("written").
 		WithProperty("logicalreferenced").
 		WithProperty("used").
-		WithProperty("compressionratio").
+		WithProperty("compressratio").
 		WithDataset(dsName + "@" + snapName).
 		Execute()
 	if err != nil {
