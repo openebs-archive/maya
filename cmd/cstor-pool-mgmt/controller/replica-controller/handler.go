@@ -629,27 +629,28 @@ func (c *CStorVolumeReplicaController) syncCvr(cvr *apis.CStorVolumeReplica) {
 	// Get the zfs volume name corresponding to this cvr.
 	volumeName, err := volumereplica.GetVolumeName(cvr)
 	if err != nil {
-		klog.Errorf("Unable to sync CVR capacity: %v", err)
 		c.recorder.Event(
 			cvr,
 			corev1.EventTypeWarning,
 			string(common.FailureCapacitySync),
 			string(common.MessageResourceFailCapacitySync),
 		)
+		return
 	}
 	// Get capacity of the volume.
 	capacity, err := volumereplica.Capacity(volumeName)
 	if err != nil {
-		klog.Errorf("Unable to sync CVR capacity: %v", err)
 		c.recorder.Event(
 			cvr,
 			corev1.EventTypeWarning,
 			string(common.FailureCapacitySync),
 			string(common.MessageResourceFailCapacitySync),
 		)
+		return
 	} else {
 		cvr.Status.Capacity = *capacity
 	}
+
 	if os.Getenv(string(common.RebuildEstimates)) == "true" {
 		err = volumereplica.GetAndUpdateSnapshotInfo(c.clientset, cvr)
 		if err != nil {
@@ -660,6 +661,7 @@ func (c *CStorVolumeReplicaController) syncCvr(cvr *apis.CStorVolumeReplica) {
 				fmt.Sprintf("Unable to update snapshot list ddetails in cvr status err: %v", err),
 			)
 		}
+
 	}
 }
 

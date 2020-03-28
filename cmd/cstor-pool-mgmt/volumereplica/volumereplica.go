@@ -34,6 +34,7 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 )
 
@@ -699,24 +700,123 @@ func GetAndUpdateSnapshotInfo(
 	}
 
 	// If CVR is in rebuilding go and get snapshot information
-	// from other replicas
-	//if cvr.Status.Phase == apis.CVRStatusRebuilding {
-	//	err = getAndUpdatePendingSnapshotsList(clientset, cvr)
-	//}
+	// from other replicas and add snapshots under pending snapshot list
+	if cvr.Status.Phase == apis.CVRStatusRebuilding ||
+		cvr.Status.Phase == apis.CVRStatusReconstructingNewReplica {
+		err = getAndAddPendingSnapshotList(clientset, cvr)
+		if err != nil {
+			return errors.Wrapf(err, "failed to update pending snapshots")
+		}
+	}
+
+	// It looks like hack but we must do this because of below reason
+	// - There might be chances of in nth reconciliation CVR might be degraded
+	//   and nth+1 reconciliation CVR might be Healthy(by completing rebuilding)
+	//   because we getting CVR status from zrepl.
+	if cvr.Status.Phase == apis.CVRStatusOnline &&
+		len(cvr.Status.PendingSnapshots) != 0 {
+		cvr.Status.PendingSnapshots = nil
+	}
 	return nil
 }
 
-//func getAndUpdatePendingSnapshotsList(
-//	clientset clientset.Interface, cvr *apis.CStorVolumeReplica) error {
-//	peerCVRList, err := getPeerReplicas(clientset, cvr)
-//	if err != nil {
-//		return errors.Wrapf(err, "failed to get peer CVRs info of volume %s", volName)
-//	}
-// TODO: Perform following steps
-// 1. Get the snapshot info from peer replicas
-// 2. If snapshot info doesn't exist under CVR.Status.Snapshots then
-// add it under CVR.Status.PendingSnapshots
-//}
+// getAndAddPendingSnapshotList get the snapshot information from peer replicas and
+// add under pending snapshot list
+// NOTE: Below function will delete the snapshot under pending snapshots if doesn't exists
+// on other replicas
+func getAndAddPendingSnapshotList(
+	clientset clientset.Interface, cvr *apis.CStorVolumeReplica) error {
+	peerCVRList, err := getPeerReplicas(clientset, cvr)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get peer CVRs of volume replica %s", cvr.Name)
+	}
+
+	peerSnapshotList := getPeerSnapshotInfoList(peerCVRList)
+	if cvr.Status.PendingSnapshots == nil {
+		cvr.Status.PendingSnapshots = map[string]apis.CStorSnapshotInfo{}
+	}
+
+	// Delete the pending snapshot that doesn't exist in peer snapshot list
+	for snapName, _ := range cvr.Status.PendingSnapshots {
+		if _, ok := peerSnapshotList[snapName]; !ok {
+			delete(cvr.Status.PendingSnapshots, snapName)
+		}
+	}
+
+	// Add peer snapshots if doesn't exist on Snapshots and PendingSnapshots
+	// of current CVR
+	for snapName, snapInfo := range peerSnapshotList {
+		if _, ok := cvr.Status.Snapshots[snapName]; !ok {
+			if _, ok := cvr.Status.PendingSnapshots[snapName]; !ok {
+				cvr.Status.PendingSnapshots[snapName] = snapInfo
+			}
+		}
+	}
+
+	return nil
+}
+
+// getPeerReplicas returns list of peer replicas of volume
+func getPeerReplicas(
+	clientset clientset.Interface,
+	cvr *apis.CStorVolumeReplica) (*apis.CStorVolumeReplicaList, error) {
+	volName := cvr.GetLabels()[string(apis.PersistentVolumeCPK)]
+	peerCVRList := &apis.CStorVolumeReplicaList{}
+	cvrList, err := clientset.OpenebsV1alpha1().
+		CStorVolumeReplicas(cvr.Namespace).
+		List(metav1.ListOptions{LabelSelector: string(apis.PersistentVolumeCPK) + "=" + volName})
+	if err != nil {
+		return nil, err
+	}
+	for _, obj := range cvrList.Items {
+		if obj.Name != cvr.Name {
+			peerCVRList.Items = append(peerCVRList.Items, obj)
+		}
+	}
+	return peerCVRList, nil
+}
+
+// getPeerSnapshotInfoList returns the map of snapshot name and snapshot info
+// If any healthy replica exist in peer replica it will return Status.Snapshots
+// else iterate over all the degraded replicas and get snapshot list
+func getPeerSnapshotInfoList(
+	peerCVRList *apis.CStorVolumeReplicaList) map[string]apis.CStorSnapshotInfo {
+
+	// NOTE: There are possibilites to have stale phase
+	healthyReplica := getHealthyReplicaFromPeerReplicas(peerCVRList)
+	if healthyReplica != nil {
+		// Since Updating the status of replica and snapshot list is atomic
+		// update safe to return status.snapshots
+		return healthyReplica.Status.Snapshots
+	}
+
+	snapshotInfoList := map[string]apis.CStorSnapshotInfo{}
+	for _, cvrObj := range peerCVRList.Items {
+		// No need to get snapshot information from Offline,
+		// NewReplicaDegraded, Recreate becasue they might
+		// consist stale information
+		if cvrObj.Status.Phase == apis.CVRStatusDegraded {
+			for snapName, snapInfo := range cvrObj.Status.Snapshots {
+				if _, ok := snapshotInfoList[snapName]; !ok {
+					snapshotInfoList[snapName] = snapInfo
+				}
+			}
+		}
+	}
+	return snapshotInfoList
+}
+
+// getHealthyReplicaFromPeerReplicas returns healthy replica from the
+// peer replica list if exists else it return nil
+func getHealthyReplicaFromPeerReplicas(
+	peerCVRList *apis.CStorVolumeReplicaList) *apis.CStorVolumeReplica {
+	for _, cvrObj := range peerCVRList.Items {
+		if cvrObj.Status.Phase == apis.CVRStatusOnline {
+			return &cvrObj
+		}
+	}
+	return nil
+}
 
 // addOrDeleteSnapshotListInfo adds/deletes the snapshots in CVR
 // It performs below steps:
