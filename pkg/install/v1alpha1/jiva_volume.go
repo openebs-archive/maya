@@ -608,9 +608,16 @@ spec:
                         {{- if ne $nodeNames "" }}
                         {{- $nodeNamesMap := $nodeNames | split " " }}
                         {{- range $k, $v := $nodeNamesMap }}
+                        {{/* patch the first node from the map in each iteration */}}
+                        {{- if eq $k "_0" }}
                         - {{ kubeNodeGetHostNameOrNodeName $v }}
                         {{- end }}
                         {{- end }}
+                        {{- end }}
+  post: |
+    {{/* remove the first node from the original space separated string to 
+      make sure every deployment is patched with different node */}}
+    {{- removeFirstElement .TaskResult.readlistrep.nodeNames | saveAs "readlistrep.nodeNames" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -773,89 +780,6 @@ spec:
     {{- if ne .TaskResult.stsTargetAffinity "none" -}}
     {{- printf "%s-%s" .TaskResult.stsTargetAffinity ((splitList "-" .Volume.pvc) | last) | default "none" | saveAs "sts.applicationName" .TaskResult -}}
     {{- end -}}
----
-apiVersion: openebs.io/v1alpha1
-kind: RunTask
-metadata:
-  name: jiva-volume-create-listreplicapod-default
-spec:
-  meta: |
-    id: createlistrep
-    runNamespace: {{ .Volume.runNamespace }}
-    apiVersion: v1
-    kind: Pod
-    action: list
-    options: |-
-      labelSelector: openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ .Volume.owner }}
-    retry: "24,5s"
-  post: |
-    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "createlistrep.items" .TaskResult | noop -}}
-    {{- .TaskResult.createlistrep.items | empty | verifyErr "replica pod(s) not found" | saveIf "createlistrep.verifyErr" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.items[*].spec.nodeName}" | trim | saveAs "createlistrep.nodeNames" .TaskResult | noop -}}
-    {{- $expectedRepCount := .Config.ReplicaCount.value | int -}}
-    {{- .TaskResult.createlistrep.nodeNames | default "" | splitList " " | isLen $expectedRepCount | not | verifyErr "number of replica pods does not match expected count" | saveIf "createlistrep.verifyErr" .TaskResult | noop -}}
----
-apiVersion: openebs.io/v1alpha1
-kind: RunTask
-metadata:
-  name: jiva-volume-create-patchreplicadeployment-default
-spec:
-  meta: |
-    {{- $numbers := mkNumberedSlice .Config.ReplicaCount.value -}}
-    id: createpatchrep
-    runNamespace: {{ .Volume.runNamespace }}
-    apiVersion: apps/v1
-    kind: Deployment
-    repeatWith:
-      metas:
-      {{- range $k, $n := $numbers }}
-      - objectName: {{ .Volume.owner }}-rep-{{ $n }}
-      {{- end }}
-    action: patch
-  task: |
-      {{- $isNodeAffinityRSIE := .Config.NodeAffinityRequiredSchedIgnoredExec.value | default "none" -}}
-      {{- $nodeAffinityRSIEVal := fromYaml .Config.NodeAffinityRequiredSchedIgnoredExec.value -}}
-      {{- $nodeNames := .TaskResult.createlistrep.nodeNames -}}
-      type: strategic
-      pspec: |-
-        spec:
-          template:
-            spec:
-              affinity:
-                nodeAffinity:
-                  {{- if ne $isNodeAffinityRSIE "none" }}
-                  requiredDuringSchedulingIgnoredDuringExecution:
-                    nodeSelectorTerms:
-                    - matchExpressions:
-                      {{- range $k, $v := $nodeAffinityRSIEVal }}
-                      -
-                      {{- range $kk, $vv := $v }}
-                        {{ $kk }}: {{ $vv }}
-                      {{- end }}
-                      {{- end }}
-                      - key: kubernetes.io/hostname
-                        operator: In
-                        values:
-                        {{- if ne $nodeNames "" }}
-                        {{- $nodeNamesMap := $nodeNames | split " " }}
-                        {{- range $k, $v := $nodeNamesMap }}
-                        - {{ $v }}
-                        {{- end }}
-                        {{- end }}
-                  {{- else }}
-                  requiredDuringSchedulingIgnoredDuringExecution:
-                    nodeSelectorTerms:
-                    - matchExpressions:
-                      - key: kubernetes.io/hostname
-                        operator: In
-                        values:
-                        {{- if ne $nodeNames "" }}
-                        {{- $nodeNamesMap := $nodeNames | split " " }}
-                        {{- range $k, $v := $nodeNamesMap }}
-                        - {{ $v }}
-                        {{- end }}
-                        {{- end }}
-                  {{- end }}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask

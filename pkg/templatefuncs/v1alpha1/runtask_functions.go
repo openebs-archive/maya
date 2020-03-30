@@ -292,33 +292,41 @@ func mkNumberedSlice(n string) []string {
 	return slice
 }
 
+// removeFirstElement removes the first element from a space
+// separated string
+func removeFirstElement(s string) string {
+	i := strings.Index(s, " ") + 1
+	return s[i:]
+}
+
 // runCommandFuncs returns the set of runtask command based template functions
 func runCommandFuncs() template.FuncMap {
 	return template.FuncMap{
-		"delete":          delete,
-		"get":             get,
-		"lst":             list,
-		"create":          create,
-		"post":            post,
-		"patch":           patch,
-		"update":          update,
-		"put":             put,
-		"jiva":            jiva,
-		"cstor":           cstor,
-		"volume":          volume,
-		"http":            http,
-		"withOption":      withOption,
-		"withoption":      withOption,
-		"run":             run,
-		"runlog":          runlog,
-		"select":          slect,
-		"snapshot":        snapshot,
-		"storeAt":         storeAt,
-		"storeRunner":     storeRunner,
-		"storeRunnerCond": storeRunnerCond,
-		"runas":           runas,
-		"runAlways":       runAlways,
-		"toJsonObj":       toJsonObj,
-		"mkNumberedSlice": mkNumberedSlice,
+		"delete":             delete,
+		"get":                get,
+		"lst":                list,
+		"create":             create,
+		"post":               post,
+		"patch":              patch,
+		"update":             update,
+		"put":                put,
+		"jiva":               jiva,
+		"cstor":              cstor,
+		"volume":             volume,
+		"http":               http,
+		"withOption":         withOption,
+		"withoption":         withOption,
+		"run":                run,
+		"runlog":             runlog,
+		"select":             slect,
+		"snapshot":           snapshot,
+		"storeAt":            storeAt,
+		"storeRunner":        storeRunner,
+		"storeRunnerCond":    storeRunnerCond,
+		"runas":              runas,
+		"runAlways":          runAlways,
+		"toJsonObj":          toJsonObj,
+		"mkNumberedSlice":    mkNumberedSlice,
+		"removeFirstElement": removeFirstElement,
 	}
 }
