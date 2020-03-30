@@ -692,7 +692,7 @@ func GetAndUpdateSnapshotInfo(
 		return errors.Wrapf(err, "failed to get the list of snapshots")
 	}
 
-	// Add/Delete a snapshot if it doesn't exist in CVR but exists in ZFS
+	// Add/Delete a snapshot in CVR by comparing with snapshots in ZFS
 	err = addOrDeleteSnapshotListInfo(cvr, snapList)
 	if err != nil {
 		return errors.Wrapf(err, "failed to add snapshot list info")
