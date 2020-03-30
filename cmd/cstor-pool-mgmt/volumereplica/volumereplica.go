@@ -672,8 +672,8 @@ func GetAndUpdateReplicaID(cvr *apis.CStorVolumeReplica) error {
 	return nil
 }
 
-// GetAndUpdateSnapshotInfo get the snapshot list from ZFS and updated in CVR status.
-// It doesn in following steps:
+// GetAndUpdateSnapshotInfo get the snapshot list from ZFS and updates in CVR status.
+// Execution happens in following steps:
 // 1. Get snapshot list from ZFS
 // 2. Checks whether above snapshots exist on CVR under Status.Snapshots:
 //    2.1 If snapshot doesn't exist then get the info of snapshot from ZFS and update
@@ -692,24 +692,10 @@ func GetAndUpdateSnapshotInfo(
 		return errors.Wrapf(err, "failed to get the list of snapshots")
 	}
 
-	// Add snapshot if it doesn't exist on CVR but exist on ZFS
-	err = addSnapshotListInfo(cvr, snapList)
+	// Add/Delete a snapshot if it doesn't exist in CVR but exists in ZFS
+	err = addOrDeleteSnapshotListInfo(cvr, snapList)
 	if err != nil {
 		return errors.Wrapf(err, "failed to add snapshot list info")
-	}
-
-	// Delete snapshot if exist on CVR but not in ZFS
-	for snapName, _ := range cvr.Status.Snapshots {
-		if _, ok := snapList[snapName]; !ok {
-			delete(cvr.Status.Snapshots, snapName)
-		}
-	}
-
-	// Delete pending snapshots on CVR if exist in ZFS
-	for snapName, _ := range cvr.Status.PendingSnapshots {
-		if _, ok := snapList[snapName]; ok {
-			delete(cvr.Status.PendingSnapshots, snapName)
-		}
 	}
 
 	// If CVR is in rebuilding go and get snapshot information
@@ -732,10 +718,13 @@ func GetAndUpdateSnapshotInfo(
 // add it under CVR.Status.PendingSnapshots
 //}
 
-// addSnapshotListInfo adds the current snapshot info if snapshot doesn't
-// exist on CVR.Status.Snapshots
+// addOrDeleteSnapshotListInfo adds/deletes the snapshots in CVR
+// It performs below steps:
+// 1. Add snapshot if it doesn't exist in CVR but exist on ZFS.
+// 2. Delete snapshot if exist in CVR but not in ZFS.
+// 3. Delete pending snapshots in CVR if exist in ZFS.
 // NOTE: Below function will get the snapshot info from ZFS
-func addSnapshotListInfo(
+func addOrDeleteSnapshotListInfo(
 	cvr *apis.CStorVolumeReplica,
 	currentSnapList map[string]string) error {
 	var err error
@@ -747,39 +736,45 @@ func addSnapshotListInfo(
 		cvr.Status.Snapshots = map[string]apis.CStorSnapshotInfo{}
 	}
 
+	// Add snapshot if it doesn't exist in CVR but exist on ZFS<Paste>
 	for snapName, _ := range currentSnapList {
 		// If snapshot doesn't exist in CVR.Status.Snapshots then
-		// get the snapshot info from zfs and Update info in existingSnapInfoList
+		// get the snapshot info from zfs and Update info in CVR.Status.Snapshots
 		if _, ok := cvr.Status.Snapshots[snapName]; !ok {
 			snapInfo, err = getSnapshotInfo(dsName, snapName)
 			if err != nil {
-				return errors.Wrapf(err, "failed to get the properties of snapshot %s", snapName)
+				return errors.Wrapf(
+					err,
+					"failed to get the properties of snapshot %s@%s",
+					dsName, snapName)
 			}
 			cvr.Status.Snapshots[snapName] = snapInfo
 		}
 	}
-	return nil
-}
 
-// snapshotList is used to convert json format into go structure
-type snapshotList struct {
-	Name     string            `json:"name"`
-	SnapList map[string]string `json:"snaplist"`
+	// Delete snapshot if exist in CVR but not in ZFS
+	for snapName, _ := range cvr.Status.Snapshots {
+		if _, ok := currentSnapList[snapName]; !ok {
+			delete(cvr.Status.Snapshots, snapName)
+		}
+	}
+
+	// Delete pending snapshots in CVR if exist in ZFS
+	for snapName, _ := range cvr.Status.PendingSnapshots {
+		if _, ok := currentSnapList[snapName]; ok {
+			delete(cvr.Status.PendingSnapshots, snapName)
+		}
+	}
+	return nil
 }
 
 // GetSnapshotList get the list of snapshots by executing
 // command: `zfs listsnap <dataset_name>` and returns error if
 // there are any
 func GetSnapshotList(dsName string) (map[string]string, error) {
-	ret, err := zfs.NewVolumeJSONProperty().
-		WithCLICommand("listsnap").
+	snapshotList, err := zfs.NewVolumeListSnapshot().
 		WithDataset(dsName).
 		Execute()
-	if err != nil {
-		return nil, err
-	}
-	snapshotList := snapshotList{SnapList: map[string]string{}}
-	err = json.Unmarshal(ret, &snapshotList)
 	if err != nil {
 		return nil, err
 	}

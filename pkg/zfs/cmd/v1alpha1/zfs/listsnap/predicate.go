@@ -14,21 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vjsonprop
+package vlistsnap
 
 // PredicateFunc defines data-type for validation function
-type PredicateFunc func(*VolumeJSONProperty) bool
+type PredicateFunc func(*VolumeListSnapshot) bool
 
-// IsCLICommandSet method check if the CLI Command field of VolumeJSONProperty object is set.
-func IsCommandSet() PredicateFunc {
-	return func(v *VolumeJSONProperty) bool {
-		return len(v.CLICommand) != 0
-	}
-}
-
-// IsDatasetSet method check if the Dataset field of VolumeJSONProperty object is set.
+// IsDatasetSet method check if the Dataset field of VolumeListSnapshot object is set.
 func IsDatasetSet() PredicateFunc {
-	return func(v *VolumeJSONProperty) bool {
+	return func(v *VolumeListSnapshot) bool {
 		return len(v.Dataset) != 0
 	}
 }
