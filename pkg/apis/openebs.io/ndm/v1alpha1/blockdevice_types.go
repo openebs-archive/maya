@@ -121,8 +121,23 @@ type DeviceCapacity struct {
 
 // DeviceDetails represent certain hardware/static attributes of the block device
 type DeviceDetails struct {
-	// DeviceType represents the type of drive like SSD, HDD etc.,
+	// DeviceType represents the type of device like
+	// sparse, disk, partition, lvm, raid
 	DeviceType string `json:"deviceType"`
+
+	// DriveType is the type of backing drive, HDD/SSD
+	DriveType string `json:"driveType"`
+
+	// LogicalBlockSize is the logical block size in bytes
+	// reported by /sys/class/block/sda/queue/logical_block_size
+	LogicalBlockSize uint32 `json:"logicalBlockSize"`
+
+	// PhysicalBlockSize is the physical block size in bytes
+	// reported by /sys/class/block/sda/queue/physical_block_size
+	PhysicalBlockSize uint32 `json:"physicalBlockSize"`
+
+	// HardwareSectorSize is the hardware sector size in bytes
+	HardwareSectorSize uint32 `json:"hardwareSectorSize"`
 
 	// Model is model of disk
 	Model string `json:"model"`
@@ -164,8 +179,8 @@ type DeviceStatus struct {
 	// claim state of the block device
 	ClaimState DeviceClaimState `json:"claimState"`
 
-	// current state of the blockdevice (Active/Inactive)
-	State string `json:"state"`
+	// State is the current state of the blockdevice (Active/Inactive)
+	State BlockDeviceState `json:"state"`
 }
 
 // DeviceClaimState defines the observed state of BlockDevice
@@ -182,6 +197,21 @@ const (
 
 	// BlockDeviceClaimed represents that the block device is bound to a BDC
 	BlockDeviceClaimed DeviceClaimState = "Claimed"
+)
+
+// BlockDeviceState defines the observed state of the disk
+type BlockDeviceState string
+
+const (
+	// BlockDeviceActive is the state for a block device that is connected to the node
+	BlockDeviceActive BlockDeviceState = "Active"
+
+	// BlockDeviceInactive is the state for a block device that is disconnected from a node
+	BlockDeviceInactive BlockDeviceState = "Inactive"
+
+	// BlockDeviceUnknown is the state for a block device whose state (attached/detached) cannot
+	// be determined at this time.
+	BlockDeviceUnknown BlockDeviceState = "Unknown"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
