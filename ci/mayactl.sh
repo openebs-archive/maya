@@ -41,7 +41,7 @@ printf "\n\n"
 sleep 5
 
 echo "************** Running Jiva mayactl volume stats *************************"
-${MAYACTL} volume stats --volname  $JIVAVOL
+${MAYACTL} volume stats --volname  $JIVAVOL -n openebs
 rc=$?;
 if [[ $rc != 0 ]]; then
 	kubectl logs --tail=10 $MAPIPOD -n openebs

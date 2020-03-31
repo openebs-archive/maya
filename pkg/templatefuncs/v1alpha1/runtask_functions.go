@@ -18,6 +18,7 @@ package templatefuncs
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -282,32 +283,50 @@ func runlog(resultpath, debugpath string, store map[string]interface{}, given *c
 	return
 }
 
+func mkNumberedSlice(n string) []string {
+	slice := []string{}
+	x, _ := strconv.Atoi(n)
+	for i := 1; i <= x; i++ {
+		slice = append(slice, strconv.Itoa(i))
+	}
+	return slice
+}
+
+// removeFirstElement removes the first element from a space
+// separated string
+func removeFirstElement(s string) string {
+	i := strings.Index(s, " ") + 1
+	return s[i:]
+}
+
 // runCommandFuncs returns the set of runtask command based template functions
 func runCommandFuncs() template.FuncMap {
 	return template.FuncMap{
-		"delete":          delete,
-		"get":             get,
-		"lst":             list,
-		"create":          create,
-		"post":            post,
-		"patch":           patch,
-		"update":          update,
-		"put":             put,
-		"jiva":            jiva,
-		"cstor":           cstor,
-		"volume":          volume,
-		"http":            http,
-		"withOption":      withOption,
-		"withoption":      withOption,
-		"run":             run,
-		"runlog":          runlog,
-		"select":          slect,
-		"snapshot":        snapshot,
-		"storeAt":         storeAt,
-		"storeRunner":     storeRunner,
-		"storeRunnerCond": storeRunnerCond,
-		"runas":           runas,
-		"runAlways":       runAlways,
-		"toJsonObj":       toJsonObj,
+		"delete":             delete,
+		"get":                get,
+		"lst":                list,
+		"create":             create,
+		"post":               post,
+		"patch":              patch,
+		"update":             update,
+		"put":                put,
+		"jiva":               jiva,
+		"cstor":              cstor,
+		"volume":             volume,
+		"http":               http,
+		"withOption":         withOption,
+		"withoption":         withOption,
+		"run":                run,
+		"runlog":             runlog,
+		"select":             slect,
+		"snapshot":           snapshot,
+		"storeAt":            storeAt,
+		"storeRunner":        storeRunner,
+		"storeRunnerCond":    storeRunnerCond,
+		"runas":              runas,
+		"runAlways":          runAlways,
+		"toJsonObj":          toJsonObj,
+		"mkNumberedSlice":    mkNumberedSlice,
+		"removeFirstElement": removeFirstElement,
 	}
 }

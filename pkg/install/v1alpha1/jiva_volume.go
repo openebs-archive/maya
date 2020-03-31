@@ -59,7 +59,7 @@ spec:
   # if more and more deployments prefer to use this option,
   # the default can be set to deploy in openebs.
   - name: DeployInOpenEBSNamespace
-    enabled: "false"
+    enabled: "true"
   - name: ControllerImage
     value: {{env "OPENEBS_IO_JIVA_CONTROLLER_IMAGE" | default "openebs/jiva:latest"}}
   - name: ReplicaImage
@@ -562,7 +562,7 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "verifyreplicationfactor.items" .TaskResult | noop -}}
     {{- $errMsg := printf "replica deployment not found" -}}
     {{- .TaskResult.verifyreplicationfactor.items | notFoundErr $errMsg | saveIf "verifyreplicationfactor.notFoundErr" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.items[*].status.replicas}" | trim | saveAs "verifyreplicationfactor.noOfReplicas" .TaskResult | noop -}}
+    {{- .TaskResult.verifyreplicationfactor.items | default "" | splitListLen " "| saveAs "verifyreplicationfactor.noOfReplicas" .TaskResult | noop -}}
     {{- $expectedRepCount := .TaskResult.verifyreplicationfactor.noOfReplicas | int -}}
     {{- $msg := printf "expected %v no of replica pod(s), found only %v replica pod(s)" $expectedRepCount .TaskResult.readlistrep.noOfReplicas -}}
     {{- .TaskResult.readlistrep.nodeNames | default "" | splitList " " | isLen $expectedRepCount | not | verifyErr $msg | saveIf "verifyreplicationfactor.verifyErr" .TaskResult | noop -}}
@@ -573,6 +573,8 @@ metadata:
   name: jiva-volume-read-patchreplicadeployment-default
 spec:
   meta: |
+    {{- $numbers := mkNumberedSlice .Config.ReplicaCount.value -}}
+    {{ $owner := .Volume.owner }}
     {{ $isPatchValNotEmpty := ne .Volume.isPatchJivaReplicaNodeAffinity "" }}
     {{ $isPatchValEnabled := eq .Volume.isPatchJivaReplicaNodeAffinity "enabled" }}
     {{ $shouldPatch := and $isPatchValNotEmpty $isPatchValEnabled | toString }}
@@ -581,9 +583,13 @@ spec:
     runNamespace: {{ $jivapodsns }}
     apiVersion: apps/v1
     kind: Deployment
-    objectName: {{ .Volume.owner }}-rep
     disable: {{ ne $shouldPatch "true" }}
     action: patch
+    repeatWith:
+      metas:
+      {{- range $k, $n := $numbers }}
+      - objectName: {{ $owner }}-rep-{{ $n }}
+      {{- end }}
   task: |
       {{- $nodeNames := .TaskResult.readlistrep.nodeNames -}}
       type: strategic
@@ -602,9 +608,16 @@ spec:
                         {{- if ne $nodeNames "" }}
                         {{- $nodeNamesMap := $nodeNames | split " " }}
                         {{- range $k, $v := $nodeNamesMap }}
+                        {{/* patch the first node from the map in each iteration */}}
+                        {{- if eq $k "_0" }}
                         - {{ kubeNodeGetHostNameOrNodeName $v }}
                         {{- end }}
                         {{- end }}
+                        {{- end }}
+  post: |
+    {{/* remove the first node from the original space separated string to 
+      make sure every deployment is patched with different node */}}
+    {{- removeFirstElement .TaskResult.readlistrep.nodeNames | saveAs "readlistrep.nodeNames" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -663,12 +676,12 @@ metadata:
   name: jiva-volume-create-puttargetservice-default
 spec:
   meta: |
-    {{- $deployInOpenEBSNamespace := .Config.DeployInOpenEBSNamespace.enabled | default "false" | lower -}}
+    {{- $deployInOpenEBSNamespace := .Config.DeployInOpenEBSNamespace.enabled | default "true" | lower -}}
     id: createputsvc
-    {{- if eq $deployInOpenEBSNamespace "false" }}
-    runNamespace: {{ .Volume.runNamespace | trim | saveAs "createputsvc.jivapodsns" .TaskResult }}
-    {{ else }}
+    {{- if eq $deployInOpenEBSNamespace "true" }}
     runNamespace: {{ .Config.OpenEBSNamespace.value | trim | saveAs "createputsvc.jivapodsns" .TaskResult }}
+    {{ else }}
+    runNamespace: {{ .Volume.runNamespace | trim | saveAs "createputsvc.jivapodsns" .TaskResult }}
     {{ end }}
     apiVersion: v1
     kind: Service
@@ -767,84 +780,6 @@ spec:
     {{- if ne .TaskResult.stsTargetAffinity "none" -}}
     {{- printf "%s-%s" .TaskResult.stsTargetAffinity ((splitList "-" .Volume.pvc) | last) | default "none" | saveAs "sts.applicationName" .TaskResult -}}
     {{- end -}}
----
-apiVersion: openebs.io/v1alpha1
-kind: RunTask
-metadata:
-  name: jiva-volume-create-listreplicapod-default
-spec:
-  meta: |
-    id: createlistrep
-    runNamespace: {{ .Volume.runNamespace }}
-    apiVersion: v1
-    kind: Pod
-    action: list
-    options: |-
-      labelSelector: openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ .Volume.owner }}
-    retry: "24,5s"
-  post: |
-    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "createlistrep.items" .TaskResult | noop -}}
-    {{- .TaskResult.createlistrep.items | empty | verifyErr "replica pod(s) not found" | saveIf "createlistrep.verifyErr" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.items[*].spec.nodeName}" | trim | saveAs "createlistrep.nodeNames" .TaskResult | noop -}}
-    {{- $expectedRepCount := .Config.ReplicaCount.value | int -}}
-    {{- .TaskResult.createlistrep.nodeNames | default "" | splitList " " | isLen $expectedRepCount | not | verifyErr "number of replica pods does not match expected count" | saveIf "createlistrep.verifyErr" .TaskResult | noop -}}
----
-apiVersion: openebs.io/v1alpha1
-kind: RunTask
-metadata:
-  name: jiva-volume-create-patchreplicadeployment-default
-spec:
-  meta: |
-    id: createpatchrep
-    runNamespace: {{ .Volume.runNamespace }}
-    apiVersion: apps/v1
-    kind: Deployment
-    objectName: {{ .Volume.owner }}-rep
-    action: patch
-  task: |
-      {{- $isNodeAffinityRSIE := .Config.NodeAffinityRequiredSchedIgnoredExec.value | default "none" -}}
-      {{- $nodeAffinityRSIEVal := fromYaml .Config.NodeAffinityRequiredSchedIgnoredExec.value -}}
-      {{- $nodeNames := .TaskResult.createlistrep.nodeNames -}}
-      type: strategic
-      pspec: |-
-        spec:
-          template:
-            spec:
-              affinity:
-                nodeAffinity:
-                  {{- if ne $isNodeAffinityRSIE "none" }}
-                  requiredDuringSchedulingIgnoredDuringExecution:
-                    nodeSelectorTerms:
-                    - matchExpressions:
-                      {{- range $k, $v := $nodeAffinityRSIEVal }}
-                      -
-                      {{- range $kk, $vv := $v }}
-                        {{ $kk }}: {{ $vv }}
-                      {{- end }}
-                      {{- end }}
-                      - key: kubernetes.io/hostname
-                        operator: In
-                        values:
-                        {{- if ne $nodeNames "" }}
-                        {{- $nodeNamesMap := $nodeNames | split " " }}
-                        {{- range $k, $v := $nodeNamesMap }}
-                        - {{ $v }}
-                        {{- end }}
-                        {{- end }}
-                  {{- else }}
-                  requiredDuringSchedulingIgnoredDuringExecution:
-                    nodeSelectorTerms:
-                    - matchExpressions:
-                      - key: kubernetes.io/hostname
-                        operator: In
-                        values:
-                        {{- if ne $nodeNames "" }}
-                        {{- $nodeNamesMap := $nodeNames | split " " }}
-                        {{- range $k, $v := $nodeNamesMap }}
-                        - {{ $v }}
-                        {{- end }}
-                        {{- end }}
-                  {{- end }}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -1047,11 +982,17 @@ metadata:
   name: jiva-volume-create-putreplicadeployment-default
 spec:
   meta: |
+    {{- $numbers := mkNumberedSlice .Config.ReplicaCount.value -}}
     id: createputrep
     runNamespace: {{ .TaskResult.createputsvc.jivapodsns }}
     apiVersion: apps/v1
     kind: Deployment
     action: put
+    repeatWith:
+      resources:
+      {{- range $k, $v := $numbers }}
+      - {{ $v | quote }}
+      {{- end }}
   post: |
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | saveAs "createputrep.objectName" .TaskResult | noop -}}
   task: |
@@ -1084,9 +1025,9 @@ spec:
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
         openebs.io/capacity: {{ .Volume.capacity }}
         openebs.io/storage-pool: {{ .Config.StoragePool.value }}
-      name: {{ .Volume.owner }}-rep
+      name: {{ .Volume.owner }}-rep-{{ .ListItems.currentRepeatResource }}
     spec:
-      replicas: {{ .Config.ReplicaCount.value }}
+      replicas: 1
       strategy:
         type: Recreate
       selector:
@@ -1244,7 +1185,6 @@ spec:
   post: |
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "deletelistsvc.names" .TaskResult | noop -}}
     {{- .TaskResult.deletelistsvc.names | notFoundErr "controller service not found" | saveIf "deletelistsvc.notFoundErr" .TaskResult | noop -}}
-    {{- .TaskResult.deletelistsvc.names | default "" | splitList " " | isLen 1 | not | verifyErr "total no. of controller services is not 1" | saveIf "deletelistsvc.verifyErr" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -1263,7 +1203,6 @@ spec:
   post: |
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "deletelistctrl.names" .TaskResult | noop -}}
     {{- .TaskResult.deletelistctrl.names | notFoundErr "controller deployment not found" | saveIf "deletelistctrl.notFoundErr" .TaskResult | noop -}}
-    {{- .TaskResult.deletelistctrl.names | default "" | splitList " " | isLen 1 | not | verifyErr "total no. of controller deployments is not 1" | saveIf "deletelistctrl.verifyErr" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -1282,7 +1221,6 @@ spec:
   post: |
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "deletelistrep.names" .TaskResult | noop -}}
     {{- .TaskResult.deletelistrep.names | notFoundErr "replica deployment not found" | saveIf "deletelistrep.notFoundErr" .TaskResult | noop -}}
-    {{- .TaskResult.deletelistrep.names | default "" | splitList " " | isLen 1 | not | verifyErr "total no. of replica deployments is not 1" | saveIf "deletelistrep.verifyErr" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -1338,12 +1276,17 @@ metadata:
 spec:
   meta: |
     {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
+    {{- $replicaDeployList := .TaskResult.deletelistrep.names | split " " -}}
     id: deletedeleterep
     runNamespace: {{ $jivapodsns }}
     apiVersion: apps/v1
     kind: Deployment
     action: delete
-    objectName: {{ .TaskResult.deletelistrep.names }}
+    repeatWith:
+      metas:
+      {{- range $k, $v := $replicaDeployList }}
+      - objectName: {{ $v | quote }}
+      {{- end }}        
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
