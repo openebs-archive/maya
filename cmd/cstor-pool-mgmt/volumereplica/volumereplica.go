@@ -785,41 +785,15 @@ func getPeerReplicas(
 func getPeerSnapshotInfoList(
 	peerCVRList *apis.CStorVolumeReplicaList) map[string]apis.CStorSnapshotInfo {
 
-	// TODO: Get Opinion From Review Comments
-	// NOTE: There are possibilites to have stale phase
-	healthyReplica := getHealthyReplicaFromPeerReplicas(peerCVRList)
-	if healthyReplica != nil {
-		// Since Updating the status of replica and snapshot list is atomic
-		// update safe to return status.snapshots
-		return healthyReplica.Status.Snapshots
-	}
-
 	snapshotInfoList := map[string]apis.CStorSnapshotInfo{}
 	for _, cvrObj := range peerCVRList.Items {
-		// No need to get snapshot information from Offline,
-		// NewReplicaDegraded and Recreate CVR becasue they might
-		// consist stale information
-		if cvrObj.Status.Phase == apis.CVRStatusDegraded {
-			for snapName, snapInfo := range cvrObj.Status.Snapshots {
-				if _, ok := snapshotInfoList[snapName]; !ok {
-					snapshotInfoList[snapName] = snapInfo
-				}
+		for snapName, snapInfo := range cvrObj.Status.Snapshots {
+			if _, ok := snapshotInfoList[snapName]; !ok {
+				snapshotInfoList[snapName] = snapInfo
 			}
 		}
 	}
 	return snapshotInfoList
-}
-
-// getHealthyReplicaFromPeerReplicas returns healthy replica from the
-// peer replica list if exists else it return nil
-func getHealthyReplicaFromPeerReplicas(
-	peerCVRList *apis.CStorVolumeReplicaList) *apis.CStorVolumeReplica {
-	for _, cvrObj := range peerCVRList.Items {
-		if cvrObj.Status.Phase == apis.CVRStatusOnline {
-			return &cvrObj
-		}
-	}
-	return nil
 }
 
 // addOrDeleteSnapshotListInfo adds/deletes the snapshots in CVR

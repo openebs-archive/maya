@@ -651,7 +651,7 @@ func (c *CStorVolumeReplicaController) syncCvr(cvr *apis.CStorVolumeReplica) err
 	if os.Getenv(string(common.RebuildEstimates)) == "true" {
 		err = volumereplica.GetAndUpdateSnapshotInfo(c.clientset, cvr)
 		if err != nil {
-			return errors.Wrapf(err, "Unable to update snapshot list details in CVR status err: %v", err)
+			return errors.Wrapf(err, "Unable to update snapshot list details in CVR")
 		}
 	}
 	return nil
