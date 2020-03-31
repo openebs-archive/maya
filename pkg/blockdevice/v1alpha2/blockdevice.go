@@ -25,14 +25,6 @@ import (
 //TODO: While using these packages UnitTest
 //must be written to corresponding function
 
-// BlockDeviceState is label for block device states
-type BlockDeviceState string
-
-const (
-	// BlockDeviceStateActive is active state of the block device
-	BlockDeviceStateActive BlockDeviceState = "Active"
-)
-
 // DefaultBlockDeviceCount is a map containing the
 // default block device count of various raid types.
 var DefaultBlockDeviceCount = map[string]int{
@@ -116,7 +108,7 @@ func IsActive() Predicate {
 
 // IsActive returns true if the block device is active.
 func (bd *BlockDevice) IsActive() bool {
-	return bd.Object.Status.State == string(BlockDeviceStateActive)
+	return bd.Object.Status.State == ndm.BlockDeviceActive
 }
 
 // IsUnclaimed filters the block device based on unclaimed status

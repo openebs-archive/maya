@@ -172,7 +172,7 @@ func (bd *BlockDevice) WithState(state string) *BlockDevice {
 // build predicated to the New constructor.
 func WithState(state string) BuildOptionFunc {
 	return func(bd *BlockDevice) {
-		bd.BlockDevice.Status.State = state
+		bd.BlockDevice.Status.State = ndm.BlockDeviceState(state)
 	}
 }
 
