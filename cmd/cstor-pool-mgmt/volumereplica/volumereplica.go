@@ -710,9 +710,12 @@ func GetAndUpdateSnapshotInfo(
 	}
 
 	// It looks like hack but we must do this because of below reason
-	// - There might be chances of in nth reconciliation CVR might be degraded
-	//   and nth+1 reconciliation CVR might be Healthy(by completing rebuilding)
-	//   because we getting CVR status from zrepl.
+	// - There might be chances in nth reconciliation CVR might be in Rebuilding
+	//   and pending snapshots added under CVR.Status.PendingSnapshots and after that
+	//   let us assume this pool is down meanwhile if snapshot deletion request
+	//   came and deleted snapshots in peer replicas. In next reconciliation if
+	//   CVR is Healthy then there might be chances that pending snapshots remains
+	//   as is to cover this corner case below check is required.
 	if cvr.Status.Phase == apis.CVRStatusOnline &&
 		len(cvr.Status.PendingSnapshots) != 0 {
 		cvr.Status.PendingSnapshots = nil
@@ -723,7 +726,7 @@ func GetAndUpdateSnapshotInfo(
 // getAndAddPendingSnapshotList get the snapshot information from peer replicas and
 // add under pending snapshot list
 // NOTE: Below function will delete the snapshot under pending snapshots if doesn't exists
-// on other replicas
+// on peer replicas
 func getAndAddPendingSnapshotList(
 	clientset clientset.Interface, cvr *apis.CStorVolumeReplica) error {
 	peerCVRList, err := getPeerReplicas(clientset, cvr)
@@ -782,6 +785,7 @@ func getPeerReplicas(
 func getPeerSnapshotInfoList(
 	peerCVRList *apis.CStorVolumeReplicaList) map[string]apis.CStorSnapshotInfo {
 
+	// TODO: Get Opinion From Review Comments
 	// NOTE: There are possibilites to have stale phase
 	healthyReplica := getHealthyReplicaFromPeerReplicas(peerCVRList)
 	if healthyReplica != nil {
@@ -793,7 +797,7 @@ func getPeerSnapshotInfoList(
 	snapshotInfoList := map[string]apis.CStorSnapshotInfo{}
 	for _, cvrObj := range peerCVRList.Items {
 		// No need to get snapshot information from Offline,
-		// NewReplicaDegraded, Recreate becasue they might
+		// NewReplicaDegraded and Recreate CVR becasue they might
 		// consist stale information
 		if cvrObj.Status.Phase == apis.CVRStatusDegraded {
 			for snapName, snapInfo := range cvrObj.Status.Snapshots {
