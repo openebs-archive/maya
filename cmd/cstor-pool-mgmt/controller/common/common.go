@@ -149,6 +149,9 @@ const (
 	// OpenEBSIOPoolName is cstorpoolcluster name as environment variable
 	// specified in pod instance pods.
 	OpenEBSIOPoolName Environment = "OPENEBS_IO_POOL_NAME"
+	// RebuildEstimates is the feature gate environment variable to estimate
+	// rebuild time for replica which is undergoing rebuild.
+	RebuildEstimates Environment = "REBUILD_ESTIMATES"
 )
 
 // QueueOperation determines the type of operation

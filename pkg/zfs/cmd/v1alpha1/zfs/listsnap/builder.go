@@ -88,11 +88,14 @@ func (v *VolumeListSnapshot) Execute() (SnapshotList, error) {
 		return snapshotList, err
 	}
 
+	// CombinedOutput returns error: "exit code: 1".
+	// If the command is terminated with non-zero code.
+
 	// execute command here
 	// #nosec
 	ret, err := exec.Command(bin.BASH, "-c", v.Command).CombinedOutput()
 	if err != nil {
-		return snapshotList, err
+		return snapshotList, errors.Errorf("Output: %s Error: %s", string(ret), err.Error())
 	}
 
 	err = json.Unmarshal(ret, &snapshotList)

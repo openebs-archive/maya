@@ -650,12 +650,16 @@ func (c *CStorVolumeReplicaController) syncCvr(cvr *apis.CStorVolumeReplica) {
 	} else {
 		cvr.Status.Capacity = *capacity
 	}
-
-	err = volumereplica.GetAndUpdateSnapshotInfo(c.clientset, cvr)
-	if err != nil {
-		klog.Errorf(
-			"Unable to update snapshot list details in cvr %s status err: %v",
-			cvr.Name, err)
+	if os.Getenv(string(common.RebuildEstimates)) == "true" {
+		err = volumereplica.GetAndUpdateSnapshotInfo(c.clientset, cvr)
+		if err != nil {
+			c.recorder.Event(
+				cvr,
+				corev1.EventTypeWarning,
+				"SnapshotList",
+				fmt.Sprintf("Unable to update snapshot list ddetails in cvr status err: %v", err),
+			)
+		}
 	}
 }
 

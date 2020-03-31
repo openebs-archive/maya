@@ -130,7 +130,7 @@ type CStorVolumeReplicaStatus struct {
 	Snapshots map[string]CStorSnapshotInfo `json:"snapshots,omitempty"`
 
 	// PendingSnapshots contains list of pending snapshots that are not yet
-	// available in this pool
+	// available on this replica
 	PendingSnapshots map[string]CStorSnapshotInfo `json:"pendingSnapshots,omitempty"`
 }
 

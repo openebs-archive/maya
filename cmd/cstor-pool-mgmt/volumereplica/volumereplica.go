@@ -692,7 +692,7 @@ func GetAndUpdateSnapshotInfo(
 		return errors.Wrapf(err, "failed to get the list of snapshots")
 	}
 
-	// Add/Delete a snapshot in CVR by comparing with snapshots in ZFS
+	// Add/Delete a snapshot in CVR by comparing with snapshots of replicas in ZFS
 	err = addOrDeleteSnapshotListInfo(cvr, snapList)
 	if err != nil {
 		return errors.Wrapf(err, "failed to add snapshot list info")
@@ -731,12 +731,14 @@ func addOrDeleteSnapshotListInfo(
 	var snapInfo apis.CStorSnapshotInfo
 	volName := cvr.GetLabels()[string(apis.PersistentVolumeCPK)]
 	dsName := PoolNameFromCVR(cvr) + "/" + volName
+	newSnapshots := []string{}
+	removedSnapshots := []string{}
 
 	if cvr.Status.Snapshots == nil {
 		cvr.Status.Snapshots = map[string]apis.CStorSnapshotInfo{}
 	}
 
-	// Add snapshot if it doesn't exist in CVR but exist on ZFS<Paste>
+	// Add snapshot if it doesn't exist in CVR but exist on ZFS
 	for snapName, _ := range currentSnapList {
 		// If snapshot doesn't exist in CVR.Status.Snapshots then
 		// get the snapshot info from zfs and Update info in CVR.Status.Snapshots
@@ -749,6 +751,7 @@ func addOrDeleteSnapshotListInfo(
 					dsName, snapName)
 			}
 			cvr.Status.Snapshots[snapName] = snapInfo
+			newSnapshots = append(newSnapshots, snapName)
 		}
 	}
 
@@ -756,6 +759,7 @@ func addOrDeleteSnapshotListInfo(
 	for snapName, _ := range cvr.Status.Snapshots {
 		if _, ok := currentSnapList[snapName]; !ok {
 			delete(cvr.Status.Snapshots, snapName)
+			removedSnapshots = append(removedSnapshots, snapName)
 		}
 	}
 
@@ -765,12 +769,18 @@ func addOrDeleteSnapshotListInfo(
 			delete(cvr.Status.PendingSnapshots, snapName)
 		}
 	}
+	klog.Infof(
+		"Adding %v snapshots and deleting %v snapshots on CVR %s",
+		newSnapshots,
+		removedSnapshots,
+		cvr.Name)
 	return nil
 }
 
 // GetSnapshotList get the list of snapshots by executing
-// command: `zfs listsnap <dataset_name>` and returns error if
-// there are any
+// command: `zfs listsnap <dataset_name>` and returns
+// output: {"name":"pool1\/vol1","snaplist":{"istgt_snap1":null,"istgt_snap2":null}} and
+// error if there are any(Few Error codes: 11 -- TryAgain).
 func GetSnapshotList(dsName string) (map[string]string, error) {
 	snapshotList, err := zfs.NewVolumeListSnapshot().
 		WithDataset(dsName).
