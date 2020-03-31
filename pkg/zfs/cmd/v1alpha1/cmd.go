@@ -21,6 +21,7 @@ import (
 	vcreate "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/create"
 	vdestroy "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/destroy"
 	vget "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/get"
+	vlistsnap "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/listsnap"
 	vsnapshotrecv "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/receive"
 	vrename "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/rename"
 	vrollback "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1/zfs/rollback"
@@ -124,6 +125,11 @@ func NewPoolCreate() *pcreate.PoolCreate {
 // NewVolumeGetProperty returns new instance of object VolumeGetProperty
 func NewVolumeGetProperty() *vget.VolumeGetProperty {
 	return &vget.VolumeGetProperty{}
+}
+
+// NewVolumeListSnapshot returns new instance of object VolumeListSnapshot
+func NewVolumeListSnapshot() *vlistsnap.VolumeListSnapshot {
+	return &vlistsnap.VolumeListSnapshot{}
 }
 
 // NewVolumeSetProperty returns new instance of object VolumeSetProperty
