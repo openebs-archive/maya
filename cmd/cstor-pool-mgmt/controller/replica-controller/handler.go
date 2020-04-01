@@ -168,7 +168,16 @@ func (c *CStorVolumeReplicaController) syncHandler(
 	// Synchronize cstor volume total allocated and
 	// used capacity fields on CVR object.
 	// Any kind of sync activity should be done from here.
-	c.syncCvr(cvrGot)
+	err = c.syncCVRStatus(cvrGot)
+	if err != nil {
+		c.recorder.Event(
+			cvrGot,
+			corev1.EventTypeWarning,
+			"SyncFailed",
+			fmt.Sprintf("failed to sync CVR error: %s", err.Error()),
+		)
+		return nil
+	}
 
 	_, err = c.clientset.
 		OpenebsV1alpha1().
@@ -624,43 +633,28 @@ func (c *CStorVolumeReplicaController) getCVRStatus(
 	return replicaStatus, nil
 }
 
-// syncCvr updates field on CVR object after fetching the values from zfs utility.
-func (c *CStorVolumeReplicaController) syncCvr(cvr *apis.CStorVolumeReplica) {
+// syncCVRStatus updates field on CVR status after fetching the values from zfs utility.
+func (c *CStorVolumeReplicaController) syncCVRStatus(cvr *apis.CStorVolumeReplica) error {
 	// Get the zfs volume name corresponding to this cvr.
 	volumeName, err := volumereplica.GetVolumeName(cvr)
 	if err != nil {
-		klog.Errorf("Unable to sync CVR capacity: %v", err)
-		c.recorder.Event(
-			cvr,
-			corev1.EventTypeWarning,
-			string(common.FailureCapacitySync),
-			string(common.MessageResourceFailCapacitySync),
-		)
+		return err
 	}
 	// Get capacity of the volume.
 	capacity, err := volumereplica.Capacity(volumeName)
 	if err != nil {
-		klog.Errorf("Unable to sync CVR capacity: %v", err)
-		c.recorder.Event(
-			cvr,
-			corev1.EventTypeWarning,
-			string(common.FailureCapacitySync),
-			string(common.MessageResourceFailCapacitySync),
-		)
+		return errors.Wrapf(err, "failed to get volume replica capacity")
 	} else {
 		cvr.Status.Capacity = *capacity
 	}
+
 	if os.Getenv(string(common.RebuildEstimates)) == "true" {
 		err = volumereplica.GetAndUpdateSnapshotInfo(c.clientset, cvr)
 		if err != nil {
-			c.recorder.Event(
-				cvr,
-				corev1.EventTypeWarning,
-				"SnapshotList",
-				fmt.Sprintf("Unable to update snapshot list ddetails in cvr status err: %v", err),
-			)
+			return errors.Wrapf(err, "Unable to update snapshot list details in CVR")
 		}
 	}
+	return nil
 }
 
 func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeReplica) (
