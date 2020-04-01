@@ -47,6 +47,7 @@ import (
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+	util "github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/openebs/maya/tests/artifacts"
 	errors "github.com/pkg/errors"
@@ -951,6 +952,32 @@ func (ops *Operations) IsSPCFinalizerExistsOnBDCs(listOptions metav1.ListOptions
 
 	}
 	return false
+}
+
+// IsFinalizerExistsOnCSP returns nil if all the CSPs(selected by listoption)
+// has pool protection finalizer and returns error if timeout occured (or) error occured during list call
+func (ops *Operations) IsFinalizerExistsOnCSP(
+	listOptions metav1.ListOptions,
+	finalizer string) error {
+	for i := 0; i < maxRetry; i++ {
+		poolProtectionFinalizerExist := true
+		cspList, err := ops.CSPClient.List(listOptions)
+		if err != nil {
+			return errors.Wrapf(err, "failed to list csp")
+		}
+		for _, cspObj := range cspList.Items {
+			if !util.ContainsString(cspObj.Finalizers, finalizer) {
+				poolProtectionFinalizerExist = false
+				break
+			}
+		}
+		if !poolProtectionFinalizerExist {
+			time.Sleep(5 * time.Second)
+		} else {
+			return nil
+		}
+	}
+	return errors.Errorf("timeout expired waiting for %s finalizer to exists", finalizer)
 }
 
 // GetHealthyCSPCountEventually gets healthy csp based on spcName

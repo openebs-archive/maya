@@ -65,6 +65,11 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 			Expect(ops.IsSPCFinalizerExistsOnBDCs(metav1.ListOptions{
 				LabelSelector: getLabelSelector(spcObj),
 			}, spc_v1alpha1.SPCFinalizer)).To(BeTrue())
+
+			// Verify PoolProtectionFinalizer Existence On CSP
+			Expect(ops.IsFinalizerExistsOnCSP(metav1.ListOptions{
+				LabelSelector: getLabelSelector(spcObj)},
+				apis.PoolProtectionFinalizer)).To(BeNil())
 		})
 	})
 
@@ -147,6 +152,11 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 			// We expect 3 cstorPool objects.
 			cspCount := ops.GetHealthyCSPCount(spcObj.Name, 3)
 			Expect(cspCount).To(Equal(3))
+
+			// Verify PoolProtectionFinalizer Existence On CSP
+			Expect(ops.IsFinalizerExistsOnCSP(metav1.ListOptions{
+				LabelSelector: getLabelSelector(spcObj)},
+				apis.PoolProtectionFinalizer)).To(BeNil())
 		})
 	})
 
@@ -157,6 +167,11 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 			// We expect 3 cstorPool objects.
 			cspCount := ops.GetHealthyCSPCount(spcObj.Name, 3)
 			Expect(cspCount).To(Equal(3))
+
+			// Verify PoolProtectionFinalizer Existence On CSP
+			Expect(ops.IsFinalizerExistsOnCSP(metav1.ListOptions{
+				LabelSelector: getLabelSelector(spcObj)},
+				apis.PoolProtectionFinalizer)).To(BeNil())
 		})
 	})
 
@@ -167,6 +182,11 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 			// We expect 3 cstorPool objects.
 			cspCount := ops.GetHealthyCSPCount(spcObj.Name, 3)
 			Expect(cspCount).To(Equal(3))
+
+			// Verify PoolProtectionFinalizer Existence On CSP
+			Expect(ops.IsFinalizerExistsOnCSP(metav1.ListOptions{
+				LabelSelector: getLabelSelector(spcObj)},
+				apis.PoolProtectionFinalizer)).To(BeNil())
 		})
 	})
 
@@ -228,6 +248,11 @@ var _ = Describe("MIRRORED SPARSE SPC", func() {
 			// Check is there any extra csp's are created
 			cspCount = ops.GetCSPCount(getLabelSelector(spcObj))
 			Expect(cspCount).To(Equal(3), "mismatch of csp count")
+
+			// Verify PoolProtectionFinalizer Existence On CSP
+			Expect(ops.IsFinalizerExistsOnCSP(metav1.ListOptions{
+				LabelSelector: getLabelSelector(spcObj)},
+				apis.PoolProtectionFinalizer)).To(BeNil())
 		})
 	})
 
@@ -297,6 +322,11 @@ var _ = Describe("RAIDZ SPARSE SPC", func() {
 			// Check is there any extra csp's are created
 			cspCount = ops.GetCSPCount(getLabelSelector(spcObj))
 			Expect(cspCount).To(Equal(3), "mismatch of csp count")
+
+			// Verify PoolProtectionFinalizer Existence On CSP
+			Expect(ops.IsFinalizerExistsOnCSP(metav1.ListOptions{
+				LabelSelector: getLabelSelector(spcObj)},
+				apis.PoolProtectionFinalizer)).To(BeNil())
 		})
 	})
 
@@ -385,6 +415,11 @@ var _ = Describe("RAIDZ2 SPARSE SPC", func() {
 			// Check is there any extra csp's are created
 			cspCount = ops.GetCSPCount(getLabelSelector(spcObj))
 			Expect(cspCount).To(Equal(3), "mismatch of csp count")
+
+			// Verify PoolProtectionFinalizer Existence On CSP
+			Expect(ops.IsFinalizerExistsOnCSP(metav1.ListOptions{
+				LabelSelector: getLabelSelector(spcObj)},
+				apis.PoolProtectionFinalizer)).To(BeNil())
 		})
 	})
 
