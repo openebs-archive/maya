@@ -42,6 +42,9 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
+// This Test Can Be Run By Using Following Command
+// ginkgo -v -focus="\[WAITFORFIRSTCONSUMER\] " -- -kubeconfig=<path_to_kube_config> -cstor-maxpools=<no.of_pools> -cstor-replicas=<no.of_storagereplicas>
+
 var _ = Describe("[WAITFORFIRSTCONSUMER] CStor Volume Provisioning", func() {
 	When("SPC is created", func() {
 		It("cStor Pools Should be Provisioned ", func() {
