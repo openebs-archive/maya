@@ -18,13 +18,15 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -52,6 +54,8 @@ func (s *HTTPServer) backupV1alpha1SpecificRequest(resp http.ResponseWriter, req
 		return backupOp.create()
 	case "GET":
 		return backupOp.get()
+	case "DELETE":
+		return backupOp.delete()
 	}
 	return nil, CodedError(405, ErrInvalidMethod)
 }
@@ -160,7 +164,7 @@ func createSnapshotForBackup(bkp *v1alpha1.CStorBackup) error {
 		klog.Errorf("Failed to create snapshot:%s error '%s'", bkp.Spec.SnapName, err.Error())
 		return CodedError(500, err.Error())
 	}
-	klog.Infof("Snapshot:'%s' created successfully for backup:%s", snap.Name, bkp.Name)
+	klog.Infof("Backup snapshot:'%s' created successfully for volume:%s", snap.Name, bkp.Spec.VolumeName)
 	return nil
 }
 
@@ -239,6 +243,7 @@ func getLastBackupSnap(openebsClient *versioned.Clientset, bkp *v1alpha1.CStorBa
 }
 
 // get is http handler which handles backup get request
+// It will delete the snapshot created by the given backup if backup is done/failed
 func (bOps *backupAPIOps) get() (interface{}, error) {
 	bkp := &v1alpha1.CStorBackup{}
 
@@ -273,7 +278,7 @@ func (bOps *backupAPIOps) get() (interface{}, error) {
 		return nil, CodedError(400, fmt.Sprintf("Failed to fetch backup error:%v", err))
 	}
 
-	if b.Status != v1alpha1.BKPCStorStatusDone && b.Status != v1alpha1.BKPCStorStatusFailed {
+	if !isBackupCompleted(b) {
 		// check if node is running or not
 		bkpNodeDown := checkIfCSPPoolNodeDown(k8sClient, b.Labels["cstorpool.openebs.io/uid"])
 		// check if cstor-pool-mgmt container is running or not
@@ -408,4 +413,114 @@ func updateBackupStatus(clientset versioned.Interface, bkp *v1alpha1.CStorBackup
 		klog.Errorf("Failed to update backup:%s with status:%v", bkp.Name, status)
 		return
 	}
+}
+
+// delete is http handler which handles backup delete request
+func (bOps *backupAPIOps) delete() (interface{}, error) {
+	// Extract name of backup from path after trimming
+	backup := strings.TrimSpace(strings.TrimPrefix(bOps.req.URL.Path, "/latest/backups/"))
+
+	// volname is the volume name in the query params
+	volname := bOps.req.URL.Query().Get("volume")
+
+	// namespace is the namespace(pvc namespace) name in the query params
+	namespace := bOps.req.URL.Query().Get("namespace")
+
+	// schedule name is the schedule name for the given backup
+	scheduleName := bOps.req.URL.Query().Get("schedule")
+
+	if len(backup) == 0 || len(volname) == 0 || len(namespace) == 0 || len(scheduleName) == 0 {
+		return nil, CodedError(405, "failed to delete backup: Insufficient info -- required values volume_name, backup_name, namespace, schedule_name")
+	}
+
+	klog.Infof("deleting backup %v voluname %v namesace %v", backup, volname, namespace)
+
+	openebsClient, _, err := loadClientFromServiceAccount()
+	if err != nil {
+		return nil, CodedError(500, fmt.Sprintf("Failed to create openEBSClient '%v'", err))
+	}
+
+	err = deleteBackup(openebsClient, backup, volname, namespace, scheduleName)
+	if err != nil {
+		klog.Errorf("error deleting backup %v voluname %v namesace %v err=%s", backup, volname, namespace, err)
+		return nil, CodedError(500, fmt.Sprintf("Error deleting backup %v voluname %v namesace %v err=%s", backup, volname, namespace, err))
+	}
+	return "", nil
+}
+
+// deleteBackup delete the relevant cstorBackup/cstorCompletedBackup resource and cstor snapshot for the given snapshot
+func deleteBackup(client *versioned.Clientset, snapname, volname, ns, schedule string) error {
+	lastCompletedBackup := schedule + "-" + volname
+
+	lb, err := client.OpenebsV1alpha1().CStorCompletedBackups(ns).Get(lastCompletedBackup, v1.GetOptions{})
+	if err != nil && !k8serrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to fetch last-completed-backup=%s resource", lastCompletedBackup)
+	}
+
+	// if given backup is the last backup of scheduled backup or
+	// completedBackup doesn't have successful backup then we will delete the completedBackup CR
+	if lb != nil && (lb.Spec.PrevSnapName == snapname || len(lb.Spec.PrevSnapName) == 0) {
+		err := client.OpenebsV1alpha1().CStorCompletedBackups(ns).Delete(lastCompletedBackup, &v1.DeleteOptions{})
+		if err != nil && !k8serrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to delete last-completed-backup=%s resource", lastCompletedBackup)
+		}
+	}
+
+	err = deleteSnapshot(snapname, volname, ns)
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete snapshot=%s for volume=%s", snapname, volname)
+	}
+
+	cstorBackup := snapname + "-" + volname
+	err = client.OpenebsV1alpha1().CStorBackups(ns).Delete(cstorBackup, &v1.DeleteOptions{})
+	if err != nil && !k8serrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to delete cstorbackup=%s resource", cstorBackup)
+	}
+	return nil
+}
+
+// deleteSnapshot will delete the given snapshot for the volume
+func deleteSnapshot(snapname, volname, ns string) error {
+	snapOps, err := snapshot.Snapshot(&v1alpha1.SnapshotOptions{
+		VolumeName: volname,
+		Namespace:  ns,
+		CasType:    string(v1alpha1.CstorVolume),
+		Name:       snapname,
+	})
+	if err != nil {
+		return CodedError(400, err.Error())
+	}
+
+	klog.Infof("Deleting backup snapshot %s for volume %q", snapname, volname)
+
+	_, err = snapOps.Delete()
+	if err != nil {
+		return errors.Wrapf(err, "Failed to delete snapshot")
+	}
+	klog.Infof("Snapshot:'%s' deleted successfully for volume:%s", snapname, volname)
+	return nil
+}
+
+// isBackupCompleted returns true if backup execution is completed
+func isBackupCompleted(bkp *v1alpha1.CStorBackup) bool {
+	if isBackupFailed(bkp) || isBackupSucceeded(bkp) {
+		return true
+	}
+	return false
+}
+
+// isBackupFailed returns true if backup failed
+func isBackupFailed(bkp *v1alpha1.CStorBackup) bool {
+	if bkp.Status == v1alpha1.BKPCStorStatusFailed {
+		return true
+	}
+	return false
+}
+
+// isBackupSucceeded returns true if backup completed successfully
+func isBackupSucceeded(bkp *v1alpha1.CStorBackup) bool {
+	if bkp.Status == v1alpha1.BKPCStorStatusDone {
+		return true
+	}
+	return false
 }
