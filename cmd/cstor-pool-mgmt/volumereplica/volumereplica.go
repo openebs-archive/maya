@@ -718,6 +718,11 @@ func GetAndUpdateSnapshotInfo(
 	//   as is to cover this corner case below check is required.
 	if cvr.Status.Phase == apis.CVRStatusOnline &&
 		len(cvr.Status.PendingSnapshots) != 0 {
+		klog.Infof("CVR: %s is marked as %s hence removing pending snapshots %v",
+			cvr.Name,
+			cvr.Status.Phase,
+			getSnapshotNames(cvr.Status.PendingSnapshots),
+		)
 		cvr.Status.PendingSnapshots = nil
 	}
 	return nil
@@ -729,6 +734,9 @@ func GetAndUpdateSnapshotInfo(
 // on peer replicas
 func getAndAddPendingSnapshotList(
 	clientset clientset.Interface, cvr *apis.CStorVolumeReplica) error {
+	newSnapshots := []string{}
+	removedSnapshots := []string{}
+
 	peerCVRList, err := getPeerReplicas(clientset, cvr)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get peer CVRs of volume replica %s", cvr.Name)
@@ -743,6 +751,7 @@ func getAndAddPendingSnapshotList(
 	for snapName, _ := range cvr.Status.PendingSnapshots {
 		if _, ok := peerSnapshotList[snapName]; !ok {
 			delete(cvr.Status.PendingSnapshots, snapName)
+			removedSnapshots = append(removedSnapshots, snapName)
 		}
 	}
 
@@ -752,10 +761,16 @@ func getAndAddPendingSnapshotList(
 		if _, ok := cvr.Status.Snapshots[snapName]; !ok {
 			if _, ok := cvr.Status.PendingSnapshots[snapName]; !ok {
 				cvr.Status.PendingSnapshots[snapName] = snapInfo
+				newSnapshots = append(newSnapshots, snapName)
 			}
 		}
 	}
 
+	klog.Infof(
+		"Adding %v pending snapshots and deleting %v pending snapshots on CVR %s",
+		newSnapshots,
+		removedSnapshots,
+		cvr.Name)
 	return nil
 }
 
@@ -794,6 +809,15 @@ func getPeerSnapshotInfoList(
 		}
 	}
 	return snapshotInfoList
+}
+
+// getSnapshotNames returns snapshot names from map of snapshot and snapshot info
+func getSnapshotNames(snapMap map[string]apis.CStorSnapshotInfo) []string {
+	snapNameList := make([]string, len(snapMap))
+	for snapName, _ := range snapMap {
+		snapNameList = append(snapNameList, snapName)
+	}
+	return snapNameList
 }
 
 // addOrDeleteSnapshotListInfo adds/deletes the snapshots in CVR

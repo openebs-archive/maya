@@ -168,7 +168,7 @@ func (c *CStorVolumeReplicaController) syncHandler(
 	// Synchronize cstor volume total allocated and
 	// used capacity fields on CVR object.
 	// Any kind of sync activity should be done from here.
-	err = c.syncCvr(cvrGot)
+	err = c.syncCVRStatus(cvrGot)
 	if err != nil {
 		c.recorder.Event(
 			cvrGot,
@@ -633,8 +633,8 @@ func (c *CStorVolumeReplicaController) getCVRStatus(
 	return replicaStatus, nil
 }
 
-// syncCvr updates field on CVR object after fetching the values from zfs utility.
-func (c *CStorVolumeReplicaController) syncCvr(cvr *apis.CStorVolumeReplica) error {
+// syncCVRStatus updates field on CVR status after fetching the values from zfs utility.
+func (c *CStorVolumeReplicaController) syncCVRStatus(cvr *apis.CStorVolumeReplica) error {
 	// Get the zfs volume name corresponding to this cvr.
 	volumeName, err := volumereplica.GetVolumeName(cvr)
 	if err != nil {
