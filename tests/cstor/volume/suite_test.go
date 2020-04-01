@@ -23,6 +23,7 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,6 +50,7 @@ var (
 	spcObj             *apis.StoragePoolClaim
 	pvcObj             *corev1.PersistentVolumeClaim
 	spcList            *apis.StoragePoolClaimList
+	appDeployment      *appsv1.Deployment
 	targetLabel        = "openebs.io/target=cstor-target"
 	pvLabel            = "openebs.io/persistent-volume="
 	pvcLabel           = "openebs.io/persistent-volume-claim="

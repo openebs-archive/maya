@@ -114,9 +114,10 @@ type SPCConfig struct {
 
 // SCConfig provides config to create storage class
 type SCConfig struct {
-	Name        string
-	Annotations map[string]string
-	Provisioner string
+	Name              string
+	Annotations       map[string]string
+	Provisioner       string
+	VolumeBindingMode storagev1.VolumeBindingMode
 }
 
 // PVCConfig provides config to create PersistentVolumeClaim
@@ -1042,15 +1043,31 @@ func (ops *Operations) GetPodCompletedCount(namespace, lselector string) int {
 }
 
 // GetPodList gives list of running pods for given namespace + label
-func (ops *Operations) GetPodList(namespace, lselector string) *pod.PodList {
+func (ops *Operations) GetPodList(namespace, lselector string, predicateList pod.PredicateList) *pod.PodList {
 	pods, err := ops.PodClient.
 		WithNamespace(namespace).
 		List(metav1.ListOptions{LabelSelector: lselector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return pod.
 		ListBuilderForAPIList(pods).
-		WithFilter(pod.IsRunning()).
+		WithFilter(predicateList...).
 		List()
+}
+
+// GetPodCountEventually reurns the no.of pods exists with specified labelselector
+func (ops *Operations) GetPodCountEventually(
+	namespace, lselector string,
+	predicateList pod.PredicateList, expectedCount int) int {
+	var podCount int
+	for i := 0; i < maxRetry; i++ {
+		podList := ops.GetPodList(namespace, lselector, predicateList)
+		podCount = podList.Len()
+		if podCount == expectedCount {
+			return podCount
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return podCount
 }
 
 // VerifyUpgradeResultTasksIsNotFail checks whether all the tasks in upgraderesult
@@ -1117,6 +1134,7 @@ func (ops *Operations) CreateStorageClass() *storagev1.StorageClass {
 	scObj, err := sc.NewBuilder().
 		WithGenerateName(scConfig.Name).
 		WithAnnotations(scConfig.Annotations).
+		WithVolumeBindingMode(scConfig.VolumeBindingMode).
 		WithProvisioner(scConfig.Provisioner).Build()
 	Expect(err).ShouldNot(
 		HaveOccurred(),

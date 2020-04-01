@@ -29,6 +29,7 @@ import (
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	pv "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
+	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/openebs/maya/tests/cstor"
@@ -212,7 +213,7 @@ var _ = Describe("[Cstor Volume Provisioning Positive] TEST VOLUME PROVISIONING"
 			Expect(err).To(BeNil(), "While fetching maya-apiserver address")
 			Expect(len(maddr)).To(Equal(1), "maya-apiserver address")
 
-			podList := ops.GetPodList(openebsNamespace, mayaAPIPodLabel)
+			podList := ops.GetPodList(openebsNamespace, mayaAPIPodLabel, pod.PredicateList{pod.IsRunning()})
 			Expect(err).To(BeNil(), "maya-apiserver pod fetch error")
 			mPodList := podList.ToAPIList()
 			Expect(len(mPodList.Items)).To(Equal(1), "maya-apiserver pod count")
@@ -284,7 +285,7 @@ var _ = Describe("[Cstor Volume Provisioning Positive] TEST VOLUME PROVISIONING"
 			Expect(err).To(BeNil(), "While fetching maya-apiserver address")
 			Expect(len(maddr)).To(Equal(1), "maya-apiserver address")
 
-			podList := ops.GetPodList(openebsNamespace, mayaAPIPodLabel)
+			podList := ops.GetPodList(openebsNamespace, mayaAPIPodLabel, pod.PredicateList{pod.IsRunning()})
 			Expect(err).To(BeNil(), "maya-apiserver pod fetch error")
 			mPodList := podList.ToAPIList()
 			Expect(len(mPodList.Items)).To(Equal(1), "maya-apiserver pod count")

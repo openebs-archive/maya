@@ -29,7 +29,7 @@ type PodList struct {
 }
 
 // PredicateList holds a list of predicate
-type predicateList []Predicate
+type PredicateList []Predicate
 
 // Predicate defines an abstraction
 // to determine conditional checks
@@ -64,7 +64,7 @@ func (pl *PodList) Len() int {
 // all returns true if all the predicates
 // succeed against the provided pod
 // instance
-func (l predicateList) all(p *Pod) bool {
+func (l PredicateList) all(p *Pod) bool {
 	for _, pred := range l {
 		if !pred(p) {
 			return false

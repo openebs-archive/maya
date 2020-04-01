@@ -24,7 +24,7 @@ import (
 // Podlist
 type ListBuilder struct {
 	list    *PodList
-	filters predicateList
+	filters PredicateList
 }
 
 // NewListBuilder returns a instance of ListBuilder
