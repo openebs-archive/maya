@@ -23,11 +23,13 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
+	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 	utask "github.com/openebs/maya/pkg/upgrade/v1alpha2"
 	retry "github.com/openebs/maya/pkg/util/retry"
 	errors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -317,4 +319,69 @@ func buildUpgradeTask(kind, name, openebsNamespace string) *apis.UpgradeTask {
 		}
 	}
 	return utaskObj
+}
+
+func scaleDeploy(name, namespace, label string, rc int) error {
+	klog.Infof("Scaling deploy %s in %s namespace to %d", name, namespace, rc)
+	deployObj, err := deployClient.WithNamespace(namespace).Get(name)
+	if err != nil {
+		return err
+	}
+	replicas := int32(rc)
+	deployObj.Spec.Replicas = &replicas
+	_, err = deployClient.WithNamespace(namespace).Update(deployObj)
+	if err != nil {
+		return err
+	}
+	podList := &corev1.PodList{}
+	// Wait for up to 5 minutes for deployment pods to reach desired replicaCount.
+	for i := 0; i < 60; i++ {
+		podList, err := podClient.WithNamespace(namespace).List(
+			metav1.ListOptions{
+				LabelSelector: label,
+			})
+		if err != nil {
+			return err
+		}
+		if len(podList.Items) != rc {
+			time.Sleep(time.Second * 5)
+		} else {
+			break
+		}
+	}
+	// If number pods is not reached within 5 minutes return error.
+	if len(podList.Items) != rc {
+		return errors.Errorf("expected pods: %d, found: %d", rc, len(podList.Items))
+	}
+	return nil
+}
+
+func waitUntilPodsAreRunning(namespace, label string, rc int) error {
+	pods := &corev1.PodList{}
+	count := 0
+	var err error
+	// Wait for up to 5 minutes for deployment pods to reach desired replicaCount.
+	for i := 0; i < 60; i++ {
+		// GetPodRunningCount gives number of pods running currently
+		pods, err = podClient.
+			WithNamespace(namespace).
+			List(metav1.ListOptions{LabelSelector: label})
+		if err != nil {
+			return err
+		}
+		count = pod.
+			ListBuilderForAPIList(pods).
+			WithFilter(pod.IsRunning()).
+			List().
+			Len()
+		if count != rc {
+			time.Sleep(time.Second * 5)
+		} else {
+			break
+		}
+	}
+	if count != rc {
+		return errors.Errorf("expected running pods: %d, found: %d", rc, count)
+	}
+	return nil
 }
