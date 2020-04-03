@@ -426,7 +426,7 @@ func (bOps *backupAPIOps) delete() (interface{}, error) {
 	// namespace is the namespace(pvc namespace) name in the query params
 	namespace := bOps.req.URL.Query().Get("namespace")
 
-	// schedule name is the schedule name for the given backup
+	// schedule name is the schedule name for the given backup, for non-scheduled backup it will be backup name
 	scheduleName := bOps.req.URL.Query().Get("schedule")
 
 	if len(backup) == 0 || len(volname) == 0 || len(namespace) == 0 || len(scheduleName) == 0 {
