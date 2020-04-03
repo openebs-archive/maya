@@ -27,6 +27,7 @@ var (
 		   }
 		},
 		"spec": {
+			"replicas": 1,
 			"selector": {
 				"matchLabels":{
 					"openebs.io/persistent-volume": "{{.PVName}}",
