@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The OpenEBS Authors
+Copyright 2020 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,14 +26,9 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cv "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
-	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
-	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
-	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
-	k8svolume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	"github.com/openebs/maya/tests"
 	"github.com/openebs/maya/tests/cstor"
-	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -101,7 +96,12 @@ var _ = Describe("[WAITFORFIRSTCONSUMER] CStor Volume Provisioning", func() {
 		It("CStor Volume Related Resources Should Be Created and Become Healthy", func() {
 			var err error
 			// Deploying Application
-			createAndDeployAppPod()
+			By("Building a busybox app pod deployment using above volume")
+			appDeployment, err = ops.BuildAndDeployBusyBoxPod(
+				"busybox-cstor",
+				pvcObj.Name, pvcObj.Namespace,
+				map[string]string{"app": "busybox"})
+			Expect(err).ShouldNot(HaveOccurred(), "while building app deployement {%v}", err)
 
 			By("Verifying pvc status as bound")
 
@@ -137,67 +137,3 @@ var _ = Describe("[WAITFORFIRSTCONSUMER] CStor Volume Provisioning", func() {
 		})
 	})
 })
-
-func createAndDeployAppPod() {
-	var err error
-	appName := "busybox-cstor"
-	By("Building a busybox app pod deployment using above csi cstor volume")
-	appDeployment, err = deploy.NewBuilder().
-		WithName(appName).
-		WithNamespace(nsObj.Name).
-		WithLabelsNew(
-			map[string]string{
-				"app": "busybox",
-			},
-		).
-		WithSelectorMatchLabelsNew(
-			map[string]string{
-				"app": "busybox",
-			},
-		).
-		WithPodTemplateSpecBuilder(
-			pts.NewBuilder().
-				WithLabelsNew(
-					map[string]string{
-						"app": "busybox",
-					},
-				).
-				WithContainerBuilders(
-					container.NewBuilder().
-						WithImage("busybox").
-						WithName("busybox").
-						WithImagePullPolicy(corev1.PullIfNotPresent).
-						WithCommandNew(
-							[]string{
-								"sh",
-								"-c",
-								"date > /mnt/cstore1/date.txt; sync; sleep 5; sync; tail -f /dev/null;",
-							},
-						).
-						WithVolumeMountsNew(
-							[]corev1.VolumeMount{
-								corev1.VolumeMount{
-									Name:      "datavol1",
-									MountPath: "/mnt/cstore1",
-								},
-							},
-						),
-				).
-				WithVolumeBuilders(
-					k8svolume.NewBuilder().
-						WithName("datavol1").
-						WithPVCSource(pvcObj.Name),
-				),
-		).
-		Build()
-
-	Expect(err).ShouldNot(HaveOccurred(), "while building app deployement {%s}", appName)
-
-	appDeployment, err = ops.DeployClient.WithNamespace(nsObj.Name).Create(appDeployment)
-	Expect(err).ShouldNot(
-		HaveOccurred(),
-		"while creating pod {%s} in namespace {%s}",
-		appName,
-		nsObj.Name,
-	)
-}
