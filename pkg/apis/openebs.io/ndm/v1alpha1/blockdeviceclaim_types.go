@@ -37,6 +37,10 @@ type BlockDeviceClaim struct {
 
 // DeviceClaimSpec defines the request details for a BlockDevice
 type DeviceClaimSpec struct {
+
+	// Selector is used to find block devices to be considered for claiming
+	Selector *metav1.LabelSelector `json:"selector,omitempty"`
+
 	// Resources will help with placing claims on Capacity, IOPS
 	Resources DeviceClaimResources `json:"resources"`
 
