@@ -34,15 +34,18 @@ import (
 	cvr "github.com/openebs/maya/pkg/cstor/volumereplica/v1alpha1"
 	cvc "github.com/openebs/maya/pkg/cstorvolumeclaim/v1alpha1"
 	kubeclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	node "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
 	pv "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
+	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
+	k8svolume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
@@ -51,6 +54,7 @@ import (
 	"github.com/openebs/maya/pkg/version"
 	"github.com/openebs/maya/tests/artifacts"
 	errors "github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -115,9 +119,10 @@ type SPCConfig struct {
 
 // SCConfig provides config to create storage class
 type SCConfig struct {
-	Name        string
-	Annotations map[string]string
-	Provisioner string
+	Name              string
+	Annotations       map[string]string
+	Provisioner       string
+	VolumeBindingMode storagev1.VolumeBindingMode
 }
 
 // PVCConfig provides config to create PersistentVolumeClaim
@@ -1069,15 +1074,31 @@ func (ops *Operations) GetPodCompletedCount(namespace, lselector string) int {
 }
 
 // GetPodList gives list of running pods for given namespace + label
-func (ops *Operations) GetPodList(namespace, lselector string) *pod.PodList {
+func (ops *Operations) GetPodList(namespace, lselector string, predicateList pod.PredicateList) *pod.PodList {
 	pods, err := ops.PodClient.
 		WithNamespace(namespace).
 		List(metav1.ListOptions{LabelSelector: lselector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return pod.
 		ListBuilderForAPIList(pods).
-		WithFilter(pod.IsRunning()).
+		WithFilter(predicateList...).
 		List()
+}
+
+// GetPodCountEventually returns the no.of pods exists with specified labelselector
+func (ops *Operations) GetPodCountEventually(
+	namespace, lselector string,
+	predicateList pod.PredicateList, expectedCount int) int {
+	var podCount int
+	for i := 0; i < maxRetry; i++ {
+		podList := ops.GetPodList(namespace, lselector, predicateList)
+		podCount = podList.Len()
+		if podCount == expectedCount {
+			return podCount
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return podCount
 }
 
 // VerifyUpgradeResultTasksIsNotFail checks whether all the tasks in upgraderesult
@@ -1144,6 +1165,7 @@ func (ops *Operations) CreateStorageClass() *storagev1.StorageClass {
 	scObj, err := sc.NewBuilder().
 		WithGenerateName(scConfig.Name).
 		WithAnnotations(scConfig.Annotations).
+		WithVolumeBindingMode(scConfig.VolumeBindingMode).
 		WithProvisioner(scConfig.Provisioner).Build()
 	Expect(err).ShouldNot(
 		HaveOccurred(),
@@ -1353,4 +1375,55 @@ func getCVRLabels(pool *apis.CStorPool, volumeName string) map[string]string {
 		"openebs.io/persistent-volume": volumeName,
 		"openebs.io/version":           version.GetVersion(),
 	}
+}
+
+func (ops *Operations) BuildAndDeployBusyBoxPod(
+	appName, pvcName, namespace string,
+	labels map[string]string) (*appsv1.Deployment, error) {
+	var err error
+	appDeployment, err := deploy.NewBuilder().
+		WithName(appName).
+		WithNamespace(namespace).
+		WithLabelsNew(labels).
+		WithSelectorMatchLabelsNew(labels).
+		WithPodTemplateSpecBuilder(
+			pts.NewBuilder().
+				WithLabelsNew(labels).
+				WithContainerBuilders(
+					container.NewBuilder().
+						WithImage("busybox").
+						WithName("busybox").
+						WithImagePullPolicy(corev1.PullIfNotPresent).
+						WithCommandNew(
+							[]string{
+								"sh",
+								"-c",
+								"date > /mnt/cstore1/date.txt; sync; sleep 5; sync; tail -f /dev/null;",
+							},
+						).
+						WithVolumeMountsNew(
+							[]corev1.VolumeMount{
+								corev1.VolumeMount{
+									Name:      "datavol1",
+									MountPath: "/mnt/cstore1",
+								},
+							},
+						),
+				).
+				WithVolumeBuilders(
+					k8svolume.NewBuilder().
+						WithName("datavol1").
+						WithPVCSource(pvcName),
+				),
+		).
+		Build()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to build busybox: %s deployment", appName)
+	}
+
+	appDeployment, err = ops.DeployClient.WithNamespace(namespace).Create(appDeployment)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create busybox %s deployment in namespace %s", appName, namespace)
+	}
+	return appDeployment, nil
 }

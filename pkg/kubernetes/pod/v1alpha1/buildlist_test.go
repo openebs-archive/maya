@@ -126,33 +126,33 @@ func TestFilterList(t *testing.T) {
 	tests := map[string]struct {
 		availablePods map[string]string
 		filteredPods  []string
-		filters       predicateList
+		filters       PredicateList
 	}{
 		"Pods Set 1": {
 			availablePods: map[string]string{"Pod 1": "Running", "Pod 2": "CrashLoopBackOff"},
 			filteredPods:  []string{"Pod 1"},
-			filters:       predicateList{IsRunning()},
+			filters:       PredicateList{IsRunning()},
 		},
 		"Pods Set 2": {
 			availablePods: map[string]string{"Pod 1": "Running", "Pod 2": "Running"},
 			filteredPods:  []string{"Pod 1", "Pod 2"},
-			filters:       predicateList{IsRunning()},
+			filters:       PredicateList{IsRunning()},
 		},
 
 		"Pods Set 3": {
 			availablePods: map[string]string{"Pod 1": "CrashLoopBackOff", "Pod 2": "CrashLoopBackOff", "Pod 3": "CrashLoopBackOff"},
 			filteredPods:  []string{},
-			filters:       predicateList{IsRunning()},
+			filters:       PredicateList{IsRunning()},
 		},
 		"Pod Set 4": {
 			availablePods: map[string]string{"Pod 1": "Running", "Pod 2": "Running"},
 			filteredPods:  []string{},
-			filters:       predicateList{IsNil()},
+			filters:       PredicateList{IsNil()},
 		},
 		"Pod Set 5": {
 			availablePods: map[string]string{"Pod 1": "Running", "Pod 2": "Running"},
 			filteredPods:  []string{"Pod 1", "Pod 2"},
-			filters:       predicateList{},
+			filters:       PredicateList{},
 		},
 		"Pod Set 6": {
 			availablePods: map[string]string{"Pod 1": "Running", "Pod 2": "Running"},

@@ -131,12 +131,6 @@ func TestBuilderWithVolumeBind(t *testing.T) {
 			builder:   &Builder{sc: &StorageClass{object: &storagev1.StorageClass{}}},
 			expectErr: false,
 		},
-
-		"Test SC with nil binding mode": {
-			bindmode:  "",
-			builder:   &Builder{sc: &StorageClass{object: &storagev1.StorageClass{}}},
-			expectErr: true,
-		},
 	}
 	for name, mock := range tests {
 		name, mock := name, mock
