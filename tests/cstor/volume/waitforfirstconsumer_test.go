@@ -92,7 +92,7 @@ var _ = Describe("[WAITFORFIRSTCONSUMER] CStor Volume Provisioning", func() {
 		})
 	})
 
-	When("Deploying Percona Application", func() {
+	When("Deploying BusyBox Application", func() {
 		It("CStor Volume Related Resources Should Be Created and Become Healthy", func() {
 			var err error
 			// Deploying Application
