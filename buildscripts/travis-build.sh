@@ -63,7 +63,11 @@ printf "\n"
 ./buildscripts/test-cov.sh
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
-make all
+if [ "$TRAVIS_CPU_ARCH" == "arm64" ]; then
+  make all.arm64
+else
+  make all
+fi
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
 if [ $SRC_REPO != $DST_REPO ];

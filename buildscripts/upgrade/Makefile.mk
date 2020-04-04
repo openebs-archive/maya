@@ -2,6 +2,12 @@
 # Specify the name for the binaries
 UPGRADE=upgrade
 
+# Specify the name of the docker repo for amd64
+UPGRADE_REPO_NAME="m-upgrade"
+
+# Specify the name of the docker repo for arm64
+UPGRADE_REPO_NAME_ARM64="m-upgrade-arm64"
+
 # build upgrade binary
 .PHONY: upgrade
 upgrade:
@@ -19,12 +25,26 @@ upgrade:
 upgrade-image: upgrade
 	@echo "-----------------------------------------------"
 	@echo "--> ${UPGRADE} image                           "
-	@echo "${HUB_USER}/${M_UPGRADE_REPO_NAME}:${IMAGE_TAG}"
+	@echo "${HUB_USER}/${UPGRADE_REPO_NAME}:${IMAGE_TAG}"
 	@echo "-----------------------------------------------"
 	@cp bin/${UPGRADE}/${UPGRADE} buildscripts/${UPGRADE}/
 	@cd buildscripts/${UPGRADE} && \
-	 sudo docker build -t "${HUB_USER}/${M_UPGRADE_REPO_NAME}:${IMAGE_TAG}" --build-arg BUILD_DATE=${BUILD_DATE} .
+	 sudo docker build -t "${HUB_USER}/${UPGRADE_REPO_NAME}:${IMAGE_TAG}" --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/${UPGRADE}/${UPGRADE}
+
+.PHONY: upgrade-image.arm64
+upgrade-image.arm64: upgrade
+	@echo "-----------------------------------------------"
+	@echo "--> ${UPGRADE} image                           "
+	@echo "${HUB_USER}/${UPGRADE_REPO_NAME_ARM64}:${IMAGE_TAG}"
+	@echo "-----------------------------------------------"
+	@cp bin/${UPGRADE}/${UPGRADE} buildscripts/${UPGRADE}/
+	@cd buildscripts/${UPGRADE} && \
+	 sudo docker build -t "${HUB_USER}/${UPGRADE_REPO_NAME_ARM64}:${IMAGE_TAG}" --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/${UPGRADE}/${UPGRADE}
+
+
+
 
 # cleanup upgrade build
 .PHONY: cleanup-upgrade
