@@ -45,6 +45,7 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 		name:         name,
 		capacity:     capacity.String(),
 		volumeMode:   *opts.PVC.Spec.VolumeMode,
+		bdPoolName:   volumeConfig.GetBDPoolName(),
 	}
 
 	path, blkPath, err := p.getBlockDevicePath(blkDevOpts)

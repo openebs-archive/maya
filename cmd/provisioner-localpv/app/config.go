@@ -37,12 +37,45 @@ const (
 	//KeyPVStorageType defines if the PV should be backed
 	// a hostpath ( sub directory or a storage device)
 	KeyPVStorageType = "StorageType"
+
 	//KeyPVBasePath defines base directory for hostpath volumes
 	// can be configured via the StorageClass annotations.
 	KeyPVBasePath = "BasePath"
+
 	//KeyPVFSType defines filesystem type to be used with devices
 	// and can be configured via the StorageClass annotations.
 	KeyPVFSType = "FSType"
+
+	//KeyBDPoolName defines the value for the Block Device Pool
+	//label selector configured via the StorageClass annotations.
+	//User can group block devices across nodes to form a block
+	//device pool, by setting the label on block devices as:
+	//  openebs.io/block-device-pool=<pool-name>
+	//
+	//The <pool-name> used above can be passsed to the
+	//Local PV device provisioner via the StorageClass
+	//CAS annotations.
+	//
+	//Example: Local PV device StorageClass for picking devices
+	//labeled as: openebs.io/block-device-pool=pool-x
+	//will be as follows
+	//
+	// kind: StorageClass
+	// metadata:
+	//   name: openebs-device-pool-x
+	//   annotations:
+	//     openebs.io/cas-type: local
+	//     cas.openebs.io/config: |
+	//       - name: StorageType
+	//         value: "device"
+	//       - name: BlockDevicePoolName
+	//         value: "pool-x"
+	// provisioner: openebs.io/local
+	// volumeBindingMode: WaitForFirstConsumer
+	// reclaimPolicy: Delete
+	//
+	KeyBDPoolName = "BlockDevicePoolName"
+
 	//KeyPVRelativePath defines the alternate folder name under the BasePath
 	// By default, the pv name will be used as the folder name.
 	// KeyPVBasePath can be useful for providing the same underlying folder
@@ -137,6 +170,20 @@ func (c *VolumeConfig) GetFSType() string {
 		return ""
 	}
 	return fsType
+}
+
+//GetBDPoolName returns the block device pool label
+//value configured in StorageClass.
+//
+//Default is "", no device pool will be set and all
+//the available block devices can be used for creating
+//Local PV.
+func (c *VolumeConfig) GetBDPoolName() string {
+	bdPoolName := c.getValue(KeyBDPoolName)
+	if len(strings.TrimSpace(bdPoolName)) == 0 {
+		return ""
+	}
+	return bdPoolName
 }
 
 //GetPath returns a valid PV path based on the configuration
