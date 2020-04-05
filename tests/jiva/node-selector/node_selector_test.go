@@ -66,7 +66,7 @@ var _ = Describe("[jiva] TEST NODE SELECTOR", func() {
 
 		By("verifying controller pod count")
 		controllerPodCount := ops.GetPodRunningCountEventually(
-			namespaceObj.Name,
+			openebsNamespace,
 			jiva.CtrlLabel,
 			1,
 		)
@@ -74,7 +74,7 @@ var _ = Describe("[jiva] TEST NODE SELECTOR", func() {
 
 		By("verifying replica pod count ")
 		replicaPodCount := ops.GetPodRunningCountEventually(
-			namespaceObj.Name,
+			openebsNamespace,
 			jiva.ReplicaLabel,
 			jiva.ReplicaCount,
 		)
@@ -102,7 +102,7 @@ var _ = Describe("[jiva] TEST NODE SELECTOR", func() {
 
 		By("verifying controller pod count as 0")
 		controllerPodCount := ops.GetPodRunningCountEventually(
-			namespaceObj.Name,
+			openebsNamespace,
 			jiva.CtrlLabel,
 			0,
 		)
@@ -110,7 +110,7 @@ var _ = Describe("[jiva] TEST NODE SELECTOR", func() {
 
 		By("verifying replica pod count as 0")
 		replicaPodCount := ops.GetPodRunningCountEventually(
-			namespaceObj.Name,
+			openebsNamespace,
 			jiva.ReplicaLabel,
 			0,
 		)
@@ -125,7 +125,7 @@ var _ = Describe("[jiva] TEST NODE SELECTOR", func() {
 	When("replica pod of pvc is restarted", func() {
 		It("should stick to storage node after reconciliation", func() {
 			podList, err = ops.PodClient.
-				WithNamespace(namespaceObj.Name).
+				WithNamespace(openebsNamespace).
 				List(metav1.ListOptions{LabelSelector: jiva.ReplicaLabel})
 			Expect(err).ShouldNot(HaveOccurred(), "while fetching replica pods")
 
@@ -140,14 +140,14 @@ var _ = Describe("[jiva] TEST NODE SELECTOR", func() {
 
 				By("verifying deleted pod is terminated")
 				status := ops.IsPodDeletedEventually(
-					namespaceObj.Name,
+					openebsNamespace,
 					podList.Items[0].Name,
 				)
 				Expect(status).To(Equal(true), "while checking for deleted pod")
 
 				By("verifying running replica pod count ")
 				replicaPodCount := ops.GetPodRunningCountEventually(
-					namespaceObj.Name,
+					openebsNamespace,
 					jiva.ReplicaLabel,
 					jiva.ReplicaCount,
 				)
@@ -158,7 +158,7 @@ var _ = Describe("[jiva] TEST NODE SELECTOR", func() {
 
 				By("verifying replica node selector")
 				podList, err = ops.PodClient.
-					WithNamespace(namespaceObj.Name).
+					WithNamespace(openebsNamespace).
 					List(metav1.ListOptions{LabelSelector: jiva.ReplicaLabel})
 				Expect(err).ShouldNot(HaveOccurred(), "while fetching replica pods")
 
@@ -173,7 +173,7 @@ var _ = Describe("[jiva] TEST NODE SELECTOR", func() {
 	When("controller pod of pvc is restarted", func() {
 		It("should stick to app node after reconciliation", func() {
 			podList, err = ops.PodClient.
-				WithNamespace(namespaceObj.Name).
+				WithNamespace(openebsNamespace).
 				List(metav1.ListOptions{LabelSelector: jiva.CtrlLabel})
 			Expect(err).ShouldNot(HaveOccurred(), "while fetching controller pods")
 
@@ -188,14 +188,14 @@ var _ = Describe("[jiva] TEST NODE SELECTOR", func() {
 
 				By("verifying deleted pod is terminated")
 				status := ops.IsPodDeletedEventually(
-					namespaceObj.Name,
+					openebsNamespace,
 					podList.Items[0].Name,
 				)
 				Expect(status).To(Equal(true), "while checking for deleted pod")
 
 				By("verifying running controller pod count ")
 				replicaPodCount := ops.GetPodRunningCountEventually(
-					namespaceObj.Name,
+					openebsNamespace,
 					jiva.CtrlLabel,
 					1,
 				)
@@ -206,7 +206,7 @@ var _ = Describe("[jiva] TEST NODE SELECTOR", func() {
 
 				By("verifying target node selector")
 				podList, err = ops.PodClient.
-					WithNamespace(namespaceObj.Name).
+					WithNamespace(openebsNamespace).
 					List(metav1.ListOptions{LabelSelector: jiva.CtrlLabel})
 				Expect(err).ShouldNot(HaveOccurred(), "while fetching controller pods")
 

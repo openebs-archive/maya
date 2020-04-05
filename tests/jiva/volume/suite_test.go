@@ -36,6 +36,7 @@ import (
 )
 
 var (
+	openebsNamespace      = "openebs"
 	namespace             = "jiva-volume-ns"
 	scName                = "jiva-volume-sc"
 	openebsCASConfigValue = "- name: ReplicaCount\n  Value: "

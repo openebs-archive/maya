@@ -71,7 +71,7 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 
 			By("verifying controller pod count")
 			controllerPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				openebsNamespace,
 				ctrlLabel,
 				1,
 			)
@@ -82,7 +82,7 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 
 			By("verifying replica pod count ")
 			replicaPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				openebsNamespace,
 				replicaLabel,
 				jiva.ReplicaCount,
 			)
@@ -106,20 +106,20 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 				metav1.ListOptions{LabelSelector: ctrlLabel},
 			)
 			Expect(err).ShouldNot(HaveOccurred(), "while listing controller pod")
-			err = ops.PodClient.WithNamespace(namespaceObj.Name).
+			err = ops.PodClient.WithNamespace(openebsNamespace).
 				Delete(podList.Items[0].Name, &metav1.DeleteOptions{})
 			Expect(err).ShouldNot(HaveOccurred(), "while deleting controller pod")
 
 			By("verifying deleted pod is terminated")
 			status := ops.IsPodDeletedEventually(
-				namespaceObj.Name,
+				openebsNamespace,
 				podList.Items[0].Name,
 			)
 			Expect(status).To(Equal(true), "while checking for deleted pod")
 
 			By("verifying controller pod count")
 			controllerPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				openebsNamespace,
 				ctrlLabel,
 				1,
 			)
@@ -160,14 +160,14 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 			Expect(err).ShouldNot(HaveOccurred(), "while listing replica pods")
 
 			By("deleting replica pods")
-			err = ops.PodClient.WithNamespace(namespaceObj.Name).
+			err = ops.PodClient.WithNamespace(openebsNamespace).
 				DeleteCollection(metav1.ListOptions{LabelSelector: replicaLabel},
 					&metav1.DeleteOptions{})
 			Expect(err).ShouldNot(HaveOccurred(), "while deleting replica pods")
 
 			By("verifying deleted pods are terminated")
 			for _, p := range podList.Items {
-				status := ops.IsPodDeletedEventually(namespaceObj.Name, p.Name)
+				status := ops.IsPodDeletedEventually(openebsNamespace, p.Name)
 				Expect(status).To(
 					Equal(true),
 					"while checking for deleted pod {%s}",
@@ -176,7 +176,7 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 			}
 			By("verifying replica pod count")
 			replicaPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				openebsNamespace,
 				replicaLabel,
 				jiva.ReplicaCount,
 			)
@@ -209,7 +209,7 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 
 			By("verifying controller pod count as 0")
 			controllerPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				openebsNamespace,
 				ctrlLabel,
 				0,
 			)
@@ -220,7 +220,7 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 
 			By("verifying replica pod count as 0")
 			replicaPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				openebsNamespace,
 				replicaLabel,
 				0,
 			)
@@ -237,7 +237,7 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 
 func areReplicasRegisteredEventually(ctrlPod *corev1.Pod, replicationFactor int) bool {
 	return Eventually(func() int {
-		out, err := ops.PodClient.WithNamespace(namespaceObj.Name).
+		out, err := ops.PodClient.WithNamespace(openebsNamespace).
 			Exec(
 				ctrlPod.Name,
 				&corev1.PodExecOptions{

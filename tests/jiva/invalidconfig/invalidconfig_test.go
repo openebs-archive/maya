@@ -32,6 +32,7 @@ import (
 )
 
 var (
+	openebsNamespace = "openebs"
 	// defaultReplicaLabel represents the jiva replica
 	defaultReplicaLabel = "openebs.io/replica=jiva-replica"
 	// defaultCtrlLabel represents the jiva controller
@@ -102,11 +103,11 @@ var _ = Describe("[jiva] [-ve] TEST INVALID CAS CONFIGURATIONS IN SC", func() {
 			Expect(err).To(BeNil(), "while creating persistentvolumeclaim {%s} in namespace {%s}", pvcObj.Name, nsName)
 
 			By("verifying controller pod count")
-			controllerPodCount := ops.GetPodRunningCountEventually(nsName, ctrlLabel, 1)
+			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, ctrlLabel, 1)
 			Expect(controllerPodCount).To(Equal(0), "while checking jiva controller pod count")
 
 			By("verifying replica pod count")
-			replicaPodCount := ops.GetPodRunningCountEventually(nsName, replicaLabel, repCountInt)
+			replicaPodCount := ops.GetPodRunningCountEventually(openebsNamespace, replicaLabel, repCountInt)
 			Expect(replicaPodCount).To(Equal(0), "while checking jiva replica pod count")
 		})
 	})

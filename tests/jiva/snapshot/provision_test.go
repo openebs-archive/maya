@@ -68,11 +68,11 @@ var _ = Describe("[jiva] TEST JIVA SNAPSHOT CREATION", func() {
 			)
 
 			By("verifying controller pod count")
-			controllerPodCount := ops.GetPodRunningCountEventually(namespaceObj.Name, ctrlLabel, 1)
+			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, ctrlLabel, 1)
 			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
 
 			By("verifying replica pod count")
-			replicaPodCount := ops.GetPodRunningCountEventually(namespaceObj.Name, replicaLabel, jiva.ReplicaCount)
+			replicaPodCount := ops.GetPodRunningCountEventually(openebsNamespace, replicaLabel, jiva.ReplicaCount)
 			Expect(replicaPodCount).To(Equal(jiva.ReplicaCount), "while checking replica pod count")
 
 			By("verifying status as bound")
@@ -146,11 +146,11 @@ var _ = Describe("[jiva] TEST JIVA SNAPSHOT CREATION", func() {
 			)
 
 			By("verifying controller pod count as 0")
-			controllerPodCount := ops.GetPodRunningCountEventually(namespaceObj.Name, ctrlLabel, 0)
+			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, ctrlLabel, 0)
 			Expect(controllerPodCount).To(Equal(0), "while checking controller pod count")
 
 			By("verifying replica pod count as 0")
-			replicaPodCount := ops.GetPodRunningCountEventually(namespaceObj.Name, replicaLabel, 0)
+			replicaPodCount := ops.GetPodRunningCountEventually(openebsNamespace, replicaLabel, 0)
 			Expect(replicaPodCount).To(Equal(0), "while checking replica pod count")
 
 			By("verifying deleted pvc")

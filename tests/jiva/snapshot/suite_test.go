@@ -43,6 +43,7 @@ var (
 	namespaceObj          *corev1.Namespace
 	snapObj               *snapshot.VolumeSnapshot
 	scObj                 *storagev1.StorageClass
+	openebsNamespace      = "openebs"
 	namespace             = "jiva-snapshot-ns"
 	scName                = "jiva-snapshot-sc"
 	openebsProvisioner    = "openebs.io/provisioner-iscsi"
