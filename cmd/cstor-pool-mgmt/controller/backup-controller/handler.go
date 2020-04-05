@@ -217,6 +217,8 @@ func IsOnlyStatusChange(oldbkp, newbkp *apis.CStorBackup) bool {
 	return false
 }
 
+// updateCStorCompletedBackup updates the CStorCompletedBackups resource for the given backup
+// CStorCompletedBackups stores the information of last two completed backups
 func (c *BackupController) updateCStorCompletedBackup(bkp *apis.CStorBackup) error {
 	lastbkpname := bkp.Spec.BackupName + "-" + bkp.Spec.VolumeName
 	bkplast, err := c.clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
@@ -225,7 +227,10 @@ func (c *BackupController) updateCStorCompletedBackup(bkp *apis.CStorBackup) err
 		return nil
 	}
 
+	// SnapName store the name of 2nd last backed up snapshot
 	bkplast.Spec.SnapName = bkplast.Spec.PrevSnapName
+
+	// PrevSnapName store the name of last backed up snapshot
 	bkplast.Spec.PrevSnapName = bkp.Spec.SnapName
 	_, err = c.clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Update(bkplast)
 	if err != nil {

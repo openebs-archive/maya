@@ -239,6 +239,7 @@ func getLastBackupSnap(openebsClient *versioned.Clientset, bkp *v1alpha1.CStorBa
 		return "", nil
 	}
 
+	// PrevSnapName stores the last completed backup snapshot
 	return b.Spec.PrevSnapName, nil
 }
 
@@ -395,7 +396,8 @@ func findLastBackupStat(clientset versioned.Interface, bkp *v1alpha1.CStorBackup
 		return v1alpha1.BKPCStorStatusFailed
 	}
 
-	// let's check if snapname matches with current snapshot name
+	// lastbkp stores the last(PrevSnapName) and 2nd last(SnapName) completed snapshot
+	// let's check if last backup's snapname/PrevSnapName  matches with current snapshot name
 	if bkp.Spec.SnapName == lastbkp.Spec.SnapName || bkp.Spec.SnapName == lastbkp.Spec.PrevSnapName {
 		return v1alpha1.BKPCStorStatusDone
 	}
@@ -433,7 +435,7 @@ func (bOps *backupAPIOps) delete() (interface{}, error) {
 		return nil, CodedError(405, "failed to delete backup: Insufficient info -- required values volume_name, backup_name, namespace, schedule_name")
 	}
 
-	klog.Infof("deleting backup %v voluname %v namesace %v", backup, volname, namespace)
+	klog.Infof("Deleting backup=%s for volume=%s with namesace=%s and schedule=%s", backup, volname, namespace, scheduleName)
 
 	openebsClient, _, err := loadClientFromServiceAccount()
 	if err != nil {
@@ -442,36 +444,41 @@ func (bOps *backupAPIOps) delete() (interface{}, error) {
 
 	err = deleteBackup(openebsClient, backup, volname, namespace, scheduleName)
 	if err != nil {
-		klog.Errorf("error deleting backup %v voluname %v namesace %v err=%s", backup, volname, namespace, err)
-		return nil, CodedError(500, fmt.Sprintf("Error deleting backup %v voluname %v namesace %v err=%s", backup, volname, namespace, err))
+		klog.Errorf("Error deleting backup=%s for volume=%s with namesace=%s and schedule=%s..  error=%s", backup, volname, namespace, scheduleName, err)
+		return nil, CodedError(500, fmt.Sprintf("Error deleting backup=%s for volume=%s with namesace=%s and schedule=%s..  error=%s", backup, volname, namespace, scheduleName, err))
 	}
 	return "", nil
 }
 
-// deleteBackup delete the relevant cstorBackup/cstorCompletedBackup resource and cstor snapshot for the given snapshot
-func deleteBackup(client *versioned.Clientset, snapname, volname, ns, schedule string) error {
+// deleteBackup delete the relevant cstorBackup/cstorCompletedBackup resource and cstor snapshot for the given backup
+func deleteBackup(client *versioned.Clientset, backup, volname, ns, schedule string) error {
 	lastCompletedBackup := schedule + "-" + volname
 
-	lb, err := client.OpenebsV1alpha1().CStorCompletedBackups(ns).Get(lastCompletedBackup, v1.GetOptions{})
+	// Let's get the cstorCompletedBackup resource for the given backup
+	// CStorCompletedBackups resource stores the information about last two completed snapshots
+	lastbkp, err := client.OpenebsV1alpha1().CStorCompletedBackups(ns).Get(lastCompletedBackup, v1.GetOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
 		return errors.Wrapf(err, "failed to fetch last-completed-backup=%s resource", lastCompletedBackup)
 	}
 
-	// if given backup is the last backup of scheduled backup or
-	// completedBackup doesn't have successful backup then we will delete the completedBackup CR
-	if lb != nil && (lb.Spec.PrevSnapName == snapname || len(lb.Spec.PrevSnapName) == 0) {
+	// lastbkp stores the last(PrevSnapName) and 2nd last(SnapName) completed snapshot
+	// If given backup is the last backup of scheduled backup (lastbkp.Spec.PrevSnapName == backup) or
+	// completedBackup doesn't have successful backup(len(lastbkp.Spec.PrevSnapName) == 0) then we will delete the lastbkp CR
+	// Deleting this CR make sure that next backup of the schedule will be full backup
+	if lastbkp != nil && (lastbkp.Spec.PrevSnapName == backup || len(lastbkp.Spec.PrevSnapName) == 0) {
 		err := client.OpenebsV1alpha1().CStorCompletedBackups(ns).Delete(lastCompletedBackup, &v1.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
 			return errors.Wrapf(err, "failed to delete last-completed-backup=%s resource", lastCompletedBackup)
 		}
 	}
 
-	err = deleteSnapshot(snapname, volname, ns)
+	// Snapshot Name and backup name are same
+	err = deleteSnapshot(backup, volname, ns)
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete snapshot=%s for volume=%s", snapname, volname)
+		return errors.Wrapf(err, "failed to delete snapshot=%s for volume=%s", backup, volname)
 	}
 
-	cstorBackup := snapname + "-" + volname
+	cstorBackup := backup + "-" + volname
 	err = client.OpenebsV1alpha1().CStorBackups(ns).Delete(cstorBackup, &v1.DeleteOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
 		return errors.Wrapf(err, "failed to delete cstorbackup=%s resource", cstorBackup)
