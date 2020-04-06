@@ -28,6 +28,7 @@ import (
 	retry "github.com/openebs/maya/pkg/util/retry"
 	errors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -317,4 +318,39 @@ func buildUpgradeTask(kind, name, openebsNamespace string) *apis.UpgradeTask {
 		}
 	}
 	return utaskObj
+}
+
+func scaleDeploy(name, namespace, label string, rc int) error {
+	klog.Infof("Scaling deploy %s in %s namespace to %d", name, namespace, rc)
+	deployObj, err := deployClient.WithNamespace(namespace).Get(name)
+	if err != nil {
+		return err
+	}
+	replicas := int32(rc)
+	deployObj.Spec.Replicas = &replicas
+	_, err = deployClient.WithNamespace(namespace).Update(deployObj)
+	if err != nil {
+		return err
+	}
+	podList := &corev1.PodList{}
+	// Wait for up to 5 minutes for deployment pods to reach desired replicaCount.
+	for i := 0; i < 60; i++ {
+		podList, err := podClient.WithNamespace(namespace).List(
+			metav1.ListOptions{
+				LabelSelector: label,
+			})
+		if err != nil {
+			return err
+		}
+		if len(podList.Items) != rc {
+			time.Sleep(time.Second * 5)
+		} else {
+			break
+		}
+	}
+	// If number pods is not reached within 5 minutes return error.
+	if len(podList.Items) != rc {
+		return errors.Errorf("expected pods: %d, found: %d", rc, len(podList.Items))
+	}
+	return nil
 }
