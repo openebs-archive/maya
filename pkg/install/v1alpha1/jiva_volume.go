@@ -881,6 +881,8 @@ spec:
                     values:
                     - {{ .TaskResult.sts.applicationName }}
                 topologyKey: kubernetes.io/hostname
+                namespaces:
+                - {{ .Volume.runNamespace }}
           {{- else if ne $targetAffinityVal "none" }}
           affinity:
             podAffinity:
