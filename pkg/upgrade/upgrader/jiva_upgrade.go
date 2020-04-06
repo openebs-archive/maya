@@ -118,47 +118,43 @@ func getControllerPatchDetails(d *appsv1.Deployment) (
 	return patchDetails, nil
 }
 
+func getPatchDetailsForDeploy(pvName string, deployObj *appsv1.Deployment) (*replicaPatchDetails, error) {
+	patchDetails, err := getReplicaPatchDetails(deployObj)
+	if err != nil {
+		return nil, err
+	}
+	patchDetails.UpgradeVersion = upgradeVersion
+	patchDetails.PVName = pvName
+	return patchDetails, nil
+}
+
 func getReplica(pvName, replicaLabel, namespace, openebsNamespace string) (*replicaDetails, error) {
 	replicaObj := &replicaDetails{
 		replicas: map[string]string{},
 	}
+	var err error
 	// check if old replica is present for currentVersion < 1.9.0
 	// if present then migration is not complete and store the old
 	// replica details
 	if currentVersion < "1.9.0" {
 		deployObj, err := deployClient.WithNamespace(namespace).Get(pvName + "-rep")
+
 		if err != nil && !k8serror.IsNotFound(err) {
 			return nil, errors.Wrapf(err, "failed to get replica deployment")
 		}
 		if err == nil {
-			klog.Info("getting old deployment")
-			if deployObj.Name == "" {
-				return nil, errors.Errorf("missing deployment name for replica")
+			version, err := checkOpenEBSVersion(deployObj)
+			if err != nil {
+				return nil, err
+			}
+			replicaObj.patchDetails, err = getPatchDetailsForDeploy(pvName, deployObj)
+			if err != nil {
+				return nil, err
 			}
 			replicaObj.name = deployObj.Name
-			version, err := getOpenEBSVersion(deployObj)
-			if err != nil {
-				return nil, err
-			}
-			if (version != currentVersion) && (version != upgradeVersion) {
-				return nil, errors.Errorf(
-					"replica version %s is neither %s nor %s\n",
-					version,
-					currentVersion,
-					upgradeVersion,
-				)
-			}
 			replicaObj.version = version
-			patchDetails, err := getReplicaPatchDetails(deployObj)
-			if err != nil {
-				return nil, err
-			}
-			replicaObj.patchDetails = patchDetails
-			replicaObj.patchDetails.UpgradeVersion = upgradeVersion
-			replicaObj.patchDetails.PVName = pvName
 		}
 	}
-	//
 	replicaList, err := deployClient.WithNamespace(openebsNamespace).List(&metav1.ListOptions{
 		LabelSelector: replicaLabel,
 	})
@@ -170,27 +166,17 @@ func getReplica(pvName, replicaLabel, namespace, openebsNamespace string) (*repl
 		// be removed and not patched
 		if replica.Name != pvName+"-rep" {
 			deployObj := &replica
-			version, err := getOpenEBSVersion(deployObj)
+			version, err := checkOpenEBSVersion(deployObj)
 			if err != nil {
 				return nil, err
-			}
-			if (version != currentVersion) && (version != upgradeVersion) {
-				return nil, errors.Errorf(
-					"replica %s version %s is neither %s nor %s\n",
-					deployObj.Name,
-					version,
-					currentVersion,
-					upgradeVersion,
-				)
 			}
 			replicaObj.replicas[deployObj.Name] = version
-			patchDetails, err := getReplicaPatchDetails(deployObj)
-			if err != nil {
-				return nil, err
+			if replicaObj.patchDetails == nil {
+				replicaObj.patchDetails, err = getPatchDetailsForDeploy(pvName, deployObj)
+				if err != nil {
+					return nil, err
+				}
 			}
-			replicaObj.patchDetails = patchDetails
-			replicaObj.patchDetails.UpgradeVersion = upgradeVersion
-			replicaObj.patchDetails.PVName = pvName
 		}
 	}
 	return replicaObj, nil
@@ -229,31 +215,31 @@ func getController(controllerLabel, namespace string) (*controllerDetails, error
 }
 
 func patchReplica(name, namespace string, replicaObj *replicaDetails) error {
-	if replicaObj.replicas[name] == currentVersion {
-		tmpl, err := template.New("replicaPatch").
-			Parse(templates.JivaReplicaPatch)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create template for replica patch")
-		}
-		err = tmpl.Execute(&buffer, replicaObj.patchDetails)
-		if err != nil {
-			return errors.Wrapf(err, "failed to populate template for replica patch")
-		}
-		replicaPatch := buffer.String()
-		buffer.Reset()
-		err = patchDelpoyment(
-			name,
-			namespace,
-			types.StrategicMergePatchType,
-			[]byte(replicaPatch),
-		)
-		if err != nil {
-			return errors.Wrapf(err, "failed to patch replica deployment %s", name)
-		}
-		klog.Infof("%s patched", name)
-	} else {
+	if replicaObj.replicas[name] == upgradeVersion {
 		klog.Infof("replica deployment %s already in %s version", name, upgradeVersion)
+		return nil
 	}
+	tmpl, err := template.New("replicaPatch").
+		Parse(templates.JivaReplicaPatch)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create template for replica patch")
+	}
+	err = tmpl.Execute(&buffer, replicaObj.patchDetails)
+	if err != nil {
+		return errors.Wrapf(err, "failed to populate template for replica patch")
+	}
+	replicaPatch := buffer.String()
+	buffer.Reset()
+	err = patchDelpoyment(
+		name,
+		namespace,
+		types.StrategicMergePatchType,
+		[]byte(replicaPatch),
+	)
+	if err != nil {
+		return errors.Wrapf(err, "failed to patch replica deployment %s", name)
+	}
+	klog.Infof("%s patched", name)
 	return nil
 }
 
@@ -479,6 +465,21 @@ func (j *jivaVolumeOptions) preupgrade(pvName, openebsNamespace string) error {
 	return nil
 }
 
+func (j *jivaVolumeOptions) preReplicaUpgradeLessThan190(pvName, openebsNamespace string) (string, error) {
+	if currentVersion < "1.9.0" {
+		err := scaleDeploy(j.replicaObj.name, j.ns, replicaDeployLabel, 0)
+		if err != nil {
+			return "failed to get scale down replica deployment", err
+
+		}
+		err = j.migrateTargetSVC(pvName, openebsNamespace)
+		if err != nil {
+			return "failed to get migrate target service", err
+		}
+	}
+	return "", nil
+}
+
 func (j *jivaVolumeOptions) replicaUpgrade(pvName, openebsNamespace string) error {
 	var err, uerr error
 	statusObj := utask.UpgradeDetailedStatuses{Step: utask.ReplicaUpgrade}
@@ -487,40 +488,28 @@ func (j *jivaVolumeOptions) replicaUpgrade(pvName, openebsNamespace string) erro
 	if uerr != nil && isENVPresent {
 		return uerr
 	}
-
 	statusObj.Phase = utask.StepErrored
 
-	if currentVersion < "1.9.0" {
-		err = scaleDeploy(j.controllerObj.name, j.ns, ctrlDeployLabel, 0)
-		if err != nil {
-			statusObj.Message = "failed to get scale down target deployment"
-			statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
-			j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
-			if uerr != nil && isENVPresent {
-				return uerr
-			}
-			return err
+	err = scaleDeploy(j.controllerObj.name, j.ns, ctrlDeployLabel, 0)
+	if err != nil {
+		statusObj.Message = "failed to get scale down target deployment"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
 		}
-		err = scaleDeploy(j.replicaObj.name, j.ns, replicaDeployLabel, 0)
-		if err != nil {
-			statusObj.Message = "failed to get scale down replica deployment"
-			statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
-			j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
-			if uerr != nil && isENVPresent {
-				return uerr
-			}
-			return err
+		return err
+	}
+
+	msg, err := j.preReplicaUpgradeLessThan190(pvName, openebsNamespace)
+	if err != nil {
+		statusObj.Message = msg
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
 		}
-		err = j.migrateTargetSVC(pvName, openebsNamespace)
-		if err != nil {
-			statusObj.Message = "failed to get migrate target service"
-			statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
-			j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
-			if uerr != nil && isENVPresent {
-				return uerr
-			}
-			return err
-		}
+		return err
 	}
 
 	for name := range j.replicaObj.replicas {
@@ -559,18 +548,6 @@ func (j *jivaVolumeOptions) targetUpgrade(pvName, openebsNamespace string) error
 
 	statusObj.Phase = utask.StepErrored
 
-	if currentVersion < "1.9.0" && j.ns != openebsNamespace {
-		err = j.migrateTarget(pvName, openebsNamespace)
-		if err != nil {
-			statusObj.Message = "failed to migrate target to openebs namespace"
-			statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
-			j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
-			if uerr != nil && isENVPresent {
-				return uerr
-			}
-			return err
-		}
-	}
 	// controller patch
 	err = patchController(j.controllerObj, openebsNamespace)
 	if err != nil {
@@ -727,15 +704,45 @@ func (j *jivaVolumeOptions) cleanup(openebsNamespace string) error {
 }
 
 func (j *jivaVolumeOptions) migrate(pvName, openebsNamespace string) error {
-	err := j.migrateReplica(openebsNamespace)
-	if err != nil {
-		return err
+	var err error
+	// if old replica is missing then migration was
+	// successful till replica cleanup in previous iteration
+	if j.replicaObj.name != "" {
+		err = j.migrateReplica(openebsNamespace)
+		if err != nil {
+			return err
+		}
 	}
-	err = j.migrateTarget(pvName, openebsNamespace)
+	// if pvc deployed in openebs namespace no need
+	// to migrate the controller deployment
+	if j.ns != openebsNamespace {
+		err = j.migrateTarget(pvName, openebsNamespace)
+	}
 	return err
 }
 
+func getNodeNames(deployObj *appsv1.Deployment) (int, []string) {
+	matchExp := deployObj.Spec.Template.Spec.Affinity.NodeAffinity.
+		RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions
+	for i, exp := range matchExp {
+		if exp.Key == "kubernetes.io/hostname" {
+			return i, exp.Values
+		}
+	}
+	return -1, nil
+}
+
 func (j *jivaVolumeOptions) migrateReplica(openebsNamespace string) error {
+	// get the old replica deployment by name
+	oldDeployObj, err := deployClient.WithNamespace(j.ns).Get(j.replicaObj.name)
+	if err != nil {
+		return err
+	}
+	index, nodeNames := getNodeNames(oldDeployObj)
+	if index == -1 {
+		return errors.New("unable to find kubernetes.io/hostname key in nodeAffinity")
+	}
+	replicaCount := len(nodeNames)
 	// get the separate replica deployments in openebs namespace
 	deployList, err := deployClient.WithNamespace(openebsNamespace).List(&metav1.ListOptions{
 		LabelSelector: replicaDeployLabel,
@@ -743,112 +750,104 @@ func (j *jivaVolumeOptions) migrateReplica(openebsNamespace string) error {
 	if err != nil {
 		return err
 	}
-	// get the old replica deployment by name
-	oldDeployObj, err := deployClient.WithNamespace(j.ns).Get(j.replicaObj.name)
-	if err != nil {
-		return err
-	}
-	replicaCount := int(*oldDeployObj.Spec.Replicas)
-	replicasLeft := len(deployList.Items)
+	replicasCreated := len(deployList.Items)
 	// if the volume was deployed in openebs namespace while provisioning
 	// as the old deployment also has the same label
 	if j.ns == openebsNamespace {
-		replicasLeft = replicasLeft - 1
+		replicasCreated = replicasCreated - 1
 	}
-	if len(deployList.Items) != replicaCount {
-		klog.Infof("splitting replica deployment")
-		nodeNames := oldDeployObj.Spec.Template.Spec.Affinity.NodeAffinity.
-			RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Values
-		var zero int32
-		for i := replicasLeft; i < replicaCount; i++ {
-			replicaDeploy := oldDeployObj.DeepCopy()
-			replicaDeploy.Name = replicaDeploy.Name + "-" + strconv.Itoa(i+1)
-			replicaDeploy.Namespace = openebsNamespace
-			replicaDeploy.ResourceVersion = ""
-			replicaDeploy.Spec.Replicas = &zero
-			replicaDeploy.Spec.Template.Spec.Affinity.NodeAffinity.
-				RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Values = []string{nodeNames[i]}
-			klog.Infof("creating replica deployment %s in %s namespace", replicaDeploy.Name, openebsNamespace)
-			replicaDeploy, err := deployClient.WithNamespace(openebsNamespace).Create(replicaDeploy)
-			if err != nil {
-				return err
-			}
-			j.replicaObj.replicas[replicaDeploy.Name] = replicaDeploy.Labels["openebs.io/version"]
+
+	klog.Infof("splitting replica deployment")
+	var zero int32
+	for i := replicasCreated; i < replicaCount; i++ {
+		replicaDeploy := oldDeployObj.DeepCopy()
+		replicaDeploy.Name = replicaDeploy.Name + "-" + strconv.Itoa(i+1)
+		replicaDeploy.Namespace = openebsNamespace
+		replicaDeploy.ResourceVersion = ""
+		replicaDeploy.Spec.Replicas = &zero
+		replicaDeploy.Spec.Template.Spec.Affinity.NodeAffinity.
+			RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[index].Values = []string{nodeNames[i]}
+		klog.Infof("creating replica deployment %s in %s namespace", replicaDeploy.Name, openebsNamespace)
+		replicaDeploy, err := deployClient.WithNamespace(openebsNamespace).Create(replicaDeploy)
+		if err != nil {
+			return err
 		}
+		j.replicaObj.replicas[replicaDeploy.Name] = replicaDeploy.Labels["openebs.io/version"]
 	}
+
 	return nil
 }
 
 func (j *jivaVolumeOptions) migrateTarget(pvName, openebsNamespace string) error {
 	// get the controller deployment in openebs namespace
+	// controllerObj.name cannot be nil as after successful upgrade
+	// controller is removed and no deploy or svc is present in pvc namespace
+	// so controllerObj will be in openebs namespace
 	deployObj, err := deployClient.WithNamespace(openebsNamespace).Get(j.controllerObj.name)
+	if err == nil {
+		klog.Info("controller deployment already migrated to openebs namespace")
+		return nil
+	}
 	if err != nil && !k8serror.IsNotFound(err) {
 		return err
 	}
 	// if the deployment is not found in openebs namespace migrate it
-	if k8serror.IsNotFound(err) {
-		var zero int32
-		deployObj, err = deployClient.WithNamespace(j.ns).Get(j.controllerObj.name)
-		if err != nil {
-			return err
-		}
-		deployObj.Namespace = openebsNamespace
-		deployObj.ResourceVersion = ""
-		deployObj.Spec.Replicas = &zero
-		// if target-affinity is set for the pvc them openebs namespace
-		// needs to be added as a bug fix.
-		if deployObj.Spec.Template.Spec.Affinity != nil {
-			if deployObj.Spec.Template.Spec.Affinity.PodAffinity.
-				RequiredDuringSchedulingIgnoredDuringExecution[0].LabelSelector.
-				MatchExpressions[0].Key == "openebs.io/target-affinity" {
-				deployObj.Spec.Template.Spec.Affinity.PodAffinity.
-					RequiredDuringSchedulingIgnoredDuringExecution[0].
-					Namespaces = []string{j.ns}
-			}
-		}
 
-		klog.Infof("creating controller deployment %s in %s namespace", deployObj.Name, openebsNamespace)
-		deployObj, err = deployClient.WithNamespace(openebsNamespace).Create(deployObj)
-		if err != nil {
-			return err
-		}
+	var zero int32
+	deployObj, err = deployClient.WithNamespace(j.ns).Get(j.controllerObj.name)
+	if err != nil {
+		return err
 	}
-	return nil
+	deployObj.Namespace = openebsNamespace
+	deployObj.ResourceVersion = ""
+	deployObj.Spec.Replicas = &zero
+	// if target-affinity is set for the pvc them openebs namespace
+	// needs to be added as a bug fix.
+	if deployObj.Spec.Template.Spec.Affinity != nil {
+		deployObj.Spec.Template.Spec.Affinity.PodAffinity.
+			RequiredDuringSchedulingIgnoredDuringExecution[0].
+			Namespaces = []string{j.ns}
+	}
+
+	klog.Infof("creating controller deployment %s in %s namespace", deployObj.Name, openebsNamespace)
+	_, err = deployClient.WithNamespace(openebsNamespace).Create(deployObj)
+	return err
 }
 
 func (j *jivaVolumeOptions) migrateTargetSVC(pvName, openebsNamespace string) error {
 	// migrate service only if service not in openebs namespace
-	if j.ns != openebsNamespace {
-		// get the original service and if present remove it
-		svcObj, err := serviceClient.WithNamespace(j.ns).
-			Get(j.controllerObj.name+"-svc", metav1.GetOptions{})
-		if err != nil && !k8serror.IsNotFound(err) {
+	if j.ns == openebsNamespace {
+		return nil
+	}
+	// get the original service and if present remove it
+	svcObj, err := serviceClient.WithNamespace(j.ns).
+		Get(j.controllerObj.name+"-svc", metav1.GetOptions{})
+	if err != nil && !k8serror.IsNotFound(err) {
+		return err
+	}
+	if err == nil {
+		klog.Infof("removing controller service %s in %s namespace", svcObj.Name, j.ns)
+		err = serviceClient.WithNamespace(j.ns).Delete(svcObj.Name, &metav1.DeleteOptions{})
+		if err != nil {
 			return err
 		}
-		if err == nil {
-			klog.Infof("removing controller service %s in %s namespace", svcObj.Name, j.ns)
-			err = serviceClient.WithNamespace(j.ns).Delete(svcObj.Name, &metav1.DeleteOptions{})
-			if err != nil {
-				return err
-			}
-		}
-		// get the controller service in openebs namespace
-		_, err = serviceClient.WithNamespace(openebsNamespace).
-			Get(j.controllerObj.name+"-svc", metav1.GetOptions{})
-		if err != nil && !k8serror.IsNotFound(err) {
+	}
+	// get the controller service in openebs namespace
+	_, err = serviceClient.WithNamespace(openebsNamespace).
+		Get(j.controllerObj.name+"-svc", metav1.GetOptions{})
+	if err != nil && !k8serror.IsNotFound(err) {
+		return err
+	}
+	// if the service is not found in openebs namespace create it
+	if k8serror.IsNotFound(err) {
+		svcObj, err := getTargetSVC(pvName, openebsNamespace)
+		if err != nil {
 			return err
 		}
-		// if the service is not found in openebs namespace create it
-		if k8serror.IsNotFound(err) {
-			svcObj, err := getTargetSVC(pvName, openebsNamespace)
-			if err != nil {
-				return err
-			}
-			klog.Infof("creating controller service %s in %s namespace", svcObj.Name, openebsNamespace)
-			svcObj, err = serviceClient.WithNamespace(openebsNamespace).Create(svcObj)
-			if err != nil {
-				return err
-			}
+		klog.Infof("creating controller service %s in %s namespace", svcObj.Name, openebsNamespace)
+		svcObj, err = serviceClient.WithNamespace(openebsNamespace).Create(svcObj)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
