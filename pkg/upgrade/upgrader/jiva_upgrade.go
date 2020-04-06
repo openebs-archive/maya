@@ -118,7 +118,7 @@ func getControllerPatchDetails(d *appsv1.Deployment) (
 	return patchDetails, nil
 }
 
-func getPatchDetailsForDeploy(pvName string, deployObj *appsv1.Deployment) (*replicaPatchDetails, error) {
+func getPatchDetailsForReplicaDeploy(pvName string, deployObj *appsv1.Deployment) (*replicaPatchDetails, error) {
 	patchDetails, err := getReplicaPatchDetails(deployObj)
 	if err != nil {
 		return nil, err
@@ -128,7 +128,24 @@ func getPatchDetailsForDeploy(pvName string, deployObj *appsv1.Deployment) (*rep
 	return patchDetails, nil
 }
 
-func getReplica(pvName, replicaLabel, namespace, openebsNamespace string) (*replicaDetails, error) {
+func validateReplicaDeployVersion(d *appsv1.Deployment) (string, error) {
+	version, err := getOpenEBSVersion(d)
+	if err != nil {
+		return "", err
+	}
+	if (version != currentVersion) && (version != upgradeVersion) {
+		return "", errors.Errorf(
+			"replica %s version %s is neither %s nor %s\n",
+			d.Name,
+			version,
+			currentVersion,
+			upgradeVersion,
+		)
+	}
+	return version, nil
+}
+
+func getReplica(pvName, replicaLabel, volumeNamespace, openebsNamespace string) (*replicaDetails, error) {
 	replicaObj := &replicaDetails{
 		replicas: map[string]string{},
 	}
@@ -136,18 +153,21 @@ func getReplica(pvName, replicaLabel, namespace, openebsNamespace string) (*repl
 	// check if old replica is present for currentVersion < 1.9.0
 	// if present then migration is not complete and store the old
 	// replica details
+	// replicaObj.name and replicaObj.version would be empty if old replica got
+	// deleted as part of upgrade.
+	// So, later on code uses replicaObj.name to perform replica related migration.
 	if currentVersion < "1.9.0" {
-		deployObj, err := deployClient.WithNamespace(namespace).Get(pvName + "-rep")
+		deployObj, err := deployClient.WithNamespace(volumeNamespace).Get(pvName + "-rep")
 
 		if err != nil && !k8serror.IsNotFound(err) {
 			return nil, errors.Wrapf(err, "failed to get replica deployment")
 		}
 		if err == nil {
-			version, err := checkOpenEBSVersion(deployObj)
+			version, err := validateReplicaDeployVersion(deployObj)
 			if err != nil {
 				return nil, err
 			}
-			replicaObj.patchDetails, err = getPatchDetailsForDeploy(pvName, deployObj)
+			replicaObj.patchDetails, err = getPatchDetailsForReplicaDeploy(pvName, deployObj)
 			if err != nil {
 				return nil, err
 			}
@@ -166,13 +186,14 @@ func getReplica(pvName, replicaLabel, namespace, openebsNamespace string) (*repl
 		// be removed and not patched
 		if replica.Name != pvName+"-rep" {
 			deployObj := &replica
-			version, err := checkOpenEBSVersion(deployObj)
+			version, err := validateReplicaDeployVersion(deployObj)
 			if err != nil {
 				return nil, err
 			}
+			//
 			replicaObj.replicas[deployObj.Name] = version
 			if replicaObj.patchDetails == nil {
-				replicaObj.patchDetails, err = getPatchDetailsForDeploy(pvName, deployObj)
+				replicaObj.patchDetails, err = getPatchDetailsForReplicaDeploy(pvName, deployObj)
 				if err != nil {
 					return nil, err
 				}
@@ -465,8 +486,14 @@ func (j *jivaVolumeOptions) preupgrade(pvName, openebsNamespace string) error {
 	return nil
 }
 
+// preReplicaUpgradeLessThan190 scales down old replica deployment
+// and migrates the target service to openebs namespace
+// before bringing up the new separate deployments
 func (j *jivaVolumeOptions) preReplicaUpgradeLessThan190(pvName, openebsNamespace string) (string, error) {
-	if currentVersion < "1.9.0" {
+	// if the upgrade is successful till replica cleanup and restarts
+	// after that old replica will be missing and if replica cleanup
+	// was done then service was also migrated successfully
+	if currentVersion < "1.9.0" && j.replicaObj.name != "" {
 		err := scaleDeploy(j.replicaObj.name, j.ns, replicaDeployLabel, 0)
 		if err != nil {
 			return "failed to get scale down replica deployment", err
@@ -490,6 +517,8 @@ func (j *jivaVolumeOptions) replicaUpgrade(pvName, openebsNamespace string) erro
 	}
 	statusObj.Phase = utask.StepErrored
 
+	// Scaling down controller ensures no I/O occurs
+	// which make volume to come in RW mode early
 	err = scaleDeploy(j.controllerObj.name, j.ns, ctrlDeployLabel, 0)
 	if err != nil {
 		statusObj.Message = "failed to get scale down target deployment"
@@ -694,7 +723,7 @@ func (j *jivaVolumeOptions) cleanup(openebsNamespace string) error {
 		}
 	}
 	if j.controllerObj.version == currentVersion && j.ns != openebsNamespace {
-		klog.Info("cleaning old replica deployment")
+		klog.Info("cleaning old controller deployment")
 		err = deployClient.WithNamespace(j.ns).Delete(j.controllerObj.name, &metav1.DeleteOptions{})
 		if err != nil {
 			return err
@@ -757,6 +786,9 @@ func (j *jivaVolumeOptions) migrateReplica(openebsNamespace string) error {
 		replicasCreated = replicasCreated - 1
 	}
 
+	// replica deployment pv-name-rep will be split into multiple replicas like
+	// pv-name-rep-1, pv-name-rep-2,... pv-name-rep-n,
+	// where n is the replica count for this volume.
 	klog.Infof("splitting replica deployment")
 	var zero int32
 	for i := replicasCreated; i < replicaCount; i++ {
@@ -864,7 +896,7 @@ func getTargetSVC(pvName, openebsNamespace string) (*corev1.Service, error) {
 		Name: pvName + "-ctrl-svc",
 		Annotations: map[string]string{
 			"openebs.io/storage-class-ref": `|
-          name: ` + storageClass,
+          	   name: ` + storageClass,
 		},
 		Labels: map[string]string{
 			"openebs.io/storage-engine-type":     "jiva",

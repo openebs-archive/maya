@@ -60,23 +60,6 @@ func getOpenEBSVersion(d *appsv1.Deployment) (string, error) {
 	return d.Labels["openebs.io/version"], nil
 }
 
-func checkOpenEBSVersion(d *appsv1.Deployment) (string, error) {
-	version, err := getOpenEBSVersion(d)
-	if err != nil {
-		return "", err
-	}
-	if (version != currentVersion) && (version != upgradeVersion) {
-		return "", errors.Errorf(
-			"replica %s version %s is neither %s nor %s\n",
-			d.Name,
-			version,
-			currentVersion,
-			upgradeVersion,
-		)
-	}
-	return version, nil
-}
-
 func patchDelpoyment(
 	deployName,
 	namespace string,
