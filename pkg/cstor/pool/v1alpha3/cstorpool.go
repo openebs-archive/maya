@@ -68,6 +68,16 @@ func (l predicateList) all(c *CSP) bool {
 	return true
 }
 
+// IsNotDeleted returns true if deletion
+// timestamp was nil(which means
+// object is not deleted) else return false
+// i.e CSP is deleted
+func IsNotDeleted() Predicate {
+	return func(c *CSP) bool {
+		return c.Object.DeletionTimestamp.IsZero()
+	}
+}
+
 // IsNotUID returns true if provided csp
 // instance's UID does not match with any
 // of the provided UIDs
