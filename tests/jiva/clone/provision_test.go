@@ -77,7 +77,7 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 
 			By("verifying controller pod count")
 			controllerPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				openebsNamespace,
 				jiva.CtrlLabel,
 				1,
 			)
@@ -88,7 +88,7 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 
 			By("verifying replica pod count")
 			replicaPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				openebsNamespace,
 				jiva.ReplicaLabel,
 				jiva.ReplicaCount,
 			)
@@ -219,7 +219,7 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 
 			By("verifying clone pod count")
 			clonePodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				openebsNamespace,
 				cloneLable,
 				jiva.ReplicaCount+1,
 			)
@@ -369,7 +369,7 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 			Expect(clonePodCount).To(Equal(0), "while checking clone pvc pod count")
 
 			By("verifying deleted clone pvc")
-			pvc := ops.IsPVCDeleted(cloneName)
+			pvc := ops.IsPVCDeletedEventually(cloneName)
 			Expect(pvc).To(Equal(true), "while trying to get deleted pvc")
 
 		})
@@ -409,7 +409,7 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 
 			By("verifying controller pod count as 0")
 			controllerPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				openebsNamespace,
 				jiva.CtrlLabel,
 				0,
 			)
@@ -417,7 +417,7 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 
 			By("verifying replica pod count as 0")
 			replicaPodCount := ops.GetPodRunningCountEventually(
-				namespaceObj.Name,
+				openebsNamespace,
 				jiva.ReplicaLabel,
 				0,
 			)
