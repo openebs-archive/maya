@@ -344,10 +344,10 @@ func (b *Builder) WithBlockDevicePoolName(bdPoolName string) *Builder {
 	}
 
 	if b.BDC.Object.Spec.Selector == nil {
-		newmatchlabels := map[string]string{}
-		b.BDC.Object.Spec.Selector = &metav1.LabelSelector{
-			MatchLabels: newmatchlabels,
-		}
+		b.BDC.Object.Spec.Selector = &metav1.LabelSelector{}
+	}
+	if b.BDC.Object.Spec.Selector.MatchLabels == nil {
+		b.BDC.Object.Spec.Selector.MatchLabels = map[string]string{}
 	}
 
 	b.BDC.Object.Spec.Selector.MatchLabels[bdPoolKey] = bdPoolName
