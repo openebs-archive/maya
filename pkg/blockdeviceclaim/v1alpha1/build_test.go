@@ -206,24 +206,24 @@ func TestBuildWithCapacity(t *testing.T) {
 	}
 }
 
-func TestBuilderWithBlockDevicePoolName(t *testing.T) {
+func TestBuilderWithBlockDeviceTag(t *testing.T) {
 	tests := map[string]struct {
-		name      string
+		tag       string
 		expectErr bool
 	}{
-		"Test Builder with pool name": {
-			name:      "test",
+		"Test Builder with tag": {
+			tag:       "test",
 			expectErr: false,
 		},
-		"Test Builder without pool name": {
-			name:      "",
+		"Test Builder without tag": {
+			tag:       "",
 			expectErr: true,
 		},
 	}
 	for name, mock := range tests {
 		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
-			b := NewBuilder().WithBlockDevicePoolName(mock.name)
+			b := NewBuilder().WithBlockDeviceTag(mock.tag)
 			if mock.expectErr && len(b.errs) == 0 {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -238,14 +238,14 @@ func TestBuild(t *testing.T) {
 	tests := map[string]struct {
 		name        string
 		capacity    string
-		poolName    string
+		tagValue    string
 		expectedBDC *apis.BlockDeviceClaim
 		expectedErr bool
 	}{
 		"BDC with correct details": {
 			name:     "BDC1",
 			capacity: "10Ti",
-			poolName: "",
+			tagValue: "",
 			expectedBDC: &apis.BlockDeviceClaim{
 				ObjectMeta: metav1.ObjectMeta{Name: "BDC1"},
 				Spec: apis.DeviceClaimSpec{
@@ -261,7 +261,7 @@ func TestBuild(t *testing.T) {
 		"BDC with correct details, including device pool": {
 			name:     "BDC1",
 			capacity: "10Ti",
-			poolName: "test",
+			tagValue: "test",
 			expectedBDC: &apis.BlockDeviceClaim{
 				ObjectMeta: metav1.ObjectMeta{Name: "BDC1"},
 				Spec: apis.DeviceClaimSpec{
@@ -272,7 +272,7 @@ func TestBuild(t *testing.T) {
 					},
 					Selector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{
-							bdPoolKey: "test",
+							bdTagKey: "test",
 						},
 					},
 				},
@@ -282,7 +282,7 @@ func TestBuild(t *testing.T) {
 		"BDC with error": {
 			name:        "",
 			capacity:    "500Gi",
-			poolName:    "test",
+			tagValue:    "test",
 			expectedBDC: nil,
 			expectedErr: true,
 		},
@@ -294,8 +294,8 @@ func TestBuild(t *testing.T) {
 				WithName(mock.name).
 				WithCapacity(mock.capacity)
 
-			if len(mock.poolName) > 0 {
-				bdcObjBuilder.WithBlockDevicePoolName(mock.poolName)
+			if len(mock.tagValue) > 0 {
+				bdcObjBuilder.WithBlockDeviceTag(mock.tagValue)
 			}
 
 			bdcObj, err := bdcObjBuilder.Build()

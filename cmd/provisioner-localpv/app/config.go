@@ -46,35 +46,37 @@ const (
 	// and can be configured via the StorageClass annotations.
 	KeyPVFSType = "FSType"
 
-	//KeyBDPoolName defines the value for the Block Device Pool
+	//KeyBDTag defines the value for the Block Device Tag
 	//label selector configured via the StorageClass annotations.
-	//User can group block devices across nodes to form a block
-	//device pool, by setting the label on block devices as:
-	//  openebs.io/block-device-pool=<pool-name>
+	//User can group block devices across nodes by setting the
+	//label on block devices as:
+	//  openebs.io/block-device-tag=<tag-value>
 	//
-	//The <pool-name> used above can be passsed to the
+	//The <tag-value> used above can be passsed to the
 	//Local PV device provisioner via the StorageClass
-	//CAS annotations.
+	//CAS annotations, to specify that Local PV (device)
+	//should only make use of those block devices that
+	//tagged with the given <tag-value>.
 	//
 	//Example: Local PV device StorageClass for picking devices
-	//labeled as: openebs.io/block-device-pool=pool-x
+	//labeled as: openebs.io/block-device-tag=tag-x
 	//will be as follows
 	//
 	// kind: StorageClass
 	// metadata:
-	//   name: openebs-device-pool-x
+	//   name: openebs-device-tag-x
 	//   annotations:
 	//     openebs.io/cas-type: local
 	//     cas.openebs.io/config: |
 	//       - name: StorageType
 	//         value: "device"
-	//       - name: BlockDevicePoolName
-	//         value: "pool-x"
+	//       - name: BlockDeviceTag
+	//         value: "tag-x"
 	// provisioner: openebs.io/local
 	// volumeBindingMode: WaitForFirstConsumer
 	// reclaimPolicy: Delete
 	//
-	KeyBDPoolName = "BlockDevicePoolName"
+	KeyBDTag = "BlockDeviceTag"
 
 	//KeyPVRelativePath defines the alternate folder name under the BasePath
 	// By default, the pv name will be used as the folder name.
@@ -172,18 +174,18 @@ func (c *VolumeConfig) GetFSType() string {
 	return fsType
 }
 
-//GetBDPoolName returns the block device pool label
+//GetBDTagValue returns the block device tag
 //value configured in StorageClass.
 //
-//Default is "", no device pool will be set and all
-//the available block devices can be used for creating
-//Local PV.
-func (c *VolumeConfig) GetBDPoolName() string {
-	bdPoolName := c.getValue(KeyBDPoolName)
-	if len(strings.TrimSpace(bdPoolName)) == 0 {
+//Default is "", no device tag will be set and any
+//available block device (without labelled with tag)
+//can be used for creating Local PV(device).
+func (c *VolumeConfig) GetBDTagValue() string {
+	bdTagValue := c.getValue(KeyBDTag)
+	if len(strings.TrimSpace(bdTagValue)) == 0 {
 		return ""
 	}
-	return bdPoolName
+	return bdTagValue
 }
 
 //GetPath returns a valid PV path based on the configuration
