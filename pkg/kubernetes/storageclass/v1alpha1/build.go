@@ -113,6 +113,8 @@ func (b *Builder) Build() (*storagev1.StorageClass, error) {
 // references the PeristentVolumeClaim.  The volume provisioning and
 // binding will occur during Pod scheduing.
 func (b *Builder) WithVolumeBindingMode(bindingMode storagev1.VolumeBindingMode) *Builder {
-	b.sc.object.VolumeBindingMode = &bindingMode
+	if bindingMode != "" {
+		b.sc.object.VolumeBindingMode = &bindingMode
+	}
 	return b
 }
