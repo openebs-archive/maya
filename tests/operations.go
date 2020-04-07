@@ -717,7 +717,7 @@ func (ops *Operations) DeleteCSP(spcName string, deleteCount int) {
 	cspList := csp.
 		ListBuilderForAPIObject(cspAPIList).
 		List().
-		Filter(csp.HasLabel(string(apis.StoragePoolClaimCPK), spcName), csp.IsStatus("Healthy"))
+		Filter(csp.HasLabel(string(apis.StoragePoolClaimCPK), spcName), csp.IsStatus("Healthy"), csp.IsNotDeleted())
 	cspCount := cspList.Len()
 	Expect(deleteCount).Should(BeNumerically("<=", cspCount))
 
@@ -783,7 +783,7 @@ func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) 
 		cspCount = csp.
 			ListBuilderForAPIObject(cspAPIList).
 			List().
-			Filter(csp.HasLabel(string(apis.StoragePoolClaimCPK), spcName), csp.IsStatus("Healthy")).
+			Filter(csp.HasLabel(string(apis.StoragePoolClaimCPK), spcName), csp.IsStatus("Healthy"), csp.IsNotDeleted()).
 			Len()
 		if cspCount == expectedCSPCount {
 			return cspCount
