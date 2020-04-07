@@ -49,11 +49,14 @@ func NewUpgradeCStorVolumeJob() *cobra.Command {
 		Long:    cstorVolumeUpgradeCmdHelpText,
 		Example: `upgrade cstor-volume --pv-name <pv-name>`,
 		Run: func(cmd *cobra.Command, args []string) {
+			util.CheckErr(options.RunCStorVolumeUpgradeChecks(cmd, args), util.Fatal)
 			options.resourceKind = "cstorVolume"
-			util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
-			util.CheckErr(options.RunCStorVolumeUpgradeChecks(cmd), util.Fatal)
-			util.CheckErr(options.InitializeDefaults(cmd), util.Fatal)
-			util.CheckErr(options.RunCStorVolumeUpgrade(cmd), util.Fatal)
+			if options.cstorVolume.pvName != "" {
+				singleCstorVolumeUpgrade(cmd)
+			}
+			if len(args) != 0 {
+				bulkCstorVolumeUpgrade(cmd, args)
+			}
 		},
 	}
 
@@ -65,10 +68,24 @@ func NewUpgradeCStorVolumeJob() *cobra.Command {
 	return cmd
 }
 
+func singleCstorVolumeUpgrade(cmd *cobra.Command) {
+	util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
+	util.CheckErr(options.InitializeDefaults(cmd), util.Fatal)
+	util.CheckErr(options.RunCStorVolumeUpgrade(cmd), util.Fatal)
+}
+
+func bulkCstorVolumeUpgrade(cmd *cobra.Command, args []string) {
+	for _, name := range args {
+		options.cstorVolume.pvName = name
+		singleCstorVolumeUpgrade(cmd)
+	}
+}
+
 // RunCStorVolumeUpgradeChecks will ensure the sanity of the cstor upgrade options
-func (u *UpgradeOptions) RunCStorVolumeUpgradeChecks(cmd *cobra.Command) error {
-	if len(strings.TrimSpace(u.cstorVolume.pvName)) == 0 {
-		return errors.Errorf("Cannot execute upgrade job: cstor pv name is missing")
+func (u *UpgradeOptions) RunCStorVolumeUpgradeChecks(cmd *cobra.Command, args []string) error {
+	if len(strings.TrimSpace(u.cstorVolume.pvName)) == 0 && len(args) == 0 {
+		return errors.Errorf("Cannot execute upgrade job:" +
+			" neither pv-name flag is set nor pv name list is provided")
 	}
 
 	return nil
@@ -76,10 +93,13 @@ func (u *UpgradeOptions) RunCStorVolumeUpgradeChecks(cmd *cobra.Command) error {
 
 // RunCStorVolumeUpgrade upgrades the given CStor Volume.
 func (u *UpgradeOptions) RunCStorVolumeUpgrade(cmd *cobra.Command) error {
+	klog.V(4).Infof("Started upgrading %s{%s} from %s to %s",
+		u.resourceKind,
+		u.cstorVolume.pvName,
+		u.fromVersion,
+		u.toVersion)
 
 	if apis.IsCurrentVersionValid(u.fromVersion) && apis.IsDesiredVersionValid(u.toVersion) {
-
-		klog.Infof("Upgrading to %s", u.toVersion)
 		err := upgrader.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
 			u.cstorVolume.pvName,

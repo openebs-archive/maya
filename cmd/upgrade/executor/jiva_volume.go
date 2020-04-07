@@ -49,11 +49,14 @@ func NewUpgradeJivaVolumeJob() *cobra.Command {
 		Long:    jivaVolumeUpgradeCmdHelpText,
 		Example: `upgrade jiva-volume --pv-name <pv-name>`,
 		Run: func(cmd *cobra.Command, args []string) {
+			util.CheckErr(options.RunJivaVolumeUpgradeChecks(cmd, args), util.Fatal)
 			options.resourceKind = "jivaVolume"
-			util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
-			util.CheckErr(options.RunJivaVolumeUpgradeChecks(cmd), util.Fatal)
-			util.CheckErr(options.InitializeDefaults(cmd), util.Fatal)
-			util.CheckErr(options.RunJivaVolumeUpgrade(cmd), util.Fatal)
+			if options.jivaVolume.pvName != "" {
+				singleJivaUpgrade(cmd)
+			}
+			if len(args) != 0 {
+				bulkJivaUpgrade(cmd, args)
+			}
 		},
 	}
 
@@ -65,10 +68,24 @@ func NewUpgradeJivaVolumeJob() *cobra.Command {
 	return cmd
 }
 
+func singleJivaUpgrade(cmd *cobra.Command) {
+	util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
+	util.CheckErr(options.InitializeDefaults(cmd), util.Fatal)
+	util.CheckErr(options.RunJivaVolumeUpgrade(cmd), util.Fatal)
+}
+
+func bulkJivaUpgrade(cmd *cobra.Command, args []string) {
+	for _, name := range args {
+		options.jivaVolume.pvName = name
+		singleJivaUpgrade(cmd)
+	}
+}
+
 // RunJivaVolumeUpgradeChecks will ensure the sanity of the jiva upgrade options
-func (u *UpgradeOptions) RunJivaVolumeUpgradeChecks(cmd *cobra.Command) error {
-	if len(strings.TrimSpace(u.jivaVolume.pvName)) == 0 {
-		return errors.Errorf("Cannot execute upgrade job: jiva pv name is missing")
+func (u *UpgradeOptions) RunJivaVolumeUpgradeChecks(cmd *cobra.Command, args []string) error {
+	if len(strings.TrimSpace(u.jivaVolume.pvName)) == 0 && len(args) == 0 {
+		return errors.Errorf("Cannot execute upgrade job:" +
+			" neither pv-name flag is set nor pv name list is provided")
 	}
 
 	return nil
