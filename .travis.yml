@@ -1,5 +1,7 @@
 sudo: required
+
 dist: xenial
+
 env:
   global:
     - CHANGE_MINIKUBE_NONE_USER=true
@@ -8,9 +10,19 @@ env:
     - MINIKUBE_HOME=$HOME
     - CHANGE_MINIKUBE_NONE_USER=true
     - KUBECONFIG=$HOME/.kube/config
+
+jobs:
+  include:
+    - os: linux
+      arch: amd64
+      env:
+        - RELEASE_TAG_DOWNSTREAM=1
+
 services:
   - docker
+
 language: go
+
 cache:
   directories:
     - $HOME/.cache/go-build
@@ -26,9 +38,11 @@ before_install:
   - sudo apt-get update -qq
   - sudo apt-get install --yes -qq gcc
   - sudo apt-get install --yes -qq libudev-dev
+
 install:
   - make bootstrap
   - make format
+
 before_script:
   # Download kubectl, which is a requirement for using minikube.
   - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
@@ -46,6 +60,7 @@ before_script:
   #- chmod 700 get_helm.sh
   #- ./get_helm.sh
   #- helm init
+
 script:
   - kubectl cluster-info
    # Verify kube-addon-manager.
@@ -54,14 +69,25 @@ script:
   - kubectl get deployment
   - ./buildscripts/travis-build.sh
   - ./ci/travis-ci.sh
-after_success:
   - make deploy-images
+  # If this build is running due to travis release tag, and
+  # this job indicates to push the release downstream, then
+  # go ahead and tag the dependent repo.
+  - if [ ! -z $TRAVIS_TAG ] && [ $RELEASE_TAG_DOWNSTREAM = 1 ] && [ "$TRAVIS_REPO_SLUG" == "openebs/maya" ]; then
+      ./buildscripts/git-release "openebs/velero-plugin" "$TRAVIS_TAG" "$TRAVIS_BRANCH" || travis_terminate 1;
+      ./buildscripts/git-release "openebs/cstor-csi" "$TRAVIS_TAG" "$TRAVIS_BRANCH" || travis_terminate 1;
+      ./buildscripts/git-release "openebs/jiva-operator" "$TRAVIS_TAG" "$TRAVIS_BRANCH" || travis_terminate 1;
+    fi
+
+after_success:
   - bash <(curl -s https://codecov.io/bash)
+
 notifications:
   email:
     recipients:
-    - kiran.mova@cloudbyte.com
+    - kiran.mova@mayadata.io
     - shubham.bajpai@mayadata.io
+
 deploy:
   provider: releases
   api_key:
