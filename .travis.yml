@@ -73,10 +73,16 @@ script:
   # If this build is running due to travis release tag, and
   # this job indicates to push the release downstream, then
   # go ahead and tag the dependent repo.
+  #
+  # $TRAVIS_BRANCH contains the same value as $TRAVIS_TAG.
+  # Example: 1.9.0-RC1 tag and 1.9.0-RC1 branch. 
+  # OpenEBS release are done from branches named as v1.9.x. 
+  # Convert the TRAVIS_TAG to the corresponding release branch.
   - if [ ! -z $TRAVIS_TAG ] && [ $RELEASE_TAG_DOWNSTREAM = 1 ] && [ "$TRAVIS_REPO_SLUG" == "openebs/maya" ]; then
-      ./buildscripts/git-release "openebs/velero-plugin" "$TRAVIS_TAG" "$TRAVIS_BRANCH" || travis_terminate 1;
-      ./buildscripts/git-release "openebs/cstor-csi" "$TRAVIS_TAG" "$TRAVIS_BRANCH" || travis_terminate 1;
-      ./buildscripts/git-release "openebs/jiva-operator" "$TRAVIS_TAG" "$TRAVIS_BRANCH" || travis_terminate 1;
+      REL_BRANCH=$(echo v$(echo "$TRAVIS_TAG" | cut -d'-' -f1 | rev | cut -d'.' -f2- | rev).x) ;
+      ./buildscripts/git-release "openebs/velero-plugin" "$TRAVIS_TAG" "$REL_BRANCH" || travis_terminate 1;
+      ./buildscripts/git-release "openebs/cstor-csi" "$TRAVIS_TAG" "$REL_BRANCH" || travis_terminate 1;
+      ./buildscripts/git-release "openebs/jiva-operator" "$TRAVIS_TAG" "$REL_BRANCH" || travis_terminate 1;
     fi
 
 after_success:
