@@ -35,10 +35,13 @@ type CStorSPCOptions struct {
 
 var (
 	cstorSPCUpgradeCmdHelpText = `
-This command upgrades the cStor SPC
-
-Usage: upgrade cstor-spc --spc-name <spc-name> --options...
+This command upgrades one or many cStor SPC
 `
+	cstorSPCUpgradeCmdExampleText = `  # Upgrade one spc at a time
+  upgrade cstor-spc --spc-name <spc-name> --options...
+
+  # Upgrade multiple spc at a time
+  upgrade cstor-spc <spc-name>... --options...`
 )
 
 // NewUpgradeCStorSPCJob upgrades all the cStor Pools associated with
@@ -48,13 +51,16 @@ func NewUpgradeCStorSPCJob() *cobra.Command {
 		Use:     "cstor-spc",
 		Short:   "Upgrade cStor SPC",
 		Long:    cstorSPCUpgradeCmdHelpText,
-		Example: `upgrade cstor-spc --spc-name <spc-name>`,
+		Example: cstorSPCUpgradeCmdExampleText,
 		Run: func(cmd *cobra.Command, args []string) {
+			util.CheckErr(options.RunCStorSPCUpgradeChecks(args), util.Fatal)
 			options.resourceKind = "storagePoolClaim"
-			util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
-			util.CheckErr(options.RunCStorSPCUpgradeChecks(cmd), util.Fatal)
-			util.CheckErr(options.InitializeDefaults(cmd), util.Fatal)
-			util.CheckErr(options.RunCStorSPCUpgrade(cmd), util.Fatal)
+			if options.cstorSPC.spcName != "" {
+				singleCStorSPCUpgrade(cmd)
+			}
+			if len(args) != 0 {
+				bulkCStorSPCUpgrade(cmd, args)
+			}
 		},
 	}
 
@@ -66,10 +72,24 @@ func NewUpgradeCStorSPCJob() *cobra.Command {
 	return cmd
 }
 
+func singleCStorSPCUpgrade(cmd *cobra.Command) {
+	util.CheckErr(options.RunPreFlightChecks(cmd), util.Fatal)
+	util.CheckErr(options.InitializeDefaults(cmd), util.Fatal)
+	util.CheckErr(options.RunCStorSPCUpgrade(cmd), util.Fatal)
+}
+
+func bulkCStorSPCUpgrade(cmd *cobra.Command, args []string) {
+	for _, name := range args {
+		options.cstorSPC.spcName = name
+		singleCStorSPCUpgrade(cmd)
+	}
+}
+
 // RunCStorSPCUpgradeChecks will ensure the sanity of the cstor SPC upgrade options
-func (u *UpgradeOptions) RunCStorSPCUpgradeChecks(cmd *cobra.Command) error {
-	if len(strings.TrimSpace(u.cstorSPC.spcName)) == 0 {
-		return errors.Errorf("Cannot execute upgrade job: cstor spc name is missing")
+func (u *UpgradeOptions) RunCStorSPCUpgradeChecks(args []string) error {
+	if len(strings.TrimSpace(u.cstorSPC.spcName)) == 0 && len(args) == 0 {
+		return errors.Errorf("Cannot execute upgrade job:" +
+			" neither spc-name flag is set nor spc name list is provided")
 	}
 
 	return nil
@@ -77,9 +97,13 @@ func (u *UpgradeOptions) RunCStorSPCUpgradeChecks(cmd *cobra.Command) error {
 
 // RunCStorSPCUpgrade upgrades the given Jiva Volume.
 func (u *UpgradeOptions) RunCStorSPCUpgrade(cmd *cobra.Command) error {
+	klog.V(4).Infof("Started upgrading %s{%s} from %s to %s",
+		u.resourceKind,
+		u.cstorSPC.spcName,
+		u.fromVersion,
+		u.toVersion)
 
 	if apis.IsCurrentVersionValid(u.fromVersion) && apis.IsDesiredVersionValid(u.toVersion) {
-		klog.Infof("Upgrading to %s", u.toVersion)
 		err := upgrader.Exec(u.fromVersion, u.toVersion,
 			u.resourceKind,
 			u.cstorSPC.spcName,
@@ -93,5 +117,10 @@ func (u *UpgradeOptions) RunCStorSPCUpgrade(cmd *cobra.Command) error {
 	} else {
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)
 	}
+	klog.V(4).Infof("Successfully upgraded %s{%s} from %s to %s",
+		u.resourceKind,
+		u.cstorSPC.spcName,
+		u.fromVersion,
+		u.toVersion)
 	return nil
 }
