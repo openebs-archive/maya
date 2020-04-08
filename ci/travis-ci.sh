@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -e
+
 #./ci/helm_install_openebs.sh
 # global env vars to be used in test scripts
 export CI_BRANCH="master"

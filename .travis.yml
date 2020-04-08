@@ -17,6 +17,10 @@ jobs:
       arch: amd64
       env:
         - RELEASE_TAG_DOWNSTREAM=1
+    - os: linux
+      arch: arm64
+      env:
+        - RELEASE_TAG_DOWNSTREAM=0
 
 services:
   - docker
@@ -44,39 +48,43 @@ install:
   - make format
 
 before_script:
+  # Install build/test dependencies for each platform
   # Download kubectl, which is a requirement for using minikube.
-  - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
   # Download minikube.
-  - curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.35.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
-  - mkdir -p $HOME/.kube $HOME/.minikube
-  - touch $KUBECONFIG
-  - sudo minikube start --vm-driver=none --kubernetes-version=v1.13.0
-  - "sudo chown -R travis: /home/travis/.minikube/"
   # Wait for Kubernetes to be up and ready.
-  - JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
-  # Download and initialize helm.
-  #- ./ci/ubuntu-compile-nsenter.sh && sudo cp .tmp/util-linux-2.30.2/nsenter /usr/bin
-  #- curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > get_helm.sh
-  #- chmod 700 get_helm.sh
-  #- ./get_helm.sh
-  #- helm init
-
+  - if [ "$TRAVIS_CPU_ARCH" == "amd64" ]; then
+      curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/;
+      curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.35.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/;
+      mkdir -p $HOME/.kube $HOME/.minikube;
+      touch $KUBECONFIG;
+      sudo minikube start --vm-driver=none --kubernetes-version=v1.13.0;
+      sudo chown -R travis /home/travis/.minikube/;
+      JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done;
+    fi
+  # install zip package for arm64
+  - if [ "$TRAVIS_CPU_ARCH" == "arm64" ]; then
+      sudo apt-get install --yes zip;
+    fi
 script:
-  - kubectl cluster-info
-   # Verify kube-addon-manager.
-   # kube-addon-manager is responsible for managing other kubernetes components, such as kube-dns, dashboard, storage-provisioner..
-  - JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n kube-system get pods -lcomponent=kube-addon-manager -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1;echo "waiting for kube-addon-manager to be available"; kubectl get pods --all-namespaces; done
-  - kubectl get deployment
+  # Verify kube-addon-manager.
+  # kube-addon-manager is responsible for managing other kubernetes components, such as kube-dns, dashboard, storage-provisioner.
+  - if [ "$TRAVIS_CPU_ARCH" == "amd64" ]; then
+      kubectl cluster-info;
+      JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n kube-system get pods -lcomponent=kube-addon-manager -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1;echo "waiting for kube-addon-manager to be available"; kubectl get pods --all-namespaces; done;
+      kubectl get deployment;
+    fi
   - ./buildscripts/travis-build.sh
-  - ./ci/travis-ci.sh
+  - if [ "$TRAVIS_CPU_ARCH" == "amd64" ]; then
+      ./ci/travis-ci.sh;
+    fi
   - make deploy-images
   # If this build is running due to travis release tag, and
   # this job indicates to push the release downstream, then
   # go ahead and tag the dependent repo.
   #
   # $TRAVIS_BRANCH contains the same value as $TRAVIS_TAG.
-  # Example: 1.9.0-RC1 tag and 1.9.0-RC1 branch. 
-  # OpenEBS release are done from branches named as v1.9.x. 
+  # Example: 1.9.0-RC1 tag and 1.9.0-RC1 branch.
+  # OpenEBS release are done from branches named as v1.9.x.
   # Convert the TRAVIS_TAG to the corresponding release branch.
   - if [ ! -z $TRAVIS_TAG ] && [ $RELEASE_TAG_DOWNSTREAM = 1 ] && [ "$TRAVIS_REPO_SLUG" == "openebs/maya" ]; then
       REL_BRANCH=$(echo v$(echo "$TRAVIS_TAG" | cut -d'-' -f1 | rev | cut -d'.' -f2- | rev).x) ;
