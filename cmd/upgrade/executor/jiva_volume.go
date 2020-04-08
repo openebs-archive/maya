@@ -35,10 +35,13 @@ type JivaVolumeOptions struct {
 
 var (
 	jivaVolumeUpgradeCmdHelpText = `
-This command upgrades the Jiva Persistent Volume
-
-Usage: upgrade jiva-volume --volname <pv-name> --options...
+This command upgrades one or many Jiva Persistent Volume
 `
+	jivaVolumeUpgradeCmdExampleText = `  # Upgrade one volume at a time
+  upgrade jiva-volume --pv-name <pv-name> --options...
+
+  # Upgrade multiple volumes at a time
+  upgrade jiva-volume <pv-name>... --options...`
 )
 
 // NewUpgradeJivaVolumeJob upgrade a Jiva Volume
@@ -47,9 +50,9 @@ func NewUpgradeJivaVolumeJob() *cobra.Command {
 		Use:     "jiva-volume",
 		Short:   "Upgrade Jiva Volume",
 		Long:    jivaVolumeUpgradeCmdHelpText,
-		Example: `upgrade jiva-volume --pv-name <pv-name>`,
+		Example: jivaVolumeUpgradeCmdExampleText,
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(options.RunJivaVolumeUpgradeChecks(cmd, args), util.Fatal)
+			util.CheckErr(options.RunJivaVolumeUpgradeChecks(args), util.Fatal)
 			options.resourceKind = "jivaVolume"
 			if options.jivaVolume.pvName != "" {
 				singleJivaUpgrade(cmd)
@@ -82,7 +85,7 @@ func bulkJivaUpgrade(cmd *cobra.Command, args []string) {
 }
 
 // RunJivaVolumeUpgradeChecks will ensure the sanity of the jiva upgrade options
-func (u *UpgradeOptions) RunJivaVolumeUpgradeChecks(cmd *cobra.Command, args []string) error {
+func (u *UpgradeOptions) RunJivaVolumeUpgradeChecks(args []string) error {
 	if len(strings.TrimSpace(u.jivaVolume.pvName)) == 0 && len(args) == 0 {
 		return errors.Errorf("Cannot execute upgrade job:" +
 			" neither pv-name flag is set nor pv name list is provided")
@@ -117,6 +120,10 @@ func (u *UpgradeOptions) RunJivaVolumeUpgrade(cmd *cobra.Command) error {
 	} else {
 		return errors.Errorf("Invalid from version %s or to version %s", u.fromVersion, u.toVersion)
 	}
-	klog.Infof("Upgraded successfully")
+	klog.V(4).Infof("Successfully upgraded %s{%s} from %s to %s",
+		u.resourceKind,
+		u.jivaVolume.pvName,
+		u.fromVersion,
+		u.toVersion)
 	return nil
 }
