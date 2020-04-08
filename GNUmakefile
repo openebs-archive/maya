@@ -69,13 +69,6 @@ GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 # docker hub username
 HUB_USER?=openebs
 
-# Repository name
-# format of docker image name is <hub-user>/<repo-name>[:<tag>].
-# so final name will be ${HUB_USER}/${*_REPO_NAME}:${IMAGE_TAG}
-ADMISSION_SERVER_REPO_NAME?=admission-server
-M_UPGRADE_REPO_NAME?=m-upgrade
-CSPC_OPERATOR_REPO_NAME?=cspc-operator
-
 ifeq (${IMAGE_TAG}, )
   IMAGE_TAG = ci
   export IMAGE_TAG
@@ -110,12 +103,6 @@ ifeq (${BASE_DOCKER_IMAGE_PPC64LE}, )
   export BASE_DOCKER_IMAGE_PPC64LE
 endif
 
-
-# Specify the name for the binaries
-WEBHOOK=admission-server
-CSPC_OPERATOR=cspc-operator
-CSPC_OPERATOR_DEBUG=cspc-operator-debug
-
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
@@ -123,12 +110,14 @@ include ./buildscripts/mayactl/Makefile.mk
 include ./buildscripts/apiserver/Makefile.mk
 include ./buildscripts/provisioner-localpv/Makefile.mk
 include ./buildscripts/upgrade/Makefile.mk
-include ./buildscripts/upgrade-082090/Makefile.mk
 include ./buildscripts/exporter/Makefile.mk
 include ./buildscripts/cstor-pool-mgmt/Makefile.mk
 include ./buildscripts/cstor-volume-mgmt/Makefile.mk
 include ./buildscripts/cspi-mgmt/Makefile.mk
 include ./buildscripts/cvc-operator/Makefile.mk
+include ./buildscripts/admission-server/Makefile.mk
+include ./buildscripts/cspc-operator/Makefile.mk
+include ./buildscripts/cspc-operator-debug/Makefile.mk
 
 .PHONY: all
 all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image \
@@ -136,9 +125,9 @@ all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-im
 	   cvc-operator-image cspi-mgmt-image upgrade-image provisioner-localpv-image
 
 .PHONY: all.arm64
-all.arm64: apiserver-image.arm64 provisioner-localpv-image.arm64 exporter-image.arm64 \
-	         pool-mgmt-image.arm64 volume-mgmt-image.arm64 cspi-mgmt-image.arm64 \
-           cvc-operator-image-arm64
+all.arm64: apiserver-image.arm64 exporter-image.arm64 pool-mgmt-image.arm64 volume-mgmt-image.arm64 \
+           admission-server-image.arm64 cspc-operator-image.arm64 upgrade-image.arm64 \
+           cvc-operator-image.arm64 cspi-mgmt-image.arm64 provisioner-localpv-image.arm64
 
 .PHONY: initialize
 initialize: bootstrap
@@ -308,49 +297,7 @@ informer2:
 install: bin/maya/${MAYACTL}
 	install -o root -g root -m 0755 ./bin/maya/${MAYACTL} /usr/local/bin/${MAYACTL}
 
-.PHONY: admission-server-image
-admission-server-image:
-	@echo "----------------------------"
-	@echo -n "--> admission-server image "
-	@echo "${HUB_USER}/${ADMISSION_SERVER_REPO_NAME}:${IMAGE_TAG}"
-	@echo "----------------------------"
-	@PNAME=${WEBHOOK} CTLNAME=${WEBHOOK} sh -c "'$(PWD)/buildscripts/build.sh'"
-	@cp bin/${WEBHOOK}/${WEBHOOK} buildscripts/admission-server/
-	@cd buildscripts/${WEBHOOK} && sudo docker build -t ${HUB_USER}/${ADMISSION_SERVER_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
-	@rm buildscripts/${WEBHOOK}/${WEBHOOK}
-
-.PHONY: cspc-operator-image
-cspc-operator-image:
-	@echo "----------------------------"
-	@echo -n "--> cspc-operator image "
-	@echo "${HUB_USER}/${CSPC_OPERATOR_REPO_NAME}:${IMAGE_TAG}"
-	@echo "----------------------------"
-	@PNAME=${CSPC_OPERATOR} CTLNAME=${CSPC_OPERATOR} sh -c "'$(PWD)/buildscripts/build.sh'"
-	@cp bin/${CSPC_OPERATOR}/${CSPC_OPERATOR} buildscripts/cspc-operator/
-	@cd buildscripts/${CSPC_OPERATOR} && sudo docker build -t ${HUB_USER}/${CSPC_OPERATOR_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
-	@rm buildscripts/${CSPC_OPERATOR}/${CSPC_OPERATOR}
-
-.PHONY: cspc-operator-debug-image
-cspc-operator-debug-image:
-	@echo "----------------------------"
-	@echo -n "--> cspc-operator image "
-	@echo "${HUB_USER}/${CSPC_OPERATOR_REPO_NAME}:${IMAGE_TAG}"
-	@echo "----------------------------"
-	@PNAME=${CSPC_OPERATOR_DEBUG} CTLNAME=${CSPC_OPERATOR} BUILD_TAG="-tags=debug" sh -c "'$(PWD)/buildscripts/build.sh'"
-	@cp bin/${CSPC_OPERATOR_DEBUG}/${CSPC_OPERATOR} buildscripts/cspc-operator-debug/
-	@cd buildscripts/${CSPC_OPERATOR_DEBUG} && sudo docker build -t ${HUB_USER}/${CSPC_OPERATOR_REPO_NAME}:inject --build-arg BUILD_DATE=${BUILD_DATE} .
-	@rm buildscripts/${CSPC_OPERATOR_DEBUG}/${CSPC_OPERATOR}
-
 # Push images
 .PHONY: deploy-images
 deploy-images:
-	@DIMAGE="openebs/m-apiserver" ./buildscripts/push
-	@DIMAGE="openebs/m-exporter" ./buildscripts/push
-	@DIMAGE="openebs/cstor-pool-mgmt" ./buildscripts/push
-	@DIMAGE="openebs/cspi-mgmt" ./buildscripts/push
-	@DIMAGE="openebs/cstor-volume-mgmt" ./buildscripts/push
-	@DIMAGE="openebs/admission-server" ./buildscripts/push
-	@DIMAGE="openebs/cspc-operator" ./buildscripts/push
-	@DIMAGE="${HUB_USER}/${M_UPGRADE_REPO_NAME}" ./buildscripts/push
-	@DIMAGE="openebs/provisioner-localpv" ./buildscripts/push
-	@DIMAGE="openebs/cvc-operator" ./buildscripts/push
+	@./buildscripts/deploy.sh
