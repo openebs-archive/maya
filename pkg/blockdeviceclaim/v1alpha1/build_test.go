@@ -206,16 +206,46 @@ func TestBuildWithCapacity(t *testing.T) {
 	}
 }
 
+func TestBuilderWithBlockDeviceTag(t *testing.T) {
+	tests := map[string]struct {
+		tag       string
+		expectErr bool
+	}{
+		"Test Builder with tag": {
+			tag:       "test",
+			expectErr: false,
+		},
+		"Test Builder without tag": {
+			tag:       "",
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := NewBuilder().WithBlockDeviceTag(mock.tag)
+			if mock.expectErr && len(b.errs) == 0 {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && len(b.errs) > 0 {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
 func TestBuild(t *testing.T) {
 	tests := map[string]struct {
 		name        string
 		capacity    string
+		tagValue    string
 		expectedBDC *apis.BlockDeviceClaim
 		expectedErr bool
 	}{
 		"BDC with correct details": {
 			name:     "BDC1",
 			capacity: "10Ti",
+			tagValue: "",
 			expectedBDC: &apis.BlockDeviceClaim{
 				ObjectMeta: metav1.ObjectMeta{Name: "BDC1"},
 				Spec: apis.DeviceClaimSpec{
@@ -228,9 +258,31 @@ func TestBuild(t *testing.T) {
 			},
 			expectedErr: false,
 		},
+		"BDC with correct details, including device pool": {
+			name:     "BDC1",
+			capacity: "10Ti",
+			tagValue: "test",
+			expectedBDC: &apis.BlockDeviceClaim{
+				ObjectMeta: metav1.ObjectMeta{Name: "BDC1"},
+				Spec: apis.DeviceClaimSpec{
+					Resources: apis.DeviceClaimResources{
+						Requests: corev1.ResourceList{
+							corev1.ResourceName(ndm.ResourceStorage): fakeCapacity("10Ti"),
+						},
+					},
+					Selector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							bdTagKey: "test",
+						},
+					},
+				},
+			},
+			expectedErr: false,
+		},
 		"BDC with error": {
 			name:        "",
 			capacity:    "500Gi",
+			tagValue:    "test",
 			expectedBDC: nil,
 			expectedErr: true,
 		},
@@ -238,7 +290,16 @@ func TestBuild(t *testing.T) {
 	for name, mock := range tests {
 		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
-			bdcObj, err := NewBuilder().WithName(mock.name).WithCapacity(mock.capacity).Build()
+			bdcObjBuilder := NewBuilder().
+				WithName(mock.name).
+				WithCapacity(mock.capacity)
+
+			if len(mock.tagValue) > 0 {
+				bdcObjBuilder.WithBlockDeviceTag(mock.tagValue)
+			}
+
+			bdcObj, err := bdcObjBuilder.Build()
+
 			if mock.expectedErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}

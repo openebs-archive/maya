@@ -31,8 +31,13 @@ const (
 
 	// StoragePoolKindCSPC holds the value of CStorPoolCluster
 	StoragePoolKindCSPC = "CStorPoolCluster"
+
 	// APIVersion holds the value of OpenEBS version
 	APIVersion = "openebs.io/v1alpha1"
+
+	// bdTagKey defines the label selector key
+	// used for grouping block devices using a tag.
+	bdTagKey = "openebs.io/block-device-tag"
 )
 
 // Builder is the builder object for BlockDeviceClaim
@@ -321,5 +326,30 @@ func (b *Builder) WithBlockVolumeMode(mode corev1.PersistentVolumeMode) *Builder
 		b.BDC.Object.Spec.Details.BlockVolumeMode = ndm.VolumeModeBlock
 	}
 
+	return b
+}
+
+// WithBlockDeviceTag appends (or creates) the BDC Label Selector
+// by setting the provided value to the fixed key
+// openebs.io/block-device-tag
+// This will enable the NDM to pick only devices that
+// match the node (hostname) and block device tag value.
+func (b *Builder) WithBlockDeviceTag(bdTagValue string) *Builder {
+	if len(bdTagValue) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: missing block device tag value"),
+		)
+		return b
+	}
+
+	if b.BDC.Object.Spec.Selector == nil {
+		b.BDC.Object.Spec.Selector = &metav1.LabelSelector{}
+	}
+	if b.BDC.Object.Spec.Selector.MatchLabels == nil {
+		b.BDC.Object.Spec.Selector.MatchLabels = map[string]string{}
+	}
+
+	b.BDC.Object.Spec.Selector.MatchLabels[bdTagKey] = bdTagValue
 	return b
 }

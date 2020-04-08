@@ -16,6 +16,7 @@ package localpv
 import (
 	"flag"
 
+	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -45,7 +46,7 @@ func TestSource(t *testing.T) {
 }
 
 func init() {
-	flag.StringVar(&kubeConfigPath, "kubeconfig", "", "path to kubeconfig to invoke kubernetes API calls")
+	flag.StringVar(&kubeConfigPath, "kubeconfig", os.Getenv("KUBECONFIG"), "path to kubeconfig to invoke kubernetes API calls")
 }
 
 var ops *tests.Operations
