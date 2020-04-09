@@ -3,7 +3,7 @@
 # maya api server's releases.
 #
 
-FROM alpine:3.6
+FROM alpine:3.10.3
 
 # TODO: The following env variables should be auto detected.
 ENV MAYA_API_SERVER_NETWORK="eth0"

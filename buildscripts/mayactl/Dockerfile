@@ -2,7 +2,7 @@
 # This Dockerfile builds a recent maya container with latest code
 #
 
-FROM alpine:3.6
+FROM alpine:3.10.3
 
 RUN apk --no-cache add libc6-compat
 
