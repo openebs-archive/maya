@@ -517,6 +517,21 @@ func (j *jivaVolumeOptions) replicaUpgrade(pvName, openebsNamespace string) erro
 	}
 	statusObj.Phase = utask.StepErrored
 
+	// Continue with replica upgrade only if the controller is not upgraded
+	// otherwise return from here itself,
+	// as controller is always upgarded after replicas are successfully upgraded.
+	if j.controllerObj.version == upgradeVersion {
+		klog.Infof("replicas already in %s version", upgradeVersion)
+		statusObj.Phase = utask.StepCompleted
+		statusObj.Message = "Replica upgrade was successful"
+		statusObj.Reason = ""
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
+		return nil
+	}
+
 	// Scaling down controller ensures no I/O occurs
 	// which make volume to come in RW mode early
 	err = scaleDeploy(j.controllerObj.name, j.ns, ctrlDeployLabel, 0)
