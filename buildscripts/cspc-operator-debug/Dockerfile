@@ -2,7 +2,7 @@
 # This Dockerfile builds a recent cspc-operator using the latest binary from
 # cspc-operator  releases.
 #
-FROM alpine:3.6
+FROM alpine:3.11.5
 
 RUN apk add --no-cache \
     iproute2 \
