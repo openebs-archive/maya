@@ -3,7 +3,7 @@
 # its latest binary
 #
 
-FROM alpine:3.10.3
+FROM alpine:3.11.5
 
 # copy the latest binary
 COPY openebs-cluster /usr/local/bin/
