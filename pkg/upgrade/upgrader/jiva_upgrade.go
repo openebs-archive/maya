@@ -517,20 +517,32 @@ func (j *jivaVolumeOptions) replicaUpgrade(pvName, openebsNamespace string) erro
 	}
 	statusObj.Phase = utask.StepErrored
 
-	// Scale down controller deployment only if the controller is not upgraded.
-	if j.controllerObj.version == currentVersion {
-		// Scaling down controller ensures no I/O occurs
-		// which make volume to come in RW mode early
-		err = scaleDeploy(j.controllerObj.name, j.ns, ctrlDeployLabel, 0)
-		if err != nil {
-			statusObj.Message = "failed to get scale down target deployment"
-			statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
-			j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
-			if uerr != nil && isENVPresent {
-				return uerr
-			}
-			return err
+	// Continue with replica upgrade only if the controller is not upgraded
+	// otherwise return from here itself,
+	// as controller is always upgarded after replicas are successfully upgraded.
+	if j.controllerObj.version == upgradeVersion {
+		klog.Infof("replicas already in %s version", upgradeVersion)
+		statusObj.Phase = utask.StepCompleted
+		statusObj.Message = "Replica upgrade was successful"
+		statusObj.Reason = ""
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
 		}
+		return nil
+	}
+
+	// Scaling down controller ensures no I/O occurs
+	// which make volume to come in RW mode early
+	err = scaleDeploy(j.controllerObj.name, j.ns, ctrlDeployLabel, 0)
+	if err != nil {
+		statusObj.Message = "failed to get scale down target deployment"
+		statusObj.Reason = strings.Replace(err.Error(), ":", "", -1)
+		j.utaskObj, uerr = updateUpgradeDetailedStatus(j.utaskObj, statusObj, openebsNamespace)
+		if uerr != nil && isENVPresent {
+			return uerr
+		}
+		return err
 	}
 
 	msg, err := j.preReplicaUpgradeLessThan190(pvName, openebsNamespace)
