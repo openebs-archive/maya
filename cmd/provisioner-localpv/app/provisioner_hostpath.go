@@ -135,7 +135,7 @@ func (p *Provisioner) GetNodeObjectFromHostName(hostName string) (*v1.Node, erro
 	}
 	nodeList, err := p.kubeClient.CoreV1().Nodes().List(listOptions)
 	if err != nil || nodeList.Items == nil || len(nodeList.Items) == 0 {
-		// After the PV is created and node affinity is set 
+		// After the PV is created and node affinity is set
 		// based on kubernetes.io/hostname label, either:
 		// - hostname label changed on the node or
 		// - the node is deleted from the cluster.
