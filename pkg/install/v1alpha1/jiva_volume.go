@@ -263,6 +263,8 @@ spec:
   # should be cleared or retained.
   - name: RetainReplicaData
     enabled: "false"
+  - name: ReplicaTolerations
+    value: "none"
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -1310,6 +1312,8 @@ spec:
       - {{ $v | quote }}
       {{- end }}
   task: |
+    {{- $hasReplicaToleration := .Config.ReplicaTolerations.value | default "none" -}}
+    {{- $replicaTolerationVal := fromYaml .Config.ReplicaTolerations.value -}}
     kind: Job
     apiVersion: batch/v1
     metadata:
@@ -1344,6 +1348,15 @@ spec:
             volumeMounts:
             - mountPath: /mnt/replica
               name: replica-path
+          tolerations:
+          {{- if ne $hasReplicaToleration "none" }}
+          {{- range $k, $v := $replicaTolerationVal }}
+          -
+          {{- range $kk, $vv := $v }}
+            {{ $kk }}: {{ $vv }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
   post: |
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | addTo "jivavolumedelreplicascrub.objectName" .TaskResult | noop -}}
 ---
