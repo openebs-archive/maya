@@ -1,4 +1,4 @@
-v1.9.0 / 2020-15-07
+v1.9.0 / 2020-04-15
 ========================
 
  * fix(jiva): add tolerations to jiva cleanup jobs([#1667](https://github.com/openebs/maya/pull/1667),
@@ -60,7 +60,7 @@ v1.9.0 / 2020-15-07
  * fix(apiserver,volume) Removing PVC dependency from volume creation path ([#1570](https://github.com/openebs/maya/pull/1570),
  [@mynktl](https://github.com/mynktl))
 
-v1.9.0-RC2 / 2020-12-07
+v1.9.0-RC2 / 2020-04-12
 ========================
 
  * fix(jiva): add tolerations to jiva cleanup jobs([#1667](https://github.com/openebs/maya/pull/1667),
@@ -75,7 +75,7 @@ v1.9.0-RC2 / 2020-12-07
  [@akhilerm](https://github.com/akhilerm))
 
 
-v1.9.0-RC1 / 2020-05-07
+v1.9.0-RC1 / 2020-04-07
 ========================
 
  * chore(build): trigger downstream repo release ([#1657](https://github.com/openebs/maya/pull/1657),
