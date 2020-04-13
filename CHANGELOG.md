@@ -19,7 +19,7 @@ v1.9.0 / 2020-04-15
  [@Pensu](https://github.com/Pensu))
  * feat(upgrade): split jiva replicas and migrate jiva resources to openebs ([#1646](https://github.com/openebs/maya/pull/1646),
  [@shubham14bajpai](https://github.com/shubham14bajpai))
- * feat(cstorBackup, delete): support for snapshot deletion ([#1644](https://github.com/openebs/maya/pull/1644),
+ * feat(cstorBackup, delete): support for snapshot deletion, created by velero-plugin ([#1644](https://github.com/openebs/maya/pull/1644),
  [@mynktl](https://github.com/mynktl))
  * fix(jiva): add namespace for stateful set target affinity([#1651](https://github.com/openebs/maya/pull/1651),
  [@shubham14bajpai](https://github.com/shubham14bajpai))
@@ -33,7 +33,7 @@ v1.9.0 / 2020-04-15
  [@shubham14bajpai](https://github.com/shubham14bajpai))
  * feat(snapList): add snapshots information on CVR ([#1639](https://github.com/openebs/maya/pull/1639),
  [@mittachaitu](https://github.com/mittachaitu))
- * feat(local-snapshot-restore, velero) : support to restore local snapshot to different namespace using velero ([#1575](https://github.com/openebs/maya/pull/1575),
+ * feat(local-snapshot-restore, velero) : support to restore CStor snapshot to different namespace using velero ([#1575](https://github.com/openebs/maya/pull/1575),
  [@mynktl](https://github.com/mynktl))
  * refact(log): remove cstor prefix from localPV log and alert messages ([#1638](https://github.com/openebs/maya/pull/1638),
  [@akhilerm](https://github.com/akhilerm))
@@ -41,10 +41,6 @@ v1.9.0 / 2020-04-15
  [@mittachaitu](https://github.com/mittachaitu))
  * fix(csp): add pool protection finalizer on CSP ([#1635](https://github.com/openebs/maya/pull/1635),
  [@mittachaitu](https://github.com/mittachaitu))
- * fix(restore,pvc): handling of pvc's annotation for existing velero-plugin's restore ([#1631](https://github.com/openebs/maya/pull/1631),
- [@mynktl](https://github.com/mynktl))
- * fix(apiserver,volume) Removing PVC dependency from volume creation path ([#1570](https://github.com/openebs/maya/pull/1570),
- [@mynktl](https://github.com/mynktl))
 
 v1.9.0-RC2 / 2020-04-12
 ========================
