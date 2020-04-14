@@ -21,12 +21,8 @@ v1.9.0 / 2020-04-15
  [@shubham14bajpai](https://github.com/shubham14bajpai))
  * feat(cstorBackup, delete): support for snapshot deletion, created by velero-plugin ([#1644](https://github.com/openebs/maya/pull/1644),
  [@mynktl](https://github.com/mynktl))
- * fix(jiva): add namespace for stateful set target affinity([#1651](https://github.com/openebs/maya/pull/1651),
- [@shubham14bajpai](https://github.com/shubham14bajpai))
  * feat(BDD): add positive test cases for verifying waitforfirstconsumer With CStor Volume Provisioning ([#1643](https://github.com/openebs/maya/pull/1643),
  [@mittachaitu](https://github.com/mittachaitu))
- * fix(jiva): add namespace to podAffinity for target([#1645](https://github.com/openebs/maya/pull/1645),
- [@shubham14bajpai](https://github.com/shubham14bajpai))
  * feat(estimate_rebuilds): add pending snapshots on CVR by talking to peer replicas ([#1641](https://github.com/openebs/maya/pull/1641),
  [@mittachaitu](https://github.com/mittachaitu))
  * refact(jiva): create separate replica deployments and move all resources to openebsNamespace ([#1636](https://github.com/openebs/maya/pull/1636),
@@ -70,12 +66,8 @@ v1.9.0-RC1 / 2020-04-07
  [@shubham14bajpai](https://github.com/shubham14bajpai))
  * feat(cstorBackup, delete): support for snapshot deletion, created by velero-plugin ([#1644](https://github.com/openebs/maya/pull/1644),
  [@mynktl](https://github.com/mynktl))
- * fix(jiva): add namespace for stateful set target affinity([#1651](https://github.com/openebs/maya/pull/1651),
- [@shubham14bajpai](https://github.com/shubham14bajpai))
  * feat(BDD): add positive test cases for verifying waitforfirstconsumer With CStor Volume Provisioning ([#1643](https://github.com/openebs/maya/pull/1643),
  [@mittachaitu](https://github.com/mittachaitu))
- * fix(jiva): add namespace to podAffinity for target([#1645](https://github.com/openebs/maya/pull/1645),
- [@shubham14bajpai](https://github.com/shubham14bajpai))
  * chore(BDD): checks to verify pool protectionfinalizer ([#1640](https://github.com/openebs/maya/pull/1640),
  [@mittachaitu](https://github.com/mittachaitu))
  * feat(estimate_rebuilds): add pending snapshots on CVR by talking to peer replicas ([#1641](https://github.com/openebs/maya/pull/1641),
