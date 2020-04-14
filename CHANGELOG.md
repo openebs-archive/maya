@@ -23,11 +23,11 @@ v1.9.0 / 2020-04-14
  [@mynktl](https://github.com/mynktl))
  * feat(BDD): add positive test cases for verifying waitforfirstconsumer With CStor Volume Provisioning ([#1643](https://github.com/openebs/maya/pull/1643),
  [@mittachaitu](https://github.com/mittachaitu))
- * feat(estimate_rebuilds): add pending snapshots on CVR by talking to peer replicas ([#1641](https://github.com/openebs/maya/pull/1641),
+ * feat(estimate_rebuilds): add pending snapshots in CVR Status by talking to peer replicas ([#1641](https://github.com/openebs/maya/pull/1641),
  [@mittachaitu](https://github.com/mittachaitu))
  * refact(jiva): create separate replica deployments and move all resources to openebsNamespace ([#1636](https://github.com/openebs/maya/pull/1636),
  [@shubham14bajpai](https://github.com/shubham14bajpai))
- * feat(snapList): add snapshots information on CVR ([#1639](https://github.com/openebs/maya/pull/1639),
+ * feat(snapList): add snapshots information in CVR Status ([#1639](https://github.com/openebs/maya/pull/1639),
  [@mittachaitu](https://github.com/mittachaitu))
  * feat(local-snapshot-restore, velero) : support to restore CStor snapshot to different namespace using velero ([#1575](https://github.com/openebs/maya/pull/1575),
  [@mynktl](https://github.com/mynktl))
