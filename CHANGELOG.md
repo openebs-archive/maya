@@ -1,4 +1,4 @@
-v1.9.0 / 2020-04-15
+v1.9.0 / 2020-04-14
 ========================
 
  * fix(jiva): add tolerations to jiva cleanup jobs([#1667](https://github.com/openebs/maya/pull/1667),
@@ -82,8 +82,6 @@ v1.9.0-RC1 / 2020-04-07
  [@akhilerm](https://github.com/akhilerm))
  * fix(provisioning): support to provision volumes in case of WaitForFirstConsumer ([#1637](https://github.com/openebs/maya/pull/1637),
  [@mittachaitu](https://github.com/mittachaitu))
- [@mynktl](https://github.com/mynktl))
- [@mynktl](https://github.com/mynktl))
 
 
 v1.8.0 / 2020-03-14
