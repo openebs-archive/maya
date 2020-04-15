@@ -30,7 +30,7 @@ import (
 	"k8s.io/klog"
 
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
-	snapclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1alpha1/clientset/internalclientset"
+	snapclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1/clientset/internalclientset"
 )
 
 var (

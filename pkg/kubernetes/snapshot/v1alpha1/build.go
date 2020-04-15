@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1alpha1"
+	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
 	errors "github.com/pkg/errors"
 )
 
