@@ -18,10 +18,14 @@ import (
 	"encoding/json"
 	"testing"
 
+	snapshotapi "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
+	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
+	snapFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1/clientset/internalclientset/fake"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	k8sclientset "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestAdmissionRequired(t *testing.T) {
@@ -138,5 +142,198 @@ func TestValidatePVCCreateRequest(t *testing.T) {
 		if resp.Allowed != test.expectedResponse {
 			t.Errorf("validate request failed got: '%v' expected: '%v'", resp.Allowed, test.expectedResponse)
 		}
+	}
+}
+
+func TestValidatePVCDeleteRequest(t *testing.T) {
+	wh := &webhook{}
+	wh.clientset = openebsFakeClientset.NewSimpleClientset()
+	wh.snapClientSet = snapFakeClientset.NewSimpleClientset()
+	wh.kubeClient = k8sclientset.NewSimpleClientset()
+	tests := map[string]struct {
+		pvc                   *corev1.PersistentVolumeClaim
+		snapshot              *snapshotapi.VolumeSnapshot
+		snapshotData          *snapshotapi.VolumeSnapshotData
+		isRequiresPVCCreation bool
+		expectedResponse      bool
+	}{
+		"When PVC was bound and doesn't have any dependents": {
+			pvc: &corev1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "PVC1",
+					Namespace: "test",
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					VolumeName: "PV1",
+				},
+				Status: corev1.PersistentVolumeClaimStatus{
+					Phase: corev1.ClaimBound,
+				},
+			},
+			isRequiresPVCCreation: true,
+			expectedResponse:      true,
+		},
+		"When PVC was not bound and doesn't have any dependents": {
+			pvc: &corev1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "PVC2",
+					Namespace: "test",
+				},
+			},
+			isRequiresPVCCreation: true,
+			expectedResponse:      true,
+		},
+		"When PVC was tried to delete when dependent snapshots exists": {
+			pvc: &corev1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "PVC3",
+					Namespace: "test",
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					VolumeName: "PV1",
+				},
+			},
+			snapshot: &snapshotapi.VolumeSnapshot{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "Snap1",
+					Namespace: "test",
+					Labels:    map[string]string{snapshotMetadataPVName: "PV1"},
+				},
+			},
+			isRequiresPVCCreation: true,
+			expectedResponse:      false,
+		},
+		"When PVC was tried to delete when dependent snapshotdata exists": {
+			pvc: &corev1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "PVC4",
+					Namespace: "test",
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					VolumeName: "PV1",
+				},
+			},
+			snapshotData: &snapshotapi.VolumeSnapshotData{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "SnapData1",
+				},
+				Spec: snapshotapi.VolumeSnapshotDataSpec{
+					PersistentVolumeRef: &corev1.ObjectReference{
+						Name: "PV1",
+					},
+				},
+			},
+			isRequiresPVCCreation: true,
+			expectedResponse:      false,
+		},
+		"When non existing PVC tried to delete": {
+			pvc: &corev1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "PVC5",
+					Namespace: "test",
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					VolumeName: "PV1",
+				},
+			},
+			isRequiresPVCCreation: false,
+			expectedResponse:      false,
+		},
+		"When PVC was tried to delete when there are no dependent snapshots exists": {
+			pvc: &corev1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "PVC6",
+					Namespace: "test",
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					VolumeName: "PV1",
+				},
+			},
+			snapshot: &snapshotapi.VolumeSnapshot{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "Snap1",
+					Namespace: "test",
+					Labels:    map[string]string{snapshotMetadataPVName: "PV2"},
+				},
+			},
+			isRequiresPVCCreation: true,
+			expectedResponse:      true,
+		},
+		"When PVC was tried to delete when there are no dependent snapshotdatas exists": {
+			pvc: &corev1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "PVC7",
+					Namespace: "test",
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					VolumeName: "PV1",
+				},
+			},
+			snapshotData: &snapshotapi.VolumeSnapshotData{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "SnapData1",
+				},
+				Spec: snapshotapi.VolumeSnapshotDataSpec{
+					PersistentVolumeRef: &corev1.ObjectReference{
+						Name: "PV2",
+					},
+				},
+			},
+			isRequiresPVCCreation: true,
+			expectedResponse:      true,
+		},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			request := &v1beta1.AdmissionRequest{
+				Operation: v1beta1.Delete,
+				Kind: metav1.GroupVersionKind{
+					Group:   "",
+					Version: "v1",
+					Kind:    "PersistentVolumeClaim",
+				},
+				Name:      test.pvc.Name,
+				Namespace: test.pvc.Namespace,
+			}
+			if test.pvc != nil && test.isRequiresPVCCreation {
+				_, err := wh.kubeClient.CoreV1().PersistentVolumeClaims(test.pvc.Namespace).Create(test.pvc)
+				if err != nil {
+					t.Fatalf("%q test failed to create fake PVC %s in namespace %s err: %v", name, test.pvc.Name, test.pvc.Namespace, err)
+				}
+			}
+			if test.snapshot != nil {
+				_, err := wh.snapClientSet.VolumesnapshotV1().VolumeSnapshots(test.snapshot.Namespace).Create(test.snapshot)
+				if err != nil {
+					t.Fatalf("%q test failed to create fake snapshot %s in namespace %s error: %v", name, test.snapshot.Name, test.snapshot.Namespace, err)
+				}
+			}
+			if test.snapshotData != nil {
+				_, err := wh.snapClientSet.VolumesnapshotV1().VolumeSnapshotDatas().Create(test.snapshotData)
+				if err != nil {
+					t.Fatalf("%q test failed to create fake snapshotdata %s error: %v", name, test.snapshotData.Name, err)
+				}
+			}
+			resp := wh.validatePVCDeleteRequest(request)
+			if resp.Allowed != test.expectedResponse {
+				t.Errorf(
+					"%s test case failed expected response: %t but got %t error: %s",
+					name,
+					test.expectedResponse,
+					resp.Allowed,
+					resp.Result.Message,
+				)
+			}
+			// Cleanup objects
+			if test.pvc != nil {
+				wh.kubeClient.CoreV1().PersistentVolumeClaims(test.pvc.Namespace).Delete(test.pvc.Name, &metav1.DeleteOptions{})
+			}
+			if test.snapshot != nil {
+				wh.snapClientSet.VolumesnapshotV1().VolumeSnapshots(test.snapshot.Namespace).Delete(test.snapshot.Name, &metav1.DeleteOptions{})
+			}
+			if test.snapshotData != nil {
+				wh.snapClientSet.VolumesnapshotV1().VolumeSnapshotDatas().Delete(test.snapshotData.Name, &metav1.DeleteOptions{})
+			}
+		})
 	}
 }
