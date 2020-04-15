@@ -165,6 +165,14 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 			snaptype := ops.GetSnapshotTypeEventually(snapName)
 			Expect(snaptype).To(Equal("Ready"), "while checking snapshot type")
 
+			snapshotObj, err := ops.SnapClient.
+				Get(snapName, metav1.GetOptions{})
+			Expect(err).To(BeNil())
+
+			By("Deleting PersistentVolumeClaim Should Reject the Request Because Of Snapshot Existence")
+			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
+			Expect(err).Should(HaveOccurred(), "should not allow deletion of PVC")
+
 			By("deleting cstor volume snapshot")
 			err = ops.SnapClient.Delete(snapName, &metav1.DeleteOptions{})
 			Expect(err).To(
@@ -177,6 +185,10 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 			By("verifying deleted snapshot")
 			snap := ops.IsSnapshotDeleted(snapName)
 			Expect(snap).To(Equal(true), "while checking for deleted snapshot")
+
+			By("Verifying deletion of snapshotdata")
+			snapData := ops.IsSnapshotDataDeleted(snapshotObj.Spec.SnapshotDataName)
+			Expect(snapData).To(Equal(true), "while checking for deleted snapshot")
 
 			By("deleting above pvc")
 			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
