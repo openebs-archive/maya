@@ -245,7 +245,7 @@ func (wh *webhook) validatePVCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 	if err != nil {
 		response.Allowed = false
 		response.Result = &metav1.Status{
-			Message: fmt.Sprintf("error retrieving snapshots information %s", err.Error()),
+			Message: fmt.Sprintf("snapshots verification failed %s", err.Error()),
 		}
 		return response
 	}
@@ -525,14 +525,14 @@ func (wh *webhook) verifyExistenceOfSnapshots(pvc *corev1.PersistentVolumeClaim)
 		return errors.Wrapf(err, "failed to list snapshots related to volume: %s", pvc.Spec.VolumeName)
 	}
 	if len(volumeSnapshotList.Items) > 0 {
-		return errors.Errorf("pvc %s has '%d' no.of snapshot(s)", pvc.Name, len(volumeSnapshotList.Items))
+		return errors.Errorf("pvc %s has '%d' snapshot(s)", pvc.Name, len(volumeSnapshotList.Items))
 	}
 	volumeSnapshotDataList, err := wh.getVolumeSnapshotDataList(pvc)
 	if err != nil {
 		return err
 	}
 	if len(volumeSnapshotDataList.Items) > 0 {
-		return errors.Errorf("pvc %s has '%d' no.of snapshotdata(s)", pvc.Name, len(volumeSnapshotDataList.Items))
+		return errors.Errorf("pvc %s has '%d' snapshotdata(s)", pvc.Name, len(volumeSnapshotDataList.Items))
 	}
 	return nil
 }
