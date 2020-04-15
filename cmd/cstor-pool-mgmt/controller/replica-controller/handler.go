@@ -648,12 +648,11 @@ func (c *CStorVolumeReplicaController) syncCVRStatus(cvr *apis.CStorVolumeReplic
 		cvr.Status.Capacity = *capacity
 	}
 
-	if os.Getenv(string(common.RebuildEstimates)) == "true" {
-		err = volumereplica.GetAndUpdateSnapshotInfo(c.clientset, cvr)
-		if err != nil {
-			return errors.Wrapf(err, "Unable to update snapshot list details in CVR")
-		}
+	err = volumereplica.GetAndUpdateSnapshotInfo(c.clientset, cvr)
+	if err != nil {
+		return errors.Wrapf(err, "Unable to update snapshot list details in CVR")
 	}
+
 	return nil
 }
 
