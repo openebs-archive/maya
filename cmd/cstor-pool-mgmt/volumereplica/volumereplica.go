@@ -718,7 +718,7 @@ func GetAndUpdateSnapshotInfo(
 	//   as is to cover this corner case below check is required.
 	if cvr.Status.Phase == apis.CVRStatusOnline &&
 		len(cvr.Status.PendingSnapshots) != 0 {
-		klog.V(2).Infof("CVR: %s is marked as %s hence removing pending snapshots %v",
+		klog.Infof("CVR: %s is marked as %s hence removing pending snapshots %v",
 			cvr.Name,
 			cvr.Status.Phase,
 			getSnapshotNames(cvr.Status.PendingSnapshots),
