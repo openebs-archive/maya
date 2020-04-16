@@ -1,3 +1,89 @@
+v1.9.0 / 2020-04-14
+========================
+
+ * fix(jiva): add tolerations to jiva cleanup jobs([#1667](https://github.com/openebs/maya/pull/1667),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * chore(build): update alpine base images to 3.11.5 ([#1660](https://github.com/openebs/maya/pull/1660),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * fix(localpv-hostpath): pv deletion caused panic when node not found ([#1662](https://github.com/openebs/maya/pull/1662),
+ [@kmova](https://github.com/kmova))
+ * feat(build): enable automatic building and pushing of arm images from ci ([#1650](https://github.com/openebs/maya/pull/1650),
+ [@akhilerm](https://github.com/akhilerm))
+ * chore(build): trigger downstream repo release ([#1657](https://github.com/openebs/maya/pull/1657),
+ [@kmova](https://github.com/kmova))
+ * feat(upgrade): enable bulk upgrade for volumes and spc ([#1655](https://github.com/openebs/maya/pull/1655),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * feat(localpv-device): allow local pv device on select devices ([#1648](https://github.com/openebs/maya/pull/1648),
+ [@kmova](https://github.com/kmova))
+ * feat(build): adding pc64le build for local provisioner ([#1632](https://github.com/openebs/maya/pull/1632),
+ [@Pensu](https://github.com/Pensu))
+ * feat(upgrade): split jiva replicas and migrate jiva resources to openebs ([#1646](https://github.com/openebs/maya/pull/1646),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * feat(cstorBackup, delete): support for snapshot deletion, created by velero-plugin ([#1644](https://github.com/openebs/maya/pull/1644),
+ [@mynktl](https://github.com/mynktl))
+ * feat(BDD): add positive test cases for verifying waitforfirstconsumer With CStor Volume Provisioning ([#1643](https://github.com/openebs/maya/pull/1643),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * feat(estimate_rebuilds): add pending snapshots in CVR Status by talking to peer replicas ([#1641](https://github.com/openebs/maya/pull/1641),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * refact(jiva): create separate replica deployments and move all resources to openebsNamespace ([#1636](https://github.com/openebs/maya/pull/1636),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * feat(snapList): add snapshots information in CVR Status ([#1639](https://github.com/openebs/maya/pull/1639),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * feat(local-snapshot-restore, velero) : support to restore CStor snapshot to different namespace using velero ([#1575](https://github.com/openebs/maya/pull/1575),
+ [@mynktl](https://github.com/mynktl))
+ * refact(log): remove cstor prefix from localPV log and alert messages ([#1638](https://github.com/openebs/maya/pull/1638),
+ [@akhilerm](https://github.com/akhilerm))
+ * fix(provisioning): support to provision volumes in case of WaitForFirstConsumer ([#1637](https://github.com/openebs/maya/pull/1637),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * fix(csp): add pool protection finalizer on CSP ([#1635](https://github.com/openebs/maya/pull/1635),
+ [@mittachaitu](https://github.com/mittachaitu))
+
+v1.9.0-RC2 / 2020-04-12
+========================
+
+ * fix(jiva): add tolerations to jiva cleanup jobs([#1667](https://github.com/openebs/maya/pull/1667),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * chore(build): update alpine base images to 3.11.5 ([#1660](https://github.com/openebs/maya/pull/1660),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * fix(localpv-hostpath): pv deletion caused panic when node not found ([#1662](https://github.com/openebs/maya/pull/1662),
+ [@kmova](https://github.com/kmova))
+ * feat(build): enable automatic building and pushing of arm images from ci ([#1650](https://github.com/openebs/maya/pull/1650),
+ [@akhilerm](https://github.com/akhilerm))
+
+
+v1.9.0-RC1 / 2020-04-07
+========================
+
+ * chore(build): trigger downstream repo release ([#1657](https://github.com/openebs/maya/pull/1657),
+ [@kmova](https://github.com/kmova))
+ * feat(upgrade): enable bulk upgrade for volumes and spc ([#1655](https://github.com/openebs/maya/pull/1655),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * feat(localpv-device): allow local pv device on select devices ([#1648](https://github.com/openebs/maya/pull/1648),
+ [@kmova](https://github.com/kmova))
+ * feat(build): adding pc64le build for local provisioner ([#1632](https://github.com/openebs/maya/pull/1632),
+ [@Pensu](https://github.com/Pensu))
+ * feat(upgrade): split jiva replicas and migrate jiva resources to openebs ([#1646](https://github.com/openebs/maya/pull/1646),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * feat(cstorBackup, delete): support for snapshot deletion, created by velero-plugin ([#1644](https://github.com/openebs/maya/pull/1644),
+ [@mynktl](https://github.com/mynktl))
+ * feat(BDD): add positive test cases for verifying waitforfirstconsumer With CStor Volume Provisioning ([#1643](https://github.com/openebs/maya/pull/1643),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * chore(BDD): checks to verify pool protectionfinalizer ([#1640](https://github.com/openebs/maya/pull/1640),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * feat(estimate_rebuilds): add pending snapshots on CVR by talking to peer replicas ([#1641](https://github.com/openebs/maya/pull/1641),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * refact(jiva): create separate replica deployments and move all resources to openebsNamespace ([#1636](https://github.com/openebs/maya/pull/1636),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * feat(snapList): add snapshots information on CVR ([#1639](https://github.com/openebs/maya/pull/1639),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * feat(local-snapshot-restore, velero) : support to restore CStor snapshot to different namespace using velero ([#1575](https://github.com/openebs/maya/pull/1575),
+ [@mynktl](https://github.com/mynktl))
+ * refact(log): remove cstor prefix from localPV log and alert messages ([#1638](https://github.com/openebs/maya/pull/1638),
+ [@akhilerm](https://github.com/akhilerm))
+ * fix(provisioning): support to provision volumes in case of WaitForFirstConsumer ([#1637](https://github.com/openebs/maya/pull/1637),
+ [@mittachaitu](https://github.com/mittachaitu))
+
+
 v1.8.0 / 2020-03-14
 ========================
 
