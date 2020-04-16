@@ -512,8 +512,9 @@ func (wh *webhook) validateCVC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRe
 	return response
 }
 
-// verifyExistenceOfSnapshots returns error when there are volumesnapshots or volumesnapshotDatas
-// related to volume and if any error occured else return nil
+// verifyExistenceOfSnapshots returns error if there are volumesnapshots or
+// volumesnapshotData exists for a volume or in case any API error occurs
+// otherwise return nil
 func (wh *webhook) verifyExistenceOfSnapshots(pvc *corev1.PersistentVolumeClaim) error {
 	volumeSnapshotList, err := wh.snapClientSet.
 		VolumesnapshotV1().
@@ -525,14 +526,14 @@ func (wh *webhook) verifyExistenceOfSnapshots(pvc *corev1.PersistentVolumeClaim)
 		return errors.Wrapf(err, "failed to list snapshots related to volume: %s", pvc.Spec.VolumeName)
 	}
 	if len(volumeSnapshotList.Items) > 0 {
-		return errors.Errorf("pvc %s has '%d' snapshot(s)", pvc.Name, len(volumeSnapshotList.Items))
+		return errors.Errorf("pvc %s has '%d' number of dependent snapshot(s)", pvc.Name, len(volumeSnapshotList.Items))
 	}
 	volumeSnapshotDataList, err := wh.getVolumeSnapshotDataList(pvc)
 	if err != nil {
 		return err
 	}
 	if len(volumeSnapshotDataList.Items) > 0 {
-		return errors.Errorf("pvc %s has '%d' snapshotdata(s)", pvc.Name, len(volumeSnapshotDataList.Items))
+		return errors.Errorf("pvc %s has '%d' number of dependent snapshotdata(s)", pvc.Name, len(volumeSnapshotDataList.Items))
 	}
 	return nil
 }
