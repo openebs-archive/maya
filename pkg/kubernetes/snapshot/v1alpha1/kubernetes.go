@@ -19,8 +19,8 @@ package v1alpha1
 import (
 	"encoding/json"
 
-	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1alpha1"
-	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1alpha1/clientset/internalclientset/typed/snapshot/v1alpha1"
+	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
+	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1/clientset/internalclientset"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	errors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,34 +28,34 @@ import (
 
 // getClientsetFn is a typed function that abstracts
 // fetching an instance of kubernetes clientset
-type getClientsetFn func() (clientset *clientset.OpenebsV1alpha1Client, err error)
+type getClientsetFn func() (clientset *clientset.Clientset, err error)
 
 // getClientsetFromPathFn is a typed function that
 // abstracts fetching of clientset from kubeConfigPath
-type getClientsetForPathFn func(kubeConfigPath string) (clientset *clientset.OpenebsV1alpha1Client, err error)
+type getClientsetForPathFn func(kubeConfigPath string) (clientset *clientset.Clientset, err error)
 
 // listFn is a typed function that abstracts
 // listing of snapshots
-type listFn func(cli *clientset.OpenebsV1alpha1Client, opts metav1.ListOptions) (*snapshot.VolumeSnapshotList, error)
+type listFn func(cli *clientset.Clientset, opts metav1.ListOptions) (*snapshot.VolumeSnapshotList, error)
 
 // getFn is a typed function that abstracts
 // fetching an instance of snapshot
-type getFn func(cli *clientset.OpenebsV1alpha1Client, name string, opts metav1.GetOptions) (*snapshot.VolumeSnapshot, error)
+type getFn func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*snapshot.VolumeSnapshot, error)
 
 // createFn is a typed function that abstracts
 // to create snapshot
-type createFn func(cli *clientset.OpenebsV1alpha1Client, snap *snapshot.VolumeSnapshot) (*snapshot.VolumeSnapshot, error)
+type createFn func(cli *clientset.Clientset, snap *snapshot.VolumeSnapshot) (*snapshot.VolumeSnapshot, error)
 
 // deleteFn is a typed function that abstracts
 // to delete snapshot
-type deleteFn func(cli *clientset.OpenebsV1alpha1Client, name string, opts *metav1.DeleteOptions) error
+type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) error
 
 // Kubeclient enables kubernetes API operations on snapshot instance
 type Kubeclient struct {
 	// clientset refers to snapshot clientset
 	// that will be responsible to
 	// make kubernetes API calls
-	clientset *clientset.OpenebsV1alpha1Client
+	clientset *clientset.Clientset
 
 	namespace string
 	// kubeconfig path to get kubernetes clientset
@@ -76,7 +76,7 @@ type KubeClientBuildOption func(*Kubeclient)
 
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
-		k.getClientset = func() (clients *clientset.OpenebsV1alpha1Client, err error) {
+		k.getClientset = func() (clients *clientset.Clientset, err error) {
 			config, err := client.New().GetConfigForPathOrDirect()
 			if err != nil {
 				return nil, err
@@ -85,7 +85,7 @@ func (k *Kubeclient) withDefaults() {
 		}
 	}
 	if k.getClientsetForPath == nil {
-		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.OpenebsV1alpha1Client, err error) {
+		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.Clientset, err error) {
 			config, err := client.New(client.WithKubeConfigPath(kubeConfigPath)).GetConfigForPathOrDirect()
 			if err != nil {
 				return nil, err
@@ -94,23 +94,23 @@ func (k *Kubeclient) withDefaults() {
 		}
 	}
 	if k.list == nil {
-		k.list = func(cli *clientset.OpenebsV1alpha1Client, opts metav1.ListOptions) (*snapshot.VolumeSnapshotList, error) {
-			return cli.VolumeSnapshots(k.namespace).List(opts)
+		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*snapshot.VolumeSnapshotList, error) {
+			return cli.VolumesnapshotV1().VolumeSnapshots(k.namespace).List(opts)
 		}
 	}
 	if k.get == nil {
-		k.get = func(cli *clientset.OpenebsV1alpha1Client, name string, opts metav1.GetOptions) (*snapshot.VolumeSnapshot, error) {
-			return cli.VolumeSnapshots(k.namespace).Get(name, opts)
+		k.get = func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*snapshot.VolumeSnapshot, error) {
+			return cli.VolumesnapshotV1().VolumeSnapshots(k.namespace).Get(name, opts)
 		}
 	}
 	if k.create == nil {
-		k.create = func(cli *clientset.OpenebsV1alpha1Client, snap *snapshot.VolumeSnapshot) (*snapshot.VolumeSnapshot, error) {
-			return cli.VolumeSnapshots(k.namespace).Create(snap)
+		k.create = func(cli *clientset.Clientset, snap *snapshot.VolumeSnapshot) (*snapshot.VolumeSnapshot, error) {
+			return cli.VolumesnapshotV1().VolumeSnapshots(k.namespace).Create(snap)
 		}
 	}
 	if k.del == nil {
-		k.del = func(cli *clientset.OpenebsV1alpha1Client, name string, opts *metav1.DeleteOptions) error {
-			return cli.VolumeSnapshots(k.namespace).Delete(name, opts)
+		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) error {
+			return cli.VolumesnapshotV1().VolumeSnapshots(k.namespace).Delete(name, opts)
 		}
 	}
 }
@@ -127,7 +127,7 @@ func NewKubeClient(opts ...KubeClientBuildOption) *Kubeclient {
 
 // WithClientSet sets the kubernetes client against
 // the kubeclient instance
-func WithClientSet(c *clientset.OpenebsV1alpha1Client) KubeClientBuildOption {
+func WithClientSet(c *clientset.Clientset) KubeClientBuildOption {
 	return func(k *Kubeclient) {
 		k.clientset = c
 	}
@@ -141,7 +141,7 @@ func WithKubeConfigPath(path string) KubeClientBuildOption {
 	}
 }
 
-func (k *Kubeclient) getClientsetForPathOrDirect() (*clientset.OpenebsV1alpha1Client, error) {
+func (k *Kubeclient) getClientsetForPathOrDirect() (*clientset.Clientset, error) {
 	if k.kubeConfigPath != "" {
 		return k.getClientsetForPath(k.kubeConfigPath)
 	}
@@ -151,7 +151,7 @@ func (k *Kubeclient) getClientsetForPathOrDirect() (*clientset.OpenebsV1alpha1Cl
 // getClientsetOrCached returns either a new
 // instance of kubernetes clientset or its
 // cached copy cached copy
-func (k *Kubeclient) getClientsetOrCached() (*clientset.OpenebsV1alpha1Client, error) {
+func (k *Kubeclient) getClientsetOrCached() (*clientset.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}

@@ -44,6 +44,7 @@ import (
 	pts "github.com/openebs/maya/pkg/kubernetes/podtemplatespec/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
+	snapdata "github.com/openebs/maya/pkg/kubernetes/snapshotdata/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	k8svolume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
@@ -87,6 +88,7 @@ type Operations struct {
 	PVClient       *pv.Kubeclient
 	NSClient       *ns.Kubeclient
 	SnapClient     *snap.Kubeclient
+	SnapDataClient *snapdata.Kubeclient
 	CSPClient      *csp.Kubeclient
 	CSPIClient     *cspi.Kubeclient
 	SPCClient      *spc.Kubeclient
@@ -235,6 +237,9 @@ func (ops *Operations) withDefaults() {
 	}
 	if ops.SnapClient == nil {
 		ops.SnapClient = snap.NewKubeClient(snap.WithKubeConfigPath(ops.KubeConfigPath))
+	}
+	if ops.SnapDataClient == nil {
+		ops.SnapDataClient = snapdata.NewKubeClient(snapdata.WithKubeConfigPath(ops.KubeConfigPath))
 	}
 	if ops.SPCClient == nil {
 		ops.SPCClient = spc.NewKubeClient(spc.WithKubeConfigPath(ops.KubeConfigPath))
@@ -614,6 +619,18 @@ func (ops *Operations) IsSnapshotDeleted(snapName string) bool {
 	for i := 0; i < maxRetry; i++ {
 		_, err := ops.SnapClient.
 			Get(snapName, metav1.GetOptions{})
+		if err != nil {
+			return isNotFound(err)
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return false
+}
+
+// IsSnapshotDataDeleted checks if the snapshotdata is deleted or not
+func (ops *Operations) IsSnapshotDataDeleted(snapshotDataName string) bool {
+	for i := 0; i < maxRetry; i++ {
+		_, err := ops.SnapDataClient.Get(snapshotDataName, metav1.GetOptions{})
 		if err != nil {
 			return isNotFound(err)
 		}

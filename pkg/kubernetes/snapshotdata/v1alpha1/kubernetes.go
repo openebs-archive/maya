@@ -19,9 +19,8 @@ package v1alpha1
 import (
 	"encoding/json"
 
-	"github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1alpha1"
-	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1alpha1"
-	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1alpha1/clientset/internalclientset/typed/snapshot/v1alpha1"
+	snapshotapi "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
+	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1/clientset/internalclientset"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	errors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,34 +29,34 @@ import (
 
 // getClientsetFn is a typed function that abstracts
 // fetching an instance of snapshot clientset
-type getClientsetFn func() (clientset *clientset.OpenebsV1alpha1Client, err error)
+type getClientsetFn func() (clientset *clientset.Clientset, err error)
 
 // getClientsetFromPathFn is a typed function that
 // abstracts fetching of snapshot clientset from kubeConfigPath
-type getClientsetForPathFn func(kubeConfigPath string) (clientset *clientset.OpenebsV1alpha1Client, err error)
+type getClientsetForPathFn func(kubeConfigPath string) (clientset *clientset.Clientset, err error)
 
 // listFn is a typed function that abstracts
 // listing of volumesnapshotdatas
-type listFn func(cli *clientset.OpenebsV1alpha1Client, opts metav1.ListOptions) (*snapshot.VolumeSnapshotDataList, error)
+type listFn func(cli *clientset.Clientset, opts metav1.ListOptions) (*snapshotapi.VolumeSnapshotDataList, error)
 
 // getFn is a typed function that abstracts
 // fetching an instance of volumesnapshotdata
-type getFn func(cli *clientset.OpenebsV1alpha1Client, name string, opts metav1.GetOptions) (*snapshot.VolumeSnapshotData, error)
+type getFn func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*snapshotapi.VolumeSnapshotData, error)
 
 // deleteFn is a typed function that abstracts
 // to delete volumesnapshotdata
-type deleteFn func(cli *clientset.OpenebsV1alpha1Client, name string, opts *metav1.DeleteOptions) error
+type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) error
 
 // patchFn is a typed function that abstracts
 // to patch volumesnapshotdata
-type patchFn func(cli *clientset.OpenebsV1alpha1Client, name string, pt types.PatchType, data []byte, subresources ...string) (*v1alpha1.VolumeSnapshotData, error)
+type patchFn func(cli *clientset.Clientset, name string, pt types.PatchType, data []byte, subresources ...string) (*snapshotapi.VolumeSnapshotData, error)
 
 // Kubeclient enables kubernetes API operations on volumesnapshotdata instance
 type Kubeclient struct {
 	// clientset refers to snapshot clientset
 	// that will be responsible to
 	// make kubernetes API calls
-	clientset *clientset.OpenebsV1alpha1Client
+	clientset *clientset.Clientset
 
 	// kubeconfig path to get kubernetes clientset
 	kubeConfigPath string
@@ -77,7 +76,7 @@ type KubeclientBuildOption func(*Kubeclient)
 
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
-		k.getClientset = func() (clients *clientset.OpenebsV1alpha1Client, err error) {
+		k.getClientset = func() (clients *clientset.Clientset, err error) {
 			config, err := client.New().GetConfigForPathOrDirect()
 			if err != nil {
 				return nil, err
@@ -86,7 +85,7 @@ func (k *Kubeclient) withDefaults() {
 		}
 	}
 	if k.getClientsetForPath == nil {
-		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.OpenebsV1alpha1Client, err error) {
+		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.Clientset, err error) {
 			config, err := client.New(client.WithKubeConfigPath(kubeConfigPath)).GetConfigForPathOrDirect()
 			if err != nil {
 				return nil, err
@@ -95,23 +94,23 @@ func (k *Kubeclient) withDefaults() {
 		}
 	}
 	if k.list == nil {
-		k.list = func(cli *clientset.OpenebsV1alpha1Client, opts metav1.ListOptions) (*snapshot.VolumeSnapshotDataList, error) {
-			return cli.VolumeSnapshotDatas().List(opts)
+		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*snapshotapi.VolumeSnapshotDataList, error) {
+			return cli.VolumesnapshotV1().VolumeSnapshotDatas().List(opts)
 		}
 	}
 	if k.get == nil {
-		k.get = func(cli *clientset.OpenebsV1alpha1Client, name string, opts metav1.GetOptions) (*snapshot.VolumeSnapshotData, error) {
-			return cli.VolumeSnapshotDatas().Get(name, opts)
+		k.get = func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*snapshotapi.VolumeSnapshotData, error) {
+			return cli.VolumesnapshotV1().VolumeSnapshotDatas().Get(name, opts)
 		}
 	}
 	if k.del == nil {
-		k.del = func(cli *clientset.OpenebsV1alpha1Client, name string, opts *metav1.DeleteOptions) error {
-			return cli.VolumeSnapshotDatas().Delete(name, opts)
+		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) error {
+			return cli.VolumesnapshotV1().VolumeSnapshotDatas().Delete(name, opts)
 		}
 	}
 	if k.patch == nil {
-		k.patch = func(cli *clientset.OpenebsV1alpha1Client, name string, pt types.PatchType, data []byte, subresources ...string) (*v1alpha1.VolumeSnapshotData, error) {
-			return cli.VolumeSnapshotDatas().Patch(name, pt, data, subresources...)
+		k.patch = func(cli *clientset.Clientset, name string, pt types.PatchType, data []byte, subresources ...string) (*snapshotapi.VolumeSnapshotData, error) {
+			return cli.VolumesnapshotV1().VolumeSnapshotDatas().Patch(name, pt, data, subresources...)
 		}
 	}
 }
@@ -128,7 +127,7 @@ func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
 
 // WithClientSet sets the snapshot client against
 // the kubeclient instance
-func WithClientSet(c *clientset.OpenebsV1alpha1Client) KubeclientBuildOption {
+func WithClientSet(c *clientset.Clientset) KubeclientBuildOption {
 	return func(k *Kubeclient) {
 		k.clientset = c
 	}
@@ -142,7 +141,7 @@ func WithKubeConfigPath(kubeConfigPath string) KubeclientBuildOption {
 	}
 }
 
-func (k *Kubeclient) getClientsetForPathOrDirect() (*clientset.OpenebsV1alpha1Client, error) {
+func (k *Kubeclient) getClientsetForPathOrDirect() (*clientset.Clientset, error) {
 	if k.kubeConfigPath != "" {
 		return k.getClientsetForPath(k.kubeConfigPath)
 	}
@@ -152,7 +151,7 @@ func (k *Kubeclient) getClientsetForPathOrDirect() (*clientset.OpenebsV1alpha1Cl
 // getClientsetOrCached returns either a new
 // instance of snapshot clientset or its
 // cached copy cached copy
-func (k *Kubeclient) getClientsetOrCached() (*clientset.OpenebsV1alpha1Client, error) {
+func (k *Kubeclient) getClientsetOrCached() (*clientset.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
@@ -166,7 +165,7 @@ func (k *Kubeclient) getClientsetOrCached() (*clientset.OpenebsV1alpha1Client, e
 }
 
 // List returns a list of volumesnapshotdata instances present in kubernetes cluster
-func (k *Kubeclient) List(opts metav1.ListOptions) (*snapshot.VolumeSnapshotDataList, error) {
+func (k *Kubeclient) List(opts metav1.ListOptions) (*snapshotapi.VolumeSnapshotDataList, error) {
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list volumeSnapshotDatas")
@@ -175,7 +174,7 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*snapshot.VolumeSnapshotData
 }
 
 // Get return a volumesnapshotdata instance present in kubernetes cluster
-func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*snapshot.VolumeSnapshotData, error) {
+func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*snapshotapi.VolumeSnapshotData, error) {
 	if len(name) == 0 {
 		return nil, errors.New("failed to get volumesnapshotdata: missing snapshotdata name")
 	}
@@ -218,7 +217,7 @@ func (k *Kubeclient) GetRaw(name string, opts metav1.GetOptions) ([]byte, error)
 }
 
 // Patch patches the snapshotdata if present in kubernetes cluster
-func (k *Kubeclient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*v1alpha1.VolumeSnapshotData, error) {
+func (k *Kubeclient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*snapshotapi.VolumeSnapshotData, error) {
 	if len(name) == 0 {
 		return nil, errors.New("failed to patch volumesnapshotdata: missing snapshotdata name")
 	}

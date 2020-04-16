@@ -18,32 +18,32 @@ import (
 	"errors"
 	"testing"
 
-	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1alpha1"
-	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1alpha1/clientset/internalclientset/typed/snapshot/v1alpha1"
+	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
+	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1/clientset/internalclientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func fakeGetClientSetOk() (*clientset.OpenebsV1alpha1Client, error) {
-	return &clientset.OpenebsV1alpha1Client{}, nil
+func fakeGetClientSetOk() (*clientset.Clientset, error) {
+	return &clientset.Clientset{}, nil
 }
 
-func fakeGetClientSetErr() (*clientset.OpenebsV1alpha1Client, error) {
+func fakeGetClientSetErr() (*clientset.Clientset, error) {
 	return nil, errors.New("Some error")
 }
 
-func fakeListFnOk(cli *clientset.OpenebsV1alpha1Client, opts metav1.ListOptions) (*snapshot.VolumeSnapshotList, error) {
+func fakeListFnOk(cli *clientset.Clientset, opts metav1.ListOptions) (*snapshot.VolumeSnapshotList, error) {
 	return &snapshot.VolumeSnapshotList{}, nil
 }
 
-func fakeListFnErr(cli *clientset.OpenebsV1alpha1Client, opts metav1.ListOptions) (*snapshot.VolumeSnapshotList, error) {
+func fakeListFnErr(cli *clientset.Clientset, opts metav1.ListOptions) (*snapshot.VolumeSnapshotList, error) {
 	return nil, errors.New("some error")
 }
 
-func fakeGetClientSetForPathOk(fakeConfigPath string) (*clientset.OpenebsV1alpha1Client, error) {
-	return &clientset.OpenebsV1alpha1Client{}, nil
+func fakeGetClientSetForPathOk(fakeConfigPath string) (*clientset.Clientset, error) {
+	return &clientset.Clientset{}, nil
 }
 
-func fakeGetClientSetForPathErr(fakeConfigPath string) (*clientset.OpenebsV1alpha1Client, error) {
+func fakeGetClientSetForPathErr(fakeConfigPath string) (*clientset.Clientset, error) {
 	return nil, errors.New("fake error")
 }
 

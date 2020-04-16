@@ -24,9 +24,11 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
-	snapclient "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1alpha1/clientset/internalclientset"
+	snapclient "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1/clientset/internalclientset"
+	"github.com/pkg/errors"
 	"k8s.io/api/admission/v1beta1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	v1 "k8s.io/api/apps/v1"
@@ -47,6 +49,10 @@ var (
 
 	// (https://github.com/kubernetes/kubernetes/issues/57982)
 	defaulter = runtime.ObjectDefaulter(runtimeScheme)
+)
+
+const (
+	snapshotMetadataPVName = "SnapshotMetadata-PVName"
 )
 
 // Skip validation in special namespaces, i.e. in kube-system and kube-public
@@ -224,8 +230,23 @@ func (wh *webhook) validatePVCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 		return response
 	}
 
+	// If PVC is not yet bound to PV then don't even perform any checks
+	if pvc.Spec.VolumeName == "" {
+		klog.Infof("Skipping validations for %s/%s due to PVC is not yet bound", pvc.Namespace, pvc.Name)
+		return response
+	}
+
 	if !validationRequired(ignoredNamespaces, &pvc.ObjectMeta) {
 		klog.V(4).Infof("Skipping validation for %s/%s due to policy check", pvc.Namespace, pvc.Name)
+		return response
+	}
+
+	err = wh.verifyExistenceOfSnapshots(pvc)
+	if err != nil {
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: fmt.Sprintf("snapshots verification failed %s", err.Error()),
+		}
 		return response
 	}
 
@@ -308,7 +329,7 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
 	// get the snapshot object to get snapshotdata object
 	// Note: If snapname is empty then below call will retrun error
-	snapObj, err := wh.snapClientSet.OpenebsV1alpha1().VolumeSnapshots(pvc.Namespace).Get(snapname, metav1.GetOptions{})
+	snapObj, err := wh.snapClientSet.VolumesnapshotV1().VolumeSnapshots(pvc.Namespace).Get(snapname, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("failed to get the snapshot object for snapshot name: '%s' namespace: '%s' PVC: '%s'"+
 			"error: '%v'", snapname, pvc.Namespace, pvc.Name, err)
@@ -335,7 +356,7 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 
 	// get the snapDataObj to get the snapshotdataname
 	// Note: If snapDataName is empty then below call will return error
-	snapDataObj, err := wh.snapClientSet.OpenebsV1alpha1().VolumeSnapshotDatas().Get(snapDataName, metav1.GetOptions{})
+	snapDataObj, err := wh.snapClientSet.VolumesnapshotV1().VolumeSnapshotDatas().Get(snapDataName, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("Failed to get the snapshotdata object for snapshotdata  name: '%s' "+
 			"snapName: '%s' namespace: '%s' PVC: '%s' error: '%v'", snapDataName, snapname, snapObj.ObjectMeta.Namespace, pvc.Name, err)
@@ -489,4 +510,51 @@ func (wh *webhook) validateCVC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRe
 	klog.V(4).Info("Admission wehbook for CVC module not " +
 		"configured for operations other than UPDATE")
 	return response
+}
+
+// verifyExistenceOfSnapshots returns error if there are volumesnapshots or
+// volumesnapshotData exists for a volume or in case any API error occurs
+// otherwise return nil
+func (wh *webhook) verifyExistenceOfSnapshots(pvc *corev1.PersistentVolumeClaim) error {
+	volumeSnapshotList, err := wh.snapClientSet.
+		VolumesnapshotV1().
+		VolumeSnapshots(pvc.Namespace).
+		List(metav1.ListOptions{
+			LabelSelector: snapshotMetadataPVName + "=" + pvc.Spec.VolumeName,
+		})
+	if err != nil {
+		return errors.Wrapf(err, "failed to list snapshots related to volume: %s", pvc.Spec.VolumeName)
+	}
+	if len(volumeSnapshotList.Items) > 0 {
+		return errors.Errorf("pvc %s has '%d' number of dependent snapshot(s)", pvc.Name, len(volumeSnapshotList.Items))
+	}
+	volumeSnapshotDataList, err := wh.getVolumeSnapshotDataList(pvc)
+	if err != nil {
+		return err
+	}
+	if len(volumeSnapshotDataList.Items) > 0 {
+		return errors.Errorf("pvc %s has '%d' number of dependent snapshotdata(s)", pvc.Name, len(volumeSnapshotDataList.Items))
+	}
+	return nil
+}
+
+// getVolumeSnapshotDataList return list of volumesnapshotdata list related
+// to provided persistent volume claim
+func (wh *webhook) getVolumeSnapshotDataList(
+	pvc *corev1.PersistentVolumeClaim) (*snapshot.VolumeSnapshotDataList, error) {
+	pvcSnapshotDataList := &snapshot.VolumeSnapshotDataList{}
+	snapshotDataList, err := wh.snapClientSet.
+		VolumesnapshotV1().
+		VolumeSnapshotDatas().
+		List(metav1.ListOptions{})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list volumesnapshotdata related to volume: %s", pvc.Spec.VolumeName)
+	}
+	for _, snapshotData := range snapshotDataList.Items {
+		if snapshotData.Spec.PersistentVolumeRef != nil &&
+			snapshotData.Spec.PersistentVolumeRef.Name == pvc.Spec.VolumeName {
+			pvcSnapshotDataList.Items = append(pvcSnapshotDataList.Items, snapshotData)
+		}
+	}
+	return pvcSnapshotDataList, nil
 }

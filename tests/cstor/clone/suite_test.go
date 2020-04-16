@@ -27,7 +27,7 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1alpha1"
+	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
 	// auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )

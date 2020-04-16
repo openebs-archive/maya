@@ -19,70 +19,69 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1alpha1"
-	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1alpha1"
-	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1alpha1/clientset/internalclientset/typed/snapshot/v1alpha1"
+	snapshotapi "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
+	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1/clientset/internalclientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func fakeGetClientSetOk() (*clientset.OpenebsV1alpha1Client, error) {
-	return &clientset.OpenebsV1alpha1Client{}, nil
+func fakeGetClientSetOk() (*clientset.Clientset, error) {
+	return &clientset.Clientset{}, nil
 }
 
-func fakeGetClientSetErr() (*clientset.OpenebsV1alpha1Client, error) {
+func fakeGetClientSetErr() (*clientset.Clientset, error) {
 	return nil, errors.New("Some error")
 }
 
-func fakeListFnOk(cli *clientset.OpenebsV1alpha1Client, opts metav1.ListOptions) (*snapshot.VolumeSnapshotDataList, error) {
-	return &snapshot.VolumeSnapshotDataList{}, nil
+func fakeListFnOk(cli *clientset.Clientset, opts metav1.ListOptions) (*snapshotapi.VolumeSnapshotDataList, error) {
+	return &snapshotapi.VolumeSnapshotDataList{}, nil
 }
 
-func fakeListFnErr(cli *clientset.OpenebsV1alpha1Client, opts metav1.ListOptions) (*snapshot.VolumeSnapshotDataList, error) {
+func fakeListFnErr(cli *clientset.Clientset, opts metav1.ListOptions) (*snapshotapi.VolumeSnapshotDataList, error) {
 	return nil, errors.New("some error")
 }
 
-func fakeGetClientSetForPathOk(fakeConfigPath string) (*clientset.OpenebsV1alpha1Client, error) {
-	return &clientset.OpenebsV1alpha1Client{}, nil
+func fakeGetClientSetForPathOk(fakeConfigPath string) (*clientset.Clientset, error) {
+	return &clientset.Clientset{}, nil
 }
 
-func fakeGetClientSetForPathErr(fakeConfigPath string) (*clientset.OpenebsV1alpha1Client, error) {
+func fakeGetClientSetForPathErr(fakeConfigPath string) (*clientset.Clientset, error) {
 	return nil, errors.New("fake error")
 }
 
-func fakeDeleteFnOk(cli *clientset.OpenebsV1alpha1Client, name string, opts *metav1.DeleteOptions) error {
+func fakeDeleteFnOk(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) error {
 	return nil
 }
 
-func fakeDeleteFnErr(cli *clientset.OpenebsV1alpha1Client, name string, opts *metav1.DeleteOptions) error {
+func fakeDeleteFnErr(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) error {
 	return errors.New("some error while delete")
 }
 
-func fakeGetFnOk(cli *clientset.OpenebsV1alpha1Client, name string, opts metav1.GetOptions) (*snapshot.VolumeSnapshotData, error) {
-	return &snapshot.VolumeSnapshotData{}, nil
+func fakeGetFnOk(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*snapshotapi.VolumeSnapshotData, error) {
+	return &snapshotapi.VolumeSnapshotData{}, nil
 }
 
-func fakeGetErrfn(cli *clientset.OpenebsV1alpha1Client, name string, opts metav1.GetOptions) (*snapshot.VolumeSnapshotData, error) {
-	return &snapshot.VolumeSnapshotData{}, errors.New("Not found")
+func fakeGetErrfn(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*snapshotapi.VolumeSnapshotData, error) {
+	return &snapshotapi.VolumeSnapshotData{}, errors.New("Not found")
 }
 
 func fakeSetClientset(k *Kubeclient) {
-	k.clientset = &clientset.OpenebsV1alpha1Client{}
+	k.clientset = &clientset.Clientset{}
 }
 
 func fakeSetNilClientset(k *Kubeclient) {
 	k.clientset = nil
 }
 
-func fakeGetClientSetNil() (clientset *clientset.OpenebsV1alpha1Client, err error) {
+func fakeGetClientSetNil() (clientset *clientset.Clientset, err error) {
 	return nil, nil
 }
 
-func fakePatchFnOk(cli *clientset.OpenebsV1alpha1Client, name string, pt types.PatchType, data []byte, subresources ...string) (*v1alpha1.VolumeSnapshotData, error) {
-	return &snapshot.VolumeSnapshotData{}, nil
+func fakePatchFnOk(cli *clientset.Clientset, name string, pt types.PatchType, data []byte, subresources ...string) (*snapshotapi.VolumeSnapshotData, error) {
+	return &snapshotapi.VolumeSnapshotData{}, nil
 }
 
-func fakePatchFnErr(cli *clientset.OpenebsV1alpha1Client, name string, pt types.PatchType, data []byte, subresources ...string) (*v1alpha1.VolumeSnapshotData, error) {
+func fakePatchFnErr(cli *clientset.Clientset, name string, pt types.PatchType, data []byte, subresources ...string) (*snapshotapi.VolumeSnapshotData, error) {
 	return nil, errors.New("fake error")
 }
 
@@ -199,11 +198,11 @@ func TestGetClientSetForPathOrDirect(t *testing.T) {
 
 func TestWithClientsetBuildOption(t *testing.T) {
 	tests := map[string]struct {
-		Clientset             *clientset.OpenebsV1alpha1Client
+		Clientset             *clientset.Clientset
 		expectKubeclientEmpty bool
 	}{
 		"Clientset is empty":     {nil, true},
-		"Clientset is not empty": {&clientset.OpenebsV1alpha1Client{}, false},
+		"Clientset is not empty": {&clientset.Clientset{}, false},
 	}
 
 	for name, mock := range tests {

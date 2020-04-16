@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/tests/jiva"
 
-	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1alpha1"
+	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
