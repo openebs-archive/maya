@@ -21,8 +21,6 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog"
 )
 
 // UpgradeOptions ...
@@ -43,8 +41,7 @@ type Upgrade struct {
 }
 
 func (u *Upgrade) initClient() error {
-	kubeconfig := "/var/run/kubernetes/admin.kubeconfig"
-	cfg, err := getClusterConfig(kubeconfig)
+	cfg, err := rest.InClusterConfig()
 	if err != nil {
 		return errors.Wrap(err, "error building kubeconfig")
 	}
@@ -59,20 +56,13 @@ func (u *Upgrade) initClient() error {
 	return nil
 }
 
-// GetClusterConfig return the config for k8s.
-func getClusterConfig(kubeconfig string) (*rest.Config, error) {
-	if kubeconfig != "" {
-		return clientcmd.BuildConfigFromFlags("", kubeconfig)
-	}
-	klog.V(2).Info("Kubeconfig flag is empty")
-	return rest.InClusterConfig()
-}
-
 // NewUpgrade ...
 func NewUpgrade() *Upgrade {
 	u := &Upgrade{
 		UpgradeMap: map[string]UpgradeOptions{},
+		Client:     &Client{},
 	}
+	u.initClient()
 	u.RegisterAll()
 	return u
 }

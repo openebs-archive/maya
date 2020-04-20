@@ -33,12 +33,26 @@ import (
 type CSPC struct {
 	Object *apis.CStorPoolCluster
 	Data   []byte
-	Client *clientset.Clientset
+	Client clientset.Interface
 }
 
+// CSPCOptions ...
+type CSPCOptions func(*CSPC)
+
 // NewCSPC ...
-func NewCSPC() *CSPC {
-	return &CSPC{}
+func NewCSPC(opts ...CSPCOptions) *CSPC {
+	obj := &CSPC{}
+	for _, o := range opts {
+		o(obj)
+	}
+	return obj
+}
+
+// WithCSPCClient ...
+func WithCSPCClient(c clientset.Interface) CSPCOptions {
+	return func(obj *CSPC) {
+		obj.Client = c
+	}
 }
 
 // PreChecks ...

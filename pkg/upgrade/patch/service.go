@@ -58,7 +58,7 @@ func (s *Service) PreChecks(from, to string) error {
 // Patch ...
 func (s *Service) Patch(from, to string) error {
 	klog.Info("patching service ", s.Object.Name)
-	client := svc.NewKubeClient(svc.WithKubeConfigPath("/home/user/.kube/config"))
+	client := svc.NewKubeClient()
 	version := s.Object.Labels[string(apis.OpenEBSVersionKey)]
 	if version == to {
 		klog.Infof("service already in %s version", to)
@@ -85,7 +85,7 @@ func (s *Service) Patch(from, to string) error {
 
 // Get ...
 func (s *Service) Get(label, namespace string) error {
-	client := svc.NewKubeClient(svc.WithKubeConfigPath("/home/user/.kube/config"))
+	client := svc.NewKubeClient()
 	service, err := client.WithNamespace(namespace).List(
 		metav1.ListOptions{
 			LabelSelector: label,

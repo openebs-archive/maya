@@ -60,7 +60,7 @@ func (d *Deployment) PreChecks(from, to string) error {
 // Patch ...
 func (d *Deployment) Patch(from, to string) error {
 	klog.Info("patching deployment ", d.Object.Name)
-	client := deploy.NewKubeClient(deploy.WithKubeConfigPath("/var/run/kubernetes/admin.kubeconfig"))
+	client := deploy.NewKubeClient()
 	version := d.Object.Labels[string(apis.OpenEBSVersionKey)]
 	if version == to {
 		klog.Infof("deployment already in %s version", to)
@@ -103,7 +103,7 @@ func (d *Deployment) Patch(from, to string) error {
 
 // Get ...
 func (d *Deployment) Get(label, namespace string) error {
-	client := deploy.NewKubeClient(deploy.WithKubeConfigPath("/var/run/kubernetes/admin.kubeconfig"))
+	client := deploy.NewKubeClient()
 	deployments, err := client.WithNamespace(namespace).List(
 		&metav1.ListOptions{
 			LabelSelector: label,

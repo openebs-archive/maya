@@ -18,10 +18,13 @@ package upgrader
 
 import (
 	// apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"time"
+
 	apis "github.com/openebs/api/pkg/apis/cstor/v1"
 	"github.com/openebs/maya/pkg/upgrade/patch"
 	"github.com/openebs/maya/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/klog"
 )
 
 // CSPIPatch is the patch required to upgrade cspi
@@ -109,6 +112,10 @@ func (obj *CSPIPatch) Upgrade() error {
 		return err
 	}
 	err = obj.CSPIUpgrade()
+	if err != nil {
+		return err
+	}
+	err = obj.verifyCSPIVersionReconcile()
 	return err
 }
 
@@ -121,7 +128,9 @@ func (obj *CSPIPatch) Init() error {
 	if err != nil {
 		return err
 	}
-	obj.CSPI = patch.NewCSPI()
+	obj.CSPI = patch.NewCSPI(
+		patch.WithCSPIClient(obj.OpenebsClientset),
+	)
 	err = obj.CSPI.Get(obj.Name, obj.Namespace)
 	if err != nil {
 		return err
@@ -179,5 +188,27 @@ func getCSPIPatchData(obj *CSPIPatch) error {
 func transformCSPI(c *apis.CStorPoolInstance, res *ResourcePatch) error {
 	c.Labels["openebs.io/version"] = res.To
 	c.VersionDetails.Desired = res.To
+	return nil
+}
+
+func (obj *CSPIPatch) verifyCSPIVersionReconcile() error {
+	// get the latest cspi object
+	err := obj.CSPI.Get(obj.Name, obj.Namespace)
+	if err != nil {
+		return err
+	}
+	// waiting for the current version to be equal to desired version
+	for obj.CSPI.Object.VersionDetails.Status.Current != obj.To {
+		klog.Infof("Verifying the reconciliation of version for %s", obj.CSPI.Object.Name)
+		// Sleep equal to the default sync time
+		time.Sleep(10 * time.Second)
+		err = obj.CSPI.Get(obj.Name, obj.Namespace)
+		if err != nil {
+			return err
+		}
+		if obj.CSPI.Object.VersionDetails.Status.Message != "" {
+			klog.Errorf("failed to reconcile: %s", obj.CSPI.Object.VersionDetails.Status.Reason)
+		}
+	}
 	return nil
 }

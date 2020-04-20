@@ -30,12 +30,26 @@ import (
 type CSPI struct {
 	Object *apis.CStorPoolInstance
 	Data   []byte
-	Client clientset.Clientset
+	Client clientset.Interface
 }
 
+// CSPIOptions ...
+type CSPIOptions func(*CSPI)
+
 // NewCSPI ...
-func NewCSPI() *CSPI {
-	return &CSPI{}
+func NewCSPI(opts ...CSPIOptions) *CSPI {
+	obj := &CSPI{}
+	for _, o := range opts {
+		o(obj)
+	}
+	return obj
+}
+
+// WithCSPIClient ...
+func WithCSPIClient(c clientset.Interface) CSPIOptions {
+	return func(obj *CSPI) {
+		obj.Client = c
+	}
 }
 
 // PreChecks ...

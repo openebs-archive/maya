@@ -70,7 +70,9 @@ func (obj *CSPCPatch) PreUpgrade() error {
 // Init initializes all the fields of the CSPCPatch
 func (obj *CSPCPatch) Init() error {
 	obj.Namespace = obj.OpenebsNamespace
-	obj.CSPC = patch.NewCSPC()
+	obj.CSPC = patch.NewCSPC(
+		patch.WithCSPCClient(obj.OpenebsClientset),
+	)
 	err := obj.CSPC.Get(obj.Name, obj.Namespace)
 	if err != nil {
 		return err
@@ -115,7 +117,7 @@ func (obj *CSPCPatch) Upgrade() error {
 	}
 	res := *obj.ResourcePatch
 	cspiList, err := obj.Client.OpenebsClientset.CstorV1().
-		CStorPoolClusters(obj.Namespace).List(
+		CStorPoolInstances(obj.Namespace).List(
 		metav1.ListOptions{
 			LabelSelector: "openebs.io/cstor-pool-cluster=" + obj.Name,
 		},
@@ -127,6 +129,7 @@ func (obj *CSPCPatch) Upgrade() error {
 		res.Name = cspiObj.Name
 		dependant := NewCSPIPatch(
 			WithCSPIResorcePatch(&res),
+			WithCSPIClient(obj.Client),
 		)
 		err = dependant.Upgrade()
 		if err != nil {
