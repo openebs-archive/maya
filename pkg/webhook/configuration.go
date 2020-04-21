@@ -68,12 +68,16 @@ var (
 	five = int32(5)
 	// Ignore means that an error calling the webhook is ignored.
 	Ignore = v1beta1.Ignore
+	// Fail means that an error calling the webhook causes the admission to fail.
+	Fail = v1beta1.Fail
+
 	// transformation function lists to upgrade webhook resources
 	transformSecret = []transformSecretFunc{}
 	transformSvc    = []transformSvcFunc{}
 	transformConfig = []transformConfigFunc{
 		addCSPCDeleteRule,
 		addCVCWithUpdateRule,
+		updateFailurePolicy,
 	}
 	cvcRuleWithOperations = v1beta1.RuleWithOperations{
 		Operations: []v1beta1.OperationType{
@@ -206,7 +210,7 @@ func createValidatingWebhookConfig(
 			CABundle: signingCert,
 		},
 		TimeoutSeconds: &five,
-		FailurePolicy:  &Ignore,
+		FailurePolicy:  &Fail,
 	}
 
 	validator := &v1beta1.ValidatingWebhookConfiguration{
@@ -480,6 +484,14 @@ func addCVCWithUpdateRule(config *v1beta1.ValidatingWebhookConfiguration) {
 		// same webhook.
 		// https://github.com/openebs/maya/blob/9417d96abdaf41a2dbfcdbfb113fb73c83e6cf42/pkg/webhook/configuration.go#L212
 		config.Webhooks[0].Rules = append(config.Webhooks[0].Rules, cvcRuleWithOperations)
+	}
+}
+
+// updateFailurePolicy update validatingWebhookConfiguration failure policy to
+// to `Fail` from 1.10.x release onwards.
+func updateFailurePolicy(config *v1beta1.ValidatingWebhookConfiguration) {
+	if config.Labels[string(apis.OpenEBSVersionKey)] < "1.10.0" {
+		config.Webhooks[0].FailurePolicy = &Fail
 	}
 }
 
