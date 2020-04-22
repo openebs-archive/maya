@@ -30,47 +30,47 @@ Once the release is triggered, Travis build process has to be monitored. Once Tr
 
 Images for the different components are published at the following location:
 
-- Maya API server
-    https://quay.io/repository/openebs/m-apiserver?tab=tags
-    https://quay.io/repository/openebs/m-apiserver-arm64?tab=tags
-    https://hub.docker.com/r/openebs/m-apiserver/tags
-    https://hub.docker.com/r/openebs/m-apiserver-arm64/tags
+- Maya API server <br />
+    https://quay.io/repository/openebs/m-apiserver?tab=tags <br />
+    https://quay.io/repository/openebs/m-apiserver-arm64?tab=tags <br />
+    https://hub.docker.com/r/openebs/m-apiserver/tags <br />
+    https://hub.docker.com/r/openebs/m-apiserver-arm64/tags <br />
 
-- Admission Server
-    https://quay.io/repository/openebs/admission-server?tab=tags
-    https://quay.io/repository/openebs/admission-server-arm64?tab=tags
-    https://hub.docker.com/r/openebs/admission-server/tags
-    https://hub.docker.com/r/openebs/admission-server-arm64/tags
+- Admission Server <br />
+    https://quay.io/repository/openebs/admission-server?tab=tags <br />
+    https://quay.io/repository/openebs/admission-server-arm64?tab=tags <br />
+    https://hub.docker.com/r/openebs/admission-server/tags <br />
+    https://hub.docker.com/r/openebs/admission-server-arm64/tags <br />
 
-- LocalPV Provisioner
-    https://quay.io/repository/openebs/provisioner-localpv?tab=tags
-    https://quay.io/repository/openebs/provisioner-localpv-arm64?tab=tags
-    https://hub.docker.com/r/openebs/provisioner-localpv/tags
-    https://hub.docker.com/r/openebs/provisioner-localpv-arm64/tags
+- LocalPV Provisioner <br />
+    https://quay.io/repository/openebs/provisioner-localpv?tab=tags <br />
+    https://quay.io/repository/openebs/provisioner-localpv-arm64?tab=tags <br />
+    https://hub.docker.com/r/openebs/provisioner-localpv/tags <br />
+    https://hub.docker.com/r/openebs/provisioner-localpv-arm64/tags <br />
 
-- CStor Pool Mgmt
-    https://quay.io/repository/openebs/cstor-pool-mgmt?tab=tags
-    https://quay.io/repository/openebs/cstor-pool-mgmt-arm64?tab=tags
-    https://hub.docker.com/r/openebs/cstor-pool-mgmt/tags
-    https://hub.docker.com/r/openebs/cstor-pool-mgmt-arm64/tags
+- CStor Pool Mgmt <br />
+    https://quay.io/repository/openebs/cstor-pool-mgmt?tab=tags <br />
+    https://quay.io/repository/openebs/cstor-pool-mgmt-arm64?tab=tags <br />
+    https://hub.docker.com/r/openebs/cstor-pool-mgmt/tags <br />
+    https://hub.docker.com/r/openebs/cstor-pool-mgmt-arm64/tags <br />
 
-- CStor Volume Mgmt
-    https://quay.io/repository/openebs/cstor-volume-mgmt?tab=tags
-    https://quay.io/repository/openebs/cstor-volume-mgmt-arm64?tab=tags
-    https://hub.docker.com/r/openebs/cstor-volume-mgmt/tags
-    https://hub.docker.com/r/openebs/cstor-volume-mgmt-arm64/tags
+- CStor Volume Mgmt <br />
+    https://quay.io/repository/openebs/cstor-volume-mgmt?tab=tags <br />
+    https://quay.io/repository/openebs/cstor-volume-mgmt-arm64?tab=tags <br />
+    https://hub.docker.com/r/openebs/cstor-volume-mgmt/tags <br />
+    https://hub.docker.com/r/openebs/cstor-volume-mgmt-arm64/tags <br />
 
-- Maya Exporter
-    https://quay.io/repository/openebs/m-exporter?tab=tags
-    https://quay.io/repository/openebs/m-exporter-arm64?tab=tags
-    https://hub.docker.com/r/openebs/m-exporter/tags
-    https://hub.docker.com/r/openebs/m-exporter-arm64/tags
+- Maya Exporter <br />
+    https://quay.io/repository/openebs/m-exporter?tab=tags <br />
+    https://quay.io/repository/openebs/m-exporter-arm64?tab=tags <br />
+    https://hub.docker.com/r/openebs/m-exporter/tags <br />
+    https://hub.docker.com/r/openebs/m-exporter-arm64/tags <br />
 
-- OpenEBS Upgrades
-    https://quay.io/repository/openebs/m-upgrade?tab=tags
-    https://quay.io/repository/openebs/m-upgrade-arm64?tab=tags
-    https://hub.docker.com/r/openebs/m-upgrade/tags
-    https://hub.docker.com/r/openebs/m-upgrade-arm64/tags
+- OpenEBS Upgrades <br />
+    https://quay.io/repository/openebs/m-upgrade?tab=tags <br />
+    https://quay.io/repository/openebs/m-upgrade-arm64?tab=tags <br />
+    https://hub.docker.com/r/openebs/m-upgrade/tags <br />
+    https://hub.docker.com/r/openebs/m-upgrade-arm64/tags <br />
 
 Once a release is created, update the release description with the changelog mentioned in `changelog/v1.9.x`. Once the changelogs are updated in the release, the repo owner needs to create a PR to `master` with the following details:
 1. update the changelog from `changelog/v1.9.x` to `maya/CHANGELOG.md`
