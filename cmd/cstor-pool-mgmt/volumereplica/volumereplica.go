@@ -766,7 +766,7 @@ func getAndAddPendingSnapshotList(
 		}
 	}
 
-	klog.Infof(
+	klog.V(2).Infof(
 		"Adding %v pending snapshots and deleting %v pending snapshots on CVR %s",
 		newSnapshots,
 		removedSnapshots,
@@ -871,7 +871,7 @@ func addOrDeleteSnapshotListInfo(
 			delete(cvr.Status.PendingSnapshots, snapName)
 		}
 	}
-	klog.Infof(
+	klog.V(2).Infof(
 		"Adding %v snapshots and deleting %v snapshots on CVR %s",
 		newSnapshots,
 		removedSnapshots,
@@ -900,39 +900,21 @@ func getSnapshotInfo(dsName, snapName string) (apis.CStorSnapshotInfo, error) {
 		WithScriptedMode(true).
 		WithParsableMode(true).
 		WithField("value").
-		WithProperty("referenced").
-		WithProperty("written").
 		WithProperty("logicalreferenced").
 		WithProperty("used").
-		WithProperty("compressratio").
 		WithDataset(dsName + "@" + snapName).
 		Execute()
 	if err != nil {
 		return apis.CStorSnapshotInfo{}, errors.Wrapf(err, "failed to get snapshot properties")
 	}
 	valueList := strings.Split(string(ret), "\n")
-	// Since we made zfs query in following order referenced, written,
-	// logicalreferenced, used and compressionratio output also will be
-	// in the same order
-
-	// referenced and written values are of type int64
-	var pInt64 []int64
-	var valI int64
-	for _, v := range []string{valueList[0], valueList[1]} {
-		valI, err = strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			break
-		}
-		pInt64 = append(pInt64, valI)
-	}
-	if err != nil {
-		return apis.CStorSnapshotInfo{}, errors.Wrapf(err, "failed to parse the snapshot properties")
-	}
+	// Since we made zfs query in following order logicalreferenced,
+	// used output also will be in the same order
 
 	// logicalReferenced and Used values are of type uint64
 	var pUint64 []uint64
 	var valU uint64
-	for _, v := range []string{valueList[2], valueList[3]} {
+	for _, v := range []string{valueList[0], valueList[1]} {
 		valU, err = strconv.ParseUint(v, 10, 64)
 		if err != nil {
 			break
@@ -944,11 +926,9 @@ func getSnapshotInfo(dsName, snapName string) (apis.CStorSnapshotInfo, error) {
 	}
 
 	snapInfo := apis.CStorSnapshotInfo{
-		Referenced:        pInt64[0],
-		Written:           pInt64[1],
 		LogicalReferenced: pUint64[0],
-		Used:              pUint64[1],
-		CompressionRatio:  valueList[4],
+		// TODO: Populate Used value when we are estimating time for rebuild
+		// Used:              pUint64[1],
 	}
 	return snapInfo, nil
 }

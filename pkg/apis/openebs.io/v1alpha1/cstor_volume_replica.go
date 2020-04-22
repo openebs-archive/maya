@@ -142,18 +142,8 @@ type CStorSnapshotInfo struct {
 	// space consumed by metadata.
 	LogicalReferenced uint64 `json:"logicalReferenced"`
 
-	// Written describes the amount of referenced space written to this snapshot
-	Written int64 `json:"written"`
-
-	// CompressionRatio describes the compression factor of snapshot
-	CompressionRatio string `json:"compression"`
-
-	// Referenced describes the amount of data that is accessible
-	// by this snapshot
-	Referenced int64 `json:"referenced"`
-
 	// Used is the used bytes for given snapshot
-	Used uint64 `json:"used"`
+	// Used uint64 `json:"used"`
 }
 
 // CStorVolumeCapacityAttr is for storing the volume capacity.
