@@ -143,7 +143,7 @@ type CStorSnapshotInfo struct {
 	LogicalReferenced uint64 `json:"logicalReferenced"`
 
 	// Used is the used bytes for given snapshot
-	Used uint64 `json:"used"`
+	// Used uint64 `json:"used"`
 }
 
 // CStorVolumeCapacityAttr is for storing the volume capacity.
