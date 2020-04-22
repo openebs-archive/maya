@@ -1,18 +1,17 @@
-<!--  Thanks for sending a pull request!  Here are some tips for you -->
+## Pull Request template
+Please, go through these steps before you submit a PR.
 
-**What this PR does / why we need it**:
+1. This repository follows semantic versioning convention, therefore each PR title/commit message must follow convention: `<type>(<scope>): <subject>`.
+   `type` is defining if release will be triggering after merging submitted changes, details in [CONTRIBUTING.md](../CONTRIBUTING.md).
+    Most common types are:
+    * `feat`      - for new features, not a new feature for build script
+    * `fix`       - for bug fixes or improvements, not a fix for build script
+    * `chore`     - changes not related to production code
+    * `docs`      - changes related to documentation
+    * `style`     - formatting, missing semi colons, linting fix etc; no significant production code changes
+    * `test`      - adding missing tests, refactoring tests; no production code change
+    * `refactor`  - refactoring production code, eg. renaming a variable or function name, there should not be any significant production code changes
 
-**Which issue this PR fixes** *(optional, in `fixes #<issue number>(, fixes #<issue_number>, ...)` format, will close that issue when PR gets merged)*: fixes #
+IMPORTANT: Please review the [CONTRIBUTING.md](../CONTRIBUTING.md) file for detailed contributing guidelines.
 
-**Special notes for your reviewer**:
-
-**Checklist:**
-- [ ] Fixes #<issue number>
-- [ ] Labelled this PR & related issue with `documentation` tag
-- [ ] PR messages has document related information
-- [ ] Labelled this PR & related issue with `breaking-changes` tag
-- [ ] PR messages has breaking changes related information
-- [ ] Labelled this PR & related issue with `requires-upgrade` tag
-- [ ] PR messages has upgrade related information
-- [ ] Commit has unit tests
-- [ ] Commit has integration tests
+**PLEASE REMOVE THIS TEMPLATE BEFORE SUBMITTING**
