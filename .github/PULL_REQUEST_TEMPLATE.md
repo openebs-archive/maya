@@ -30,13 +30,22 @@ The PR title message must follow convention:
    `<type>(<scope>): <subject>`.
 
 Where: <br />
-  `type` is defining if release will be triggering after merging submitted changes, details in [CONTRIBUTING.md](../CONTRIBUTING.md).
+- `type` is defining if release will be triggering after merging submitted changes, details in [CONTRIBUTING.md](../CONTRIBUTING.md).
     Most common types are:
-- `feat`      - for new features, not a new feature for build script
-- `fix`       - for bug fixes or improvements, not a fix for build script
-- `chore`     - changes not related to production code
-- `docs`      - changes related to documentation
-- `style`     - formatting, missing semi colons, linting fix etc; no significant production code changes
-- `test`      - adding missing tests, refactoring tests; no production code change
-- `refactor`  - refactoring production code, eg. renaming a variable or function name, there should not be any significant production code changes
+    - `feat`      - for new features, not a new feature for build script
+    - `fix`       - for bug fixes or improvements, not a fix for build script
+    - `chore`     - changes not related to production code
+    - `docs`      - changes related to documentation
+    - `style`     - formatting, missing semi colons, linting fix etc; no significant production code changes
+    - `test`      - adding missing tests, refactoring tests; no production code change
+    - `refactor`  - refactoring production code, eg. renaming a variable or function name, there should not be any significant production code changes
 
+- `scope` is a single word that best describes where the changes fits. 
+  Most common scopes are like:
+    - data engine (`localpv`, `jiva`, `cstor`)
+    - feature (`provisioning`, `backup`, `restore`, `exporter`)
+    - code component (`api`, `webhook`, `cast`, `upgrade`)
+    - test (`tests`, `bdd`)
+    - chores (`version`, `build`, `log`, `travis`)
+
+- `subject` is a single line brief description of the changes made in the pull request.
