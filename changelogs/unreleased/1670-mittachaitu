@@ -1,1 +1,1 @@
-feat(volume replica): enable REBUILD_ESTIMATES feature gate by default from OpenEBS 1.10.0 version
+feat(cStorVolumeReplica): enable REBUILD_ESTIMATES feature gate by default from OpenEBS 1.10.0 version
