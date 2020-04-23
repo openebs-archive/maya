@@ -40,7 +40,7 @@ Where: <br />
     - `test`      - adding missing tests, refactoring tests; no production code change
     - `refactor`  - refactoring production code, eg. renaming a variable or function name, there should not be any significant production code changes
 
-- `scope` is a single word that best describes where the changes fits. 
+- `scope` is a single word that best describes where the changes fit. 
   Most common scopes are like:
     - data engine (`localpv`, `jiva`, `cstor`)
     - feature (`provisioning`, `backup`, `restore`, `exporter`)
