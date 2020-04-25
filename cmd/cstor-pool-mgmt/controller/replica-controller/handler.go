@@ -650,7 +650,12 @@ func (c *CStorVolumeReplicaController) syncCVRStatus(cvr *apis.CStorVolumeReplic
 
 	err = volumereplica.GetAndUpdateSnapshotInfo(c.clientset, cvr)
 	if err != nil {
-		return errors.Wrapf(err, "unable to update snapshot list details in CVR")
+		c.recorder.Event(
+			cvr,
+			corev1.EventTypeWarning,
+			"List Snapshot",
+			fmt.Sprintf("unable to update snapshot list details in CVR error: %s", err.Error()),
+		)
 	}
 
 	return nil
