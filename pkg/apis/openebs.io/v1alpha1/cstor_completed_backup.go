@@ -29,7 +29,28 @@ import (
 type CStorCompletedBackup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              CStorBackupSpec `json:"spec"`
+	Spec              CStorCompletedBackupSpec `json:"spec"`
+}
+
+// CStorCompletedBackupSpec is the spec for a CStorCompletedBackup resource
+type CStorCompletedBackupSpec struct {
+	// BackupName is a name of the backup or scheduled backup
+	BackupName string `json:"backupName"`
+
+	// VolumeName is a name of the volume for which this backup is destined
+	VolumeName string `json:"volumeName"`
+
+	// SnapName is a name of the current backup snapshot
+	SnapName string `json:"snapName,omitempty"`
+
+	// PrevSnapName is the last completed-backup's snapshot name
+	PrevSnapName string `json:"prevSnapName,omitempty"`
+
+	// SecondLastSnapName is a name of the second last completed-backup's snapshot
+	SecondLastSnapName string `json:"secondLastSnapName"`
+
+	// LastSnapName is the last completed-backup's snapshot name
+	LastSnapName string `json:"lastSnapName"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

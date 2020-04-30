@@ -224,7 +224,7 @@ func getLastBackupSnap(openebsClient *versioned.Clientset, bkp *v1alpha1.CStorBa
 				Namespace: bkp.Namespace,
 				Labels:    bkp.Labels,
 			},
-			Spec: v1alpha1.CStorBackupSpec{
+			Spec: v1alpha1.CStorCompletedBackupSpec{
 				BackupName: bkp.Spec.BackupName,
 				VolumeName: bkp.Spec.VolumeName,
 			},
@@ -239,8 +239,8 @@ func getLastBackupSnap(openebsClient *versioned.Clientset, bkp *v1alpha1.CStorBa
 		return "", nil
 	}
 
-	// PrevSnapName stores the last completed backup snapshot
-	return b.Spec.PrevSnapName, nil
+	// LastSnapName stores the last completed backup snapshot
+	return b.Spec.LastSnapName, nil
 }
 
 // get is http handler which handles backup get request
@@ -396,9 +396,8 @@ func findLastBackupStat(clientset versioned.Interface, bkp *v1alpha1.CStorBackup
 		return v1alpha1.BKPCStorStatusFailed
 	}
 
-	// lastbkp stores the last(PrevSnapName) and 2nd last(SnapName) completed snapshot
-	// let's check if last backup's snapname/PrevSnapName  matches with current snapshot name
-	if bkp.Spec.SnapName == lastbkp.Spec.SnapName || bkp.Spec.SnapName == lastbkp.Spec.PrevSnapName {
+	// let's check if last backup's LastSnapName/SecondLastSnapName matches with current snapshot name
+	if bkp.Spec.SnapName == lastbkp.Spec.SecondLastSnapName || bkp.Spec.SnapName == lastbkp.Spec.LastSnapName {
 		return v1alpha1.BKPCStorStatusDone
 	}
 
@@ -461,11 +460,10 @@ func deleteBackup(client *versioned.Clientset, backup, volname, ns, schedule str
 		return errors.Wrapf(err, "failed to fetch last-completed-backup=%s resource", lastCompletedBackup)
 	}
 
-	// lastbkp stores the last(PrevSnapName) and 2nd last(SnapName) completed snapshot
-	// If given backup is the last backup of scheduled backup (lastbkp.Spec.PrevSnapName == backup) or
-	// completedBackup doesn't have successful backup(len(lastbkp.Spec.PrevSnapName) == 0) then we will delete the lastbkp CR
+	// If given backup is the last backup of scheduled backup (lastbkp.Spec.LastSnapName == backup) or
+	// completedBackup doesn't have successful backup(len(lastbkp.Spec.LastSnapName) == 0) then we will delete the lastbkp CR
 	// Deleting this CR make sure that next backup of the schedule will be full backup
-	if lastbkp != nil && (lastbkp.Spec.PrevSnapName == backup || len(lastbkp.Spec.PrevSnapName) == 0) {
+	if lastbkp != nil && (lastbkp.Spec.LastSnapName == backup || len(lastbkp.Spec.LastSnapName) == 0) {
 		err := client.OpenebsV1alpha1().CStorCompletedBackups(ns).Delete(lastCompletedBackup, &v1.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
 			return errors.Wrapf(err, "failed to delete last-completed-backup=%s resource", lastCompletedBackup)

@@ -208,8 +208,8 @@ func findLastBackupStat(clientset clientset.Interface, bkp apis.CStorBackup) api
 		return apis.BKPCStorStatusFailed
 	}
 
-	// let's check if snapname matches with current snapshot name
-	if bkp.Spec.SnapName == lastbkp.Spec.SnapName || bkp.Spec.SnapName == lastbkp.Spec.PrevSnapName {
+	// let's check if snapname matches with relevant cstorcompletedbackup's last or 2nd last snap name
+	if bkp.Spec.SnapName == lastbkp.Spec.SecondLastSnapName || bkp.Spec.SnapName == lastbkp.Spec.LastSnapName {
 		return apis.BKPCStorStatusDone
 	}
 
