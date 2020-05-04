@@ -112,8 +112,9 @@ func TestPoolSyncTimeMetricCollector(t *testing.T) {
 			regex := mockServer.BuildRegex(out)
 			vol := NewPoolSyncMetric(tt.runner)
 			stop := make(chan struct{})
+			hostname := os.Getenv("HOSTNAME")
 			os.Setenv("HOSTNAME", tt.hostname)
-			defer os.Unsetenv("HOSTNAME")
+			defer os.Setenv("HOSTNAME", hostname)
 			buf := mockServer.PrometheusService(vol, stop)
 			// expectedOutput the regex after parsing the expected output of zfs list command into prometheus's format.
 			for _, re := range regex {
