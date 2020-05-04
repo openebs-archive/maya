@@ -117,8 +117,12 @@ var _ = Describe("[jiva] TEST JIVA SNAPSHOT CREATION", func() {
 	When("jiva snapshot is deleted", func() {
 		It("should remove above snapshot", func() {
 
+			snapshotObj, err := ops.SnapClient.
+				Get(snapName, metav1.GetOptions{})
+			Expect(err).To(BeNil())
+
 			By("deleting above snapshot")
-			err := ops.SnapClient.Delete(snapName, &metav1.DeleteOptions{})
+			err = ops.SnapClient.Delete(snapName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting snapshot {%s} in namespace {%s}",
@@ -129,6 +133,10 @@ var _ = Describe("[jiva] TEST JIVA SNAPSHOT CREATION", func() {
 			By("verifying deleted snapshot")
 			snap := ops.IsSnapshotDeleted(snapName)
 			Expect(snap).To(Equal(true), "while checking for deleted snapshot")
+
+			By("Verifying deletion of snapshotdata")
+			snapData := ops.IsSnapshotDataDeleted(snapshotObj.Spec.SnapshotDataName)
+			Expect(snapData).To(Equal(true), "while checking for deleted snapshot")
 
 		})
 	})
