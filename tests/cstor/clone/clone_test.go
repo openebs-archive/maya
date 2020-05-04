@@ -429,7 +429,7 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 
 			By("Verifying deletion of snapshotdata")
 			snapData := ops.IsSnapshotDataDeleted(snapshotObj.Spec.SnapshotDataName)
-			Expect(snapData).To(Equal(true), "while checking for deleted snapshot")
+			Expect(snapData).To(Equal(true), "while checking for deleted snapshotdata")
 
 			By("deleting source persistentvolumeclaim")
 			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
