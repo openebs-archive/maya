@@ -30,18 +30,18 @@ protobuf:
 volume-mgmt-image: cstor-volume-mgmt
 	@echo "----------------------------"
 	@echo -n "--> cstor-volume-mgmt image "
-	@echo "${HUB_USER}/${CSTOR_VOLUME_MGMT_REPO_NAME}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${CSTOR_VOLUME_MGMT_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/cstor-volume-mgmt/${VOLUME_MGMT} buildscripts/cstor-volume-mgmt/
-	@cd buildscripts/cstor-volume-mgmt && sudo docker build -t ${HUB_USER}/${CSTOR_VOLUME_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/cstor-volume-mgmt && sudo docker build -t ${IMAGE_ORG}/${CSTOR_VOLUME_MGMT_REPO_NAME}:${IMAGE_TAG} ${DBUILD_ARGS} .
 	@rm buildscripts/cstor-volume-mgmt/${VOLUME_MGMT}
 
 .PHONY: volume-mgmt-image.arm64
 volume-mgmt-image.arm64: cstor-volume-mgmt
 	@echo "----------------------------"
 	@echo -n "--> cstor-volume-mgmt image "
-	@echo "${HUB_USER}/${CSTOR_VOLUME_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${CSTOR_VOLUME_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/cstor-volume-mgmt/${VOLUME_MGMT} buildscripts/cstor-volume-mgmt/
-	@cd buildscripts/cstor-volume-mgmt && sudo docker build -t ${HUB_USER}/${CSTOR_VOLUME_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG} -f Dockerfile.arm64 --build-arg BUILD_DATE=${BUILD_DATE} --build-arg BASE_IMAGE=${BASE_DOCKER_IMAGE_ARM64} .
+	@cd buildscripts/cstor-volume-mgmt && sudo docker build -t ${IMAGE_ORG}/${CSTOR_VOLUME_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG} -f Dockerfile.arm64 ${DBUILD_ARGS} --build-arg BASE_IMAGE=${BASE_DOCKER_IMAGE_ARM64} .
 	@rm buildscripts/cstor-volume-mgmt/${VOLUME_MGMT}

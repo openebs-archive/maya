@@ -20,13 +20,16 @@ COPY entrypoint.sh /usr/local/bin/
 
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-ARG BUILD_DATE
+ARG ARCH
+ARG DBUILD_DATE
+ARG DBUILD_REPO_URL
+ARG DBUILD_SITE_URL
 LABEL org.label-schema.name="m-agent"
 LABEL org.label-schema.description="OpenEBS Agent"
-LABEL org.label-schema.url="http://www.openebs.io/"
-LABEL org.label-schema.vcs-url="https://github.com/openebs/maya"
 LABEL org.label-schema.schema-version="1.0"
-LABEL org.label-schema.build-date=$BUILD_DATE
+LABEL org.label-schema.build-date=$DBUILD_DATE
+LABEL org.label-schema.vcs-url=$DBUILD_REPO_URL
+LABEL org.label-schema.url=$DBUILD_SITE_URL
 
 ENTRYPOINT entrypoint.sh "${MAYA_AGENT_NETWORK}"
 EXPOSE 7676

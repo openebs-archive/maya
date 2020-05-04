@@ -21,10 +21,10 @@ cstor-pool-mgmt:
 pool-mgmt-image: cstor-pool-mgmt
 	@echo "----------------------------"
 	@echo -n "--> cstor-pool-mgmt image "
-	@echo "${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${CSTOR_POOL_MGMT_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/cstor-pool-mgmt/${POOL_MGMT} buildscripts/cstor-pool-mgmt/
-	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t ${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
+	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t ${IMAGE_ORG}/${CSTOR_POOL_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} ${DBUILD_ARGS} . --no-cache
 	@rm buildscripts/cstor-pool-mgmt/${POOL_MGMT}
 
 #Use this to build debug image of cstor-pool-mgmt
@@ -32,19 +32,19 @@ pool-mgmt-image: cstor-pool-mgmt
 pool-mgmt-debug-image:
 	@echo "----------------------------"
 	@echo -n "--> cstor-pool-mgmt debug image "
-	@echo "${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME}:inject"
+	@echo "${IMAGE_ORG}/${CSTOR_POOL_MGMT_REPO_NAME}:inject"
 	@echo "----------------------------"
 	@PNAME=${CSP_OPERATOR_DEBUG} CTLNAME=${POOL_MGMT} BUILD_TAG="-tags=debug" sh -c "'$(PWD)/buildscripts/build.sh'"
 	@cp bin/${CSP_OPERATOR_DEBUG}/${POOL_MGMT} buildscripts/${CSP_OPERATOR_DEBUG}/
-	@cd buildscripts/${CSP_OPERATOR_DEBUG} && sudo docker build -t ${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME}:inject --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
+	@cd buildscripts/${CSP_OPERATOR_DEBUG} && sudo docker build -t ${IMAGE_ORG}/${CSTOR_POOL_MGMT_REPO_NAME}:inject --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} ${DBUILD_ARGS} . --no-cache
 	@rm buildscripts/${CSP_OPERATOR_DEBUG}/${POOL_MGMT}
 
 .PHONY: pool-mgmt-image.arm64
 pool-mgmt-image.arm64: cstor-pool-mgmt
 	@echo "----------------------------"
 	@echo -n "--> cstor-pool-mgmt image "
-	@echo "${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${CSTOR_POOL_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/cstor-pool-mgmt/${POOL_MGMT} buildscripts/cstor-pool-mgmt/
-	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t ${HUB_USER}/${CSTOR_POOL_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE_ARM64} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
+	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t ${IMAGE_ORG}/${CSTOR_POOL_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE_ARM64} ${DBUILD_ARGS} . --no-cache
 	@rm buildscripts/cstor-pool-mgmt/${POOL_MGMT}

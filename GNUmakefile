@@ -66,9 +66,6 @@ EXTERNAL_TOOLS=\
 # list only our .go files i.e. exlcudes any .go files from the vendor directory
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
-# docker hub username
-HUB_USER?=openebs
-
 ifeq (${IMAGE_TAG}, )
   IMAGE_TAG = ci
   export IMAGE_TAG
@@ -103,8 +100,45 @@ ifeq (${BASE_DOCKER_IMAGE_PPC64LE}, )
   export BASE_DOCKER_IMAGE_PPC64LE
 endif
 
-# Specify the date o build
-BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
+# The images can be pushed to any docker/image registeries
+# like docker hub, quay. The registries are specified in 
+# the `build/push` script.
+#
+# The images of a project or company can then be grouped
+# or hosted under a unique organization key like `openebs`
+#
+# Each component (container) will be pushed to a unique 
+# repository under an organization. 
+# Putting all this together, an unique uri for a given 
+# image comprises of:
+#   <registry url>/<image org>/<image repo>:<image-tag>
+#
+# IMAGE_ORG can be used to customize the organization 
+# under which images should be pushed. 
+# By default the organization name is `openebs`. 
+
+ifeq (${IMAGE_ORG}, )
+  IMAGE_ORG = openebs
+  export IMAGE_ORG
+endif
+
+# Specify the date of build
+DBUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+# Specify the docker arg for repository url
+ifeq (${DBUILD_REPO_URL}, )
+  DBUILD_REPO_URL="https://github.com/openebs/maya"
+  export DBUILD_REPO_URL
+endif
+
+# Specify the docker arg for website url
+ifeq (${DBUILD_SITE_URL}, )
+  DBUILD_SITE_URL="https://openebs.io"
+  export DBUILD_SITE_URL
+endif
+
+export DBUILD_ARGS=--build-arg DBUILD_DATE=${DBUILD_DATE} --build-arg DBUILD_REPO_URL=${DBUILD_REPO_URL} --build-arg DBUILD_SITE_URL=${DBUILD_SITE_URL} --build-arg ARCH=${ARCH}
+
 
 include ./buildscripts/mayactl/Makefile.mk
 include ./buildscripts/apiserver/Makefile.mk

@@ -20,18 +20,18 @@ cspi-mgmt:
 cspi-mgmt-image: cspi-mgmt
 	@echo "----------------------------"
 	@echo -n "--> cspi-mgmt image "
-	@echo "${HUB_USER}/${CSPI_MGMT_REPO_NAME}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${CSPI_MGMT_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/cspi-mgmt/${CSPI_MGMT} buildscripts/cspi-mgmt/
-	@cd buildscripts/cspi-mgmt && sudo docker build -t ${HUB_USER}/${CSPI_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
+	@cd buildscripts/cspi-mgmt && sudo docker build -t ${IMAGE_ORG}/${CSPI_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} ${DBUILD_ARGS} . --no-cache
 	@rm buildscripts/cspi-mgmt/${CSPI_MGMT}
 
 .PHONY: cspi-mgmt-image.arm64
 cspi-mgmt-image.arm64: cspi-mgmt
 	@echo "----------------------------"
 	@echo -n "--> cspi-mgmt image "
-	@echo "${HUB_USER}/${CSPI_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${CSPI_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/cspi-mgmt/${CSPI_MGMT} buildscripts/cspi-mgmt/
-	@cd buildscripts/cspi-mgmt && sudo docker build -t ${HUB_USER}/${CSPI_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE_ARM64} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
+	@cd buildscripts/cspi-mgmt && sudo docker build -t ${IMAGE_ORG}/${CSPI_MGMT_REPO_NAME_ARM64}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE_ARM64} ${DBUILD_ARGS} . --no-cache
 	@rm buildscripts/cspi-mgmt/${CSPI_MGMT}

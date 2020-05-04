@@ -35,11 +35,11 @@ apiserver:
 apiserver-image: mayactl apiserver
 	@echo "----------------------------"
 	@echo -n "--> apiserver image "
-	@echo "${HUB_USER}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
 	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
-	@cd buildscripts/apiserver && sudo docker build -t ${HUB_USER}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/apiserver && sudo docker build -t ${IMAGE_ORG}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG} ${DBUILD_ARGS} .
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
 
@@ -47,11 +47,11 @@ apiserver-image: mayactl apiserver
 rhel-apiserver-image: mayactl apiserver
 	@echo "----------------------------"
 	@echo -n "--> rhel based apiserver image "
-	@echo "${HUB_USER}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
 	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
-	@cd buildscripts/apiserver && sudo docker build -t ${HUB_USER}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG} -f Dockerfile.rhel --build-arg VERSION=${VERSION} .
+	@cd buildscripts/apiserver && sudo docker build -t ${IMAGE_ORG}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG} -f Dockerfile.rhel --build-arg VERSION=${VERSION} .
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
 
@@ -59,11 +59,11 @@ rhel-apiserver-image: mayactl apiserver
 apiserver-image.arm64: mayactl apiserver
 	@echo "----------------------------"
 	@echo -n "--> apiserver image "
-	@echo "${HUB_USER}/${M_APISERVER_REPO_NAME_ARM64}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${M_APISERVER_REPO_NAME_ARM64}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
 	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
-	@cd buildscripts/apiserver && sudo docker build -t ${HUB_USER}/${M_APISERVER_REPO_NAME_ARM64}:${IMAGE_TAG} -f Dockerfile.arm64 --build-arg BUILD_DATE=${BUILD_DATE} --build-arg BASE_IMAGE=${BASE_DOCKER_IMAGE_ARM64} .
+	@cd buildscripts/apiserver && sudo docker build -t ${IMAGE_ORG}/${M_APISERVER_REPO_NAME_ARM64}:${IMAGE_TAG} -f Dockerfile.arm64 ${DBUILD_ARGS} --build-arg BASE_IMAGE=${BASE_DOCKER_IMAGE_ARM64} .
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
 

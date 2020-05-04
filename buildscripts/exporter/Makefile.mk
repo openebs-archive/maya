@@ -22,18 +22,18 @@ exporter:
 exporter-image: exporter
 	@echo "----------------------------"
 	@echo -n "--> m-exporter image "
-	@echo "${HUB_USER}/${M_EXPORTER_REPO_NAME}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${M_EXPORTER_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/exporter/${EXPORTER} buildscripts/exporter/
-	@cd buildscripts/exporter && sudo docker build -t ${HUB_USER}/${M_EXPORTER_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} .
+	@cd buildscripts/exporter && sudo docker build -t ${IMAGE_ORG}/${M_EXPORTER_REPO_NAME}:${IMAGE_TAG} ${DBUILD_ARGS} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} .
 	@rm buildscripts/exporter/${EXPORTER}
 
 .PHONY: exporter-image.arm64
 exporter-image.arm64: exporter
 	@echo "----------------------------"
 	@echo -n "--> m-exporter image "
-	@echo "${HUB_USER}/${M_EXPORTER_REPO_NAME_ARM64}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${M_EXPORTER_REPO_NAME_ARM64}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/exporter/${EXPORTER} buildscripts/exporter/
-	@cd buildscripts/exporter && sudo docker build -t ${HUB_USER}/${M_EXPORTER_REPO_NAME_ARM64}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE_ARM64} .
+	@cd buildscripts/exporter && sudo docker build -t ${IMAGE_ORG}/${M_EXPORTER_REPO_NAME_ARM64}:${IMAGE_TAG} ${DBUILD_ARGS} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE_ARM64} .
 	@rm buildscripts/exporter/${EXPORTER}
