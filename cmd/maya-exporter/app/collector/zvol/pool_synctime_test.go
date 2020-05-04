@@ -16,6 +16,7 @@ package zvol
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	types "github.com/openebs/maya/pkg/exec"
@@ -31,62 +32,69 @@ func TestPoolSyncTimeMetricCollector(t *testing.T) {
 		isError                 bool
 		expectedOutput          []string
 		runner                  types.Runner
+		hostname                string
 	}{
 		"Test0": {
 			// expected output if there is openebs.io:timestamp set
 			zpoolLastSyncTimeOutput: `cstor-c6f17743-e5d7-11e9-b673-42010a800112      io.openebs:livenesstimestamp    1570625404      local
 			cstor-c6f17743-e5d7-11e9-b673-42010a800112/pvc-053647ca-e5d8-11e9-b673-42010a800112     io.openebs:livenesstimestamp    1570625404      inherited from cstor-c6f17743-e5d7-11e9-b673-42010a800112`,
 			expectedOutput: []string{
-				`openebs_zpool_last_sync_time{pool="cstor-c6f17743-e5d7-11e9-b673-42010a800112"} 1.570625404e\+09`,
-				`openebs_zpool_state_unknown{pool="cstor-c6f17743-e5d7-11e9-b673-42010a800112"} 0`,
-				`openebs_zpool_sync_time_command_error{pool="cstor-c6f17743-e5d7-11e9-b673-42010a800112"} 0`,
+				`openebs_zpool_last_sync_time{pool="pool-pod-name-test-0"} 1.570625404e\+09`,
+				`openebs_zpool_state_unknown{pool="pool-pod-name-test-0"} 0`,
+				`openebs_zpool_sync_time_command_error{pool="pool-pod-name-test-0"} 0`,
 			},
+			hostname: "pool-pod-name-test-0",
 		},
 		"Test1": {
 			// if expected output from zfs binary is empty
 			zpoolLastSyncTimeOutput: ``,
 			expectedOutput: []string{
-				`openebs_zpool_last_sync_time{pool=""} 0`,
-				`openebs_zpool_state_unknown{pool=""} 1`,
-				`openebs_zpool_sync_time_command_error{pool=""} 0`,
+				`openebs_zpool_last_sync_time{pool="pool-pod-name-test-1"} 0`,
+				`openebs_zpool_state_unknown{pool="pool-pod-name-test-1"} 1`,
+				`openebs_zpool_sync_time_command_error{pool="pool-pod-name-test-1"} 0`,
 			},
+			hostname: "pool-pod-name-test-1",
 		},
 		"Test2": {
 			// if expected output is No pool Available
 			zpoolLastSyncTimeOutput: string(zpool.NoPoolAvailable),
 			expectedOutput: []string{
-				`openebs_zpool_last_sync_time{pool=""} 0`,
-				`openebs_zpool_state_unknown{pool=""} 1`,
-				`openebs_zpool_sync_time_command_error{pool=""} 0`,
+				`openebs_zpool_last_sync_time{pool="pool-pod-name-test-2"} 0`,
+				`openebs_zpool_state_unknown{pool="pool-pod-name-test-2"} 1`,
+				`openebs_zpool_sync_time_command_error{pool="pool-pod-name-test-2"} 0`,
 			},
+			hostname: "pool-pod-name-test-2",
 		},
 		"Test3": {
 			// if there is error executing the command
 			isError: true,
 			expectedOutput: []string{
-				`openebs_zpool_last_sync_time{pool=""} 0`,
-				`openebs_zpool_state_unknown{pool=""} 0`,
-				`openebs_zpool_sync_time_command_error{pool=""} 1`,
+				`openebs_zpool_last_sync_time{pool="pool-pod-name-test-3"} 0`,
+				`openebs_zpool_state_unknown{pool="pool-pod-name-test-3"} 0`,
+				`openebs_zpool_sync_time_command_error{pool="pool-pod-name-test-3"} 1`,
 			},
+			hostname: "pool-pod-name-test-3",
 		},
 		"Test4": {
 			// if there is unexpected output of last sync time  which cannot be parsed
 			zpoolLastSyncTimeOutput: `cstor-c6d62069-e5d7-11e9-b673-42010a800112      io.openebs:livenesstimestamp    -       -
 			cstor-c6d62069-e5d7-11e9-b673-42010a800112/pvc-053647ca-e5d8-11e9-b673-42010a800112     io.openebs:livenesstimestamp    -       -`,
 			expectedOutput: []string{
-				`openebs_zpool_last_sync_time{pool="cstor-c6d62069-e5d7-11e9-b673-42010a800112"} 0`,
-				`openebs_zpool_state_unknown{pool="cstor-c6d62069-e5d7-11e9-b673-42010a800112"} 0`,
-				`openebs_zpool_sync_time_command_error{pool="cstor-c6d62069-e5d7-11e9-b673-42010a800112"} 0`,
+				`openebs_zpool_last_sync_time{pool="pool-pod-name-test-4"} 0`,
+				`openebs_zpool_state_unknown{pool="pool-pod-name-test-4"} 0`,
+				`openebs_zpool_sync_time_command_error{pool="pool-pod-name-test-4"} 0`,
 			},
+			hostname: "pool-pod-name-test-4",
 		},
 		"Test5": {
 			// if expected output from zfs binary is empty
 			zpoolLastSyncTimeOutput: string(zvol.NoDataSetAvailable),
 			expectedOutput: []string{
-				`openebs_zpool_last_sync_time{pool=""} 0`,
-				`openebs_zpool_state_unknown{pool=""} 1`,
-				`openebs_zpool_sync_time_command_error{pool=""} 0`,
+				`openebs_zpool_last_sync_time{pool="pool-pod-name-test-5"} 0`,
+				`openebs_zpool_state_unknown{pool="pool-pod-name-test-5"} 1`,
+				`openebs_zpool_sync_time_command_error{pool="pool-pod-name-test-5"} 0`,
 			},
+			hostname: "pool-pod-name-test-5",
 		},
 	}
 
@@ -104,6 +112,8 @@ func TestPoolSyncTimeMetricCollector(t *testing.T) {
 			regex := mockServer.BuildRegex(out)
 			vol := NewPoolSyncMetric(tt.runner)
 			stop := make(chan struct{})
+			os.Setenv("HOSTNAME", tt.hostname)
+			defer os.Unsetenv("HOSTNAME")
 			buf := mockServer.PrometheusService(vol, stop)
 			// expectedOutput the regex after parsing the expected output of zfs list command into prometheus's format.
 			for _, re := range regex {

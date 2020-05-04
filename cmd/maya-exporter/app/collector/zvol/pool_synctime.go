@@ -26,16 +26,15 @@ import (
 	"k8s.io/klog"
 )
 
-// setLastSyncTimeAsZero is a boolean which tells to set the last_sync_time as zero
-// in case of an error for the first time.
-var setLastSyncTimeAsZero = true
-
 // poolMetrics implements prometheus.Collector interface
 type poolMetrics struct {
 	sync.Mutex
 	*poolSyncMetrics
-	request bool
-	runner  types.Runner
+	request               bool
+	runner                types.Runner
+	// setLastSyncTimeAsZero is a boolean which tells to set the last_sync_time as zero
+	// in case of an error for the first time.
+	setLastSyncTimeAsZero bool
 }
 
 // NewPoolSyncMetric returns new instance of poolMetrics
@@ -46,7 +45,8 @@ func NewPoolSyncMetric(runner types.Runner) col.Collector {
 			withZpoolStateUnknown().
 			withRequestRejectCounter().
 			withzpoolLastSyncTimeCommandError(),
-		runner: runner,
+		runner:                runner,
+		setLastSyncTimeAsZero: true,
 	}
 }
 
@@ -147,9 +147,9 @@ func (p *poolMetrics) Collect(ch chan<- prometheus.Metric) {
 func (p *poolMetrics) setPoolStats(poolSyncTime *poolfields) {
 	// Do not set the last_sync_time if there is any error, it will retain the previous metric value.
 	// setLastSyncTimeAsZero will set the first metric as zero if it is not set in case of an error.
-	if (poolSyncTime.zpoolStateUnknown != 1 && poolSyncTime.zpoolLastSyncTimeCommandError != 1) || setLastSyncTimeAsZero {
+	if (poolSyncTime.zpoolStateUnknown != 1 && poolSyncTime.zpoolLastSyncTimeCommandError != 1) || p.setLastSyncTimeAsZero {
 		p.zpoolLastSyncTime.WithLabelValues(poolSyncTime.name).Set(poolSyncTime.zpoolLastSyncTime)
-		setLastSyncTimeAsZero = false
+		p.setLastSyncTimeAsZero = false
 	}
 	p.zpoolLastSyncTimeCommandError.WithLabelValues(poolSyncTime.name).Set(poolSyncTime.zpoolLastSyncTimeCommandError)
 	p.zpoolStateUnknown.WithLabelValues(poolSyncTime.name).Set(poolSyncTime.zpoolStateUnknown)
