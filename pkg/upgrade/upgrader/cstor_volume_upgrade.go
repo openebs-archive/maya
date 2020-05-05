@@ -25,6 +25,7 @@ import (
 	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
+	"github.com/openebs/maya/pkg/util"
 	"k8s.io/klog"
 
 	errors "github.com/pkg/errors"
@@ -109,8 +110,9 @@ func patchTargetDeploy(d *appsv1.Deployment, ns string) error {
 		)
 	}
 	if version == currentVersion {
-		tmpl, err := template.New("targetPatch").
-			Parse(templates.CstorTargetPatch)
+		tmpl, err := template.New("targetPatch").Funcs(template.FuncMap{
+			"compareVersions": util.CompareVersions,
+		}).Parse(templates.CstorTargetPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for cstor target deployment patch")
 		}

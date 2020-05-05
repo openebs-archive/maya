@@ -27,6 +27,7 @@ import (
 	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	jivaClient "github.com/openebs/maya/pkg/client/jiva"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
+	"github.com/openebs/maya/pkg/util"
 	errors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -156,7 +157,7 @@ func getReplica(pvName, replicaLabel, volumeNamespace, openebsNamespace string) 
 	// replicaObj.name and replicaObj.version would be empty if old replica got
 	// deleted as part of upgrade.
 	// So, later on code uses replicaObj.name to perform replica related migration.
-	if currentVersion < "1.9.0" {
+	if util.CompareVersions(currentVersion, "1.9.0") {
 		deployObj, err := deployClient.WithNamespace(volumeNamespace).Get(pvName + "-rep")
 
 		if err != nil && !k8serror.IsNotFound(err) {
@@ -463,7 +464,7 @@ func (j *jivaVolumeOptions) preupgrade(pvName, openebsNamespace string) error {
 		return err
 	}
 
-	if currentVersion < "1.9.0" {
+	if util.CompareVersions(currentVersion, "1.9.0") {
 		err = j.migrate(pvName, openebsNamespace)
 		if err != nil {
 			statusObj.Message = "failed to migrate deployments in openebes namespace"
@@ -493,7 +494,7 @@ func (j *jivaVolumeOptions) preReplicaUpgradeLessThan190(pvName, openebsNamespac
 	// if the upgrade is successful till replica cleanup and restarts
 	// after that old replica will be missing and if replica cleanup
 	// was done then service was also migrated successfully
-	if currentVersion < "1.9.0" && j.replicaObj.name != "" {
+	if util.CompareVersions(currentVersion, "1.9.0") && j.replicaObj.name != "" {
 		err := scaleDeploy(j.replicaObj.name, j.ns, replicaDeployLabel, 0)
 		if err != nil {
 			return "failed to get scale down replica deployment", err
@@ -655,7 +656,7 @@ func (j *jivaVolumeOptions) verify(pvLabel, openebsNamespace string) error {
 		}
 		return err
 	}
-	if currentVersion < "1.9.0" {
+	if util.CompareVersions(currentVersion, "1.9.0") {
 		err = j.cleanup(openebsNamespace)
 		if err != nil {
 			statusObj.Message = "failed to clean up old replica deployemts"
