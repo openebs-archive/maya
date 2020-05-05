@@ -111,7 +111,7 @@ func patchTargetDeploy(d *appsv1.Deployment, ns string) error {
 	}
 	if version == currentVersion {
 		tmpl, err := template.New("targetPatch").Funcs(template.FuncMap{
-			"compareVersions": util.CompareVersions,
+			"isCurrentLessThanNewVersion": util.IsCurrentLessThanNewVersion,
 		}).Parse(templates.CstorTargetPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for cstor target deployment patch")

@@ -130,7 +130,7 @@ func patchCSP(cspObj *apis.CStorPool) error {
 	cspVersion := cspObj.Labels["openebs.io/version"]
 	if cspVersion == currentVersion {
 		tmpl, err := template.New("cspPatch").Funcs(template.FuncMap{
-			"compareVersions": util.CompareVersions,
+			"isCurrentLessThanNewVersion": util.IsCurrentLessThanNewVersion,
 		}).Parse(templates.CSPPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for csp patch")
@@ -168,7 +168,7 @@ func patchCSPDeploy(cspDeployObj *appsv1.Deployment, openebsNamespace string) er
 		patchDetails.CurrentVersion = currentVersion
 		patchDetails.BaseDir = baseDir
 		tmpl, err := template.New("cspDeployPatch").Funcs(template.FuncMap{
-			"compareVersions": util.CompareVersions,
+			"isCurrentLessThanNewVersion": util.IsCurrentLessThanNewVersion,
 		}).Parse(templates.CSPDeployPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for csp deployment patch")
