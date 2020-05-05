@@ -44,6 +44,10 @@ func (c *RestoreController) syncHandler(key string, operation common.QueueOperat
 		return fmt.Errorf("can not retrieve CStorRestore %q", key)
 	}
 
+	if IsDoneStatus(rst) || IsFailedStatus(rst) {
+		return nil
+	}
+
 	status, err := c.rstEventHandler(operation, rst)
 	if status == "" {
 		return nil
