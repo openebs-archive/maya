@@ -265,3 +265,19 @@ func IsUniqueList(list []string) bool {
 	}
 	return true
 }
+
+// IsCurrentLessThanNewVersion compares current and new version and returns true
+// if currentversion is less `<` then new version (return true in case of equal version)
+// TODO use version lib to properly handle versions https://github.com/hashicorp/go-version
+func IsCurrentLessThanNewVersion(old, new string) bool {
+	oldVersions := strings.Split(strings.Split(old, "-")[0], ".")
+	newVersions := strings.Split(strings.Split(new, "-")[0], ".")
+	for i := 0; i < len(oldVersions); i++ {
+		oldVersion, _ := strconv.Atoi(oldVersions[i])
+		newVersion, _ := strconv.Atoi(newVersions[i])
+		if oldVersion > newVersion {
+			return false
+		}
+	}
+	return true
+}
