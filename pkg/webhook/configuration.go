@@ -68,6 +68,9 @@ var (
 	five = int32(5)
 	// Ignore means that an error calling the webhook is ignored.
 	Ignore = v1beta1.Ignore
+	// Fail means that an error calling the webhook causes the admission to fail.
+	Fail = v1beta1.Fail
+
 	// transformation function lists to upgrade webhook resources
 	transformSecret = []transformSecretFunc{}
 	transformSvc    = []transformSvcFunc{}
@@ -190,8 +193,8 @@ func createValidatingWebhookConfig(
 					v1beta1.Delete,
 				},
 				Rule: v1beta1.Rule{
-					APIGroups:   []string{"*"},
-					APIVersions: []string{"*"},
+					APIGroups:   []string{"openebs.io"},
+					APIVersions: []string{"v1alpha1"},
 					Resources:   []string{"cstorpoolclusters"},
 				},
 			},
@@ -206,7 +209,7 @@ func createValidatingWebhookConfig(
 			CABundle: signingCert,
 		},
 		TimeoutSeconds: &five,
-		FailurePolicy:  &Ignore,
+		FailurePolicy:  &Fail,
 	}
 
 	validator := &v1beta1.ValidatingWebhookConfiguration{
@@ -453,7 +456,7 @@ func GetAdmissionReference() (*metav1.OwnerReference, error) {
 // addCSPCDeleteRule adds the DELETE operation to for CSPC if coming from 1.6.0
 // or older version
 func addCSPCDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
-	if config.Labels[string(apis.OpenEBSVersionKey)] < "1.7.0" {
+	if util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "1.7.0") {
 		index := -1
 		// find the index of the RuleWithOperations having CSPC
 		for i, rule := range config.Webhooks[0].Rules {
@@ -475,7 +478,7 @@ func addCSPCDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
 // addCVCWithUpdateRule adds the CVC webhook config with UPDATE operation if coming from
 // previous versions
 func addCVCWithUpdateRule(config *v1beta1.ValidatingWebhookConfiguration) {
-	if config.Labels[string(apis.OpenEBSVersionKey)] < "1.8.0" {
+	if util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "1.8.0") {
 		// Currenly we have only one webhook validation so CVC rule in under
 		// same webhook.
 		// https://github.com/openebs/maya/blob/9417d96abdaf41a2dbfcdbfb113fb73c83e6cf42/pkg/webhook/configuration.go#L212
@@ -493,7 +496,7 @@ func preUpgrade(openebsNamespace string) error {
 
 	for _, scrt := range secretlist.Items {
 		if scrt.Labels[string(apis.OpenEBSVersionKey)] != version.Current() {
-			if scrt.Labels[string(apis.OpenEBSVersionKey)] == "" {
+			if scrt.Labels[string(apis.OpenEBSVersionKey)] == "" || util.IsCurrentLessThanNewVersion(scrt.Labels[string(apis.OpenEBSVersionKey)], "1.10.0") {
 				err = secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).Delete(scrt.Name, &metav1.DeleteOptions{})
 				if err != nil {
 					return fmt.Errorf("failed to delete old secret %s: %s", scrt.Name, err.Error())
@@ -544,7 +547,8 @@ func preUpgrade(openebsNamespace string) error {
 
 	for _, config := range webhookConfigList.Items {
 		if config.Labels[string(apis.OpenEBSVersionKey)] != version.Current() {
-			if config.Labels[string(apis.OpenEBSVersionKey)] == "" {
+			if config.Labels[string(apis.OpenEBSVersionKey)] == "" ||
+				util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "1.10.0") {
 				err = validate.KubeClient().Delete(config.Name, &metav1.DeleteOptions{})
 				if err != nil {
 					return fmt.Errorf("failed to delete older webhook config %s: %s", config.Name, err.Error())
