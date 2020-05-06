@@ -524,7 +524,7 @@ func poolMetricParser(stdout []byte) *poolfields {
 	}
 
 	pool := poolfields{
-		name:                          f[0],
+		name:                          os.Getenv("HOSTNAME"),
 		zpoolLastSyncTime:             poolSyncTimeParseFloat64(f[2]),
 		zpoolStateUnknown:             zpool.ZpoolLastSyncCommandErrorOrUnknownUnset,
 		zpoolLastSyncTimeCommandError: zpool.ZpoolLastSyncCommandErrorOrUnknownUnset,
