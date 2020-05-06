@@ -30,8 +30,8 @@ import (
 type poolMetrics struct {
 	sync.Mutex
 	*poolSyncMetrics
-	request               bool
-	runner                types.Runner
+	request bool
+	runner  types.Runner
 	// setLastSyncTimeAsZero is a boolean which tells to set the last_sync_time as zero
 	// in case of an error for the first time.
 	setLastSyncTimeAsZero bool
