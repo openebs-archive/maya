@@ -83,14 +83,34 @@ script:
   # go ahead and tag the dependent repo.
   #
   # $TRAVIS_BRANCH contains the same value as $TRAVIS_TAG.
-  # Example: 1.9.0-RC1 tag and 1.9.0-RC1 branch.
-  # OpenEBS release are done from branches named as v1.9.x.
+  # Example: TRAVIS_TAG and TRAVIS_BRANCH will have v1.9.0-RC1,
+  # when github release tag is v1.9.0-RC1
+  #
+  # OpenEBS release are triggered from release branches that are named
+  # as v1.9.x or v1.9.x-hotfix or v1.9.x-custom
+  #
+  # The tag to release branch conversion should be handled as follows:
+  # v1.9.0-RC1 => should be v1.9.x
+  # v1.9.0-hotfixid => should be v1.9.x-hotfixid
+  # v1.9.0 => should be v1.9.x
+  # v1.9.1 => should be v1.9.x
+  # v1.9.0-custom-RC1 => should be v1.9.x-custom
+  # v1.9.0-custom => should be v1.9.x-custom
+  # v1.9.1-custom => should be v1.9.x-custom
   # Convert the TRAVIS_TAG to the corresponding release branch.
   - if [ ! -z $TRAVIS_TAG ] && [ $RELEASE_TAG_DOWNSTREAM = 1 ] && [ "$TRAVIS_REPO_SLUG" == "openebs/maya" ]; then
-      REL_BRANCH=$(echo v$(echo "$TRAVIS_TAG" | cut -d'-' -f1 | rev | cut -d'.' -f2- | rev).x) ;
-      ./buildscripts/git-release "openebs/velero-plugin" "$TRAVIS_TAG" "$REL_BRANCH" || travis_terminate 1;
-      ./buildscripts/git-release "openebs/cstor-csi" "$TRAVIS_TAG" "$REL_BRANCH" || travis_terminate 1;
-      ./buildscripts/git-release "openebs/jiva-operator" "$TRAVIS_TAG" "$REL_BRANCH" || travis_terminate 1;
+      TAG_SUFFIX=$(echo "$TRAVIS_TAG" | cut -d'-' -f2);
+      if [ "$TAG_SUFFIX" == "$TRAVIS_TAG" ] || [[ $TAG_SUFFIX =~ ^RC ]]; then
+        REL_SUFFIX="";
+      else
+        REL_SUFFIX="-$TAG_SUFFIX";
+      fi;
+
+      REL_BRANCH=$(echo $(echo "$TRAVIS_TAG" | cut -d'-' -f1 | rev | cut -d'.' -f2- | rev).x$REL_SUFFIX);
+
+      ./buildscripts/git-release "openebs/velero-plugin" "$TRAVIS_TAG" "${REL_BRANCH}" || travis_terminate 1;
+      ./buildscripts/git-release "openebs/cstor-csi" "$TRAVIS_TAG" "${REL_BRANCH}" || travis_terminate 1;
+      ./buildscripts/git-release "openebs/jiva-operator" "$TRAVIS_TAG" "${REL_BRANCH}" || travis_terminate 1;
     fi
 
 after_success:
