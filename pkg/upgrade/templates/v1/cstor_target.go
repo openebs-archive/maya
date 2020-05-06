@@ -35,7 +35,7 @@ var (
         "containers": [
           {
             "name": "cstor-istgt",
-            "image": "{{.IstgtImage}}:{{.ImageTag}}"{{if lt .CurrentVersion "1.7.0"}},
+            "image": "{{.IstgtImage}}:{{.ImageTag}}"{{if isCurrentLessThanNewVersion .CurrentVersion "1.7.0"}},
             "volumeMounts": [
               {
                 "name": "storagepath",
@@ -46,7 +46,7 @@ var (
           },
           {
             "name": "maya-volume-exporter",
-            "image": "{{.MExporterImage}}:{{.ImageTag}}"{{if lt .CurrentVersion "1.7.0"}},
+            "image": "{{.MExporterImage}}:{{.ImageTag}}"{{if isCurrentLessThanNewVersion .CurrentVersion "1.7.0"}},
             "volumeMounts": [
               {
                 "name": "storagepath",
@@ -57,7 +57,7 @@ var (
           },
           {
             "name": "cstor-volume-mgmt",
-            "image": "{{.VolumeMgmtImage}}:{{.ImageTag}}"{{if lt .CurrentVersion "1.7.0"}},
+            "image": "{{.VolumeMgmtImage}}:{{.ImageTag}}"{{if isCurrentLessThanNewVersion .CurrentVersion "1.7.0"}},
             "volumeMounts": [
               {
                 "name": "storagepath",
@@ -66,7 +66,7 @@ var (
             ]
           {{end}}
           }
-        ]{{if lt .CurrentVersion "1.7.0"}},
+        ]{{if isCurrentLessThanNewVersion .CurrentVersion "1.7.0"}},
         "volumes": [
           {
             "name": "storagepath",
