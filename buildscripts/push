@@ -65,7 +65,11 @@ then
     # Push with different tags if tagged as a release
     # When github is tagged with a release, then Travis will
     # set the release tag in env TRAVIS_TAG
-    TagAndPushImage "${DIMAGE}" "${TRAVIS_TAG}"
+    # Trim the `v` from the TRAVIS_TAG if it exists
+    # Example: v1.10.0 maps to 1.10.0
+    # Example: 1.10.0 maps to 1.10.0
+    # Example: v1.10.0-custom maps to 1.10.0-custom
+    TagAndPushImage "${DIMAGE}" "${TRAVIS_TAG#v}"
     TagAndPushImage "${DIMAGE}" "latest"
   fi;
 else
@@ -85,7 +89,11 @@ then
     # Push with different tags if tagged as a release
     # When github is tagged with a release, then Travis will
     # set the release tag in env TRAVIS_TAG
-    TagAndPushImage "quay.io/${DIMAGE}" "${TRAVIS_TAG}"
+    # Trim the `v` from the TRAVIS_TAG if it exists
+    # Example: v1.10.0 maps to 1.10.0
+    # Example: 1.10.0 maps to 1.10.0
+    # Example: v1.10.0-custom maps to 1.10.0-custom
+    TagAndPushImage "quay.io/${DIMAGE}" "${TRAVIS_TAG#v}"
     TagAndPushImage "quay.io/${DIMAGE}" "latest"
   fi;
 else
