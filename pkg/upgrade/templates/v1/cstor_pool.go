@@ -22,11 +22,11 @@ var (
     "metadata": {
         "labels": {
             "openebs.io/version": "{{.UpgradeVersion}}"
-        }{{if lt .CurrentVersion "1.9.0"}},
+        }{{if isCurrentLessThanNewVersion .CurrentVersion "1.9.0"}},
         "finalizers": [
             "openebs.io/pool-protection"
         ]{{end}}
-    },{{if lt .CurrentVersion "1.8.0"}}
+    },{{if isCurrentLessThanNewVersion .CurrentVersion "1.8.0"}}
     "spec": {
         "poolSpec": {
             "roThresholdLimit": 85
@@ -74,7 +74,7 @@ var (
               "periodSeconds": 60,
               "successThreshold": 1,
               "timeoutSeconds": 150
-            }{{if lt .CurrentVersion "1.7.0"}},
+            }{{if isCurrentLessThanNewVersion .CurrentVersion "1.7.0"}},
             "volumeMounts": [
               {
                 "name": "storagepath",
@@ -89,7 +89,7 @@ var (
           },
           {
             "name": "cstor-pool-mgmt",
-            "image": "{{.PoolMgmtImage}}:{{.ImageTag}}"{{if lt .CurrentVersion "1.7.0"}},
+            "image": "{{.PoolMgmtImage}}:{{.ImageTag}}"{{if isCurrentLessThanNewVersion .CurrentVersion "1.7.0"}},
             "volumeMounts": [
               {
                 "name": "storagepath",
@@ -104,7 +104,7 @@ var (
           },
           {
             "name": "maya-exporter",
-            "image": "{{.MExporterImage}}:{{.ImageTag}}"{{if lt .CurrentVersion "1.7.0"}},
+            "image": "{{.MExporterImage}}:{{.ImageTag}}"{{if isCurrentLessThanNewVersion .CurrentVersion "1.7.0"}},
             "volumeMounts": [
               {
                 "name": "storagepath",
@@ -117,7 +117,7 @@ var (
             ]
           {{end}}
 	  }
-        ]{{if lt .CurrentVersion "1.7.0"}},
+        ]{{if isCurrentLessThanNewVersion .CurrentVersion "1.7.0"}},
         "volumes": [
           {
             "name": "storagepath",

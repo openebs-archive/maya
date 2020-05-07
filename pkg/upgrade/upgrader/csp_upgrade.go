@@ -27,6 +27,7 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
+	"github.com/openebs/maya/pkg/util"
 	errors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -128,8 +129,9 @@ func patchCSP(cspObj *apis.CStorPool) error {
 	}
 	cspVersion := cspObj.Labels["openebs.io/version"]
 	if cspVersion == currentVersion {
-		tmpl, err := template.New("cspPatch").
-			Parse(templates.CSPPatch)
+		tmpl, err := template.New("cspPatch").Funcs(template.FuncMap{
+			"isCurrentLessThanNewVersion": util.IsCurrentLessThanNewVersion,
+		}).Parse(templates.CSPPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for csp patch")
 		}
@@ -165,8 +167,9 @@ func patchCSPDeploy(cspDeployObj *appsv1.Deployment, openebsNamespace string) er
 		patchDetails.UpgradeVersion = upgradeVersion
 		patchDetails.CurrentVersion = currentVersion
 		patchDetails.BaseDir = baseDir
-		tmpl, err := template.New("cspDeployPatch").
-			Parse(templates.CSPDeployPatch)
+		tmpl, err := template.New("cspDeployPatch").Funcs(template.FuncMap{
+			"isCurrentLessThanNewVersion": util.IsCurrentLessThanNewVersion,
+		}).Parse(templates.CSPDeployPatch)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create template for csp deployment patch")
 		}

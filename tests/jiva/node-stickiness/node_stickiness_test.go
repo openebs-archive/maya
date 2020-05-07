@@ -17,6 +17,8 @@ limitations under the License.
 package nodestickiness
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
@@ -27,11 +29,13 @@ import (
 )
 
 var (
-	times       = 5
-	accessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	capacity    = "5G"
-	pvcObj      *corev1.PersistentVolumeClaim
-	err         error
+	times                = 5
+	accessModes          = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+	capacity             = "5G"
+	pvcObj               *corev1.PersistentVolumeClaim
+	err                  error
+	ctrlLabelSelector    string
+	replicaLabelSelector string
 )
 
 var _ = Describe("[jiva] TEST NODE STICKINESS", func() {
@@ -64,12 +68,15 @@ var _ = Describe("[jiva] TEST NODE STICKINESS", func() {
 			namespaceObj.Name,
 		)
 
+		ctrlLabelSelector = fmt.Sprintf("%s,openebs.io/persistent-volume-claim=%s", jiva.CtrlLabel, pvcObj.Name)
+		replicaLabelSelector = fmt.Sprintf("%s,openebs.io/persistent-volume-claim=%s", jiva.ReplicaLabel, pvcObj.Name)
+
 		By("verifying controller pod count")
-		controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, jiva.CtrlLabel, 1)
+		controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, ctrlLabelSelector, 1)
 		Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
 
 		By("verifying replica pod count ")
-		replicaPodCount := ops.GetPodRunningCountEventually(openebsNamespace, jiva.ReplicaLabel, jiva.ReplicaCount)
+		replicaPodCount := ops.GetPodRunningCountEventually(openebsNamespace, replicaLabelSelector, jiva.ReplicaCount)
 		Expect(replicaPodCount).To(Equal(jiva.ReplicaCount), "while checking replica pod count")
 
 		By("verifying status as bound")
@@ -90,11 +97,11 @@ var _ = Describe("[jiva] TEST NODE STICKINESS", func() {
 		)
 
 		By("verifying controller pod count as 0")
-		controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, jiva.CtrlLabel, 0)
+		controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, ctrlLabelSelector, 0)
 		Expect(controllerPodCount).To(Equal(0), "while checking controller pod count")
 
 		By("verifying replica pod count as 0")
-		replicaPodCount := ops.GetPodRunningCountEventually(openebsNamespace, jiva.ReplicaLabel, 0)
+		replicaPodCount := ops.GetPodRunningCountEventually(openebsNamespace, replicaLabelSelector, 0)
 		Expect(replicaPodCount).To(Equal(0), "while checking replica pod count")
 
 		By("verifying deleted pvc")
@@ -122,13 +129,13 @@ var _ = Describe("[jiva] TEST NODE STICKINESS", func() {
 				Expect(status).To(Equal(true), "while checking for deleted pod")
 
 				By("verifying running replica pod count ")
-				replicaPodCount := ops.GetPodRunningCountEventually(openebsNamespace, jiva.ReplicaLabel, jiva.ReplicaCount)
+				replicaPodCount := ops.GetPodRunningCountEventually(openebsNamespace, replicaLabelSelector, jiva.ReplicaCount)
 				Expect(replicaPodCount).To(Equal(jiva.ReplicaCount), "while checking replica pod count")
 
 				By("verifying node stickiness")
 				podList, err = ops.PodClient.
 					WithNamespace(openebsNamespace).
-					List(metav1.ListOptions{LabelSelector: jiva.ReplicaLabel})
+					List(metav1.ListOptions{LabelSelector: replicaLabelSelector})
 				Expect(err).ShouldNot(HaveOccurred(), "while fetching replica pods")
 
 				validate := pod.FromList(podList).IsMatchNodeAny(nodeNames)

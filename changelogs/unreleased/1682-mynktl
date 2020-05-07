@@ -1,0 +1,1 @@
+fix(cstor-restore): fixing restore api to return failure if cstorrestore is in invalid state

@@ -210,7 +210,7 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 			)
 
 			By("creating cstor volume snapshot")
-			_, err = ops.SnapClient.WithNamespace(nsObj.Name).Create(snapObj)
+			snapshotObj, err := ops.SnapClient.WithNamespace(nsObj.Name).Create(snapObj)
 			Expect(err).To(
 				BeNil(),
 				"while creating snapshot {%s} in namespace {%s}",
@@ -367,6 +367,10 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 			By("veryfing data consistency")
 			Expect(podOutput).To(Equal(clonePodOutput), "while checking data consistency")
 
+			snapshotObj, err = ops.SnapClient.
+				Get(snapName, metav1.GetOptions{})
+			Expect(err).To(BeNil(), "while fetching the snapshot object")
+
 			// try to delete source PVC
 			By("try deleting source persistentvolumeclaim")
 			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
@@ -422,6 +426,10 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 			By("verifying deleted snapshot")
 			snap := ops.IsSnapshotDeleted(snapName)
 			Expect(snap).To(Equal(true), "while checking for deleted snapshot")
+
+			By("Verifying deletion of snapshotdata")
+			snapData := ops.IsSnapshotDataDeleted(snapshotObj.Spec.SnapshotDataName)
+			Expect(snapData).To(Equal(true), "while checking for deleted snapshotdata")
 
 			By("deleting source persistentvolumeclaim")
 			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})

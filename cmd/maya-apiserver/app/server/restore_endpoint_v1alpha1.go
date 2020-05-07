@@ -230,7 +230,7 @@ func getRestoreStatus(rst *v1alpha1.CStorRestore) (v1alpha1.CStorRestoreStatus, 
 		switch rstStatus {
 		case v1alpha1.RSTCStorStatusInProgress:
 			rstStatus = v1alpha1.RSTCStorStatusInProgress
-		case v1alpha1.RSTCStorStatusFailed:
+		case v1alpha1.RSTCStorStatusFailed, v1alpha1.RSTCStorStatusInvalid:
 			if nr.Status != rstStatus {
 				// Restore for given CVR may failed due to node failure or pool failure
 				// Let's update status for given CVR's restore to failed
