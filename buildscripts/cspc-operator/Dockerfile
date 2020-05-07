@@ -16,13 +16,15 @@ RUN apk add --no-cache \
 
 COPY cspc-operator /usr/local/bin/cspc-operator
 
-
-ARG BUILD_DATE
+ARG ARCH
+ARG DBUILD_DATE
+ARG DBUILD_REPO_URL
+ARG DBUILD_SITE_URL
 LABEL org.label-schema.name="cspc-operator"
 LABEL org.label-schema.description="CSPC Operator for OpenEBS cStor engine"
-LABEL org.label-schema.url="http://www.openebs.io/"
-LABEL org.label-schema.vcs-url="https://github.com/openebs/maya"
 LABEL org.label-schema.schema-version="1.0"
-LABEL org.label-schema.build-date=$BUILD_DATE
+LABEL org.label-schema.build-date=$DBUILD_DATE
+LABEL org.label-schema.vcs-url=$DBUILD_REPO_URL
+LABEL org.label-schema.url=$DBUILD_SITE_URL
 
 ENTRYPOINT ["/usr/local/bin/cspc-operator"]

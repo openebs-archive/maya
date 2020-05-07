@@ -25,22 +25,22 @@ upgrade:
 upgrade-image: upgrade
 	@echo "-----------------------------------------------"
 	@echo "--> ${UPGRADE} image                           "
-	@echo "${HUB_USER}/${UPGRADE_REPO_NAME}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${UPGRADE_REPO_NAME}:${IMAGE_TAG}"
 	@echo "-----------------------------------------------"
 	@cp bin/${UPGRADE}/${UPGRADE} buildscripts/${UPGRADE}/
 	@cd buildscripts/${UPGRADE} && \
-	 sudo docker build -t "${HUB_USER}/${UPGRADE_REPO_NAME}:${IMAGE_TAG}" --build-arg BUILD_DATE=${BUILD_DATE} .
+	 sudo docker build -t "${IMAGE_ORG}/${UPGRADE_REPO_NAME}:${IMAGE_TAG}" ${DBUILD_ARGS} .
 	@rm buildscripts/${UPGRADE}/${UPGRADE}
 
 .PHONY: upgrade-image.arm64
 upgrade-image.arm64: upgrade
 	@echo "-----------------------------------------------"
 	@echo "--> ${UPGRADE} image                           "
-	@echo "${HUB_USER}/${UPGRADE_REPO_NAME_ARM64}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${UPGRADE_REPO_NAME_ARM64}:${IMAGE_TAG}"
 	@echo "-----------------------------------------------"
 	@cp bin/${UPGRADE}/${UPGRADE} buildscripts/${UPGRADE}/
 	@cd buildscripts/${UPGRADE} && \
-	 sudo docker build -t "${HUB_USER}/${UPGRADE_REPO_NAME_ARM64}:${IMAGE_TAG}" --build-arg BUILD_DATE=${BUILD_DATE} .
+	 sudo docker build -t "${IMAGE_ORG}/${UPGRADE_REPO_NAME_ARM64}:${IMAGE_TAG}" ${DBUILD_ARGS} .
 	@rm buildscripts/${UPGRADE}/${UPGRADE}
 
 

@@ -19,19 +19,19 @@ admission-server:
 admission-server-image: admission-server
 	@echo "----------------------------"
 	@echo -n "--> ${WEBHOOK} image"
-	@echo "${HUB_USER}/${ADMISSION_SERVER_REPO_NAME}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${ADMISSION_SERVER_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/${WEBHOOK}/${WEBHOOK} buildscripts/admission-server/
-	@cd buildscripts/${WEBHOOK} && sudo docker build -t ${HUB_USER}/${ADMISSION_SERVER_REPO_NAME}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/${WEBHOOK} && sudo docker build -t ${IMAGE_ORG}/${ADMISSION_SERVER_REPO_NAME}:${IMAGE_TAG} ${DBUILD_ARGS} .
 	@rm buildscripts/${WEBHOOK}/${WEBHOOK}
 
 .PHONY: admission-server-image.arm64
 admission-server-image.arm64: admission-server
 	@echo "----------------------------"
 	@echo -n "--> ${WEBHOOK} image"
-	@echo "${HUB_USER}/${ADMISSION_SERVER_REPO_NAME_ARM64}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${ADMISSION_SERVER_REPO_NAME_ARM64}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/${WEBHOOK}/${WEBHOOK} buildscripts/admission-server/
-	@cd buildscripts/${WEBHOOK} && sudo docker build -t ${HUB_USER}/${ADMISSION_SERVER_REPO_NAME_ARM64}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/${WEBHOOK} && sudo docker build -t ${IMAGE_ORG}/${ADMISSION_SERVER_REPO_NAME_ARM64}:${IMAGE_TAG} ${DBUILD_ARGS} .
 	@rm buildscripts/${WEBHOOK}/${WEBHOOK}
 

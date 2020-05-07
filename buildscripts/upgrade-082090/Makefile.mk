@@ -30,12 +30,12 @@ upgrade-082090:
 upgrade-image-082090: upgrade-082090
 	@echo "-----------------------------------------------------------------------"
 	@echo "--> ${UPGRADE-082090} image                                            "
-	@echo "${HUB_USER}/m-upgrade:${UPGRADE-082090-TAG}:${IMAGE_TAG}  "
+	@echo "${IMAGE_ORG}/m-upgrade:${UPGRADE-082090-TAG}:${IMAGE_TAG}  "
 	@echo "-----------------------------------------------------------------------"
 	@# The binary is renamed as upgrade to keep it in sync with the upgrade image.
 	@cp bin/${UPGRADE-082090}/${UPGRADE-082090} buildscripts/${UPGRADE-082090}/upgrade
 	@cd buildscripts/${UPGRADE-082090} && \
-	 sudo docker build --tag "${HUB_USER}/m-upgrade:${UPGRADE-082090-TAG}" --build-arg BUILD_DATE=${BUILD_DATE} .
+	 sudo docker build --tag "${IMAGE_ORG}/m-upgrade:${UPGRADE-082090-TAG}" ${DBUILD_ARGS} .
 	@rm buildscripts/${UPGRADE-082090}/upgrade
 
 # cleanup upgrade build

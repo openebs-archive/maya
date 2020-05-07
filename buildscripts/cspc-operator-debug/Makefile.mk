@@ -16,8 +16,8 @@ cspc-operator-debug:
 cspc-operator-debug-image: cspc-operator-debug
 	@echo "----------------------------"
 	@echo -n "--> ${CSPC_OPERATOR} image "
-	@echo "${HUB_USER}/${CSPC_OPERATOR_REPO_NAME}:${IMAGE_TAG}"
+	@echo "${IMAGE_ORG}/${CSPC_OPERATOR_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/${CSPC_OPERATOR_DEBUG}/${CSPC_OPERATOR} buildscripts/cspc-operator-debug/
-	@cd buildscripts/${CSPC_OPERATOR_DEBUG} && sudo docker build -t ${HUB_USER}/${CSPC_OPERATOR_REPO_NAME}:inject --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/${CSPC_OPERATOR_DEBUG} && sudo docker build -t ${IMAGE_ORG}/${CSPC_OPERATOR_REPO_NAME}:inject ${DBUILD_ARGS} .
 	@rm buildscripts/${CSPC_OPERATOR_DEBUG}/${CSPC_OPERATOR}

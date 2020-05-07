@@ -98,7 +98,13 @@ script:
   # v1.9.0-custom => should be v1.9.x-custom
   # v1.9.1-custom => should be v1.9.x-custom
   # Convert the TRAVIS_TAG to the corresponding release branch.
-  - if [ ! -z $TRAVIS_TAG ] && [ $RELEASE_TAG_DOWNSTREAM = 1 ] && [ "$TRAVIS_REPO_SLUG" == "openebs/maya" ]; then
+  # Allow for building forked openebs pipelines. 
+  # Tag the downstream repos under current repo org. 
+  - if [ -z $REPO_ORG ]; then
+      REPO_ORG=$(echo "$TRAVIS_REPO_SLUG" | cut -d'/' -f1);
+      export REPO_ORG;
+    fi
+  - if [ ! -z $TRAVIS_TAG ] && [ $RELEASE_TAG_DOWNSTREAM = 1 ] && [ "$TRAVIS_REPO_SLUG" == "$REPO_ORG/maya" ]; then
       TAG_SUFFIX=$(echo "$TRAVIS_TAG" | cut -d'-' -f2);
       if [ "$TAG_SUFFIX" == "$TRAVIS_TAG" ] || [[ $TAG_SUFFIX =~ ^RC ]]; then
         REL_SUFFIX="";
@@ -108,9 +114,9 @@ script:
 
       REL_BRANCH=$(echo $(echo "$TRAVIS_TAG" | cut -d'-' -f1 | rev | cut -d'.' -f2- | rev).x$REL_SUFFIX);
 
-      ./buildscripts/git-release "openebs/velero-plugin" "$TRAVIS_TAG" "${REL_BRANCH}" || travis_terminate 1;
-      ./buildscripts/git-release "openebs/cstor-csi" "$TRAVIS_TAG" "${REL_BRANCH}" || travis_terminate 1;
-      ./buildscripts/git-release "openebs/jiva-operator" "$TRAVIS_TAG" "${REL_BRANCH}" || travis_terminate 1;
+      ./buildscripts/git-release "$REPO_ORG/velero-plugin" "$TRAVIS_TAG" "${REL_BRANCH}" || travis_terminate 1;
+      ./buildscripts/git-release "$REPO_ORG/cstor-csi" "$TRAVIS_TAG" "${REL_BRANCH}" || travis_terminate 1;
+      ./buildscripts/git-release "$REPO_ORG/jiva-operator" "$TRAVIS_TAG" "${REL_BRANCH}" || travis_terminate 1;
     fi
 
 after_success:
