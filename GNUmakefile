@@ -75,7 +75,7 @@ ifeq (${TRAVIS_TAG}, )
   BASE_TAG = ci
   export BASE_TAG
 else
-  BASE_TAG = ${TRAVIS_TAG}
+  BASE_TAG = ${TRAVIS_TAG#v}
   export BASE_TAG
 endif
 
