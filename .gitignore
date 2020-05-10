@@ -5,3 +5,4 @@ nohup.out
 .DS_Store
 .testfiles/
 openebs-operator-autogen.yaml
+.idea/*
