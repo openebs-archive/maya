@@ -35,4 +35,12 @@ const (
 	//
 	// Default is "true"
 	CreateDefaultStorageConfig menv.ENVKey = "OPENEBS_IO_CREATE_DEFAULT_STORAGE_CONFIG"
+
+	// InstallCRD is the environment
+	// variable that flags if maya apiserver should install the CRDs
+	// As the installation moves towards helm 3, the responsibility of installing
+	// CRDs can be pushed to helm.
+	//
+	// Default is "true"
+	InstallCRD menv.ENVKey = "OPENEBS_IO_INSTALL_CRD"
 )
