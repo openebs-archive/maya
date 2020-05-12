@@ -37,3 +37,10 @@ func IsCstorSparsePoolEnabled() bool {
 	enabled, _ := strconv.ParseBool(menv.Get(DefaultCstorSparsePool))
 	return IsDefaultStorageConfigEnabled() && enabled
 }
+
+// IsInstallCRDEnabled reads from env variable to check
+// whether CRDs should be created by default or not.
+func IsInstallCRDEnabled() (enabled bool) {
+	enabled, _ = strconv.ParseBool(menv.Get(InstallCRD))
+	return
+}
