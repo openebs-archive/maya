@@ -469,7 +469,7 @@ spec:
 
 // OpenEBSCRDArtifacts returns the CRDs required for latest version
 func OpenEBSCRDArtifacts() (list artifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(openEBSCRDs{})...)
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamlsIf(openEBSCRDs{}, IsInstallCRDEnabled)...)
 	return
 }
 

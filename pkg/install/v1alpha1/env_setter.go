@@ -212,6 +212,10 @@ func (e *envInstall) List() (l *envList, err error) {
 		Value: "false",
 	})
 	l.Items = append(l.Items, &env{
+		Key:   InstallCRD,
+		Value: "true",
+	})
+	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateFeatureGateENVK,
 		Value: "true",
 	})
