@@ -141,7 +141,7 @@ func NewCStorPoolController(
 				klog.V(4).Infof("Only cStorPool status change: %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
 				return
 			}
-			if IsDeletionFailedBefore(newCStorPool) || IsErrorDuplicate(newCStorPool) {
+			if IsErrorDuplicate(newCStorPool) {
 				return
 			}
 			if newCStorPool.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
