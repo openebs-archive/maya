@@ -112,7 +112,7 @@ func NewCStorPoolController(
 			if !IsRightCStorPoolMgmt(cStorPool) {
 				return
 			}
-			if IsDeletionFailedBefore(cStorPool) || IsErrorDuplicate(cStorPool) {
+			if IsErrorDuplicate(cStorPool) {
 				return
 			}
 			if cStorPool.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
@@ -120,12 +120,16 @@ func NewCStorPoolController(
 				controller.recorder.Event(cStorPool, corev1.EventTypeWarning, "Create", message)
 				return
 			}
-			q.Operation = common.QOpAdd
-			klog.Infof("cStorPool Added event : %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
-			controller.recorder.Event(cStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
 
-			if !IsCStorPoolCreateStatuses(cStorPool) {
-				cStorPool.Status.Phase = apis.CStorPoolStatusPending
+			if IsDestroyEvent(cStorPool) {
+				q.Operation = common.QOpDestroy
+			} else {
+				q.Operation = common.QOpAdd
+				klog.Infof("cStorPool Added event : %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
+				controller.recorder.Event(cStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
+				if !IsCStorPoolCreateStatuses(cStorPool) {
+					cStorPool.Status.Phase = apis.CStorPoolStatusPending
+				}
 			}
 
 			cStorPool, _ = controller.clientset.OpenebsV1alpha1().CStorPools().Update(cStorPool)
@@ -137,7 +141,7 @@ func NewCStorPoolController(
 			if !IsRightCStorPoolMgmt(newCStorPool) {
 				return
 			}
-			if IsOnlyStatusChange(oldCStorPool, newCStorPool) {
+			if !IsDestroyEvent(newCStorPool) && IsOnlyStatusChange(oldCStorPool, newCStorPool) {
 				klog.V(4).Infof("Only cStorPool status change: %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
 				return
 			}
@@ -151,14 +155,14 @@ func NewCStorPoolController(
 			}
 			// Periodic resync will send update events for all known CStorPool.
 			// Two different versions of the same CStorPool will always have different RVs.
-			if newCStorPool.ResourceVersion == oldCStorPool.ResourceVersion {
-				// Synchronize Cstor pool status
-				q.Operation = common.QOpSync
-				klog.V(4).Infof("cStorPool sync event for %s", newCStorPool.ObjectMeta.Name)
-			} else if IsDestroyEvent(newCStorPool) {
+			if IsDestroyEvent(newCStorPool) {
 				q.Operation = common.QOpDestroy
 				klog.Infof("cStorPool Destroy event : %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
 				controller.recorder.Event(newCStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
+			} else if newCStorPool.ResourceVersion == oldCStorPool.ResourceVersion {
+				// Synchronize Cstor pool status
+				q.Operation = common.QOpSync
+				klog.V(4).Infof("cStorPool sync event for %s", newCStorPool.ObjectMeta.Name)
 			} else {
 				q.Operation = common.QOpModify
 				klog.Infof("cStorPool Modify event : %v, %v", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
