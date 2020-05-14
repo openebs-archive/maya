@@ -491,7 +491,7 @@ func getOldService(openebsNamespace string) (*corev1.ServiceList, error) {
 	// fetch service 1.1.0 onwards based on label
 	svcList, err := svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).List(metav1.ListOptions{LabelSelector: webhooksvcLabel})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list old service: %s", err.Error())
+		return nil, err
 	}
 	// for 1.0.0 fetch service based on old name
 	oldSVC, err := svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).Get(v100SVCName, metav1.GetOptions{})
@@ -512,7 +512,7 @@ func getOldSecret(openebsNamespace string) (*corev1.SecretList, error) {
 	secretList, err := secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).
 		List(metav1.ListOptions{LabelSelector: webhookLabel})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list old secret: %s", err.Error())
+		return nil, err
 	}
 	// for 1.0.0 fetch secret based on old name
 	oldSecret, err := secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).
@@ -533,7 +533,7 @@ func getOldConfig() (*v1beta1.ValidatingWebhookConfigurationList, error) {
 	// fetch config 1.1.0 onwards based on label
 	webhookConfigList, err := validate.KubeClient().List(metav1.ListOptions{LabelSelector: webhookLabel})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list older webhook config: %s", err.Error())
+		return nil, err
 	}
 
 	// for 1.0.0 fetch config based on name
