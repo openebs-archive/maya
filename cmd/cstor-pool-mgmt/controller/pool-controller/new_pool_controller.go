@@ -112,7 +112,7 @@ func NewCStorPoolController(
 			if !IsRightCStorPoolMgmt(cStorPool) {
 				return
 			}
-			if IsErrorDuplicate(cStorPool) {
+			if IsDeletionFailedBefore(cStorPool) || IsErrorDuplicate(cStorPool) {
 				return
 			}
 			if cStorPool.Annotations[string(apis.OpenEBSDisableReconcileKey)] == "true" {
@@ -121,15 +121,11 @@ func NewCStorPoolController(
 				return
 			}
 
-			if IsDestroyEvent(cStorPool) {
-				q.Operation = common.QOpDestroy
-			} else {
-				q.Operation = common.QOpAdd
-				klog.Infof("cStorPool Added event : %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
-				controller.recorder.Event(cStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
-				if !IsCStorPoolCreateStatuses(cStorPool) {
-					cStorPool.Status.Phase = apis.CStorPoolStatusPending
-				}
+			q.Operation = common.QOpAdd
+			klog.Infof("cStorPool Added event : %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
+			controller.recorder.Event(cStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
+			if !IsCStorPoolCreateStatuses(cStorPool) {
+				cStorPool.Status.Phase = apis.CStorPoolStatusPending
 			}
 
 			cStorPool, _ = controller.clientset.OpenebsV1alpha1().CStorPools().Update(cStorPool)
