@@ -486,10 +486,79 @@ func addCVCWithUpdateRule(config *v1beta1.ValidatingWebhookConfiguration) {
 	}
 }
 
+func getOldService(openebsNamespace string) (*corev1.ServiceList, error) {
+	v100SVCName := "admission-server-svc"
+	// fetch service 1.1.0 onwards based on label
+	svcList, err := svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).List(metav1.ListOptions{LabelSelector: webhooksvcLabel})
+	if err != nil {
+		return nil, err
+	}
+	// for 1.0.0 fetch service based on old name
+	oldSVC, err := svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).Get(v100SVCName, metav1.GetOptions{})
+	if err != nil && !k8serror.IsNotFound(err) {
+		return nil, err
+	}
+
+	if err == nil {
+		svcList.Items = append(svcList.Items, *oldSVC)
+	}
+
+	return svcList, nil
+}
+
+func getOldSecret(openebsNamespace string) (*corev1.SecretList, error) {
+	v100SecretName := "admission-server-certs"
+	// fetch secret 1.1.0 onwards based on label
+	secretList, err := secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).
+		List(metav1.ListOptions{LabelSelector: webhookLabel})
+	if err != nil {
+		return nil, err
+	}
+	// for 1.0.0 fetch secret based on old name
+	oldSecret, err := secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).
+		Get(v100SecretName, metav1.GetOptions{})
+	if err != nil && !k8serror.IsNotFound(err) {
+		return nil, err
+	}
+	if err == nil {
+		secretList.Items = append(secretList.Items, *oldSecret)
+	}
+	return secretList, nil
+
+}
+
+func getOldConfig() (*v1beta1.ValidatingWebhookConfigurationList, error) {
+	v100HelmConfig := "openebs-validation-webhook-cfg"
+	v100OperatorConfig := "validation-webhook-cfg"
+	// fetch config 1.1.0 onwards based on label
+	webhookConfigList, err := validate.KubeClient().List(metav1.ListOptions{LabelSelector: webhookLabel})
+	if err != nil {
+		return nil, err
+	}
+
+	// for 1.0.0 fetch config based on name
+	oldHelmConfig, err := validate.KubeClient().Get(v100HelmConfig, metav1.GetOptions{})
+	if err != nil && !k8serror.IsNotFound(err) {
+		return nil, err
+	}
+	if err == nil {
+		webhookConfigList.Items = append(webhookConfigList.Items, *oldHelmConfig)
+	}
+	oldOperatorConfig, err := validate.KubeClient().Get(v100OperatorConfig, metav1.GetOptions{})
+	if err != nil && !k8serror.IsNotFound(err) {
+		return nil, err
+	}
+	if err == nil {
+		webhookConfigList.Items = append(webhookConfigList.Items, *oldOperatorConfig)
+	}
+
+	return webhookConfigList, nil
+}
+
 // preUpgrade checks for the required older webhook configs,older
 // then 1.4.0 if exists delete them.
 func preUpgrade(openebsNamespace string) error {
-	secretlist, err := secret.NewKubeClient(secret.WithNamespace(openebsNamespace)).List(metav1.ListOptions{LabelSelector: webhookLabel})
+	secretlist, err := getOldSecret(openebsNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to list old secret: %s", err.Error())
 	}
@@ -515,7 +584,7 @@ func preUpgrade(openebsNamespace string) error {
 		}
 	}
 
-	svcList, err := svc.NewKubeClient(svc.WithNamespace(openebsNamespace)).List(metav1.ListOptions{LabelSelector: webhooksvcLabel})
+	svcList, err := getOldService(openebsNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to list old service: %s", err.Error())
 	}
@@ -540,7 +609,7 @@ func preUpgrade(openebsNamespace string) error {
 			}
 		}
 	}
-	webhookConfigList, err := validate.KubeClient().List(metav1.ListOptions{LabelSelector: webhookLabel})
+	webhookConfigList, err := getOldConfig()
 	if err != nil {
 		return fmt.Errorf("failed to list older webhook config: %s", err.Error())
 	}
