@@ -137,6 +137,9 @@ func NewCStorPoolController(
 			if !IsRightCStorPoolMgmt(newCStorPool) {
 				return
 			}
+
+			// When CSP is marked for deletion no need to call IsOnlyStatusChange because when
+			// CSP marked for deletion we need to enqueue such CSPs
 			if !IsDestroyEvent(newCStorPool) && IsOnlyStatusChange(oldCStorPool, newCStorPool) {
 				klog.V(4).Infof("Only cStorPool status change: %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
 				return
