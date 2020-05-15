@@ -1,3 +1,61 @@
+v1.10.0 / 2020-05-15
+========================
+
+ * fix(webhook): cleanup old resources from 1.0.0 release ([#1696](https://github.com/openebs/maya/pull/1696),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * feat(install): enable/disable crd installation([#1693](https://github.com/openebs/maya/pull/1693),
+ [@kmova](https://github.com/kmova))
+ * refact(build): make the docker images configurable ([#1680](https://github.com/openebs/maya/pull/1680),
+ [@kmova](https://github.com/kmova))
+ * fix(upgrade): fix version comparison function ([#1681](https://github.com/openebs/maya/pull/1681),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * fix(maya-exporter): fix duplicate metrics for openebs_zpool_last_sync_time ([#1678](https://github.com/openebs/maya/pull/1678)),
+ [@slalwani97](https://github.com/slalwani97))
+ * fix(cstor-restore): fixing restore api to return failure if cstorrestore is in invalid state ([#1682](https://github.com/openebs/maya/pull/1682),
+ [@mynktl](https://github.com/mynktl))
+ * refact(webhook): update webhookconfiguration failure policy to Fail ([#1672](https://github.com/openebs/maya/pull/1672),
+ [@prateekpandey14 ](https://github.com/prateekpandey14))
+ * fix(cStorvolumereplica): record the error while fetching the cvr status ([#1675](https://github.com/openebs/maya/pull/1675),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * chore(doc): add unreleased changelogs in repo ([#1674](https://github.com/openebs/maya/pull/1674),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * docs(contributor): update project contribution guidelines ([#1673](https://github.com/openebs/maya/pull/1673),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * chore(CVR): enable REBUILD_ESTIMATES feature gate ([#1670](https://github.com/openebs/maya/pull/1670),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * fix(webhook): reject PVC deletion request when dependent snapshots exists ([#1669](https://github.com/openebs/maya/pull/1669),
+ [@mittachaitu](https://github.com/mittachaitu))
+
+v1.10.0-RC2 / 2020-05-13
+========================
+
+ * feat(install): enable/disable crd installation([#1693](https://github.com/openebs/maya/pull/1693),
+ [@kmova](https://github.com/kmova))
+ * refact(build): make the docker images configurable ([#1680](https://github.com/openebs/maya/pull/1680),
+ [@kmova](https://github.com/kmova))
+
+v1.10.0-RC1 / 2020-05-08
+========================
+
+ * fix(upgrade): fix version comparison function ([#1681](https://github.com/openebs/maya/pull/1681),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * fix(maya-exporter): fix duplicate metrics for openebs_zpool_last_sync_time ([#1678](https://github.com/openebs/maya/pull/1678)),
+ [@slalwani97](https://github.com/slalwani97))
+ * fix(cstor-restore): fixing restore api to return failure if cstorrestore is in invalid state ([#1682](https://github.com/openebs/maya/pull/1682),
+ [@mynktl](https://github.com/mynktl))
+ * refact(webhook): update webhookconfiguration failure policy to Fail ([#1672](https://github.com/openebs/maya/pull/1672),
+ [@prateekpandey14 ](https://github.com/prateekpandey14))
+ * fix(cStorvolumereplica): record the error while fetching the cvr status ([#1675](https://github.com/openebs/maya/pull/1675),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * chore(doc): add unreleased changelogs in repo ([#1674](https://github.com/openebs/maya/pull/1674),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * docs(contributor): update project contribution guidelines ([#1673](https://github.com/openebs/maya/pull/1673),
+ [@shubham14bajpai](https://github.com/shubham14bajpai))
+ * chore(CVR): enable REBUILD_ESTIMATES feature gate ([#1670](https://github.com/openebs/maya/pull/1670),
+ [@mittachaitu](https://github.com/mittachaitu))
+ * fix(webhook): reject PVC deletion request when dependent snapshots exists ([#1669](https://github.com/openebs/maya/pull/1669),
+ [@mittachaitu](https://github.com/mittachaitu))
+
 v1.9.0 / 2020-04-14
 ========================
 
