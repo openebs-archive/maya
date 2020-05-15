@@ -113,6 +113,7 @@ func TestCstorCollector(t *testing.T) {
 				regexp.MustCompile(`openebs_write_block_count 15`),
 				regexp.MustCompile(`openebs_read_time 13`),
 				regexp.MustCompile(`openebs_write_time 132`),
+				regexp.MustCompile(`openebs_target_reject_request_counter 0`),
 			},
 			// unmatch is used for negative test, but this use case is for
 			// positive test, so passing default value.
@@ -131,6 +132,7 @@ func TestCstorCollector(t *testing.T) {
 				regexp.MustCompile(`openebs_write_block_count 0`),
 				regexp.MustCompile(`openebs_read_time 0`),
 				regexp.MustCompile(`openebs_write_time 0`),
+				regexp.MustCompile(`openebs_target_reject_request_counter 0`),
 			},
 			// unmatch is used for negative test, but this use case is for
 			// positive test, so passing default value.
@@ -151,6 +153,7 @@ func TestCstorCollector(t *testing.T) {
 				regexp.MustCompile(`openebs_write_block_count `),
 				regexp.MustCompile(`openebs_read_time `),
 				regexp.MustCompile(`openebs_write_time `),
+				regexp.MustCompile(`openebs_target_reject_request_counter `),
 			},
 		},
 	}
@@ -180,6 +183,7 @@ func TestCstorCollector(t *testing.T) {
 			defer resp.Body.Close()
 
 			buf, err := ioutil.ReadAll(resp.Body)
+			fmt.Println(string(buf))
 			if err != nil {
 				t.Fatalf("failed reading server response: %s", err)
 			}

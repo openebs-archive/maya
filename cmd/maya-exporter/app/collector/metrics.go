@@ -47,27 +47,28 @@ import (
 
 // metrics keeps all the volume related stats values into the respective fields.
 type metrics struct {
-	actualUsed             prometheus.Gauge
-	logicalSize            prometheus.Gauge
-	sectorSize             prometheus.Gauge
-	reads                  prometheus.Gauge
-	totalReadTime          prometheus.Gauge
-	totalReadBlockCount    prometheus.Gauge
-	totalReadBytes         prometheus.Gauge
-	writes                 prometheus.Gauge
-	totalWriteTime         prometheus.Gauge
-	totalWriteBlockCount   prometheus.Gauge
-	totalWriteBytes        prometheus.Gauge
-	sizeOfVolume           prometheus.Gauge
-	volumeStatus           prometheus.Gauge
-	parseErrorCounter      prometheus.Gauge
-	connectionRetryCounter prometheus.Gauge
-	connectionErrorCounter prometheus.Gauge
-	healthyReplicaCounter  prometheus.Gauge
-	degradedReplicaCounter prometheus.Gauge
-	totalReplicaCounter    prometheus.Gauge
-	isClientConnected      prometheus.Gauge
-	volumeUpTime           *prometheus.GaugeVec
+	actualUsed                 prometheus.Gauge
+	logicalSize                prometheus.Gauge
+	sectorSize                 prometheus.Gauge
+	reads                      prometheus.Gauge
+	totalReadTime              prometheus.Gauge
+	totalReadBlockCount        prometheus.Gauge
+	totalReadBytes             prometheus.Gauge
+	writes                     prometheus.Gauge
+	totalWriteTime             prometheus.Gauge
+	totalWriteBlockCount       prometheus.Gauge
+	totalWriteBytes            prometheus.Gauge
+	sizeOfVolume               prometheus.Gauge
+	volumeStatus               prometheus.Gauge
+	parseErrorCounter          prometheus.Gauge
+	connectionRetryCounter     prometheus.Gauge
+	connectionErrorCounter     prometheus.Gauge
+	healthyReplicaCounter      prometheus.Gauge
+	degradedReplicaCounter     prometheus.Gauge
+	totalReplicaCounter        prometheus.Gauge
+	isClientConnected          prometheus.Gauge
+	volumeUpTime               *prometheus.GaugeVec
+	targetRejectRequestCounter prometheus.Counter
 }
 
 // stats keep the values of read/write I/O's and
@@ -258,6 +259,14 @@ func Metrics(cas string) metrics {
 				Namespace: "openebs",
 				Name:      "iscsi_initiator_login_status",
 				Help:      "iSCSI Initiator to jiva target login status: (0, 1): {Not Logged In, Logged In}",
+			},
+		),
+
+		targetRejectRequestCounter: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Namespace: "openebs",
+				Name:      "target_reject_request_counter",
+				Help:      "Total no of rejected GET http requests if a request is already in progress",
 			},
 		),
 	}

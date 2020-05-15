@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"net"
 	"strings"
-	"sync"
 	"time"
 
 	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
@@ -55,7 +54,6 @@ var (
 // cstor implements the Exporter interface. It exposes
 // the metrics of a OpenEBS (cstor) volume.
 type cstor struct {
-	sync.Mutex
 	// conn is used as unix network connection
 	conn       net.Conn
 	socketPath string
@@ -188,12 +186,6 @@ func (c *cstor) splitter(resp string) string {
 // if the connection is available else retry to initiate
 // connection again.
 func (c *cstor) get() (v1.VolumeStats, error) {
-	// locking ensures only one request is being processed
-	// at a time and hence ensure that there is no fd leak.
-	// because if we create a new connection for each request
-	// there will be fd leak.
-	c.Lock()
-	defer c.Unlock()
 	var (
 		err   error
 		stats v1.VolumeStats

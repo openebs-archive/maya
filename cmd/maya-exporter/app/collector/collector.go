@@ -15,6 +15,8 @@
 package collector
 
 import (
+	"sync"
+
 	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/klog"
@@ -22,8 +24,20 @@ import (
 
 // collector implements prometheus.Collector interface
 type collector struct {
+	sync.Mutex
+	request bool
 	Volume
 	metrics
+}
+
+func (c *collector) isRequestInProgress() bool {
+	return c.request
+}
+
+func (c *collector) setRequestToFalse() {
+	c.Lock()
+	c.request = false
+	c.Unlock()
 }
 
 func New(vol Volume) *collector {
@@ -32,8 +46,8 @@ func New(vol Volume) *collector {
 		klog.Fatal("exiting...")
 	}
 	return &collector{
-		vol,
-		Metrics(typ),
+		Volume:  vol,
+		metrics: Metrics(typ),
 	}
 }
 
@@ -73,6 +87,7 @@ func (c *collector) collectors() []prometheus.Collector {
 		c.healthyReplicaCounter,
 		c.volumeUpTime,
 		c.isClientConnected,
+		c.targetRejectRequestCounter,
 	}
 }
 
@@ -122,9 +137,21 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 		stats       stats
 	)
 
+	c.Lock()
+	if c.isRequestInProgress() {
+		c.targetRejectRequestCounter.Inc()
+		c.targetRejectRequestCounter.Collect(ch)
+		c.Unlock()
+		return
+	}
+
+	c.request = true
+	c.Unlock()
+
 	klog.V(2).Info("Get metrics")
 	metrics := &c.metrics
 	if volumeStats, err = c.get(); err != nil {
+		c.setRequestToFalse()
 		klog.Errorln(err)
 		c.setError(err)
 	}
@@ -138,6 +165,7 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 	for _, col := range c.collectors() {
 		col.Collect(ch)
 	}
+	c.setRequestToFalse()
 }
 
 func (c *collector) setError(err error) {
