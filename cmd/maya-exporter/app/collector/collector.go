@@ -151,7 +151,6 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 	klog.V(2).Info("Get metrics")
 	metrics := &c.metrics
 	if volumeStats, err = c.get(); err != nil {
-		c.setRequestToFalse()
 		klog.Errorln(err)
 		c.setError(err)
 	}
