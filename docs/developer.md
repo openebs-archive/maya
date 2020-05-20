@@ -34,7 +34,7 @@ cd openebs
 git clone https://github.com/$user/maya.git
 
 # Configure remote upstream
-cd path/to/directory/openebs/maya
+cd openebs/maya
 git remote add upstream https://github.com/openebs/maya.git
 
 # Never push to upstream master
@@ -140,12 +140,12 @@ $ cd path/to/directory/openebs/maya
 
 ### Make your changes and build them
 
-To build just standalone CLI for development:
+To build
 
  ```sh
 
  cd path/to/directory/openebs/maya
- make mayactl
+ GO111MODULE=on make mayactl
  ```
 
 and to build all components:
@@ -165,7 +165,7 @@ To build binaries for other distributions run the following command.
 ### Test your changes
 
  ```sh
- cd path/to/directory/openebs/maya
+ cd $PATH/openebs/maya
 
  # Run every unit test
  make test
