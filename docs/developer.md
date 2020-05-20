@@ -1,5 +1,13 @@
 # Development Workflow
 
+## Table of contents
+
+- [Prerequisites](#prerequisites)
+- [Initial Setup](#initial-setup)
+- [Development](#development)
+- [Dependencies](#dependencies)
+- [Submitting Your Changes](#submitting-your-changes)
+
 ## Prerequisites
 
 * You have Go 1.10+ installed on your local host/development machine.
@@ -14,19 +22,19 @@
 
 ### Clone fork to local host
 
-Place openebs/maya' code on your `GOPATH` using the following cloning procedure.
+Place 'openebs/maya' code in any directory the following cloning procedure.
 Create your clone:
 
 ```sh
 
-mkdir -p $GOPATH/src/github.com/openebs
-cd $GOPATH/src/github.com/openebs
+mkdir path/to/directory/openebs
+cd openebs
 
 # Note: Here $user is your GitHub profile name
 git clone https://github.com/$user/maya.git
 
 # Configure remote upstream
-cd $GOPATH/src/github.com/openebs/maya
+cd openebs/maya
 git remote add upstream https://github.com/openebs/maya.git
 
 # Never push to upstream master
@@ -43,7 +51,8 @@ git remote -v
 Open a terminal on your local host. Change directory to the maya-fork root.
 
 ```sh
-$ cd $GOPATH/src/github.com/openebs/maya
+
+$ cd path/to/directory/openebs/maya
 ```
 
  Checkout the master branch.
@@ -131,9 +140,12 @@ $ cd $GOPATH/src/github.com/openebs/maya
 
 ### Make your changes and build them
 
+To build
+
  ```sh
- cd $GOPATH/src/github.com/openebs/maya
- make all
+
+ cd path/to/directory/openebs/maya
+ GO111MODULE=on make mayactl
  ```
 
 Check your linting.
@@ -151,7 +163,7 @@ To build binaries for other distributions run the following command.
 ### Test your changes
 
  ```sh
- cd $GOPATH/src/github.com/openebs/maya
+ cd $PATH/openebs/maya
 
  # Run every unit test
  make test
@@ -169,11 +181,27 @@ git rebase upstream/master
 
 While you rebase your changes, you must resolve any conflicts that might arise and build and test your changes using the above steps.
 
-## Submission
+### Dependencies
+
+#### Go modules
+
+This repo supports [Go Modules](https://github.com/golang/go/wiki/Modules), and
+is intended to be cloned outside the `GOPATH`, where Go Modules support is
+enabled by default in Go 1.11.
+
+If you are using this repo from within the `GOPATH`, activate module support
+with:
+
+```bash
+export GO111MODULE=on
+```
+
+## Submitting your Changes
 
 ### Create a pull request
 
 Before you raise the Pull Requests, ensure you have reviewed the checklist in the [CONTRIBUTING GUIDE](../CONTRIBUTING.md):
+
 - Ensure that you have re-based your changes with the upstream using the steps above.
 - Ensure that you have added the required unit tests for the bug fixes or new feature that you have introduced.
 - Ensure your commits history is clean with proper header and descriptions.
