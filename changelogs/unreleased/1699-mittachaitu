@@ -1,1 +1,0 @@
-fix(webhook): reject PVC deletion request when volume has dependent snapshots

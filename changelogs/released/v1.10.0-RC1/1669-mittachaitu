@@ -1,0 +1,1 @@
+fix(webhook): reject PVC deletion request when dependent snapshots exists
