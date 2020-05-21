@@ -34,9 +34,6 @@ then
 	cd $DST_REPO
 fi
 
-#make golint-travis
-#rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
-
 #Run common checks
 make check-license
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
@@ -45,12 +42,6 @@ echo "Running : make format"
 make format
 rc=$?; if [[ $rc != 0 ]]; then echo "make format failed"; exit $rc; fi
 checkGitDiff "make format"
-printf "\n"
-
-echo "Running : dep check"
-dep check
-rc=$?; if [[ $rc != 0 ]]; then echo "dep check failed"; exit $rc; fi
-checkGitDiff "dep check"
 printf "\n"
 
 if [ "$TRAVIS_CPU_ARCH" == "amd64" ]; then
