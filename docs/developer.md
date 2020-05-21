@@ -156,12 +156,6 @@ cd path/to/directory/openebs/maya
 make all
  ```
 
-Check your linting.
-
- ```sh
- make golint
- ```
-
 To build binaries for other distributions run the following command.
 
  ```sh
