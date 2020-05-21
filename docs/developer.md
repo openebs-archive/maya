@@ -140,13 +140,12 @@ $ cd path/to/directory/openebs/maya
 
 ### Make your changes and build them
 
-To build
 To build just standalone CLI for development:
 
  ```sh
 
  cd path/to/directory/openebs/maya
- GO111MODULE=on make mayactl
+ make mayactl
  ```
 
 and to build all components:
@@ -154,7 +153,7 @@ and to build all components:
 ```sh
 
 cd path/to/directory/openebs/maya
-GO111MODULE=on make all
+make all
  ```
 
 Check your linting.
