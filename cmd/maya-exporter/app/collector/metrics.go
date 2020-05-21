@@ -266,7 +266,7 @@ func Metrics(cas string) metrics {
 			prometheus.CounterOpts{
 				Namespace: "openebs",
 				Name:      "target_reject_request_counter",
-				Help:      "Total no of rejected GET http requests if a request is already in progress",
+				Help:      "Total no of rejected scrape requests if a previous request is in progress",
 			},
 		),
 	}

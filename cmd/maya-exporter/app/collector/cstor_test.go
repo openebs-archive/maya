@@ -183,7 +183,6 @@ func TestCstorCollector(t *testing.T) {
 			defer resp.Body.Close()
 
 			buf, err := ioutil.ReadAll(resp.Body)
-			fmt.Println(string(buf))
 			if err != nil {
 				t.Fatalf("failed reading server response: %s", err)
 			}

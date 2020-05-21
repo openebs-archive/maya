@@ -25,18 +25,20 @@ import (
 // collector implements prometheus.Collector interface
 type collector struct {
 	sync.Mutex
-	request bool
+	requestInFlight bool
 	Volume
 	metrics
 }
 
-func (c *collector) isRequestInProgress() bool {
-	return c.request
+func (c *collector) isrequestInFlightInProgress() bool {
+	c.Lock()
+	defer c.Unlock()
+	return c.requestInFlight
 }
 
-func (c *collector) setRequestToFalse() {
+func (c *collector) setrequestInFlightToFalse() {
 	c.Lock()
-	c.request = false
+	c.requestInFlight = false
 	c.Unlock()
 }
 
@@ -137,15 +139,14 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 		stats       stats
 	)
 
-	c.Lock()
-	if c.isRequestInProgress() {
+	if c.isrequestInFlightInProgress() {
 		c.targetRejectRequestCounter.Inc()
 		c.targetRejectRequestCounter.Collect(ch)
-		c.Unlock()
 		return
 	}
 
-	c.request = true
+	c.Lock()
+	c.requestInFlight = true
 	c.Unlock()
 
 	klog.V(2).Info("Get metrics")
@@ -164,7 +165,7 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 	for _, col := range c.collectors() {
 		col.Collect(ch)
 	}
-	c.setRequestToFalse()
+	c.setrequestInFlightToFalse()
 }
 
 func (c *collector) setError(err error) {
