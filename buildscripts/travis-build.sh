@@ -15,7 +15,7 @@ set -e
 # limitations under the License.
 
 SRC_REPO="$TRAVIS_BUILD_DIR"
-DST_REPO="$/openebs/maya"
+DST_REPO="$/home/travis/test/openebs/maya"
 
 function checkGitDiff() {
 	if [[ `git diff --shortstat | wc -l` != 0 ]]; then echo "Some files got changed after $1";printf "\n";git diff --stat;printf "\n"; exit 1; fi
