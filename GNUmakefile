@@ -306,7 +306,7 @@ clientset2:
 # builds vendored version of lister-gen tool
 .PHONY: lister2
 lister2:
-	@go install ./vendor/k8s.io/code-generator/cmd/lister-gen
+	@go get ./vendor/k8s.io/code-generator/cmd/<deepcopy-gen,client-gen,lister-gen,informer-gen>
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
 		echo "+ Generating lister for $$apigrp" ; \
 		lister-gen \
