@@ -21,6 +21,10 @@ jobs:
       arch: arm64
       env:
         - RELEASE_TAG_DOWNSTREAM=0
+    - os: linux
+      arch: ppc64le
+      env:
+        - RELEASE_TAG_DOWNSTREAM=0
 
 services:
   - docker
@@ -62,7 +66,7 @@ before_script:
       JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done;
     fi
   # install zip package for arm64
-  - if [ "$TRAVIS_CPU_ARCH" == "arm64" ]; then
+  - if [[ "$TRAVIS_CPU_ARCH" == "arm64" || "$TRAVIS_CPU_ARCH" == "ppc64le" ]]; then
       sudo apt-get install --yes zip;
     fi
 script:
