@@ -72,7 +72,7 @@ elif [ "$TRAVIS_CPU_ARCH" == "arm64" ]; then
   rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 fi
 
-if [ $SRC_REPO != $DST_REPO ];
+if [ $SRC_REPO != $DST_REPO ] && [ -f "coverage.txt" ];
 then
 	echo "Copying coverage.txt to $SRC_REPO"
 	cp coverage.txt $SRC_REPO/
