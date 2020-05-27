@@ -70,6 +70,10 @@ if [ "$TRAVIS_CPU_ARCH" == "amd64" ]; then
 elif [ "$TRAVIS_CPU_ARCH" == "arm64" ]; then
   make all.arm64
   rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+elif [ "$TRAVIS_CPU_ARCH" == "ppc64le" ]; then
+  make all.ppc64le
+  rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 fi
 
 if [ $SRC_REPO != $DST_REPO ] && [ -f "coverage.txt" ];

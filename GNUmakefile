@@ -163,6 +163,9 @@ all.arm64: apiserver-image.arm64 exporter-image.arm64 pool-mgmt-image.arm64 volu
            admission-server-image.arm64 cspc-operator-image.arm64 upgrade-image.arm64 \
            cvc-operator-image.arm64 cspi-mgmt-image.arm64 provisioner-localpv-image.arm64
 
+.PHONY: all.ppc64le
+all.ppc64le: provisioner-localpv-image.ppc64le
+
 .PHONY: initialize
 initialize: bootstrap
 
