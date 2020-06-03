@@ -33,6 +33,7 @@ func (u *Usage) Send() {
 		}
 		gaClient.ClientID(u.clientID).
 			CampaignSource(u.campaignSource).
+			CampaignName(u.campaignName).
 			CampaignContent(u.clientID).
 			ApplicationID(u.appID).
 			ApplicationVersion(u.appVersion).

@@ -1164,6 +1164,10 @@ spec:
       name: {{ .Volume.owner }}
       annotations:
         openebs.io/storageclass-version: {{ .TaskResult.creategetsc.storageClassVersion }}
+      labels:
+        openebs.io/version: {{ .CAST.version }}
+        openebs.io/cas-template-name: {{ .CAST.castName }}
+        openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
     spec:
       capacity: {{ .Volume.capacity }}
       targetPortal: {{ .TaskResult.createputsvc.clusterIP }}:3260
