@@ -86,6 +86,9 @@ type Gclient struct {
 	// anonymous campaign source
 	campaignSource string
 
+	// anonymous campaign name
+	campaignName string
+
 	// https://developers.google.com/analytics/devguides/collection/protocol/v1/parameters#ds
 	// (usecase) node-detail
 	dataSource string
@@ -110,6 +113,12 @@ func (u *Usage) SetDataSource(dataSource string) *Usage {
 // SetTrackingID Sets the GA-code for the project
 func (u *Usage) SetTrackingID(track string) *Usage {
 	u.trackID = track
+	return u
+}
+
+// SetCampaignName : set the name of the PVC or will be empty.
+func (u *Usage) SetCampaignName(campaignName string) *Usage {
+	u.campaignName = campaignName
 	return u
 }
 

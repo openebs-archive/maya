@@ -802,6 +802,7 @@ spec:
       labels:
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
+        openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
     spec:
       capacity: {{ .Volume.capacity }}
       iqn: iqn.2016-09.com.openebs.cstor:{{ .Volume.owner }}
