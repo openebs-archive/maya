@@ -167,8 +167,6 @@ all.arm64: apiserver-image.arm64 exporter-image.arm64 pool-mgmt-image.arm64 volu
 tidy:
 	@echo "--> Tidying up submodules"
 	@go mod tidy
-	@echo "--> Veryfying submodules"
-	@go mod verify
 
 .PHONY: sync
 sync:
