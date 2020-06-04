@@ -167,6 +167,8 @@ all.arm64: apiserver-image.arm64 exporter-image.arm64 pool-mgmt-image.arm64 volu
 tidy:
 	@echo "--> Tidying up submodules"
 	@go mod tidy
+	@echo "--> Veryfying submodules"
+	@go mod verify
 
 .PHONY: sync
 sync:
@@ -293,46 +295,6 @@ deepcopy2:
 		deepcopy-gen \
 			--input-dirs $(API_PKG)/apis/$$apigrp \
 			--output-file-base zz_generated.deepcopy \
-			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
-	done
-
-# builds vendored version of client-gen tool
-.PHONY: clientset2
-clientset2:
-	@go install ./vendor/k8s.io/code-generator/cmd/client-gen
-	@for apigrp in  $(ALL_API_GROUPS) ; do \
-		echo "+ Generating clientsets for $$apigrp" ; \
-		client-gen \
-			--fake-clientset=true \
-			--input $$apigrp \
-			--input-base $(API_PKG)/apis \
-			--clientset-path $(API_PKG)/client/generated/$$apigrp/clientset \
-			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
-	done
-
-# builds vendored version of lister-gen tool
-.PHONY: lister2
-lister2:
-	@go get ./vendor/k8s.io/code-generator/cmd/<deepcopy-gen,client-gen,lister-gen,informer-gen>
-	@for apigrp in  $(ALL_API_GROUPS) ; do \
-		echo "+ Generating lister for $$apigrp" ; \
-		lister-gen \
-			--input-dirs $(API_PKG)/apis/$$apigrp \
-			--output-package $(API_PKG)/client/generated/$$apigrp/lister \
-			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
-	done
-
-# builds vendored version of informer-gen tool
-.PHONY: informer2
-informer2:
-	@go install ./vendor/k8s.io/code-generator/cmd/informer-gen
-	@for apigrp in  $(ALL_API_GROUPS) ; do \
-		echo "+ Generating informer for $$apigrp" ; \
-		informer-gen \
-			--input-dirs $(API_PKG)/apis/$$apigrp \
-			--output-package $(API_PKG)/client/generated/$$apigrp/informer \
-			--versioned-clientset-package $(API_PKG)/client/generated/$$apigrp/clientset/internalclientset \
-			--listers-package $(API_PKG)/client/generated/$$apigrp/lister \
 			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
 	done
 
