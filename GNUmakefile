@@ -20,11 +20,7 @@ PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated\|tests'
 # list only the integration tests code directories
 PACKAGES_IT = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated' | grep 'tests')
 
-<<<<<<< HEAD
 GO111MODULE ?= on
-=======
-GO111MODULE       ?= on
->>>>>>> f09515be2c46174217bb0827e0940acc0f7048b7
 export GO111MODULE
 
 # Lint our code. Reference: https://golang.org/cmd/vet/
@@ -184,26 +180,11 @@ deps:
 	@echo "--> Veryfying submodules"
 	@go mod verify
 
-=======
->>>>>>> f09515be2c46174217bb0827e0940acc0f7048b7
-
 .PHONY: verify-deps
 verify-deps: deps
 	@if !(git diff --quiet HEAD -- go.sum go.mod); then \
 		echo "go module files are out of date, please commit the changes to go.mod and go.sum"; exit 1; \
 	fi
-
-<<<<<<< HEAD
-=======
-.PHONY: deps
-deps:
-	@echo "--> Syncing vendor directory"
-	@go mod tidy
-	@echo "--> Tidying up submodules"
-	@go mod vendor
-	@echo "--> Veryfying submodules"
-	@go mod verify
->>>>>>> f09515be2c46174217bb0827e0940acc0f7048b7
 
 .PHONY: clean
 clean: cleanup-upgrade
@@ -350,11 +331,7 @@ lister2:
 # builds vendored version of informer-gen tool
 .PHONY: informer2
 informer2:
-<<<<<<< HEAD
-	@go install ./vendor/k8s.io/code-generator/cmd/informer-gen
-=======
 	@go install ./vendor/k8s.io/code-generator/cmd/informer-gen 
->>>>>>> f09515be2c46174217bb0827e0940acc0f7048b7
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
 		echo "+ Generating informer for $$apigrp" ; \
 		informer-gen \
