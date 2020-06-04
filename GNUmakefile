@@ -166,19 +166,6 @@ all.arm64: apiserver-image.arm64 exporter-image.arm64 pool-mgmt-image.arm64 volu
            admission-server-image.arm64 cspc-operator-image.arm64 upgrade-image.arm64 \
            cvc-operator-image.arm64 cspi-mgmt-image.arm64 provisioner-localpv-image.arm64
 
-.PHONY: all.ppc64le
-all.ppc64le: provisioner-localpv-image.ppc64le
-
-.PHONY: initialize
-initialize: bootstrap
-
-.PHONY: deps
-deps:
-	@echo "--> Tidying up submodules"
-	@go mod tidy
-	@echo "--> Veryfying submodules"
-	@go mod verify
-
 
 .PHONY: verify-deps
 verify-deps: deps
@@ -186,6 +173,14 @@ verify-deps: deps
 		echo "go module files are out of date, please commit the changes to go.mod and go.sum"; exit 1; \
 	fi
 
+.PHONY: deps
+deps:
+	@echo "--> Syncing vendor directory"
+	@go mod vendor
+	@echo "--> Tidying up submodules"
+	@go mod tidy
+	@echo "--> Veryfying submodules"
+	@go mod verify
 
 .PHONY: clean
 clean: cleanup-upgrade
@@ -320,7 +315,7 @@ clientset2:
 # builds vendored version of lister-gen tool
 .PHONY: lister2
 lister2:
-	@go install ./vendor/k8s.io/code-generator/cmd/lister-gen
+	@go get ./vendor/k8s.io/code-generator/cmd/<deepcopy-gen,client-gen,lister-gen,informer-gen>
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
 		echo "+ Generating lister for $$apigrp" ; \
 		lister-gen \
