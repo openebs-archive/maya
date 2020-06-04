@@ -1,12 +1,9 @@
 /*
 Copyright 2019 The OpenEBS Authors.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,28 +14,26 @@ limitations under the License.
 /*
 This file contains the volume creation and deletion handlers invoked by
 the github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller.
-
 The handler that are madatory to be implemented:
-
 - Provision - is called by controller to perform custom validation on the PVC
   request and return a valid PV spec. The controller will create the PV object
   using the spec passed to it and bind it to the PVC.
-
 - Delete - is called by controller to perform cleanup tasks on the PV before
   deleting it.
-
 */
 
 package app
 
 import (
 	"fmt"
-	"github.com/openebs/maya/pkg/alertlog"
 	"strings"
+
+	"github.com/openebs/maya/pkg/alertlog"
 
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	pvController "sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
+
 	//pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
@@ -85,7 +80,7 @@ func (p *Provisioner) SupportsBlock() bool {
 
 // Provision is invoked by the PVC controller which expect the PV
 //  to be provisioned and a valid PV spec returned.
-func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.PersistentVolume, error) {
+func (p *Provisioner) Provision(opts pvController.ProvisionOptions) (*v1.PersistentVolume, error) {
 	pvc := opts.PVC
 	if pvc.Spec.Selector != nil {
 		return nil, fmt.Errorf("claim.Spec.Selector is not supported")
@@ -121,7 +116,7 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 	if reqMap != nil {
 		size = pvc.Spec.Resources.Requests["storage"]
 	}
-	sendEventOrIgnore(name, size.String(), stgType, analytics.VolumeProvision)
+	sendEventOrIgnore(pvc.Name, name, size.String(), stgType, analytics.VolumeProvision)
 	if stgType == "hostpath" {
 		return p.ProvisionHostPath(opts, pvCASConfig)
 	}
@@ -159,7 +154,7 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 			size = pv.Spec.Capacity["storage"]
 		}
 
-		sendEventOrIgnore(pv.Name, size.String(), pvType, analytics.VolumeDeprovision)
+		sendEventOrIgnore(pv.Spec.ClaimRef.Name, pv.Name, size.String(), pvType, analytics.VolumeDeprovision)
 		if pvType == "local-device" {
 			err := p.DeleteBlockDevice(pv)
 			if err != nil {
@@ -196,7 +191,7 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 }
 
 // sendEventOrIgnore sends anonymous local-pv provision/delete events
-func sendEventOrIgnore(pvName, capacity, stgType, method string) {
+func sendEventOrIgnore(pvcName, pvName, capacity, stgType, method string) {
 	if method == analytics.VolumeProvision {
 		stgType = "local-" + stgType
 	}
@@ -204,6 +199,7 @@ func sendEventOrIgnore(pvName, capacity, stgType, method string) {
 		analytics.New().Build().ApplicationBuilder().
 			SetVolumeType(stgType, method).
 			SetDocumentTitle(pvName).
+			SetCampaignName(pvcName).
 			SetLabel(analytics.EventLabelCapacity).
 			SetReplicaCount(analytics.LocalPVReplicaCount, method).
 			SetCategory(method).

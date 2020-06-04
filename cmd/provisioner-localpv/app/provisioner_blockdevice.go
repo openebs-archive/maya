@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,7 +31,7 @@ import (
 
 // ProvisionBlockDevice is invoked by the Provisioner to create a Local PV
 //  with a Block Device
-func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, error) {
+func (p *Provisioner) ProvisionBlockDevice(opts pvController.ProvisionOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, error) {
 	pvc := opts.PVC
 	nodeHostname := GetNodeHostname(opts.SelectedNode)
 	name := opts.PVName
@@ -87,7 +87,7 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 		WithName(name).
 		WithLabels(labels).
 		WithAnnotations(volAnnotations).
-		WithReclaimPolicy(opts.PersistentVolumeReclaimPolicy).
+		WithReclaimPolicy(*opts.StorageClass.ReclaimPolicy).
 		WithAccessModes(pvc.Spec.AccessModes).
 		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
 		WithLocalHostPathFormat(path, fsType).

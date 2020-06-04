@@ -15,7 +15,7 @@ set -e
 # limitations under the License.
 
 SRC_REPO="$TRAVIS_BUILD_DIR"
-DST_REPO="$HOME/openebs/maya"
+DST_REPO="$GOPATH/src/github.com/openebs/maya"
 
 function checkGitDiff() {
 	if [[ `git diff --shortstat | wc -l` != 0 ]]; then echo "Some files got changed after $1";printf "\n";git diff --stat;printf "\n"; exit 1; fi
@@ -44,6 +44,10 @@ rc=$?; if [[ $rc != 0 ]]; then echo "make format failed"; exit $rc; fi
 checkGitDiff "make format"
 printf "\n"
 
+#TO-FIX
+#echo "Running : verify module dependencies"
+#make verify-deps
+
 if [ "$TRAVIS_CPU_ARCH" == "amd64" ]; then
   # kubegen and unit tests are executed only for amd64
   echo "Running : make kubegen"
@@ -61,9 +65,13 @@ if [ "$TRAVIS_CPU_ARCH" == "amd64" ]; then
 elif [ "$TRAVIS_CPU_ARCH" == "arm64" ]; then
   make all.arm64
   rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+elif [ "$TRAVIS_CPU_ARCH" == "ppc64le" ]; then
+  make all.ppc64le
+  rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 fi
 
-if [ $SRC_REPO != $DST_REPO ];
+if [ $SRC_REPO != $DST_REPO ] && [ -f "coverage.txt" ];
 then
 	echo "Copying coverage.txt to $SRC_REPO"
 	cp coverage.txt $SRC_REPO/
