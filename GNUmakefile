@@ -166,9 +166,6 @@ all.arm64: apiserver-image.arm64 exporter-image.arm64 pool-mgmt-image.arm64 volu
            admission-server-image.arm64 cspc-operator-image.arm64 upgrade-image.arm64 \
            cvc-operator-image.arm64 cspi-mgmt-image.arm64 provisioner-localpv-image.arm64
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
 .PHONY: all.ppc64le
 all.ppc64le: provisioner-localpv-image.ppc64le
 
@@ -181,7 +178,6 @@ deps:
 	@go mod tidy
 	@echo "--> Veryfying submodules"
 	@go mod verify
->>>>>>> - try to resolve conflicts
 
 .PHONY: verify-deps
 verify-deps: deps
@@ -189,18 +185,6 @@ verify-deps: deps
 		echo "go module files are out of date, please commit the changes to go.mod and go.sum"; exit 1; \
 	fi
 
-<<<<<<< HEAD
-.PHONY: deps
-deps:
-	@echo "--> Syncing vendor directory"
-	@go mod tidy
-	@echo "--> Tidying up submodules"
-	@go mod vendor
-	@echo "--> Veryfying submodules"
-	@go mod verify
-
-=======
->>>>>>> - try to resolve conflicts
 .PHONY: clean
 clean: cleanup-upgrade
 	go clean -testcache
