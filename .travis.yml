@@ -11,6 +11,8 @@ env:
     - CHANGE_MINIKUBE_NONE_USER=true
     - KUBECONFIG=$HOME/.kube/config
 
+install: true
+
 jobs:
   include:
     - os: linux
@@ -35,7 +37,7 @@ cache:
   directories:
     - $HOME/.cache/go-build
 go:
-  - 1.12.16
+  - 1.14.x
 
 addons:
   apt:
