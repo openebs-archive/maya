@@ -49,16 +49,8 @@ APIS_PKG="$3"
 GROUPS_WITH_VERSIONS="$4"
 shift 4
 
-(
-# List of tools used for code generation
-TOOL=(client-gen deepcopy-gen lister-gen informer-gen)
-for i in ${TOOL[@]}; do
-  if [ ! -f "${GOPATH}/bin/$i" ]; then
-    echo "$i binary not found, installing at ${GOPATH}/bin"
-    GO111MODULE=on go get k8s.io/code-generator/cmd/$i
-  fi
-done
-)
+cd vendor/k8s.io/code-generator/ 
+go install ./cmd/{defaulter-gen,client-gen,lister-gen,informer-gen,deepcopy-gen}
 
 function codegen::join() { local IFS="$1"; shift; echo "$*"; }
 

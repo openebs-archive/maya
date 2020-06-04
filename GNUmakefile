@@ -20,6 +20,9 @@ PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated\|tests'
 # list only the integration tests code directories
 PACKAGES_IT = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated' | grep 'tests')
 
+GO111MODULE ?= on
+export GO111MODULE
+
 # Lint our code. Reference: https://golang.org/cmd/vet/
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
          -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
@@ -154,7 +157,7 @@ include ./buildscripts/cspc-operator/Makefile.mk
 include ./buildscripts/cspc-operator-debug/Makefile.mk
 
 .PHONY: all
-all: tidy sync compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image \
+all: deps compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image \
 	   admission-server-image cspc-operator-image cspc-operator-debug-image \
 	   cvc-operator-image cspi-mgmt-image upgrade-image provisioner-localpv-image
 
@@ -163,24 +166,26 @@ all.arm64: apiserver-image.arm64 exporter-image.arm64 pool-mgmt-image.arm64 volu
            admission-server-image.arm64 cspc-operator-image.arm64 upgrade-image.arm64 \
            cvc-operator-image.arm64 cspi-mgmt-image.arm64 provisioner-localpv-image.arm64
 
-.PHONY: tidy
-tidy:
-	@echo "--> Tidying up submodules"
-	@go mod tidy
-	@echo "--> Veryfying submodules"
-	@go mod verify
-
-.PHONY: sync
-sync:
-	@echo "--> Syncing vendor directory"
-	@go mod vendor
+.PHONY: all.ppc64le
+all.ppc64le: provisioner-localpv-image.ppc64le
 
 .PHONY: initialize
 initialize: bootstrap
 
 .PHONY: deps
 deps:
-	dep ensure
+	@echo "--> Tidying up submodules"
+	@go mod tidy
+	@echo "--> Veryfying submodules"
+	@go mod verify
+
+
+.PHONY: verify-deps
+verify-deps: deps
+	@if !(git diff --quiet HEAD -- go.sum go.mod); then \
+		echo "go module files are out of date, please commit the changes to go.mod and go.sum"; exit 1; \
+	fi
+
 
 .PHONY: clean
 clean: cleanup-upgrade
@@ -295,6 +300,46 @@ deepcopy2:
 		deepcopy-gen \
 			--input-dirs $(API_PKG)/apis/$$apigrp \
 			--output-file-base zz_generated.deepcopy \
+			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
+	done
+
+# builds vendored version of client-gen tool
+.PHONY: clientset2
+clientset2:
+	@go install ./vendor/k8s.io/code-generator/cmd/client-gen
+	@for apigrp in  $(ALL_API_GROUPS) ; do \
+		echo "+ Generating clientsets for $$apigrp" ; \
+		client-gen \
+			--fake-clientset=true \
+			--input $$apigrp \
+			--input-base $(API_PKG)/apis \
+			--clientset-path $(API_PKG)/client/generated/$$apigrp/clientset \
+			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
+	done
+
+# builds vendored version of lister-gen tool
+.PHONY: lister2
+lister2:
+	@go install ./vendor/k8s.io/code-generator/cmd/lister-gen
+	@for apigrp in  $(ALL_API_GROUPS) ; do \
+		echo "+ Generating lister for $$apigrp" ; \
+		lister-gen \
+			--input-dirs $(API_PKG)/apis/$$apigrp \
+			--output-package $(API_PKG)/client/generated/$$apigrp/lister \
+			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
+	done
+
+# builds vendored version of informer-gen tool
+.PHONY: informer2
+informer2:
+	@go install ./vendor/k8s.io/code-generator/cmd/informer-gen
+	@for apigrp in  $(ALL_API_GROUPS) ; do \
+		echo "+ Generating informer for $$apigrp" ; \
+		informer-gen \
+			--input-dirs $(API_PKG)/apis/$$apigrp \
+			--output-package $(API_PKG)/client/generated/$$apigrp/informer \
+			--versioned-clientset-package $(API_PKG)/client/generated/$$apigrp/clientset/internalclientset \
+			--listers-package $(API_PKG)/client/generated/$$apigrp/lister \
 			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
 	done
 
