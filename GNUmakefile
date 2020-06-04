@@ -154,7 +154,7 @@ include ./buildscripts/cspc-operator/Makefile.mk
 include ./buildscripts/cspc-operator-debug/Makefile.mk
 
 .PHONY: all
-all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image \
+all: tidy sync compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image \
 	   admission-server-image cspc-operator-image cspc-operator-debug-image \
 	   cvc-operator-image cspi-mgmt-image upgrade-image provisioner-localpv-image
 
@@ -162,6 +162,16 @@ all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-im
 all.arm64: apiserver-image.arm64 exporter-image.arm64 pool-mgmt-image.arm64 volume-mgmt-image.arm64 \
            admission-server-image.arm64 cspc-operator-image.arm64 upgrade-image.arm64 \
            cvc-operator-image.arm64 cspi-mgmt-image.arm64 provisioner-localpv-image.arm64
+
+.PHONY: tidy
+tidy:
+	@echo "--> Tidying up submodules"
+	@go mod tidy
+
+.PHONY: sync
+sync:
+	@echo "--> Syncing vendor directory"
+	@go mod vendor
 
 .PHONY: initialize
 initialize: bootstrap
