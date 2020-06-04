@@ -55,7 +55,7 @@ TOOL=(client-gen deepcopy-gen lister-gen informer-gen)
 for i in ${TOOL[@]}; do
   if [ ! -f "${GOPATH}/bin/$i" ]; then
     echo "$i binary not found, installing at ${GOPATH}/bin"
-    go get k8s.io/code-generator/cmd/$i
+    GO111MODULE=on go get k8s.io/code-generator/cmd/$i
   fi
 done
 )
