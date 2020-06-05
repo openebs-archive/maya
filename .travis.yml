@@ -49,7 +49,7 @@ before_install:
   - sudo apt-get install --yes -qq gcc
   - sudo apt-get install --yes -qq libudev-dev
 
-install:
+install: true
   - make bootstrap
   - make format
 
