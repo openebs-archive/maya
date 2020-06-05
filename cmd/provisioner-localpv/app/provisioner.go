@@ -1,9 +1,12 @@
 /*
 Copyright 2019 The OpenEBS Authors.
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
     http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,12 +17,16 @@ limitations under the License.
 /*
 This file contains the volume creation and deletion handlers invoked by
 the github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller.
+
 The handler that are madatory to be implemented:
+
 - Provision - is called by controller to perform custom validation on the PVC
   request and return a valid PV spec. The controller will create the PV object
   using the spec passed to it and bind it to the PVC.
+
 - Delete - is called by controller to perform cleanup tasks on the PV before
   deleting it.
+
 */
 
 package app

@@ -58,12 +58,9 @@ ALL_API_GROUPS=\
 
 # Tools required for different make targets or for development purposes
 EXTERNAL_TOOLS=\
-	github.com/golang/dep/cmd/dep \
 	golang.org/x/tools/cmd/cover \
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html \
-	github.com/ugorji/go/codec/codecgen \
-	gopkg.in/alecthomas/gometalinter.v1 \
 	github.com/golang/protobuf/protoc-gen-go
 
 # list only our .go files i.e. exlcudes any .go files from the vendor directory
@@ -157,7 +154,7 @@ include ./buildscripts/cspc-operator/Makefile.mk
 include ./buildscripts/cspc-operator-debug/Makefile.mk
 
 .PHONY: all
-all: deps compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image \
+all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image \
 	   admission-server-image cspc-operator-image cspc-operator-debug-image \
 	   cvc-operator-image cspi-mgmt-image upgrade-image provisioner-localpv-image
 
@@ -179,11 +176,16 @@ deps:
 	@echo "--> Veryfying submodules"
 	@go mod verify
 
+
 .PHONY: verify-deps
 verify-deps: deps
 	@if !(git diff --quiet HEAD -- go.sum go.mod); then \
 		echo "go module files are out of date, please commit the changes to go.mod and go.sum"; exit 1; \
 	fi
+
+.PHONY: vendor
+vendor: go.mod go.sum deps
+	@go mod vendor
 
 .PHONY: clean
 clean: cleanup-upgrade
@@ -261,7 +263,7 @@ vet:
 bootstrap:
 	@for tool in  $(EXTERNAL_TOOLS) ; do \
 		echo "+ Installing $$tool" ; \
-		go get -u $$tool; \
+	cd &&	GO111MODULE=on go get $$tool; \
 	done
 
 # code generation for custom resources
@@ -330,7 +332,7 @@ lister2:
 # builds vendored version of informer-gen tool
 .PHONY: informer2
 informer2:
-	@go install ./vendor/k8s.io/code-generator/cmd/informer-gen 
+	@go install ./vendor/k8s.io/code-generator/cmd/informer-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
 		echo "+ Generating informer for $$apigrp" ; \
 		informer-gen \
