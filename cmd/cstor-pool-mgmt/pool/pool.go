@@ -250,7 +250,7 @@ func CreatePool(cStorPool *apis.CStorPool, blockDeviceList []string) error {
 			"msg", "Failed to create CStor pool",
 			"rname", cStorPool.Name,
 		)
-		return err
+		return errors.Wrapf(err, "zpool create command failed error: %s", string(stdoutStderr))
 	}
 	alertlog.Logger.Infow("",
 		"eventcode", "cstor.pool.create.success",
@@ -265,8 +265,8 @@ func createPoolBuilder(cStorPool *apis.CStorPool, blockDeviceList []string) []st
 	// populate pool creation attributes.
 	var createAttr []string
 	// When block devices of other file formats, say ext4, are used to create cstorpool,
-	// it errors out with normal zpool create. To avoid that, we go for forceful create.
-	createAttr = append(createAttr, "create", "-f")
+	// it errors out with normal zpool create saying some active file system exists on disk.
+	createAttr = append(createAttr, "create")
 	if cStorPool.Spec.PoolSpec.CacheFile != "" {
 		cachefile := "cachefile=" + cStorPool.Spec.PoolSpec.CacheFile
 		createAttr = append(createAttr, "-o", cachefile)
@@ -528,7 +528,7 @@ func CheckForZreplContinuous(ZreplRetryInterval time.Duration) {
 func LabelClear(blockDevices []string) error {
 	var failLabelClear = false
 	for _, bd := range blockDevices {
-		labelClearStr := []string{"labelclear", "-f", bd}
+		labelClearStr := []string{"labelclear", bd}
 		stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, labelClearStr...)
 		if err != nil {
 			klog.Errorf("Unable to clear label on blockdevice %v: %v, err = %v", bd,

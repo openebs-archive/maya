@@ -406,6 +406,9 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 	case "PersistentVolumeClaim":
 		klog.V(2).Infof("Admission webhook request for type %s", req.Kind.Kind)
 		return wh.validatePVC(ar)
+	case "StoragePoolClaim":
+		klog.V(2).Infof("Admission webhook request for type %s", req.Kind.Kind)
+		return wh.validateSPC(ar)
 	case "CStorPoolCluster":
 		klog.V(2).Infof("Admission webhook request for type %s", req.Kind.Kind)
 		return wh.validateCSPC(ar)
@@ -497,6 +500,17 @@ func (wh *webhook) Serve(w http.ResponseWriter, r *http.Request) {
 		klog.Errorf("Can't write response: %v", err)
 		http.Error(w, fmt.Sprintf("could not write response: %v", err), http.StatusInternalServerError)
 	}
+}
+
+func (wh *webhook) validateSPC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+	req := ar.Request
+	response := &v1beta1.AdmissionResponse{}
+	response.Allowed = true
+	// validates only if requested operation is DELETE
+	if req.Operation == v1beta1.Delete {
+		return wh.validateSPCDeleteRequest(req)
+	}
+	return response
 }
 
 func (wh *webhook) validateCVC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {

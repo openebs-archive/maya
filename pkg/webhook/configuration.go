@@ -77,6 +77,7 @@ var (
 	transformConfig = []transformConfigFunc{
 		addCSPCDeleteRule,
 		addCVCWithUpdateRule,
+		addSPCWithDeleteRule,
 	}
 	cvcRuleWithOperations = v1beta1.RuleWithOperations{
 		Operations: []v1beta1.OperationType{
@@ -86,6 +87,16 @@ var (
 			APIGroups:   []string{"*"},
 			APIVersions: []string{"*"},
 			Resources:   []string{"cstorvolumeclaims"},
+		},
+	}
+	spcRuleWithOperations = v1beta1.RuleWithOperations{
+		Operations: []v1beta1.OperationType{
+			v1beta1.Delete,
+		},
+		Rule: v1beta1.Rule{
+			APIGroups:   []string{"*"},
+			APIVersions: []string{"*"},
+			Resources:   []string{"storagepoolclaims"},
 		},
 	}
 )
@@ -199,6 +210,7 @@ func createValidatingWebhookConfig(
 				},
 			},
 			cvcRuleWithOperations,
+			spcRuleWithOperations,
 		},
 		ClientConfig: v1beta1.WebhookClientConfig{
 			Service: &v1beta1.ServiceReference{
@@ -483,6 +495,12 @@ func addCVCWithUpdateRule(config *v1beta1.ValidatingWebhookConfiguration) {
 		// same webhook.
 		// https://github.com/openebs/maya/blob/9417d96abdaf41a2dbfcdbfb113fb73c83e6cf42/pkg/webhook/configuration.go#L212
 		config.Webhooks[0].Rules = append(config.Webhooks[0].Rules, cvcRuleWithOperations)
+	}
+}
+
+func addSPCWithDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
+	if util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "1.11.0") {
+		config.Webhooks[0].Rules = append(config.Webhooks[0].Rules, spcRuleWithOperations)
 	}
 }
 
