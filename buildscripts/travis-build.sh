@@ -38,14 +38,14 @@ fi
 make check-license
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
-#echo "Running : make format"
-#make format
-#rc=$?; if [[ $rc != 0 ]]; then echo "make format failed"; exit $rc; fi
-#checkGitDiff "make format"
-#printf "\n"
-
 echo "Running : verify module dependencies"
 GO111MODULE=on make verify-deps
+
+echo "Running : make format"
+make format
+rc=$?; if [[ $rc != 0 ]]; then echo "make format failed"; exit $rc; fi
+checkGitDiff "make format"
+printf "\n"
 
 if [ "$TRAVIS_CPU_ARCH" == "amd64" ]; then
   # kubegen and unit tests are executed only for amd64

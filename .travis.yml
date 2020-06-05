@@ -11,8 +11,6 @@ env:
     - CHANGE_MINIKUBE_NONE_USER=true
     - KUBECONFIG=$HOME/.kube/config
 
-install: true
-
 jobs:
   include:
     - os: linux
@@ -37,7 +35,7 @@ cache:
   directories:
     - $HOME/.cache/go-build
 go:
-  - 1.14.x
+  - 1.14.4
 
 addons:
   apt:
@@ -49,7 +47,7 @@ before_install:
   - sudo apt-get install --yes -qq gcc
   - sudo apt-get install --yes -qq libudev-dev
 
-install:
+install: true
   - make bootstrap
   - make format
 
