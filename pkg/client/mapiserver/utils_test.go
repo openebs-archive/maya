@@ -216,7 +216,7 @@ func TestPostRequest(t *testing.T) {
 				T:            t,
 			},
 			namespace:  "",
-			err:        errors.New(`Post "invalid:" unsupported protocol scheme ""`),
+			err:        errors.New(`Post "invalid": unsupported protocol scheme ""`),
 			chkbody:    false,
 			usefakeurl: false,
 			invalidurl: "invalid",
