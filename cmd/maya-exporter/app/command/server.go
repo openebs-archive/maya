@@ -24,7 +24,7 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/prometheus/client_golang/prometheus"
-
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"k8s.io/klog"
 )
 
@@ -64,7 +64,7 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.RawQuery == "format=json" {
 		jsonHandler().ServeHTTP(w, r)
 	} else {
-		prometheus.Handler().ServeHTTP(w, r)
+		promhttp.Handler().ServeHTTP(w, r)
 	}
 }
 
