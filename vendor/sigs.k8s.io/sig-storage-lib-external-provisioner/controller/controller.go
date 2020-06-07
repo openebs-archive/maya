@@ -71,11 +71,21 @@ const annClass = "volume.beta.kubernetes.io/storage-class"
 // recognize dynamically provisioned PVs in its decisions).
 const annDynamicallyProvisioned = "pv.kubernetes.io/provisioned-by"
 
+// AnnMigratedTo annotation is added to a PVC that is supposed to be
+// dynamically provisioned/deleted by by its corresponding CSI driver
+// through the CSIMigration feature flags. It allows external provisioners
+// to determine which PVs are considered migrated and safe to operate on for
+// Deletion.
+const annMigratedTo = "pv.kubernetes.io/migrated-to"
+
 const annStorageProvisioner = "volume.beta.kubernetes.io/storage-provisioner"
 
 // This annotation is added to a PVC that has been triggered by scheduler to
 // be dynamically provisioned. Its value is the name of the selected node.
 const annSelectedNode = "volume.kubernetes.io/selected-node"
+
+// This annotation is present on K8s 1.11 release.
+const annAlphaSelectedNode = "volume.alpha.kubernetes.io/selected-node"
 
 // Finalizer for PVs so we know to clean them up
 const finalizerPV = "external-provisioner.volume.kubernetes.io/finalizer"
@@ -617,29 +627,6 @@ func NewProvisionController(
 	controller.claimQueue = workqueue.NewNamedRateLimitingQueue(rateLimiter, "claims")
 	controller.volumeQueue = workqueue.NewNamedRateLimitingQueue(rateLimiter, "volumes")
 
-	if controller.createProvisionerPVLimiter != nil {
-		glog.V(2).Infof("Using saving PVs to API server in background")
-		controller.volumeStore = NewVolumeStoreQueue(client, controller.createProvisionerPVLimiter)
-	} else {
-		if controller.createProvisionedPVBackoff == nil {
-			// Use linear backoff with createProvisionedPVInterval and createProvisionedPVRetryCount by default.
-			if controller.createProvisionedPVInterval == 0 {
-				controller.createProvisionedPVInterval = DefaultCreateProvisionedPVInterval
-			}
-			if controller.createProvisionedPVRetryCount == 0 {
-				controller.createProvisionedPVRetryCount = DefaultCreateProvisionedPVRetryCount
-			}
-			controller.createProvisionedPVBackoff = &wait.Backoff{
-				Duration: controller.createProvisionedPVInterval,
-				Factor:   1, // linear backoff
-				Steps:    controller.createProvisionedPVRetryCount,
-				//Cap:      controller.createProvisionedPVInterval,
-			}
-		}
-		glog.V(2).Infof("Using blocking saving PVs to API server")
-		controller.volumeStore = NewBackoffStore(client, controller.eventRecorder, controller.createProvisionedPVBackoff, controller)
-	}
-
 	informer := informers.NewSharedInformerFactory(client, controller.resyncPeriod)
 
 	// ----------------------
@@ -698,6 +685,30 @@ func NewProvisionController(
 		}
 	}
 	controller.classes = controller.classInformer.GetStore()
+
+	if controller.createProvisionerPVLimiter != nil {
+		glog.V(2).Infof("Using saving PVs to API server in background")
+		controller.volumeStore = NewVolumeStoreQueue(client, controller.createProvisionerPVLimiter, controller.claimsIndexer, controller.eventRecorder)
+	} else {
+		if controller.createProvisionedPVBackoff == nil {
+			// Use linear backoff with createProvisionedPVInterval and createProvisionedPVRetryCount by default.
+			if controller.createProvisionedPVInterval == 0 {
+				controller.createProvisionedPVInterval = DefaultCreateProvisionedPVInterval
+			}
+			if controller.createProvisionedPVRetryCount == 0 {
+				controller.createProvisionedPVRetryCount = DefaultCreateProvisionedPVRetryCount
+			}
+			controller.createProvisionedPVBackoff = &wait.Backoff{
+				Duration: controller.createProvisionedPVInterval,
+				Factor:   1, // linear backoff
+				Steps:    controller.createProvisionedPVRetryCount,
+				//Cap:      controller.createProvisionedPVInterval,
+			}
+		}
+		glog.V(2).Infof("Using blocking saving PVs to API server")
+		controller.volumeStore = NewBackoffStore(client, controller.eventRecorder, controller.createProvisionedPVBackoff, controller)
+	}
+
 	return controller
 }
 
@@ -881,7 +892,7 @@ func (ctrl *ProvisionController) processNextClaimWorkItem() bool {
 			return fmt.Errorf("expected string in workqueue but got %#v", obj)
 		}
 
-		if _, err := ctrl.syncClaimHandler(key); err != nil {
+		if err := ctrl.syncClaimHandler(key); err != nil {
 			if ctrl.failedProvisionThreshold == 0 {
 				glog.Warningf("Retrying syncing claim %q, failure %v", key, ctrl.claimQueue.NumRequeues(obj))
 				ctrl.claimQueue.AddRateLimited(obj)
@@ -899,7 +910,8 @@ func (ctrl *ProvisionController) processNextClaimWorkItem() bool {
 		}
 
 		ctrl.claimQueue.Forget(obj)
-		glog.V(2).Infof("Provisioning succeeded, removing PVC %s from claims in progress", key)
+		// Silently remove the PVC from list of volumes in progress. The provisioning either succeeded
+		// or the PVC was ignored by this provisioner.
 		ctrl.claimsInProgress.Delete(key)
 		return nil
 	}(obj)
@@ -957,10 +969,10 @@ func (ctrl *ProvisionController) processNextVolumeWorkItem() bool {
 }
 
 // syncClaimHandler gets the claim from informer's cache then calls syncClaim
-func (ctrl *ProvisionController) syncClaimHandler(key string) (ProvisioningState, error) {
+func (ctrl *ProvisionController) syncClaimHandler(key string) error {
 	objs, err := ctrl.claimsIndexer.ByIndex(uidIndex, key)
 	if err != nil {
-		return ProvisioningFinished, err
+		return err
 	}
 	var claimObj interface{}
 	if len(objs) > 0 {
@@ -969,28 +981,11 @@ func (ctrl *ProvisionController) syncClaimHandler(key string) (ProvisioningState
 		obj, found := ctrl.claimsInProgress.Load(key)
 		if !found {
 			utilruntime.HandleError(fmt.Errorf("claim %q in work queue no longer exists", key))
-			return ProvisioningFinished, nil
+			return nil
 		}
 		claimObj = obj
 	}
-	status, err := ctrl.syncClaim(claimObj)
-	if err == nil || status == ProvisioningFinished {
-		// Provisioning is 100% finished / not in progress.
-		glog.V(2).Infof("Final error received, removing PVC %s from claims in progress", key)
-		ctrl.claimsInProgress.Delete(key)
-		return status, err
-	}
-	if status == ProvisioningInBackground {
-		// Provisioning is in progress in background.
-		glog.V(2).Infof("Temporary error received, adding PVC %s to claims in progress", key)
-		ctrl.claimsInProgress.Store(key, claimObj)
-	} else {
-		// status == ProvisioningNoChange.
-		// Don't change claimsInProgress:
-		// - the claim is already there if previous status was ProvisioningInBackground.
-		// - the claim is not there if if previous status was ProvisioningFinished.
-	}
-	return status, err
+	return ctrl.syncClaim(claimObj)
 }
 
 // syncVolumeHandler gets the volume from informer's cache then calls syncVolume
@@ -1009,25 +1004,43 @@ func (ctrl *ProvisionController) syncVolumeHandler(key string) error {
 
 // syncClaim checks if the claim should have a volume provisioned for it and
 // provisions one if so.
-func (ctrl *ProvisionController) syncClaim(obj interface{}) (ProvisioningState, error) {
+func (ctrl *ProvisionController) syncClaim(obj interface{}) error {
 	claim, ok := obj.(*v1.PersistentVolumeClaim)
 	if !ok {
-		return ProvisioningFinished, fmt.Errorf("expected claim but got %+v", obj)
+		return fmt.Errorf("expected claim but got %+v", obj)
 	}
 
 	should, err := ctrl.shouldProvision(claim)
 	if err != nil {
-		return ProvisioningFinished, err
+		return err
 	} else if should {
 		startTime := time.Now()
 
-		var status ProvisioningState
-		var err error
-		status, err = ctrl.provisionClaimOperation(claim)
+		status, err := ctrl.provisionClaimOperation(claim)
 		ctrl.updateProvisionStats(claim, err, startTime)
-		return status, err
+		if err == nil || status == ProvisioningFinished {
+			// Provisioning is 100% finished / not in progress.
+			if err == nil {
+				glog.V(5).Infof("Claim processing succeeded, removing PVC %s from claims in progress", claim.UID)
+			} else {
+				glog.V(2).Infof("Final error received, removing PVC %s from claims in progress", claim.UID)
+			}
+			ctrl.claimsInProgress.Delete(string(claim.UID))
+			return err
+		}
+		if status == ProvisioningInBackground {
+			// Provisioning is in progress in background.
+			glog.V(2).Infof("Temporary error received, adding PVC %s to claims in progress", claim.UID)
+			ctrl.claimsInProgress.Store(string(claim.UID), claim)
+		} else {
+			// status == ProvisioningNoChange.
+			// Don't change claimsInProgress:
+			// - the claim is already there if previous status was ProvisioningInBackground.
+			// - the claim is not there if if previous status was ProvisioningFinished.
+		}
+		return err
 	}
-	return ProvisioningFinished, nil
+	return nil
 }
 
 // syncVolume checks if the volume should be deleted and deletes if so
@@ -1083,12 +1096,12 @@ func (ctrl *ProvisionController) shouldProvision(claim *v1.PersistentVolumeClaim
 	} else {
 		// Kubernetes 1.4 provisioning, evaluating class.Provisioner
 		claimClass := util.GetPersistentVolumeClaimClass(claim)
-		provisioner, _, err := ctrl.getStorageClassFields(claimClass)
+		class, err := ctrl.getStorageClass(claimClass)
 		if err != nil {
 			glog.Errorf("Error getting claim %q's StorageClass's fields: %v", claimToClaimKey(claim), err)
 			return false, err
 		}
-		if provisioner != ctrl.provisionerName {
+		if class.Provisioner != ctrl.provisionerName {
 			return false, nil
 		}
 
@@ -1137,7 +1150,9 @@ func (ctrl *ProvisionController) shouldDelete(volume *v1.PersistentVolume) bool 
 		return false
 	}
 
-	if ann := volume.Annotations[annDynamicallyProvisioned]; ann != ctrl.provisionerName {
+	ann := volume.Annotations[annDynamicallyProvisioned]
+	migratedTo := volume.Annotations[annMigratedTo]
+	if ann != ctrl.provisionerName && migratedTo != ctrl.provisionerName {
 		return false
 	}
 
@@ -1223,37 +1238,23 @@ func (ctrl *ProvisionController) provisionClaimOperation(claim *v1.PersistentVol
 
 	// For any issues getting fields from StorageClass (including reclaimPolicy & mountOptions),
 	// retry the claim because the storageClass can be fixed/(re)created independently of the claim
-	provisioner, parameters, err := ctrl.getStorageClassFields(claimClass)
+	class, err := ctrl.getStorageClass(claimClass)
 	if err != nil {
 		glog.Error(logOperation(operation, "error getting claim's StorageClass's fields: %v", err))
 		return ProvisioningFinished, err
 	}
-	if !ctrl.knownProvisioner(provisioner) {
+	if !ctrl.knownProvisioner(class.Provisioner) {
 		// class.Provisioner has either changed since shouldProvision() or
 		// annDynamicallyProvisioned contains different provisioner than
 		// class.Provisioner.
-		glog.Error(logOperation(operation, "unknown provisioner %q requested in claim's StorageClass", provisioner))
+		glog.Error(logOperation(operation, "unknown provisioner %q requested in claim's StorageClass", class.Provisioner))
 		return ProvisioningFinished, nil
 	}
 
-	reclaimPolicy := v1.PersistentVolumeReclaimDelete
-	if ctrl.kubeVersion.AtLeast(utilversion.MustParseSemantic("v1.8.0")) {
-		reclaimPolicy, err = ctrl.fetchReclaimPolicy(claimClass)
-		if err != nil {
-			return ProvisioningFinished, err
-		}
-	}
-
-	mountOptions, err := ctrl.fetchMountOptions(claimClass)
-	if err != nil {
-		return ProvisioningFinished, err
-	}
-
 	var selectedNode *v1.Node
-	var allowedTopologies []v1.TopologySelectorTerm
 	if ctrl.kubeVersion.AtLeast(utilversion.MustParseSemantic("v1.11.0")) {
 		// Get SelectedNode
-		if nodeName, ok := claim.Annotations[annSelectedNode]; ok {
+		if nodeName, ok := getString(claim.Annotations, annSelectedNode, annAlphaSelectedNode); ok {
 			selectedNode, err = ctrl.client.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{}) // TODO (verult) cache Nodes
 			if err != nil {
 				err = fmt.Errorf("failed to get target node: %v", err)
@@ -1261,24 +1262,13 @@ func (ctrl *ProvisionController) provisionClaimOperation(claim *v1.PersistentVol
 				return ProvisioningNoChange, err
 			}
 		}
-
-		// Get AllowedTopologies
-		allowedTopologies, err = ctrl.fetchAllowedTopologies(claimClass)
-		if err != nil {
-			err = fmt.Errorf("failed to get AllowedTopologies from StorageClass: %v", err)
-			ctrl.eventRecorder.Event(claim, v1.EventTypeWarning, "ProvisioningFailed", err.Error())
-			return ProvisioningNoChange, err
-		}
 	}
 
-	options := VolumeOptions{
-		PersistentVolumeReclaimPolicy: reclaimPolicy,
-		PVName:                        pvName,
-		PVC:                           claim,
-		MountOptions:                  mountOptions,
-		Parameters:                    parameters,
-		SelectedNode:                  selectedNode,
-		AllowedTopologies:             allowedTopologies,
+	options := ProvisionOptions{
+		StorageClass: class,
+		PVName:       pvName,
+		PVC:          claim,
+		SelectedNode: selectedNode,
 	}
 
 	ctrl.eventRecorder.Event(claim, v1.EventTypeNormal, "Provisioning", fmt.Sprintf("External provisioner is provisioning volume for claim %q", claimToClaimKey(claim)))
@@ -1436,86 +1426,36 @@ func (ctrl *ProvisionController) getProvisionedVolumeNameForClaim(claim *v1.Pers
 	return "pvc-" + string(claim.UID)
 }
 
-func (ctrl *ProvisionController) getStorageClassFields(name string) (string, map[string]string, error) {
+// getStorageClass retrives storage class object by name.
+func (ctrl *ProvisionController) getStorageClass(name string) (*storage.StorageClass, error) {
 	classObj, found, err := ctrl.classes.GetByKey(name)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	if !found {
-		return "", nil, fmt.Errorf("storageClass %q not found", name)
-		// 3. It tries to find a StorageClass instance referenced by annotation
-		//    `claim.Annotations["volume.beta.kubernetes.io/storage-class"]`. If not
-		//    found, it SHOULD report an error (by sending an event to the claim) and it
-		//    SHOULD retry periodically with step i.
+		return nil, fmt.Errorf("storageClass %q not found", name)
 	}
 	switch class := classObj.(type) {
 	case *storage.StorageClass:
-		return class.Provisioner, class.Parameters, nil
+		return class, nil
 	case *storagebeta.StorageClass:
-		return class.Provisioner, class.Parameters, nil
+		// convert storagebeta.StorageClass to storage.StorageClass
+		return &storage.StorageClass{
+			ObjectMeta:           class.ObjectMeta,
+			Provisioner:          class.Provisioner,
+			Parameters:           class.Parameters,
+			ReclaimPolicy:        class.ReclaimPolicy,
+			MountOptions:         class.MountOptions,
+			AllowVolumeExpansion: class.AllowVolumeExpansion,
+			VolumeBindingMode:    (*storage.VolumeBindingMode)(class.VolumeBindingMode),
+			AllowedTopologies:    class.AllowedTopologies,
+		}, nil
 	}
-	return "", nil, fmt.Errorf("cannot convert object to StorageClass: %+v", classObj)
+	return nil, fmt.Errorf("cannot convert object to StorageClass: %+v", classObj)
 }
 
 func claimToClaimKey(claim *v1.PersistentVolumeClaim) string {
 	return fmt.Sprintf("%s/%s", claim.Namespace, claim.Name)
-}
-
-func (ctrl *ProvisionController) fetchReclaimPolicy(storageClassName string) (v1.PersistentVolumeReclaimPolicy, error) {
-	classObj, found, err := ctrl.classes.GetByKey(storageClassName)
-	if err != nil {
-		return "", err
-	}
-	if !found {
-		return "", fmt.Errorf("storageClass %q not found", storageClassName)
-	}
-
-	switch class := classObj.(type) {
-	case *storage.StorageClass:
-		return *class.ReclaimPolicy, nil
-	case *storagebeta.StorageClass:
-		return *class.ReclaimPolicy, nil
-	}
-
-	return v1.PersistentVolumeReclaimDelete, fmt.Errorf("cannot convert object to StorageClass: %+v", classObj)
-}
-
-func (ctrl *ProvisionController) fetchMountOptions(storageClassName string) ([]string, error) {
-	classObj, found, err := ctrl.classes.GetByKey(storageClassName)
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return nil, fmt.Errorf("storageClass %q not found", storageClassName)
-	}
-
-	switch class := classObj.(type) {
-	case *storage.StorageClass:
-		return class.MountOptions, nil
-	case *storagebeta.StorageClass:
-		return class.MountOptions, nil
-	}
-
-	return nil, fmt.Errorf("cannot convert object to StorageClass: %+v", classObj)
-}
-
-func (ctrl *ProvisionController) fetchAllowedTopologies(storageClassName string) ([]v1.TopologySelectorTerm, error) {
-	classObj, found, err := ctrl.classes.GetByKey(storageClassName)
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return nil, fmt.Errorf("storageClass %q not found", storageClassName)
-	}
-
-	switch class := classObj.(type) {
-	case *storage.StorageClass:
-		return class.AllowedTopologies, nil
-	case *storagebeta.StorageClass:
-		return class.AllowedTopologies, nil
-	}
-
-	return nil, fmt.Errorf("cannot convert object to StorageClass: %+v", classObj)
 }
 
 // supportsBlock returns whether a provisioner supports block volume.
@@ -1526,4 +1466,17 @@ func (ctrl *ProvisionController) supportsBlock() bool {
 		return blockProvisioner.SupportsBlock()
 	}
 	return false
+}
+
+func getString(m map[string]string, key string, alts ...string) (string, bool) {
+	if m == nil {
+		return "", false
+	}
+	keys := append([]string{key}, alts...)
+	for _, k := range keys {
+		if v, ok := m[k]; ok {
+			return v, true
+		}
+	}
+	return "", false
 }
