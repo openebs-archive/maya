@@ -17,7 +17,6 @@ limitations under the License.
 package webhook
 
 import (
-	"fmt"
 	"net/http"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -32,6 +31,18 @@ func (wh *webhook) validateSPCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 		SetAllowed().
 		WithResultAsSuccess(http.StatusAccepted).AR
 
+	spcObj, err := wh.clientset.OpenebsV1alpha1().StoragePoolClaims().Get(req.Name, metav1.GetOptions{})
+	if err != nil {
+		err = errors.Wrapf(err, "failed to get spc %s", req.Name)
+		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusBadRequest).AR
+		return response
+	}
+
+	if value := spcObj.GetAnnotations()[skipValidation]; value == "true" {
+		klog.Infof("Skipping validations for %s due to SPC has skip validation", spcObj.Name)
+		return response
+	}
+
 	cspList, err := wh.clientset.OpenebsV1alpha1().CStorPools().List(
 		metav1.ListOptions{
 			LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + req.Name,
@@ -42,7 +53,6 @@ func (wh *webhook) validateSPCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusBadRequest).AR
 		return response
 	}
-	fmt.Printf("%+v", cspList.Items)
 	for _, cspObj := range cspList.Items {
 		// list cvrs in all namespaces
 		cvrList, err := wh.clientset.OpenebsV1alpha1().CStorVolumeReplicas("").List(metav1.ListOptions{

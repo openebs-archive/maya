@@ -53,6 +53,7 @@ var (
 
 const (
 	snapshotMetadataPVName = "SnapshotMetadata-PVName"
+	skipValidation         = "openebs.io/skip-validations"
 )
 
 // Skip validation in special namespaces, i.e. in kube-system and kube-public

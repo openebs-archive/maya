@@ -163,6 +163,50 @@ func TestValidateSPCDeleteRequest(t *testing.T) {
 			},
 			expectedRsp: true,
 		},
+		"When SPC has skip validations": {
+			spcObj: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "spc5",
+					Annotations: map[string]string{
+						skipValidation: "true",
+					},
+				},
+			},
+			cspList: &apis.CStorPoolList{
+				Items: []apis.CStorPool{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "spc5-csp1",
+							Labels: map[string]string{
+								string(apis.StoragePoolClaimCPK): "spc5",
+							},
+						},
+					},
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "spc5-csp2",
+							Labels: map[string]string{
+								string(apis.StoragePoolClaimCPK): "spc5",
+							},
+						},
+					},
+				},
+			},
+			cvrList: &apis.CStorVolumeReplicaList{
+				Items: []apis.CStorVolumeReplica{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "spc5-csp2-cvr1",
+							Namespace: "openebs",
+							Labels: map[string]string{
+								string(apis.CStorPoolKey): "spc5-csp2",
+							},
+						},
+					},
+				},
+			},
+			expectedRsp: true,
+		},
 	}
 	for name, test := range tests {
 		name, test := name, test
@@ -173,6 +217,12 @@ func TestValidateSPCDeleteRequest(t *testing.T) {
 				Object: runtime.RawExtension{
 					Raw: serialize(test.spcObj),
 				},
+			}
+			if test.spcObj != nil {
+				_, err := f.wh.clientset.OpenebsV1alpha1().StoragePoolClaims().Create(test.spcObj)
+				if err != nil {
+					t.Errorf("failed to create SPC error: %s", err.Error())
+				}
 			}
 			// Create fake object in etcd
 			if test.cspList != nil {
