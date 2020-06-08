@@ -306,12 +306,12 @@ func TestValidatePVCDeleteRequest(t *testing.T) {
 			isRequiresPVCCreation: true,
 			expectedResponse:      true,
 		},
-		"Skip pvc validaion if skipValidation annotations set even snapshot exists": {
+		"validate pvc if skipValidation annotations set to false": {
 			pvc: &corev1.PersistentVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "PVC8",
 					Namespace:   "test",
-					Annotations: map[string]string{skipValidation: "true"},
+					Annotations: map[string]string{skipValidation: ""},
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					VolumeName: "PV1",
@@ -325,7 +325,29 @@ func TestValidatePVCDeleteRequest(t *testing.T) {
 				},
 			},
 			isRequiresPVCCreation: true,
-			expectedResponse:      true,
+			expectedResponse:      false,
+		},
+
+		"validate pvc if skipValidation annotations not properly set": {
+			pvc: &corev1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "PVC8",
+					Namespace:   "test",
+					Annotations: map[string]string{skipValidation: ""},
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					VolumeName: "PV1",
+				},
+			},
+			snapshot: &snapshotapi.VolumeSnapshot{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "Snap1",
+					Namespace: "test",
+					Labels:    map[string]string{snapshotMetadataPVName: "PV1"},
+				},
+			},
+			isRequiresPVCCreation: true,
+			expectedResponse:      false,
 		},
 	}
 	for name, test := range tests {

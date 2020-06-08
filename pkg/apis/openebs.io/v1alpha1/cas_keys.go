@@ -102,6 +102,9 @@ const (
 
 	// PVCreatedByKey is key to fetch the details of pv creation in case of restore
 	PVCreatedByKey = "openebs.io/created-through"
+
+	// Name of the CSI driver
+	CSIDriverName = "cstor.csi.openebs.io"
 )
 
 // CASPlainKey represents a openebs key used either in resource annotation
