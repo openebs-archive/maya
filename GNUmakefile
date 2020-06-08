@@ -147,21 +147,15 @@ include ./buildscripts/upgrade/Makefile.mk
 include ./buildscripts/exporter/Makefile.mk
 include ./buildscripts/cstor-pool-mgmt/Makefile.mk
 include ./buildscripts/cstor-volume-mgmt/Makefile.mk
-include ./buildscripts/cspi-mgmt/Makefile.mk
-include ./buildscripts/cvc-operator/Makefile.mk
 include ./buildscripts/admission-server/Makefile.mk
-include ./buildscripts/cspc-operator/Makefile.mk
-include ./buildscripts/cspc-operator-debug/Makefile.mk
 
 .PHONY: all
 all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image \
-	   admission-server-image cspc-operator-image cspc-operator-debug-image \
-	   cvc-operator-image cspi-mgmt-image upgrade-image provisioner-localpv-image
+	   admission-server-image upgrade-image provisioner-localpv-image
 
 .PHONY: all.arm64
 all.arm64: apiserver-image.arm64 exporter-image.arm64 pool-mgmt-image.arm64 volume-mgmt-image.arm64 \
-           admission-server-image.arm64 cspc-operator-image.arm64 upgrade-image.arm64 \
-           cvc-operator-image.arm64 cspi-mgmt-image.arm64 provisioner-localpv-image.arm64
+           admission-server-image.arm64 upgrade-image.arm64 provisioner-localpv-image.arm64
 
 .PHONY: all.ppc64le
 all.ppc64le: provisioner-localpv-image.ppc64le
