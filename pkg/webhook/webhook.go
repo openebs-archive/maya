@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -63,6 +64,7 @@ var (
 		metav1.NamespacePublic,
 	}
 	snapshotAnnotation = "snapshot.alpha.kubernetes.io/snapshot"
+	skipValidation     = "openebs.io/skip-validations"
 )
 
 // webhook implements a validating webhook.
@@ -183,7 +185,20 @@ func admissionRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool {
 			return false
 		}
 	}
-	return true
+
+	annotations := metadata.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+
+	var required bool
+	switch strings.ToLower(annotations[skipValidation]) {
+	default:
+		required = true
+	case "n", "no", "false", "off":
+		required = false
+	}
+	return required
 }
 
 func validationRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool {
@@ -227,6 +242,12 @@ func (wh *webhook) validatePVCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 		response.Result = &metav1.Status{
 			Message: fmt.Sprintf("error retrieving PVC: %v", err.Error()),
 		}
+		return response
+	}
+
+	// skip pvc validation if skip-validations annotation has been set
+	if _, ok := pvc.GetAnnotations()[skipValidation]; ok {
+		klog.Infof("Skipping validations for %s/%s due to PVC has skip validation", pvc.Namespace, pvc.Name)
 		return response
 	}
 
