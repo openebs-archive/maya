@@ -27,6 +27,7 @@ import (
 	"github.com/pkg/errors"
 	v1_storage "k8s.io/api/storage/v1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 // options contains the options with respect to
@@ -211,6 +212,17 @@ func (s *snapshot) Delete() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
+	snap := &v1alpha1.CASSnapshot{}
+	// Return success for delete snapshot request in case volume snapshot belongs to a
+	// migrated CSI based persistent volume. Later as part of migration snapshot
+	// can be migrated to CSI snapshots using a migration or manual steps
+	if pv.Spec.CSI != nil {
+		if string(pv.Spec.CSI.Driver) == string(v1alpha1.CSIDriverName) {
+			klog.Infof("skip backend snapshot delete request of migrated CSI volume: %q", s.snapOptions.VolumeName)
+			return snap, nil
+		}
+	}
+
 	storageEngine := pv.Labels[string(v1alpha1.CASTypeKey)]
 	scName := pv.Labels[string(v1alpha1.StorageClassKey)]
 	if len(scName) == 0 {
@@ -259,7 +271,6 @@ func (s *snapshot) Delete() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 	// unmarshall into openebs snapshot
-	snap := &v1alpha1.CASSnapshot{}
 	err = yaml.Unmarshal(data, snap)
 	if err != nil {
 		return nil, err

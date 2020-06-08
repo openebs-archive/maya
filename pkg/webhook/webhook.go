@@ -196,7 +196,8 @@ func admissionRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool {
 	switch strings.ToLower(annotations[skipValidation]) {
 	default:
 		required = true
-	case "n", "no", "false", "off":
+	case "y", "yes", "true":
+		klog.Infof("Skipping validations for %s/%s due to PVC has skip validation", metadata.Namespace, metadata.Name)
 		required = false
 	}
 	return required
@@ -246,18 +247,14 @@ func (wh *webhook) validatePVCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 		return response
 	}
 
-	// skip pvc validation if skip-validations annotation has been set
-	if _, ok := pvc.GetAnnotations()[skipValidation]; ok {
-		klog.Infof("Skipping validations for %s/%s due to PVC has skip validation", pvc.Namespace, pvc.Name)
-		return response
-	}
-
 	// If PVC is not yet bound to PV then don't even perform any checks
 	if pvc.Spec.VolumeName == "" {
 		klog.Infof("Skipping validations for %s/%s due to PVC is not yet bound", pvc.Namespace, pvc.Name)
 		return response
 	}
 
+	// skip pvc validation if skip-validations annotation has been set to true
+	// "openebs.io/skip-validations: true"
 	if !validationRequired(ignoredNamespaces, &pvc.ObjectMeta) {
 		klog.V(4).Infof("Skipping validation for %s/%s due to policy check", pvc.Namespace, pvc.Name)
 		return response
