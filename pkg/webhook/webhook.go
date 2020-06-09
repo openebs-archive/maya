@@ -65,7 +65,6 @@ var (
 		metav1.NamespacePublic,
 	}
 	snapshotAnnotation = "snapshot.alpha.kubernetes.io/snapshot"
-	skipValidation     = "openebs.io/skip-validations"
 )
 
 // webhook implements a validating webhook.
