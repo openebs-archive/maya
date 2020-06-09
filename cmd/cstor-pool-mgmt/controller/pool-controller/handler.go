@@ -260,7 +260,7 @@ func (c *CStorPoolController) cStorPoolCreate(cStorPoolGot *apis.CStorPool) (str
 	err = pool.CreatePool(cStorPoolGot, devIDList)
 	if err != nil {
 		klog.Errorf("Pool creation failure: %v", string(cStorPoolGot.GetUID()))
-		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureCreate), string(common.MessageResourceFailCreate))
+		c.recorder.Eventf(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureCreate), "Pool creation failed %s", err.Error())
 		return string(apis.CStorPoolStatusCreateFailed), err
 	}
 	klog.Infof("Pool creation successful: %v", string(cStorPoolGot.GetUID()))
