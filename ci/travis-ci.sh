@@ -20,7 +20,7 @@ set -e
 # global env vars to be used in test scripts
 export CI_BRANCH="master"
 export CI_TAG="ci"
-export MAYACTL="$GOPATH/src/github.com/openebs/maya/bin/maya/mayactl"
+export MAYACTL="$GOPATH/src/github.com/openebs/maya/bin/maya/kubectl-mayactl"
 
 ./ci/build-maya.sh
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
@@ -34,7 +34,7 @@ echo "Compiling and building the binary"
 sudo gcc ci/udev_check.c -ludev -o /var/openebs/sparse/udev_checks/udev_check
 
 # append mayactl tests to this script
-cat ./ci/mayactl.sh >> ./test-script.sh
+cat ./ci/kubectl-mayactl.sh >> ./test-script.sh
 
 # append local pv tests to this script
 #cat ./ci/local_pv.sh >> ./test-script.sh

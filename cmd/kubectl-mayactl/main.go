@@ -15,7 +15,7 @@
 package main
 
 import (
-	"github.com/openebs/maya/cmd/mayactl/app/command"
+	"github.com/openebs/maya/cmd/kubectl-mayactl/app/command"
 )
 
 func main() {

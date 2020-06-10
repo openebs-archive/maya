@@ -24,7 +24,8 @@ RUN yum update -y && \
     yum clean all
 
 COPY maya-apiserver /usr/local/bin/
-COPY mayactl /usr/local/bin/
+#TODO:
+#COPY mayactl /usr/local/bin/
 
 COPY entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh

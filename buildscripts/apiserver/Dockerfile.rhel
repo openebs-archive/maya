@@ -18,7 +18,8 @@ FROM openebs/rhel7
 ENV MAYA_API_SERVER_NETWORK="eth0"
 
 COPY maya-apiserver /usr/local/bin/
-COPY mayactl /usr/local/bin/
+#TODO:
+#COPY mayactl /usr/local/bin/
 COPY licenses /licenses
 COPY entrypoint.sh /usr/local/bin/
 

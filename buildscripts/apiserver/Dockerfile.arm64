@@ -24,7 +24,7 @@ RUN mkdir -p /etc/apiserver/specs
 
 COPY demo-vol1.yaml /etc/apiserver/specs/
 COPY maya-apiserver /usr/local/bin/
-COPY mayactl /usr/local/bin/
+# COPY mayactl /usr/local/bin/
 
 COPY entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh

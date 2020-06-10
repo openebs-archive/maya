@@ -140,7 +140,7 @@ ifeq (${BASE_DOCKER_IMAGE_PPC64LE}, )
 endif
 
 
-include ./buildscripts/mayactl/Makefile.mk
+include ./buildscripts/kubectl-mayactl/Makefile.mk
 include ./buildscripts/apiserver/Makefile.mk
 include ./buildscripts/provisioner-localpv/Makefile.mk
 include ./buildscripts/upgrade/Makefile.mk
@@ -341,7 +341,7 @@ informer2:
 .PHONY: install
 install: bin/maya/${MAYACTL}
 	install -o root -g root -m 0755 ./bin/maya/${MAYACTL} /usr/local/bin/${MAYACTL}
-
+	
 # Push images
 .PHONY: deploy-images
 deploy-images:
