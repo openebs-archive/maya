@@ -29,20 +29,21 @@ apiserver:
 	@echo "----------------------------"
 	@PNAME="apiserver" CTLNAME=${APISERVER} sh -c "'$(PWD)/buildscripts/build.sh'"
 
+#TODO: 
 # Currently both mayactl & apiserver binaries are pushed into
 # m-apiserver image. This is going to be decoupled soon.
 .PHONY: apiserver-image
-apiserver-image: mayactl apiserver
+apiserver-image: apiserver
 	@echo "----------------------------"
 	@echo -n "--> apiserver image "
 	@echo "${IMAGE_ORG}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
-	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
+	#@cp bin/maya/${MAYACTL} buildscripts/apiserver/
 	@cd buildscripts/apiserver && sudo docker build -t ${IMAGE_ORG}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG} ${DBUILD_ARGS} .
 	@rm buildscripts/apiserver/${APISERVER}
-	@rm buildscripts/apiserver/${MAYACTL}
-
+	#@rm buildscripts/apiserver/${MAYACTL}
+#TODO: remove here too
 .PHONY: rhel-apiserver-image
 rhel-apiserver-image: mayactl apiserver
 	@echo "----------------------------"
@@ -50,11 +51,11 @@ rhel-apiserver-image: mayactl apiserver
 	@echo "${IMAGE_ORG}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
-	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
+	# @cp bin/maya/${MAYACTL} buildscripts/apiserver/
 	@cd buildscripts/apiserver && sudo docker build -t ${IMAGE_ORG}/${M_APISERVER_REPO_NAME}:${IMAGE_TAG} -f Dockerfile.rhel --build-arg VERSION=${VERSION} .
 	@rm buildscripts/apiserver/${APISERVER}
-	@rm buildscripts/apiserver/${MAYACTL}
-
+	# @rm buildscripts/apiserver/${MAYACTL}
+#TODO: remove here too 
 .PHONY: apiserver-image.arm64
 apiserver-image.arm64: mayactl apiserver
 	@echo "----------------------------"
@@ -62,8 +63,8 @@ apiserver-image.arm64: mayactl apiserver
 	@echo "${IMAGE_ORG}/${M_APISERVER_REPO_NAME_ARM64}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
-	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
+	# @cp bin/maya/${MAYACTL} buildscripts/apiserver/
 	@cd buildscripts/apiserver && sudo docker build -t ${IMAGE_ORG}/${M_APISERVER_REPO_NAME_ARM64}:${IMAGE_TAG} -f Dockerfile.arm64 ${DBUILD_ARGS} --build-arg BASE_IMAGE=${BASE_DOCKER_IMAGE_ARM64} .
 	@rm buildscripts/apiserver/${APISERVER}
-	@rm buildscripts/apiserver/${MAYACTL}
+	# @rm buildscripts/apiserver/${MAYACTL}
 

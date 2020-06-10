@@ -18,6 +18,9 @@ package k8s
 
 import (
 	"encoding/json"
+	"flag"
+	"os"
+	"path/filepath"
 
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	ndm "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
@@ -1072,7 +1075,7 @@ func (k *K8sClient) CreateCoreV1ServiceAsRaw(s *api_core_v1.Service) (result []b
 
 	return json.Marshal(svc)
 
-	// TODO
+	// TODO:
 	//  A better way needs to be determined to get or use raw bytes of a resource.
 	// These lines will be removed or refactor-ed once we conclude on this better
 	// approach.
@@ -1331,4 +1334,35 @@ func getInClusterNDMCS() (clientset *ndm.Clientset, err error) {
 	}
 
 	return clientset, nil
+}
+
+func GetOutofClusterCS() (client *kubernetes.Clientset, err error) {
+	var kubeconfig *string
+	if home := homeDir(); home!= ""{
+		kubeconfig = flag.String("kubeconfig", filepath.Join(home,".kube","config"),"absolute path to kubeconfig")
+	}else{
+		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig")
+	}
+	flag.Parse()
+
+	// use the current context in kubeconfig
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// create the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return clientset, err
+}
+
+func homeDir() string {
+	if h := os.Getenv("HOME"); h != "" {
+		return h
+	}
+	return os.Getenv("KUBECONFIG")
 }

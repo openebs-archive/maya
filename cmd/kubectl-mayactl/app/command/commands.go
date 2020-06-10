@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/openebs/maya/cmd/mayactl/app/command/pool"
+	"github.com/openebs/maya/cmd/kubectl-mayactl/app/command/pool"
 	"k8s.io/klog"
 
 	//"github.com/openebs/maya/cmd/mayactl/app/command/snapshot"
@@ -30,7 +30,7 @@ import (
 // NewMayaCommand creates the `maya` command and its nested children.
 func NewMayaCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "mayactl",
+		Use:   "kubectl-mayactl",
 		Short: "Maya means 'Magic' a tool for storage orchestration",
 		Long:  `Maya means 'Magic' a tool for storage orchestration`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
@@ -43,7 +43,6 @@ func NewMayaCommand() *cobra.Command {
 					// its trying to send a http request which is more helpful
 					// 1. maya-apiserver not running
 					// 2. maya-apiserver not reachable
-					// 3. if mayactl ran outside of maya-apiserver POD
 					//os.Exit(1)
 				}
 			} else if mapiserver.GetConnectionStatus() != "running" {

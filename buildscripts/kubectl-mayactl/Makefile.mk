@@ -13,11 +13,20 @@
 # limitations under the License.
 
 # Specify the name for the binaries
-MAYACTL=mayactl
+MAYACTL=kubectl-mayactl
 
 .PHONY: mayactl
 mayactl:
 	@echo "----------------------------"
 	@echo "--> mayactl                    "
 	@echo "----------------------------"
-	@PNAME="maya" CTLNAME=${MAYACTL} sh -c "'$(PWD)/buildscripts/build.sh'"
+	@PNAME="kubectl-mayactl" CTLNAME=${MAYACTL} sh -c "'$(PWD)/buildscripts/build.sh'"
+	@echo "--> Removing old directory..."
+	@sudo rm -rf /usr/local/bin/${MAYACTL}
+	@echo "----------------------------"
+	@echo "copying new mayactl"
+	@echo "----------------------------"
+	@sudo mkdir -p  /usr/local/bin/
+	@sudo cp -a "$(GOPATH)/bin/${MAYACTL}"  /usr/local/bin/${MAYACTL}
+	@sudo rm "$(GOPATH)/bin/${MAYACTL}"
+	@echo "=> copied to /usr/local/bin"

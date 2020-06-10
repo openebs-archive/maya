@@ -28,7 +28,7 @@ var (
 	volumeDeleteCommandHelpText = `
 This command initiates a deletion process for an OpenEBS Volume.
 
-Usage: mayactl volume delete --volname <vol>
+Usage: kubectl-mayactl volume delete --volname <vol>
 `
 )
 

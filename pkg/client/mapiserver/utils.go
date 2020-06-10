@@ -20,14 +20,17 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"net"
+	//"net"
 	"net/http"
 	"os"
 	"sort"
 	"text/tabwriter"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/openebs/maya/types/v1"
+	"github.com/openebs/maya/pkg/client/k8s"
 )
 
 const (
@@ -40,19 +43,30 @@ var MAPIAddr string
 // MAPIAddrPort stores port number of mapi server if passed through flag
 var MAPIAddrPort string
 
-// Initialize func sets the env variable with local ip address
+// Initialize func sets the env variable with ip address for api-server
 func Initialize() {
-	mapiaddr := os.Getenv("MAPI_ADDR")
-	if mapiaddr == "" {
-		mapiaddr = getDefaultAddr()
-		os.Setenv("MAPI_ADDR", mapiaddr)
+	var mapiaddr string
+	client ,err := k8s.GetOutofClusterCS()
+	//if the client cant be created for some reason print the error
+	if err != nil {
+		fmt.Println(err)
 	}
+
+	svcList, err := client.CoreV1().Services("openebs").List(metav1.ListOptions{})
+	if err != nil {
+		fmt.Println(err)
+	}
+	//TODO: cathch error here 
+	mapiaddr = svcList.Items[1].Spec.ClusterIP
+	
+	os.Setenv("MAPI_ADDR", "http://" + mapiaddr + ":" + "5656")
+	os.Setenv("KUBERNETES_SERVICE_HOST","127.0.0.1")
 }
 
 // GetURL returns the mapi server address
 func GetURL() string {
 	if len(MAPIAddr) > 0 {
-		return "http://" + MAPIAddr + ":" + MAPIAddrPort
+		return "http://" + MAPIAddr + ":" + "5656"
 	}
 	return os.Getenv("MAPI_ADDR")
 }
@@ -61,12 +75,13 @@ func GetURL() string {
 func GetConnectionStatus() string {
 	_, err := GetStatus()
 	if err != nil {
+		fmt.Println(err)
 		return "not reachable"
 	}
 	return "running"
 }
 
-// getDefaultAddr returns the local ip address
+/*getDefaultAddr returns the local ip address
 func getDefaultAddr() string {
 	env := "127.0.0.1"
 	host, _ := os.Hostname()
@@ -81,8 +96,9 @@ func getDefaultAddr() string {
 	}
 	return "http://" + env + ":5656"
 }
+*/
 
-// SortSnapshotDisksByDateTime orders the snapshot disks with respect to date and time
+//SortSnapshotDisksByDateTime orders the snapshot disks with respect to date and time
 func SortSnapshotDisksByDateTime(snapshotDisks []SnapshotInfo) {
 	sort.SliceStable(snapshotDisks, func(i, j int) bool {
 		t1, _ := time.Parse(time.RFC3339, snapshotDisks[i].Created)
