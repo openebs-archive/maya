@@ -60,11 +60,13 @@ func (wh *webhook) validateSPCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 		})
 		if err != nil {
 			err = errors.Wrapf(err, "Could not list cvr for csp %s", cspObj.Name)
+			klog.Error(err)
 			response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusBadRequest).AR
 			return response
 		}
 		if len(cvrList.Items) != 0 {
 			err := errors.Errorf("invalid spc %s deletion: volumereplicas still exists on pool %s", req.Name, cspObj.Name)
+			klog.Error(err)
 			response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusUnprocessableEntity).AR
 			return response
 		}
