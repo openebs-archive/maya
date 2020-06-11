@@ -25,8 +25,8 @@ if [[ -n "$TRAVIS_TAG" ]] && [[ $TRAVIS_TAG != *"RC"* ]]; then
 fi
 
 # Get the version details
-VERSION="$(cat $GOPATH/src/github.com/openebs/maya/VERSION)"
-VERSION_META="$(cat $GOPATH/src/github.com/openebs/maya/BUILDMETA)"
+VERSION="$(cat $PWD/VERSION)"
+VERSION_META="$(cat $PWD/BUILDMETA)"
 
 # Determine the arch/os combos we're building for
 UNAME=$(uname)

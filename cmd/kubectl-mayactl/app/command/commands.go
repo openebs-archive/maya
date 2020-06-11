@@ -24,7 +24,9 @@ import (
 
 	//"github.com/openebs/maya/cmd/mayactl/app/command/snapshot"
 	"github.com/openebs/maya/pkg/client/mapiserver"
+
 	"github.com/spf13/cobra"
+
 )
 
 // NewMayaCommand creates the `maya` command and its nested children.
@@ -34,8 +36,9 @@ func NewMayaCommand() *cobra.Command {
 		Short: "Maya means 'Magic' a tool for storage orchestration",
 		Long:  `Maya means 'Magic' a tool for storage orchestration`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			mapiserver.Initialize()
 			if len(mapiserver.MAPIAddr) == 0 {
-				mapiserver.Initialize()
+				//mapiserver.Initialize()
 				if mapiserver.GetConnectionStatus() != "running" {
 					fmt.Println("Unable to connect to mapi server address")
 					// Not exiting here to get the actual standard error in

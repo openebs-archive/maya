@@ -52,13 +52,13 @@ func Initialize() {
 		fmt.Println(err)
 	}
 
-	svcList, err := client.CoreV1().Services("openebs").List(metav1.ListOptions{})
+	svcLabelSelector := "openebs.io/component-name" + "=" + "maya-apiserver-svc"
+	svcList, err := client.CoreV1().Services("openebs").List(metav1.ListOptions{LabelSelector: svcLabelSelector})
 	if err != nil {
 		fmt.Println(err)
 	}
-	//TODO: cathch error here
-	mapiaddr = svcList.Items[1].Spec.ClusterIP
-
+	//TODO: catch error here 
+	mapiaddr = svcList.Items[0].Spec.ClusterIP
 	os.Setenv("MAPI_ADDR", "http://"+mapiaddr+":"+"5656")
 	os.Setenv("KUBERNETES_SERVICE_HOST", "127.0.0.1")
 }
