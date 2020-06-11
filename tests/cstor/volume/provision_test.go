@@ -265,12 +265,12 @@ var _ = Describe("[Cstor Volume Provisioning Positive] TEST VOLUME PROVISIONING"
 
 			By("verifying target pod count as 0")
 			targetVolumeLabel = pvLabel + volname
-			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, targetVolumeLabel, 1)
-			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
+			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, targetVolumeLabel, 0)
+			Expect(controllerPodCount).To(Equal(0), "while checking controller pod count")
 
 			By("verifying cstorvolume replica count")
 			cvrLabel = pvLabel + volname
-			cvrCount = ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, 0, cvr.IsErrored())
+			cvrCount = ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, 0)
 			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
 		})
 	})
@@ -337,12 +337,12 @@ var _ = Describe("[Cstor Volume Provisioning Positive] TEST VOLUME PROVISIONING"
 
 			By("verifying target pod count as 0")
 			targetVolumeLabel = pvLabel + volname
-			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, targetVolumeLabel, 1)
-			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
+			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, targetVolumeLabel, 0)
+			Expect(controllerPodCount).To(Equal(0), "while checking controller pod count")
 
 			By("verifying cstorvolume replica count")
 			cvrLabel = pvLabel + volname
-			cvrCount = ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, 0, cvr.IsErrored())
+			cvrCount = ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, 0)
 			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
 		})
 
