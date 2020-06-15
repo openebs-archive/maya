@@ -1,5 +1,20 @@
 # Changelog
 
+v1.11.0 / 2020-06-12
+========================
+
+ * fix(BDD): update checks after de-provisioning the CStor Volume ([#1715](https://github.com/openebs/maya/pull/1715), [mittachaitu](https://github.com/mittachaitu))
+ * fix(build): remove duplicate declaration of constant ([#1714](https://github.com/openebs/maya/pull/1714), [prateekpandey14](https://github.com/prateekpandey14))
+ * chore(Makefile): remove cspc,cvc,cspi based controller image builds ([#1713](https://github.com/openebs/maya/pull/1713), [prateekpandey14](https://github.com/prateekpandey14))
+ * skip validations checks and handle snapshot deletion once migrated to CSI ([#1712](https://github.com/openebs/maya/pull/1712), [prateekpandey14](https://github.com/prateekpandey14))
+ * chore(go-module): migrate vendor to go module ([#1711](https://github.com/openebs/maya/pull/1711), [vaniisgh](https://github.com/vaniisgh))
+ * fix(spc): validate SPC deletion request ([#1710](https://github.com/openebs/maya/pull/1710), [mittachaitu](https://github.com/mittachaitu))
+ * feat(usage): include pvc name in volume events ([#1708](https://github.com/openebs/maya/pull/1708), [kmova](https://github.com/kmova))
+ * refactor(build): fix hard coding of image org (#1703) ([#1705](https://github.com/openebs/maya/pull/1705), [kmova](https://github.com/kmova))
+ * feat(build): Automating localpv provisioner build for ppc64le ([#1704](https://github.com/openebs/maya/pull/1704), [Pensu](https://github.com/Pensu))
+ * refactor(build): fix hard coding of image org ([#1703](https://github.com/openebs/maya/pull/1703), [kmova](https://github.com/kmova))
+ * refact(exporter): handle concurrent scrape requests ([#1698](https://github.com/openebs/maya/pull/1698), [utkarshmani1997](https://github.com/utkarshmani1997))
+
 v1.11.0-RC2 / 2020-06-11
 ========================
 
