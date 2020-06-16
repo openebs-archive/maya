@@ -85,7 +85,10 @@ func (s *HTTPServer) volumeV1alpha1SpecificRequest(resp http.ResponseWriter, req
 	switch req.Method {
 	case "POST":
 		cvol, err := volOp.create()
-		pvc := cvol.ObjectMeta.Labels["openebs.io/persistent-volume-claim"]
+		pvc := ""
+		if err != nil && cvol != nil && cvol.ObjectMeta.Labels != nil {
+			pvc = cvol.ObjectMeta.Labels["openebs.io/persistent-volume-claim"]
+		}
 		sendEventOrIgnore(cvol, pvc, usage.VolumeProvision)
 		return cvol, err
 	case "GET":
