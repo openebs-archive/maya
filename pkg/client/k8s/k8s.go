@@ -1336,12 +1336,15 @@ func getInClusterNDMCS() (clientset *ndm.Clientset, err error) {
 	return clientset, nil
 }
 
+//GetOutofClusterCS creates returns a clientset for the kubeconfig & sets the env variable for the same
 func GetOutofClusterCS() (client *kubernetes.Clientset, err error) {
 	var kubeconfig *string
 	if home := homeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "absolute path to kubeconfig")
 	} else {
+		//TODO: should there be an in Cluster configuration of no kubegonfig ?
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig")
+
 	}
 	flag.Parse()
 
@@ -1356,7 +1359,7 @@ func GetOutofClusterCS() (client *kubernetes.Clientset, err error) {
 	if err != nil {
 		panic(err.Error())
 	}
-
+	os.Setenv("KUBECONFIG", *kubeconfig)
 	return clientset, err
 }
 

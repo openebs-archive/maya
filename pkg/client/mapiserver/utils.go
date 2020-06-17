@@ -57,7 +57,7 @@ func Initialize() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	//TODO: catch error here 
+	//TODO: catch error here
 	mapiaddr = svcList.Items[0].Spec.ClusterIP
 	os.Setenv("MAPI_ADDR", "http://"+mapiaddr+":"+"5656")
 	os.Setenv("KUBERNETES_SERVICE_HOST", "127.0.0.1")

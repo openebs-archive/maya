@@ -26,7 +26,6 @@ import (
 	"github.com/openebs/maya/pkg/client/mapiserver"
 
 	"github.com/spf13/cobra"
-
 )
 
 // NewMayaCommand creates the `maya` command and its nested children.
@@ -61,6 +60,7 @@ func NewMayaCommand() *cobra.Command {
 		NewCmdVolume(),
 		//snapshot.NewCmdSnapshot(),
 		pool.NewCmdPool(),
+		NewCmdClusterInfo(),
 	)
 
 	// add the klog flags
