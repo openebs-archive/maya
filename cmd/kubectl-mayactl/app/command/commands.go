@@ -60,6 +60,7 @@ func NewMayaCommand() *cobra.Command {
 		//snapshot.NewCmdSnapshot(),
 		pool.NewCmdPool(),
 		NewCmdClusterInfo(),
+		NewCmdBlockDevices(),
 	)
 
 	// add the klog flags

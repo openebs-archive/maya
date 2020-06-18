@@ -56,7 +56,7 @@ type NodeComponentInfo struct {
 //TODO:
 //	-add volumeinfo as well for data plane components
 
-var namespace string
+//var namespace string
 
 // NewCmdClusterInfo displays OpenEBS Volume information.
 func NewCmdClusterInfo() *cobra.Command {
@@ -87,7 +87,7 @@ func fetchComponentInfo() (*[]ClusterComponentInfo, error) {
 
 	//declare the selector to find the cluster components in the namespace
 	selector := labels.NewSelector()
-	requirement, err := labels.NewRequirement("app", selection.Exists, []string{})
+	requirement, err := labels.NewRequirement("openebs.io/conponent-name", selection.Exists, []string{})
 	selector.Add(*requirement)
 
 	//create the client to interact with the kube-api server
