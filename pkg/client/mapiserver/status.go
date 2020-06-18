@@ -20,6 +20,7 @@ const (
 	getStatusPath = "/latest/meta-data/instance-id"
 )
 
+//TODO: check before mayactl decouple is done
 // GetStatus returns the status of maya-apiserver via http
 func GetStatus() (string, error) {
 	body, err := getRequest(GetURL()+getStatusPath, "", false)

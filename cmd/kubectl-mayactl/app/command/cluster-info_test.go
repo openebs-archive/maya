@@ -13,3 +13,42 @@
 // limitations under the License.
 
 package command
+
+import (
+	"reflect"
+	"testing"
+
+	"github.com/spf13/cobra"
+)
+
+func TestNewCmdClusterInfo(t *testing.T) {
+	tests := map[string]*struct {
+		expectedCmd *cobra.Command
+	}{
+		"NewCmdClusterInfo": {
+			expectedCmd: &cobra.Command{
+				Use:     "cluster-info",
+				Aliases: []string{"cluster-info"},
+				Short:   "Displays Openebs cluster info information",
+				Long:    clusterInfoCommandHelpText,
+				Example: `#To view the running control components of the cluster 
+				$ mayactl cluster-info
+				`,
+				Run: func(cmd *cobra.Command, args []string) {
+					fetchComponentInfo()
+				},
+			},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := NewCmdClusterInfo()
+			if (got.Use != tt.expectedCmd.Use) || (reflect.DeepEqual(got.Aliases, tt.expectedCmd.Aliases) != true) || (got.Short != tt.expectedCmd.Short) ||
+				(got.Long != tt.expectedCmd.Long) {
+				t.Fatalf("TestName: %v | NewCmdPoolDescribe() => Got: %v | Want: %v \n", name, got, tt.expectedCmd)
+			}
+		})
+	}
+
+}

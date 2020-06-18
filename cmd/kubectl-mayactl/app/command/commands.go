@@ -16,8 +16,6 @@ package command
 
 import (
 	"flag"
-	"fmt"
-	"os"
 
 	"github.com/openebs/maya/cmd/kubectl-mayactl/app/command/pool"
 	"k8s.io/klog"
@@ -36,21 +34,22 @@ func NewMayaCommand() *cobra.Command {
 		Long:  `Maya means 'Magic' a tool for storage orchestration`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			mapiserver.Initialize()
-			if len(mapiserver.MAPIAddr) == 0 {
-				//mapiserver.Initialize()
-				if mapiserver.GetConnectionStatus() != "running" {
-					fmt.Println("Unable to connect to mapi server address")
-					// Not exiting here to get the actual standard error in
-					// case.The error will contains the exact IP endpoint to
-					// its trying to send a http request which is more helpful
-					// 1. maya-apiserver not running
-					// 2. maya-apiserver not reachable
-					//os.Exit(1)
-				}
-			} else if mapiserver.GetConnectionStatus() != "running" {
-				fmt.Println("Invalid m-apiserver address")
-				os.Exit(1)
-			}
+			//TODO: remove if Initialise is enough to deal with the issue
+			//if len(mapiserver.MAPIAddr) == 0 {
+			//mapiserver.Initialize()
+			//	if mapiserver.GetConnectionStatus() != "running" {
+			//		fmt.Println("Unable to connect to mapi server address")
+			// Not exiting here to get the actual standard error in
+			// case.The error will contains the exact IP endpoint to
+			// its trying to send a http request which is more helpful
+			// 1. maya-apiserver not running
+			// 2. maya-apiserver not reachable
+			//os.Exit(1)
+			//	}
+			//if mapiserver.GetConnectionStatus() != "running" {
+			//	fmt.Println("Invalid m-apiserver address")
+			//	os.Exit(1)
+			//}
 		},
 	}
 

@@ -17,11 +17,6 @@ limitations under the License.
 package command
 
 import (
-	//"errors"
-
-	//"html/template"
-	//"strconv"
-	//"strings"
 	"fmt"
 	"os"
 
@@ -61,10 +56,12 @@ type NodeComponentInfo struct {
 //TODO:
 //	-add volumeinfo as well for data plane components
 
+var namespace string
+
 // NewCmdClusterInfo displays OpenEBS Volume information.
 func NewCmdClusterInfo() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "describe",
+		Use:     "cluster-info",
 		Aliases: []string{"cluster-info"},
 		Short:   "Displays Openebs cluster info information",
 		Long:    clusterInfoCommandHelpText,
@@ -77,9 +74,8 @@ func NewCmdClusterInfo() *cobra.Command {
 
 		},
 	}
-	// TODO: allow for detection control plane elements ever in any other namespace but openebs
-	//cmd.PersistentFlags().StringVarP(&options.namespace, "namespace", "n", options.namespace,
-	//	"namespace name, required if volume is not in the default namespace")
+	cmd.Flags().StringVarP(&namespace, "namespace", "n", "openebs",
+		"namespace name, required if volume is not in the default namespace")
 
 	//TODO: add a flag for dump or flag[]
 	return cmd
@@ -87,7 +83,6 @@ func NewCmdClusterInfo() *cobra.Command {
 
 //checks the status of the cluster components that manage the OpenEBS compoenets
 func fetchComponentInfo() (*[]ClusterComponentInfo, error) {
-
 	clusterCompoenets := []ClusterComponentInfo{}
 
 	//declare the selector to find the cluster components in the namespace
@@ -101,20 +96,22 @@ func fetchComponentInfo() (*[]ClusterComponentInfo, error) {
 	clientset, _ := kubernetes.NewForConfig(config)
 
 	// get a list of pods that have the label "openebs.io/conponent-name"
-	pods, err := clientset.CoreV1().Pods("openebs").List(metav1.ListOptions{LabelSelector: selector.String()})
+	pods, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: selector.String()})
 
 	if err != nil {
 		panic(err.Error())
 	}
 
-	//print the components status at
+	//collect pod info for all node + cluster components
 	for _, pod := range pods.Items {
 		component := ClusterComponentInfo{
 			name:   pod.Status.ContainerStatuses[0].Name,
 			ipaddr: pod.Status.PodIP,
 			status: string(pod.Status.Phase),
-			//mode:   pod.Status.mode,
 		}
+		//fmt.Println(pod.Name)
+		//fmt.Println(pod.Spec.Tolerations)
+		//fmt.Println(pod.Kind)
 
 		clusterCompoenets = append(clusterCompoenets, component)
 	}

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	//"net"
+
 	"net/http"
 	"os"
 	"sort"
@@ -30,7 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openebs/maya/pkg/client/k8s"
-	"github.com/openebs/maya/types/v1"
+	v1 "github.com/openebs/maya/types/v1"
 )
 
 const (
@@ -42,6 +42,9 @@ var MAPIAddr string
 
 // MAPIAddrPort stores port number of mapi server if passed through flag
 var MAPIAddrPort string
+
+// MAPINapespace stores the namespace of mapi server if passed through flag
+var MAPINapespace string
 
 // Initialize func sets the env variable with ip address for api-server
 func Initialize() {
@@ -57,8 +60,16 @@ func Initialize() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	//TODO: catch error here
+
+	if len(svcList.Items) == 0 {
+		fmt.Println("Cannot find any services in OpenEBS namespace")
+		err = errors.New("Cannot connect to MayaAPI-server")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	mapiaddr = svcList.Items[0].Spec.ClusterIP
+
 	os.Setenv("MAPI_ADDR", "http://"+mapiaddr+":"+"5656")
 	os.Setenv("KUBERNETES_SERVICE_HOST", "127.0.0.1")
 }
@@ -81,6 +92,7 @@ func GetConnectionStatus() string {
 	return "running"
 }
 
+//TODO: remove this when maya-api server is complete
 /*getDefaultAddr returns the local ip address
 func getDefaultAddr() string {
 	env := "127.0.0.1"
