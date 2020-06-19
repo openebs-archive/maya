@@ -30,7 +30,8 @@ then
 	echo $GIT_COMMIT >> $SRC_REPO/GITCOMMIT
 
 	mkdir -p $DST_REPO
-	cp -R $SRC_REPO/* $DST_REPO/
+	rsync -az ${TRAVIS_BUILD_DIR}/ ${DST_REPO}/
+	export TRAVIS_BUILD_DIR=$DST_REPO
 	cd $DST_REPO
 fi
 
