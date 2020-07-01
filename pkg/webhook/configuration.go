@@ -37,6 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/klog"
 )
 
 const (
@@ -70,7 +71,9 @@ var (
 	Ignore = v1beta1.Ignore
 	// Fail means that an error calling the webhook causes the admission to fail.
 	Fail = v1beta1.Fail
-
+	// WebhookFailurePolicye represents failure policy env name to make it configurable
+	// via ENV
+	WebhookFailurePolicy = "ADMISSION_WEBHOOK_FAILURE_POLICY"
 	// transformation function lists to upgrade webhook resources
 	transformSecret = []transformSecretFunc{}
 	transformSvc    = []transformSvcFunc{}
@@ -221,7 +224,7 @@ func createValidatingWebhookConfig(
 			CABundle: signingCert,
 		},
 		TimeoutSeconds: &five,
-		FailurePolicy:  &Fail,
+		FailurePolicy:  failurePolicy(),
 	}
 
 	validator := &v1beta1.ValidatingWebhookConfiguration{
@@ -635,7 +638,7 @@ func preUpgrade(openebsNamespace string) error {
 	for _, config := range webhookConfigList.Items {
 		if config.Labels[string(apis.OpenEBSVersionKey)] != version.Current() {
 			if config.Labels[string(apis.OpenEBSVersionKey)] == "" ||
-				util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "1.10.0") {
+				util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "1.12.0") {
 				err = validate.KubeClient().Delete(config.Name, &metav1.DeleteOptions{})
 				if err != nil {
 					return fmt.Errorf("failed to delete older webhook config %s: %s", config.Name, err.Error())
@@ -655,4 +658,26 @@ func preUpgrade(openebsNamespace string) error {
 	}
 
 	return nil
+}
+
+// failurePolicy returns the admission webhook configuration failurePolicy
+// based on the given WebhookFailurePolicy ENV set on admission server
+// deployments.
+//
+// Default failure Policy is `Fail` if not provided.
+func failurePolicy() *v1beta1.FailurePolicyType {
+	var policyType *v1beta1.FailurePolicyType
+	policy, present := os.LookupEnv(WebhookFailurePolicy)
+	if !present {
+		policyType = &Fail
+	}
+
+	switch strings.ToLower(policy) {
+	default:
+		policyType = &Fail
+	case "no", "false", "ignore":
+		policyType = &Ignore
+	}
+	klog.Infof("Using webhook configuration failure policy as %q", *policyType)
+	return policyType
 }
