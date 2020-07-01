@@ -25,7 +25,6 @@ import (
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 	utask "github.com/openebs/maya/pkg/upgrade/v1alpha2"
-	retry "github.com/openebs/maya/pkg/util/retry"
 	errors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -75,23 +74,17 @@ func patchDelpoyment(
 	if err != nil {
 		return err
 	}
-
-	err = retry.
-		Times(60).
-		Wait(5 * time.Second).
-		Try(func(attempt uint) error {
-			rolloutStatus, err1 := deployClient.WithNamespace(namespace).
-				RolloutStatus(deployName)
-			if err1 != nil {
-				return err1
-			}
-			if !rolloutStatus.IsRolledout {
-				return errors.Errorf("failed to rollout because %s", rolloutStatus.Message)
-			}
-			return nil
-		})
-	if err != nil {
-		return err
+	for {
+		rolloutStatus, err1 := deployClient.WithNamespace(namespace).
+			RolloutStatus(deployName)
+		if err1 != nil {
+			return errors.Wrapf(err1, "failed to get rollout status for deployment %s", deployName)
+		}
+		if rolloutStatus.IsRolledout {
+			break
+		}
+		klog.Infof("Deployment %s not yet rolled out because %s", deployName, rolloutStatus.Message)
+		time.Sleep(10 * time.Second)
 	}
 	klog.Infof("Deployment %s rolled out successfully", deployName)
 	return nil
