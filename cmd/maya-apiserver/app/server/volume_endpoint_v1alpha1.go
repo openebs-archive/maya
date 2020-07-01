@@ -55,12 +55,12 @@ type volumeAPIOpsV1alpha1 struct {
 }
 
 // sendEventOrIgnore sends anonymous volume (de)-provision events
-func sendEventOrIgnore(cvol *v1alpha1.CASVolume, pvc, method string) {
+func sendEventOrIgnore(cvol *v1alpha1.CASVolume, pvcName, method string) {
 	if menv.Truthy(menv.OpenEBSEnableAnalytics) && cvol != nil {
 		usage.New().Build().ApplicationBuilder().
 			SetVolumeType(cvol.Spec.CasType, method).
 			SetDocumentTitle(cvol.ObjectMeta.Name).
-			SetCampaignName(pvc).
+			SetCampaignName(pvcName).
 			SetLabel(usage.EventLabelCapacity).
 			SetReplicaCount(cvol.Spec.Replicas, method).
 			SetCategory(method).
@@ -85,8 +85,11 @@ func (s *HTTPServer) volumeV1alpha1SpecificRequest(resp http.ResponseWriter, req
 	switch req.Method {
 	case "POST":
 		cvol, err := volOp.create()
-		pvc := cvol.ObjectMeta.Labels["openebs.io/persistent-volume-claim"]
-		sendEventOrIgnore(cvol, pvc, usage.VolumeProvision)
+		pvcName := ""
+		if err != nil && cvol != nil && cvol.ObjectMeta.Labels != nil {
+			pvcName = cvol.ObjectMeta.Labels["openebs.io/persistent-volume-claim"]
+		}
+		sendEventOrIgnore(cvol, pvcName, usage.VolumeProvision)
 		return cvol, err
 	case "GET":
 		return volOp.httpGet()
