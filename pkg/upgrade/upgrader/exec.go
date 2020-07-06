@@ -186,15 +186,23 @@ func verifyMayaApiserver(openebsNamespace string) error {
 			},
 		)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get maya-apiserver deployment")
+		return errors.Wrapf(err, "failed to list maya-apiserver pod(s)")
 	}
 	if len(mayaPods.Items) == 0 {
 		return errors.Errorf(
-			"failed to get maya-apiserver deployment in %s",
+			"failed to get maya-apiserver pod(s) in %s",
 			openebsNamespace,
 		)
 	}
-	if len(mayaPods.Items) > 1 {
+	mayaDeploy, err := deployClient.WithNamespace(openebsNamespace).List(
+		&metav1.ListOptions{
+			LabelSelector: mayaLabels,
+		},
+	)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get maya-apiserver deployment")
+	}
+	if len(mayaPods.Items) != int(*mayaDeploy.Items[0].Spec.Replicas) {
 		return errors.Errorf("control plane upgrade is not complete try after some time")
 	}
 	if mayaPods.Items[0].Labels["openebs.io/version"] != upgradeVersion {
