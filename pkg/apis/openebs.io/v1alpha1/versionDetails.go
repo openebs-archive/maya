@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"strings"
 
+	"github.com/openebs/maya/pkg/version"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,7 +30,7 @@ var (
 		"1.8.0": true, "1.9.0": true, "1.10.0": true, "1.11.0": true,
 		"1.12.0": true,
 	}
-	validDesiredVersion = "1.12.0"
+	validDesiredVersion = version.GetVersion()
 )
 
 // IsCurrentVersionValid verifies if the  current version is valid or not
