@@ -1,5 +1,15 @@
 # Changelog
 
+v1.12.0-RC1 / 2020-07-08
+========================
+
+ * fix(upgrade): check for HA apisever pods instead of a single pod ([#1730](https://github.com/openebs/maya/pull/1730) ,[shubham14bajpai](https://github.com/shubham14bajpai))
+ * refact(webhook): make webhook config failure policy configurable ([#1726](https://github.com/openebs/maya/pull/1726) ,[prateekpandey14](https://github.com/prateekpandey14))
+ * chore(upgrade): add support for upgrading to any custom tag within same version ([#1724](https://github.com/openebs/maya/pull/1724) ,[shubham14bajpai](https://github.com/shubham14bajpai))
+ * fix(build): travis CI failure in forked Repo git error ([#1722](https://github.com/openebs/maya/pull/1722) ,[prateekpandey14](https://github.com/prateekpandey14))
+ * fix(usage): add nil checks to avoid panic ([#1720](https://github.com/openebs/maya/pull/1720) ,[kmova](https://github.com/kmova))
+ * fix(upgrade): increase wait for deployment rollout status ([#1719](https://github.com/openebs/maya/pull/1719) ,[shubham14bajpai](https://github.com/shubham14bajpai))
+
 v1.11.0 / 2020-06-12
 ========================
 
