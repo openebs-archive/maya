@@ -26,18 +26,10 @@ fi
 
 # Get the version details
 VERSION_META="$(cat $GOPATH/src/github.com/openebs/maya/BUILDMETA)"
-# Determine the current branch
-CURRENT_BRANCH=""
-if [ -z "${TRAVIS_BRANCH}" ];
-then
-  CURRENT_BRANCH=$(git branch | grep "\*" | cut -d ' ' -f2)
-else
-  CURRENT_BRANCH="${TRAVIS_BRANCH}"
-fi
 
 ## Populate the version based on release tag
-## If travis tag is set then assign it as VERSION and
-## if travis tag is empty then mark version as ci
+## If travis tag is set then assign it as VERSION 
+## take the version from the file
 if [ -n "$TRAVIS_TAG" ]; then
     # Trim the `v` from the TRAVIS_TAG if it exists
     # Example: v1.10.0 maps to 1.10.0
@@ -45,11 +37,7 @@ if [ -n "$TRAVIS_TAG" ]; then
     # Example: v1.10.0-custom maps to 1.10.0-custom
     VERSION="${TRAVIS_TAG#v}"
 else
-    ## Marking VERSION as current_branch-dev
-    ## Example: master branch maps to master-dev
-    ## Example: v1.11.x-ee branch to 1.11.x-ee-dev
-    ## Example: v1.10.x branch to 1.10.x-dev
-    VERSION="${CURRENT_BRANCH#v}-dev"
+    VERSION="$(cat $GOPATH/src/github.com/openebs/maya/VERSION)"
 fi
 echo "Building for ${VERSION} VERSION"
 
