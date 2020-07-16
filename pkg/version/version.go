@@ -57,13 +57,20 @@ func IsNotVersioned(given string) bool {
 }
 
 // IsVersioned returns true if the given string has version as its suffix
+// cstor-craete-pool-1.11.0-ee-rc2
 func IsVersioned(given string) bool {
-	a := strings.SplitAfter(given, versionDelimiter)
+	a := strings.Split(given, versionDelimiter)
 	if len(a) == 0 {
 		return false
 	}
-	ver := a[len(a)-1]
-	return len(strings.Split(ver, ".")) == 3 && containsOnly(ver, versionChars)
+	ver := ""
+	for _, v := range a {
+		if containsOnly(v, versionChars) {
+			ver = v
+			break
+		}
+	}
+	return len(strings.Split(ver, ".")) == 3
 }
 
 // containsOnly returns true if provided string consists only of the provided

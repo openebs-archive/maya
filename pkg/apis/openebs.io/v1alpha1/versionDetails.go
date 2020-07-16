@@ -30,7 +30,7 @@ var (
 		"1.8.0": true, "1.9.0": true, "1.10.0": true, "1.11.0": true,
 		"1.12.0": true,
 	}
-	validDesiredVersion = version.GetVersion()
+	validDesiredVersion = strings.Split(version.GetVersion(), "-")[0]
 )
 
 // IsCurrentVersionValid verifies if the  current version is valid or not
