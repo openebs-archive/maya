@@ -86,6 +86,11 @@ func WithSuffix(given string) (suffixed string) {
 	return given + versionDelimiter + Current()
 }
 
+// WithSuffixLower appends current version to the provided string
+func WithSuffixLower(given string) (suffixed string) {
+	return given + versionDelimiter + strings.ToLower(Current())
+}
+
 // WithSuffixIf appends current version to the provided string if given predicate
 // succeeds
 func WithSuffixIf(given string, p func(string) bool) (suffixed string) {
@@ -99,7 +104,7 @@ func WithSuffixIf(given string, p func(string) bool) (suffixed string) {
 func WithSuffixesIf(given []string, p func(string) bool) (suffixed []string) {
 	for _, s := range given {
 		if p(s) {
-			suffixed = append(suffixed, WithSuffix(s))
+			suffixed = append(suffixed, WithSuffixLower(s))
 		} else {
 			suffixed = append(suffixed, s)
 		}

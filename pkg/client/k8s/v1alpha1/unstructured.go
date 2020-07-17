@@ -350,7 +350,7 @@ func SuffixNameWithVersion() UnstructuredMiddleware {
 		if given == nil || IsNameVersioned(given) {
 			return given
 		}
-		given.SetName(strings.ToLower(version.WithSuffix(given.GetName())))
+		given.SetName(version.WithSuffixLower(given.GetName()))
 		return given
 	}
 }
