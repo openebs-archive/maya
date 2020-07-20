@@ -17,11 +17,12 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"strings"
+	"testing"
+
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"strings"
-	"testing"
 )
 
 func fakeUnstructAlways() UnstructuredPredicate {
