@@ -221,35 +221,35 @@ func (e *envInstall) List() (l *envList, err error) {
 	})
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToCreateJivaVolumeENVK,
-		Value: ver.WithSuffix("jiva-volume-create-default"),
+		Value: ver.WithSuffixLower("jiva-volume-create-default"),
 	})
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToReadJivaVolumeENVK,
-		Value: ver.WithSuffix("jiva-volume-read-default"),
+		Value: ver.WithSuffixLower("jiva-volume-read-default"),
 	})
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToDeleteJivaVolumeENVK,
-		Value: ver.WithSuffix("jiva-volume-delete-default"),
+		Value: ver.WithSuffixLower("jiva-volume-delete-default"),
 	})
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToCreateCStorVolumeENVK,
-		Value: ver.WithSuffix("cstor-volume-create-default"),
+		Value: ver.WithSuffixLower("cstor-volume-create-default"),
 	})
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToReadCStorVolumeENVK,
-		Value: ver.WithSuffix("cstor-volume-read-default"),
+		Value: ver.WithSuffixLower("cstor-volume-read-default"),
 	})
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToDeleteCStorVolumeENVK,
-		Value: ver.WithSuffix("cstor-volume-delete-default"),
+		Value: ver.WithSuffixLower("cstor-volume-delete-default"),
 	})
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToCreatePoolENVK,
-		Value: ver.WithSuffix("cstor-pool-create-default"),
+		Value: ver.WithSuffixLower("cstor-pool-create-default"),
 	})
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToDeletePoolENVK,
-		Value: ver.WithSuffix("cstor-pool-delete-default"),
+		Value: ver.WithSuffixLower("cstor-pool-delete-default"),
 	})
 	l.Items = append(l.Items, &env{
 		Key: menv.CASTemplateToListVolumeENVK,
@@ -262,31 +262,31 @@ func (e *envInstall) List() (l *envList, err error) {
 	})
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToCreateCStorSnapshotENVK,
-		Value: ver.WithSuffix("cstor-snapshot-create-default"),
+		Value: ver.WithSuffixLower("cstor-snapshot-create-default"),
 	})
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToDeleteCStorSnapshotENVK,
-		Value: ver.WithSuffix("cstor-snapshot-delete-default"),
+		Value: ver.WithSuffixLower("cstor-snapshot-delete-default"),
 	})
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToCreateJivaSnapshotENVK,
-		Value: ver.WithSuffix("jiva-snapshot-create-default"),
+		Value: ver.WithSuffixLower("jiva-snapshot-create-default"),
 	})
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToDeleteJivaSnapshotENVK,
-		Value: ver.WithSuffix("jiva-snapshot-delete-default"),
+		Value: ver.WithSuffixLower("jiva-snapshot-delete-default"),
 	})
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToReadVolumeStatsENVK,
-		Value: ver.WithSuffix("cas-volume-stats-default"),
+		Value: ver.WithSuffixLower("cas-volume-stats-default"),
 	})
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToListStoragePoolENVK,
-		Value: ver.WithSuffix("storage-pool-list-default"),
+		Value: ver.WithSuffixLower("storage-pool-list-default"),
 	})
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToReadStoragePoolENVK,
-		Value: ver.WithSuffix("storage-pool-read-default"),
+		Value: ver.WithSuffixLower("storage-pool-read-default"),
 	})
 	return
 }

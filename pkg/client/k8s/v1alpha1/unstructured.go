@@ -342,12 +342,15 @@ func AddNameToLabels(key string, override bool) UnstructuredMiddleware {
 
 // SuffixNameWithVersion suffixes the given unstructured instance's name with
 // current version
+// Converting to lowercase is required as the version can have custom tags having
+// uppercase characters like 1.11.0-ce-RC2 and uppercase characters are not valid
+// in names of the k8s resources
 func SuffixNameWithVersion() UnstructuredMiddleware {
 	return func(given *unstructured.Unstructured) (updated *unstructured.Unstructured) {
 		if given == nil || IsNameVersioned(given) {
 			return given
 		}
-		given.SetName(version.WithSuffix(given.GetName()))
+		given.SetName(version.WithSuffixLower(given.GetName()))
 		return given
 	}
 }
