@@ -56,14 +56,21 @@ func IsNotVersioned(given string) bool {
 	return !IsVersioned(given)
 }
 
-// IsVersioned returns true if the given string has version as its suffix
+// IsVersioned returns true if the given string has version as its name
+// example: cstor-craete-pool-1.11.0-ce-rc2
 func IsVersioned(given string) bool {
-	a := strings.SplitAfter(given, versionDelimiter)
+	a := strings.Split(given, versionDelimiter)
 	if len(a) == 0 {
 		return false
 	}
-	ver := a[len(a)-1]
-	return len(strings.Split(ver, ".")) == 3 && containsOnly(ver, versionChars)
+	ver := ""
+	for _, v := range a {
+		if containsOnly(v, versionChars) {
+			ver = v
+			break
+		}
+	}
+	return len(strings.Split(ver, ".")) == 3
 }
 
 // containsOnly returns true if provided string consists only of the provided
@@ -79,6 +86,11 @@ func WithSuffix(given string) (suffixed string) {
 	return given + versionDelimiter + Current()
 }
 
+// WithSuffixLower appends current version to the provided string
+func WithSuffixLower(given string) (suffixed string) {
+	return given + versionDelimiter + strings.ToLower(Current())
+}
+
 // WithSuffixIf appends current version to the provided string if given predicate
 // succeeds
 func WithSuffixIf(given string, p func(string) bool) (suffixed string) {
@@ -92,7 +104,7 @@ func WithSuffixIf(given string, p func(string) bool) (suffixed string) {
 func WithSuffixesIf(given []string, p func(string) bool) (suffixed []string) {
 	for _, s := range given {
 		if p(s) {
-			suffixed = append(suffixed, WithSuffix(s))
+			suffixed = append(suffixed, WithSuffixLower(s))
 		} else {
 			suffixed = append(suffixed, s)
 		}

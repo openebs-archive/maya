@@ -28,8 +28,9 @@ package util
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/json"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/util/json"
 )
 
 // GetNestedField returns a nested field from the provided map
