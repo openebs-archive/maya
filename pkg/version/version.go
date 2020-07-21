@@ -83,7 +83,7 @@ func WithSuffix(given string) (suffixed string) {
 // succeeds
 func WithSuffixIf(given string, p func(string) bool) (suffixed string) {
 	if p(given) {
-		return WithSuffix(given)
+		return WithSuffixLower(given)
 	}
 	return given
 }
