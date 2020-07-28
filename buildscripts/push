@@ -54,7 +54,11 @@ echo "Set the build/unique image tag as: ${BUILD_TAG}"
 
 function TagAndPushImage() {
   REPO="$1"
-  TAG="$2"
+  # Trim the `v` from the TAG if it exists
+  # Example: v1.10.0 maps to 1.10.0
+  # Example: 1.10.0 maps to 1.10.0
+  # Example: v1.10.0-custom maps to 1.10.0-custom
+  TAG="${2#v}"
 
   #Add an option to specify a custom TAG_SUFFIX 
   #via environment variable. Default is no tag.
