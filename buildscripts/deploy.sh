@@ -38,7 +38,7 @@ elif [ "${ARCH}" = "ppc64le" ]; then
   PROVISIONER_LOCALPV="${IMAGE_ORG}/provisioner-localpv-ppc64le"
 fi
 
-curl https://raw.githubusercontent.com/openebs/charts/gh-pages/scripts/release/buildscripts/push > ./buildscripts/push
+curl --fail https://raw.githubusercontent.com/openebs/charts/gh-pages/scripts/release/buildscripts/push > ./buildscripts/push
 chmod +x ./buildscripts/push
 
 # tag and push all the images
