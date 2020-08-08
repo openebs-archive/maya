@@ -120,7 +120,7 @@ script:
 
       ./buildscripts/git-release "$REPO_ORG/velero-plugin" "$TRAVIS_TAG" "${REL_BRANCH}" || travis_terminate 1;
       ./buildscripts/git-release "$REPO_ORG/cstor-csi" "$TRAVIS_TAG" "${REL_BRANCH}" || travis_terminate 1;
-      ./buildscripts/git-release "$REPO_ORG/jiva-operator" "$TRAVIS_TAG" "${REL_BRANCH}" || travis_terminate 1;
+      ./buildscripts/git-release "$REPO_ORG/upgrade" "$TRAVIS_TAG" "${REL_BRANCH}" || travis_terminate 1;
     fi
 
 after_success:
