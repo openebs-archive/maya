@@ -176,7 +176,7 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	if len(pvcName) == 0 {
 		cast.Spec.RunTasks.Tasks = util.RemoveItemFromSlice(
 			cast.Spec.RunTasks.Tasks,
-			version.WithSuffix("cstor-volume-create-getpvc-default"),
+			version.WithSuffixLower("cstor-volume-create-getpvc-default"),
 		)
 	}
 
