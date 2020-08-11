@@ -1,9 +1,21 @@
 # Changelog
 
+Unreleased
+=======================
+
+ * fix(volume provisioning): fix CStor volume provisioning request without creating PVC ([#1738](https://github.com/openebs/maya/pull/1738), [mittachaitu](https://github.com/mittachaitu))
+
+v2.0.0-RC1 / 2020-08-08
+========================
+
+ * fix(build): use buildscript file `push` from openebs/charts ([#1737](https://github.com/openebs/maya/pull/1737), [shubham14bajpai](https://github.com/shubham14bajpai))
+ * fix(version): fix castemplate output runstask version suffix ([#1735](https://github.com/openebs/maya/pull/1735), [shubham14bajpai](https://github.com/shubham14bajpai))
+ * fix(version): use tagged version instead of VERSION file while build ([#1733](https://github.com/openebs/maya/pull/1733), [shubham14bajpai](https://github.com/shubham14bajpai))
+
 v1.12.0 / 2020-07-14
 ========================
 
-* fix(upgrade): check for HA apisever pods instead of a single pod ([#1730](https://github.com/openebs/maya/pull/1730) ,[shubham14bajpai](https://github.com/shubham14bajpai))
+ * fix(upgrade): check for HA apisever pods instead of a single pod ([#1730](https://github.com/openebs/maya/pull/1730) ,[shubham14bajpai](https://github.com/shubham14bajpai))
  * refact(webhook): make webhook config failure policy configurable ([#1726](https://github.com/openebs/maya/pull/1726) ,[prateekpandey14](https://github.com/prateekpandey14))
  * chore(upgrade): add support for upgrading to any custom tag within same version ([#1724](https://github.com/openebs/maya/pull/1724) ,[shubham14bajpai](https://github.com/shubham14bajpai))
  * fix(build): travis CI failure in forked Repo git error ([#1722](https://github.com/openebs/maya/pull/1722) ,[prateekpandey14](https://github.com/prateekpandey14))
