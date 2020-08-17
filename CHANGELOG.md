@@ -1,7 +1,12 @@
 # Changelog
 
-Unreleased
-=======================
+v2.0.0 / 2020-08-13
+========================
+
+ * refact(localpv): add ENV to allow skipping leader election ([#1743](https://github.com/openebs/maya/pull/1743), [prateekpandey14](https://github.com/prateekpandey14))
+
+v2.0.0-RC1 / 2020-08-11
+======================== 
 
  * fix(volume provisioning): fix CStor volume provisioning request without creating PVC ([#1738](https://github.com/openebs/maya/pull/1738), [mittachaitu](https://github.com/mittachaitu))
 
