@@ -10,8 +10,12 @@ env:
     - MINIKUBE_HOME=$HOME
     - CHANGE_MINIKUBE_NONE_USER=true
     - KUBECONFIG=$HOME/.kube/config
+    - CAN_FAIL=true
 
 jobs:
+  allow_failures:
+    env:
+      - CAN_FAIL=true
   include:
     - os: linux
       arch: amd64
@@ -25,6 +29,7 @@ jobs:
       arch: ppc64le
       env:
         - RELEASE_TAG_DOWNSTREAM=0
+        - CAN_FAIL=true
 
 services:
   - docker
@@ -35,7 +40,7 @@ cache:
   directories:
     - $HOME/.cache/go-build
 go:
-  - 1.14.4
+  - 1.14.7
 
 addons:
   apt:
