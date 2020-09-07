@@ -23,8 +23,8 @@ import (
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
-	util "github.com/openebs/maya/pkg/util"
-	volume "github.com/openebs/maya/pkg/volume"
+	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/pkg/volume"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
@@ -33,7 +33,7 @@ import (
 
 const (
 	// CStorBDTagAnnotationKey is the annotation key for SPC allowed BD tags
-	CStorBDTagAnnotationKey = "cstor.openebs.io/allowed-bd-tags"
+	CStorBDTagAnnotationKey = "openebs.io/allowed-bd-tags"
 	// BlockDeviceTagLabelKey is the key to fetch tag of a block
 	// device.
 	// For more info : https://github.com/openebs/node-disk-manager/pull/400
@@ -283,7 +283,7 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	if err != nil {
 		return nil, err
 	}
-	filterList := []string{blockdevice.FilterNonInactive}
+	filterList := []string{blockdevice.FilterNonInactive, blockdevice.FilterNotAllowedBDTag}
 
 	if diskType == string(apis.TypeSparseCPV) {
 		filterList = append(filterList, blockdevice.FilterSparseDevices)
@@ -295,7 +295,12 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 		filterList = append(filterList, blockdevice.FilterNonFSType, blockdevice.FilterNonRelesedDevices)
 	}
 
-	bdl = bdList.Filter(filterList...)
+	allowedBDTags := getAllowedTagMap(ac.Spc.GetAnnotations())
+	filterOptions := &blockdevice.FilterOptions{
+		AllowedBDTags: allowedBDTags,
+	}
+
+	bdl = bdList.Filter(filterOptions, filterList...)
 	if len(bdl.Items) == 0 {
 		return nil, errors.Errorf("type {%s} devices are not available to provision pools in %s mode", diskType, ProvisioningType(ac.Spc))
 	}
@@ -365,28 +370,6 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 				continue
 			}
 			capacity := volume.ByteCount(bdObj.Spec.Capacity.Storage)
-			// If the BD has a BD tag present then we need to decide whether
-			// cStor can use it or not.
-			// If there is not BD tag present on BD then still the BD is safe to use.
-			value, ok := bdObj.Labels[BlockDeviceTagLabelKey]
-			var allowedBDTags map[string]bool
-			if ok {
-				// If the BD tag value is empty -- cStor cannot use it.
-				if strings.TrimSpace(value) == "" {
-					return nil, errors.Errorf("failed to create block device "+
-						"claim for bd {%s} as it has empty value for bd tag", bdObj.Name)
-				}
-
-				// If the BD tag in the BD is present in allowed annotations on CSPC then
-				// it means that this BD can be considered in provisioning else it should not
-				// be considered
-				allowedBDTags = getAllowedTagMap(ac.Spc.GetAnnotations())
-				if !allowedBDTags[strings.TrimSpace(value)] {
-					return nil, errors.Errorf("cannot use bd {%s} as it has tag %s but "+
-						"cspc has allowed bd tags as %s",
-						bdObj.Name, value, ac.Spc.GetAnnotations()[CStorBDTagAnnotationKey])
-				}
-			}
 
 			//TODO: Move below code to some function
 			newBDCObj, err := bdc.NewBuilder().
@@ -399,6 +382,8 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 				WithOwnerReference(spc).
 				WithFinalizer(spcv1alpha1.SPCFinalizer).
 				Build()
+
+			value, ok := bdObj.Labels[BlockDeviceTagLabelKey]
 
 			if ok {
 				ls := &metav1.LabelSelector{
