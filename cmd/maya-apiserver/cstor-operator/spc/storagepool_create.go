@@ -188,20 +188,19 @@ func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePo
 	//casPool.DiskList = nodeDisks.Disks.Items
 	//TODO: Improve Following Code
 	if spc.Spec.PoolSpec.PoolType == string(apis.PoolTypeStripedCPV) {
+		// bdList contains array of blockdevices
+		var bdList []apis.CspBlockDevice
 		for _, claimedBD := range claimedNodeBDs.BlockDeviceList {
-			var bdList []apis.CspBlockDevice
-			var group apis.BlockDeviceGroup
 			blockDevice := apis.CspBlockDevice{
 				Name:        claimedBD.BDName,
 				InUseByPool: true,
 				DeviceID:    claimedBD.DeviceID,
 			}
 			bdList = append(bdList, blockDevice)
-			group = apis.BlockDeviceGroup{
-				Item: bdList,
-			}
-			casPool.BlockDeviceList = append(casPool.BlockDeviceList, group)
 		}
+		// casPool BlockDeviceList can accumulate array of blockdevice raidgroups.
+		// In stripe configuration CStor pool can have at most one raidgroup
+		casPool.BlockDeviceList = append(casPool.BlockDeviceList, apis.BlockDeviceGroup{Item: bdList})
 		return casPool, nil
 	}
 	count := spcv1alpha1.DefaultDiskCount[spc.Spec.PoolSpec.PoolType]
