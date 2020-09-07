@@ -1,0 +1,13 @@
+---
+apiVersion: openebs.io/v1alpha1
+kind: StoragePoolClaim
+metadata:
+  name: manual-cstor-sparse-pool
+spec:
+  name: manual-cstor-sparse-pool
+  type: sparse
+  poolSpec:
+    poolType: striped
+    cacheFile: /tmp/pool1.cache
+  blockDevices:
+    blockDeviceList:
