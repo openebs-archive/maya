@@ -28,6 +28,16 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
+	"strings"
+)
+
+const (
+	// CStorBDTagAnnotationKey is the annotation key for SPC allowed BD tags
+	CStorBDTagAnnotationKey = "cstor.openebs.io/allowed-bd-tags"
+	// BlockDeviceTagLabelKey is the key to fetch tag of a block
+	// device.
+	// For more info : https://github.com/openebs/node-disk-manager/pull/400
+	BlockDeviceTagLabelKey = "openebs.io/block-device-tag"
 )
 
 // BDDetails holds the claimed block device details
@@ -355,6 +365,29 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 				continue
 			}
 			capacity := volume.ByteCount(bdObj.Spec.Capacity.Storage)
+			// If the BD has a BD tag present then we need to decide whether
+			// cStor can use it or not.
+			// If there is not BD tag present on BD then still the BD is safe to use.
+			value, ok := bdObj.Labels[BlockDeviceTagLabelKey]
+			var allowedBDTags map[string]bool
+			if ok {
+				// If the BD tag value is empty -- cStor cannot use it.
+				if strings.TrimSpace(value) == "" {
+					return nil, errors.Errorf("failed to create block device "+
+						"claim for bd {%s} as it has empty value for bd tag", bdObj.Name)
+				}
+
+				// If the BD tag in the BD is present in allowed annotations on CSPC then
+				// it means that this BD can be considered in provisioning else it should not
+				// be considered
+				allowedBDTags = getAllowedTagMap(ac.Spc.GetAnnotations())
+				if !allowedBDTags[strings.TrimSpace(value)] {
+					return nil, errors.Errorf("cannot use bd {%s} as it has tag %s but "+
+						"cspc has allowed bd tags as %s",
+						bdObj.Name, value, ac.Spc.GetAnnotations()[CStorBDTagAnnotationKey])
+				}
+			}
+
 			//TODO: Move below code to some function
 			newBDCObj, err := bdc.NewBuilder().
 				WithName(bdcName).
@@ -366,6 +399,14 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 				WithOwnerReference(spc).
 				WithFinalizer(spcv1alpha1.SPCFinalizer).
 				Build()
+
+			if ok {
+				ls := &metav1.LabelSelector{
+					MatchLabels: map[string]string{BlockDeviceTagLabelKey: value},
+				}
+				newBDCObj.Object.Spec.Selector = ls
+			}
+
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to build block device claim for bd {%s}", bdName)
 			}
@@ -387,4 +428,27 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 		return nil, errors.Errorf("pending block device claim count %d on node {%s}", pendingBDCCount, nodeClaimedBDs.NodeName)
 	}
 	return nodeClaimedBDs, nil
+}
+
+// getAllowedTagMap returns a map of the allowed BD tags
+// Example :
+// If the CSPC annotation is passed and following is the BD tag annotation
+//
+// cstor.openebs.io/allowed-bd-tags:fast,slow
+//
+// Then, a map {"fast":true,"slow":true} is returned.
+func getAllowedTagMap(cspcAnnotation map[string]string) map[string]bool {
+	allowedTagsMap := make(map[string]bool)
+	allowedTags := cspcAnnotation[CStorBDTagAnnotationKey]
+	if strings.TrimSpace(allowedTags) == "" {
+		return allowedTagsMap
+	}
+	allowedTagsList := strings.Split(allowedTags, ",")
+	for _, v := range allowedTagsList {
+		if strings.TrimSpace(v) == "" {
+			continue
+		}
+		allowedTagsMap[v] = true
+	}
+	return allowedTagsMap
 }
