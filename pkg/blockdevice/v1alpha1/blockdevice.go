@@ -22,7 +22,7 @@ import (
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	bdc_v1alpha1 "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
-	errors "github.com/pkg/errors"
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -40,7 +40,15 @@ const (
 	FilterNonSparseDevices  = "filterNonSparseDevices"
 	InActiveStatus          = "Inactive"
 	FilterNonRelesedDevices = "filterNonRelesedDevices"
+	FilterNotAllowedBDTag   = "filterNotAllowedBDTag"
+
+	// BlockDeviceTagLabelKey is the key to fetch tag of a block
+	// device.
+	// For more info : https://github.com/openebs/node-disk-manager/pull/400
+	BlockDeviceTagLabelKey = "openebs.io/block-device-tag"
 )
+
+var bdFilterOptions FilterOptions
 
 // KubernetesClient is the kubernetes client which will implement block device actions/behaviours
 type KubernetesClient struct {
@@ -111,6 +119,7 @@ var filterOptionFuncMap = map[string]filterOptionFunc{
 	FilterSparseDevices:     filterSparseDevices,
 	FilterNonSparseDevices:  filterNonSparseDevices,
 	FilterNonRelesedDevices: filterNonRelesedDevices,
+	FilterNotAllowedBDTag:   filterNotAllowedBDTag,
 }
 
 // predicateFailedError returns the predicate error which is provided to this function as an argument
@@ -185,8 +194,12 @@ func checkName(db *BlockDevice) (string, bool) {
 	return "", true
 }
 
+type FilterOptions struct {
+	AllowedBDTags map[string]bool
+}
+
 // Filter adds filters on which the blockdevice has to be filtered
-func (bdl *BlockDeviceList) Filter(predicateKeys ...string) *BlockDeviceList {
+func (bdl *BlockDeviceList) Filter(filterOps *FilterOptions, predicateKeys ...string) *BlockDeviceList {
 	// Initialize filtered block device list
 	filteredBlockDeviceList := &BlockDeviceList{
 		BlockDeviceList: &ndm.BlockDeviceList{},
@@ -199,6 +212,9 @@ func (bdl *BlockDeviceList) Filter(predicateKeys ...string) *BlockDeviceList {
 	}
 	filteredBlockDeviceList = bdl
 	for _, key := range predicateKeys {
+		if key == FilterNotAllowedBDTag {
+			bdFilterOptions.AllowedBDTags = filterOps.AllowedBDTags
+		}
 		filteredBlockDeviceList = filterOptionFuncMap[key](filteredBlockDeviceList)
 	}
 	return filteredBlockDeviceList
@@ -320,6 +336,26 @@ func filterNonRelesedDevices(originalList *BlockDeviceList) *BlockDeviceList {
 	}
 	for _, device := range originalList.Items {
 		if !(device.Status.ClaimState == ndm.BlockDeviceReleased) {
+			filteredList.Items = append(filteredList.Items, device)
+		}
+	}
+	return filteredList
+}
+
+func filterNotAllowedBDTag(originalList *BlockDeviceList) *BlockDeviceList {
+	filteredList := &BlockDeviceList{
+		BlockDeviceList: &ndm.BlockDeviceList{},
+		errs:            nil,
+	}
+	for _, device := range originalList.Items {
+		value, ok := device.Labels[BlockDeviceTagLabelKey]
+		bdTag := strings.TrimSpace(value)
+		if ok {
+			if bdTag == "" || !bdFilterOptions.AllowedBDTags[bdTag] {
+				continue
+			}
+			filteredList.Items = append(filteredList.Items, device)
+		} else {
 			filteredList.Items = append(filteredList.Items, device)
 		}
 	}

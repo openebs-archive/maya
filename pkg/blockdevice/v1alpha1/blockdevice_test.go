@@ -317,7 +317,7 @@ func TestFilter(t *testing.T) {
 	for name, test := range tests {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
-			filtteredBlockDeviceList := test.blockDeviceList.Filter(test.filterPredicate...)
+			filtteredBlockDeviceList := test.blockDeviceList.Filter(nil, test.filterPredicate...)
 			if len(filtteredBlockDeviceList.Items) != test.expectedBlockDeviceCount {
 				t.Errorf("Test %q failed: expected block device object count %d but got %d", name, test.expectedBlockDeviceCount, len(filtteredBlockDeviceList.Items))
 			}
@@ -805,6 +805,298 @@ func TestFilterNonReleasedDevices(t *testing.T) {
 			filtteredBlockDeviceList := filterNonRelesedDevices(test.blockDeviceList)
 			if len(filtteredBlockDeviceList.Items) != test.expectedBlockDeviceCount {
 				t.Errorf("Test %q failed: expected block device object count %d but got %d", name, test.expectedBlockDeviceCount, len(filtteredBlockDeviceList.Items))
+			}
+		})
+	}
+}
+
+func TestBDTagFilter(t *testing.T) {
+	type fields struct {
+		BlockDeviceList *ndm.BlockDeviceList
+	}
+	type args struct {
+		filterOps     *FilterOptions
+		predicateKeys []string
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		args      args
+		wantCount int
+	}{
+		{
+			fields: fields{
+				BlockDeviceList: &ndm.BlockDeviceList{
+					Items: []ndm.BlockDevice{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-1",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-2",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-3",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-4",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-5",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor"},
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				filterOps: &FilterOptions{
+					AllowedBDTags: map[string]bool{},
+				},
+				predicateKeys: []string{FilterNotAllowedBDTag},
+			},
+			wantCount: 0,
+		},
+
+		{
+			fields: fields{
+				BlockDeviceList: &ndm.BlockDeviceList{
+					Items: []ndm.BlockDevice{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-1",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-2",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-3",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-4",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-5",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor"},
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				filterOps: &FilterOptions{
+					AllowedBDTags: map[string]bool{"cstor": true},
+				},
+				predicateKeys: []string{FilterNotAllowedBDTag},
+			},
+			wantCount: 5,
+		},
+
+		{
+			fields: fields{
+				BlockDeviceList: &ndm.BlockDeviceList{
+					Items: []ndm.BlockDevice{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-1",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-2",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-3",
+								Labels: map[string]string{"openebs.io/block-device-tag": "local"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-4",
+								Labels: map[string]string{"openebs.io/block-device-tag": "local"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-5",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor"},
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				filterOps: &FilterOptions{
+					AllowedBDTags: map[string]bool{"cstor": true},
+				},
+				predicateKeys: []string{FilterNotAllowedBDTag},
+			},
+			wantCount: 3,
+		},
+
+		{
+			fields: fields{
+				BlockDeviceList: &ndm.BlockDeviceList{
+					Items: []ndm.BlockDevice{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-1",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor-cspc"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-2",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor-spc"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-3",
+								Labels: map[string]string{"openebs.io/block-device-tag": "localpv"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-4",
+								Labels: map[string]string{"openebs.io/block-device-tag": "zfslocal"},
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-5",
+								Labels: map[string]string{"openebs.io/block-device-tag": "mayastor"},
+							},
+						},
+
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-6",
+								Labels: map[string]string{"openebs.io/block-device-tag": "nvme"},
+							},
+						},
+
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-7",
+								Labels: map[string]string{"openebs.io/block-device-tag": "ssd"},
+							},
+						},
+
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-8",
+								Labels: map[string]string{"openebs.io/block-device-tag": "cstor"},
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				filterOps: &FilterOptions{
+					AllowedBDTags: map[string]bool{"cstor-cspc": true, "cstor-spc": true},
+				},
+				predicateKeys: []string{FilterNotAllowedBDTag},
+			},
+			wantCount: 2,
+		},
+
+		{
+			fields: fields{
+				BlockDeviceList: &ndm.BlockDeviceList{
+					Items: []ndm.BlockDevice{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "test-bd-1",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "test-bd-2",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "test-bd-3",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "test-bd-4",
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "test-bd-5",
+							},
+						},
+
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "test-bd-6",
+							},
+						},
+
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:   "test-bd-7",
+								Labels: map[string]string{},
+							},
+						},
+
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "test-bd-8",
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				filterOps: &FilterOptions{
+					AllowedBDTags: map[string]bool{"cstor-cspc": true, "cstor-spc": true},
+				},
+				predicateKeys: []string{FilterNotAllowedBDTag},
+			},
+			wantCount: 8,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bdl := &BlockDeviceList{
+				BlockDeviceList: tt.fields.BlockDeviceList,
+			}
+			got := bdl.Filter(tt.args.filterOps, tt.args.predicateKeys...)
+			if len(got.Items) != tt.wantCount {
+				t.Errorf("test case failed as want count %d but got %d", tt.wantCount, len(got.Items))
 			}
 		})
 	}

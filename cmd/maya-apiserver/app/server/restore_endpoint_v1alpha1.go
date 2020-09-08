@@ -280,7 +280,6 @@ func updateRestoreStatus(clientset versioned.Interface, rst v1alpha1.CStorRestor
 
 func createVolumeForRestore(r *v1alpha1.CStorRestore) (*v1alpha1.CASVolume, error) {
 	vol := &v1alpha1.CASVolume{}
-
 	vol.Name = r.Spec.VolumeName
 	vol.Labels = map[string]string{
 		string(v1alpha1.StorageClassKey): r.Spec.StorageClass,
