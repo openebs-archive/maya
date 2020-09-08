@@ -353,9 +353,8 @@ func filterNotAllowedBDTag(originalList *BlockDeviceList) *BlockDeviceList {
 		if ok {
 			if bdTag == "" || !bdFilterOptions.AllowedBDTags[bdTag] {
 				continue
-			} else {
-				filteredList.Items = append(filteredList.Items, device)
 			}
+			filteredList.Items = append(filteredList.Items, device)
 		} else {
 			filteredList.Items = append(filteredList.Items, device)
 		}
