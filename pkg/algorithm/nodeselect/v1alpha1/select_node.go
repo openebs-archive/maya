@@ -23,11 +23,21 @@ import (
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
-	util "github.com/openebs/maya/pkg/util"
-	volume "github.com/openebs/maya/pkg/volume"
+	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/pkg/volume"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
+	"strings"
+)
+
+const (
+	// CStorBDTagAnnotationKey is the annotation key for SPC allowed BD tags
+	CStorBDTagAnnotationKey = "openebs.io/allowed-bd-tags"
+	// BlockDeviceTagLabelKey is the key to fetch tag of a block
+	// device.
+	// For more info : https://github.com/openebs/node-disk-manager/pull/400
+	BlockDeviceTagLabelKey = "openebs.io/block-device-tag"
 )
 
 // BDDetails holds the claimed block device details
@@ -273,7 +283,7 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	if err != nil {
 		return nil, err
 	}
-	filterList := []string{blockdevice.FilterNonInactive}
+	filterList := []string{blockdevice.FilterNonInactive, blockdevice.FilterNotAllowedBDTag}
 
 	if diskType == string(apis.TypeSparseCPV) {
 		filterList = append(filterList, blockdevice.FilterSparseDevices)
@@ -285,7 +295,12 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 		filterList = append(filterList, blockdevice.FilterNonFSType, blockdevice.FilterNonRelesedDevices)
 	}
 
-	bdl = bdList.Filter(filterList...)
+	allowedBDTags := getAllowedTagMap(ac.Spc.GetAnnotations())
+	filterOptions := &blockdevice.FilterOptions{
+		AllowedBDTags: allowedBDTags,
+	}
+
+	bdl = bdList.Filter(filterOptions, filterList...)
 	if len(bdl.Items) == 0 {
 		return nil, errors.Errorf("type {%s} devices are not available to provision pools in %s mode", diskType, ProvisioningType(ac.Spc))
 	}
@@ -355,6 +370,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 				continue
 			}
 			capacity := volume.ByteCount(bdObj.Spec.Capacity.Storage)
+
 			//TODO: Move below code to some function
 			newBDCObj, err := bdc.NewBuilder().
 				WithName(bdcName).
@@ -366,6 +382,16 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 				WithOwnerReference(spc).
 				WithFinalizer(spcv1alpha1.SPCFinalizer).
 				Build()
+
+			value, ok := bdObj.Labels[BlockDeviceTagLabelKey]
+
+			if ok {
+				ls := &metav1.LabelSelector{
+					MatchLabels: map[string]string{BlockDeviceTagLabelKey: value},
+				}
+				newBDCObj.Object.Spec.Selector = ls
+			}
+
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to build block device claim for bd {%s}", bdName)
 			}
@@ -387,4 +413,27 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 		return nil, errors.Errorf("pending block device claim count %d on node {%s}", pendingBDCCount, nodeClaimedBDs.NodeName)
 	}
 	return nodeClaimedBDs, nil
+}
+
+// getAllowedTagMap returns a map of the allowed BD tags
+// Example :
+// If the CSPC annotation is passed and following is the BD tag annotation
+//
+// cstor.openebs.io/allowed-bd-tags:fast,slow
+//
+// Then, a map {"fast":true,"slow":true} is returned.
+func getAllowedTagMap(cspcAnnotation map[string]string) map[string]bool {
+	allowedTagsMap := make(map[string]bool)
+	allowedTags := cspcAnnotation[CStorBDTagAnnotationKey]
+	if strings.TrimSpace(allowedTags) == "" {
+		return allowedTagsMap
+	}
+	allowedTagsList := strings.Split(allowedTags, ",")
+	for _, v := range allowedTagsList {
+		if strings.TrimSpace(v) == "" {
+			continue
+		}
+		allowedTagsMap[v] = true
+	}
+	return allowedTagsMap
 }

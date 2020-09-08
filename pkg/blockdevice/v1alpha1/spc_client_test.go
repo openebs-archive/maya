@@ -337,7 +337,7 @@ func TestSpcClientFilteredList(t *testing.T) {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
 			blockDeviceList, err := test.spcClientObj.List(metav1.ListOptions{})
-			blockDeviceList = blockDeviceList.Filter(FilterInactive)
+			blockDeviceList = blockDeviceList.Filter(nil, FilterInactive)
 			gotErr := false
 			if err != nil {
 				gotErr = true

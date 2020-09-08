@@ -45,7 +45,6 @@ func provisioningAndReconciliationTest(createCSPCObject func()) {
 		It("cStor Pools Should be Provisioned ", func() {
 			SkipTest(skipPositiveCaseIfRequired)
 			By("Preparing A CSPC Object, No Error Should Occur", createCSPCObject)
-
 			By("Creating A CSPC Object, Desired Number of CSPIs Should Be Created", verifyDesiredCSPICount)
 		})
 	})
