@@ -27,8 +27,8 @@ import (
 
 	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
 	snapclient "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1/clientset/internalclientset"
 	"github.com/pkg/errors"
 	"k8s.io/api/admission/v1beta1"
@@ -81,6 +81,8 @@ type webhook struct {
 
 	// snapClientSet is a snaphot custom resource package generated from custom API group.
 	snapClientSet snapclient.Interface
+
+	ndmClientset ndmclientset.Interface
 }
 
 // Parameters are server configures parameters
@@ -106,7 +108,8 @@ func init() {
 // set up secret (for TLS certs) k8s resource. This function runs forever.
 func New(p Parameters, kubeClient kubernetes.Interface,
 	openebsClient clientset.Interface,
-	snapClient snapclient.Interface) (
+	snapClient snapclient.Interface,
+	ndmClient ndmclientset.Interface) (
 	*webhook, error) {
 
 	admNamespace, err := getOpenebsNamespace()
@@ -174,6 +177,7 @@ func New(p Parameters, kubeClient kubernetes.Interface,
 		kubeClient:    kubeClient,
 		clientset:     openebsClient,
 		snapClientSet: snapClient,
+		ndmClientset:  ndmClient,
 	}
 	return wh, nil
 }
@@ -461,7 +465,7 @@ func (wh *webhook) validateNamespace(ar *v1beta1.AdmissionReview) *v1beta1.Admis
 	req := ar.Request
 	response := &v1beta1.AdmissionResponse{}
 	response.Allowed = true
-	// validates only if requested operation is CREATE or DELETE
+	// validates only if requested operation is DELETE
 	if req.Operation == v1beta1.Delete {
 		return wh.validateNamespaceDeleteRequest(req)
 	}
@@ -482,8 +486,8 @@ func (wh *webhook) validateNamespaceDeleteRequest(req *v1beta1.AdmissionRequest)
 		return response
 	}
 
-	bdcList, err := blockdeviceclaim.NewKubeClient().
-		WithNamespace(req.Name).
+	bdcList, err := wh.ndmClientset.OpenebsV1alpha1().
+		BlockDeviceClaims(req.Name).
 		List(metav1.ListOptions{})
 	if err != nil {
 		response.Allowed = false
