@@ -520,7 +520,7 @@ func addSPCWithDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
 }
 
 func addNSWithDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
-	if util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "2.1.0") {
+	if util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "2.0.0") {
 		config.Webhooks[0].Rules = append(config.Webhooks[0].Rules, nsRuleWithOperations)
 	}
 }
