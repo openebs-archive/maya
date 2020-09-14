@@ -465,7 +465,7 @@ func (wh *webhook) validateNamespace(ar *v1beta1.AdmissionReview) *v1beta1.Admis
 	if req.Operation == v1beta1.Delete {
 		return wh.validateNamespaceDeleteRequest(req)
 	}
-	klog.V(2).Info("Admission wehbook for PVC module not " +
+	klog.V(2).Info("Admission wehbook for Namespace module not " +
 		"configured for operations other than DELETE")
 	return response
 }
