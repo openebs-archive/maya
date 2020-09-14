@@ -81,6 +81,7 @@ var (
 		addCSPCDeleteRule,
 		addCVCWithUpdateRule,
 		addSPCWithDeleteRule,
+		addNSWithDeleteRule,
 	}
 	cvcRuleWithOperations = v1beta1.RuleWithOperations{
 		Operations: []v1beta1.OperationType{
@@ -100,6 +101,16 @@ var (
 			APIGroups:   []string{"*"},
 			APIVersions: []string{"*"},
 			Resources:   []string{"storagepoolclaims"},
+		},
+	}
+	nsRuleWithOperations = v1beta1.RuleWithOperations{
+		Operations: []v1beta1.OperationType{
+			v1beta1.Delete,
+		},
+		Rule: v1beta1.Rule{
+			APIGroups:   []string{"*"},
+			APIVersions: []string{"*"},
+			Resources:   []string{"namespaces"},
 		},
 	}
 )
@@ -214,6 +225,7 @@ func createValidatingWebhookConfig(
 			},
 			cvcRuleWithOperations,
 			spcRuleWithOperations,
+			nsRuleWithOperations,
 		},
 		ClientConfig: v1beta1.WebhookClientConfig{
 			Service: &v1beta1.ServiceReference{
@@ -504,6 +516,12 @@ func addCVCWithUpdateRule(config *v1beta1.ValidatingWebhookConfiguration) {
 func addSPCWithDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
 	if util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "1.11.0") {
 		config.Webhooks[0].Rules = append(config.Webhooks[0].Rules, spcRuleWithOperations)
+	}
+}
+
+func addNSWithDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
+	if util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "2.1.0") {
+		config.Webhooks[0].Rules = append(config.Webhooks[0].Rules, nsRuleWithOperations)
 	}
 }
 

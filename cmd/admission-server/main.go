@@ -30,6 +30,7 @@ import (
 	"k8s.io/klog"
 
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
 	snapclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1/clientset/internalclientset"
 )
 
@@ -75,6 +76,12 @@ func main() {
 		klog.Fatalf("Error building openebs snapshot clientset: %s", err.Error())
 	}
 
+	// Building NDM Clientset
+	ndmClient, err := ndmclientset.NewForConfig(cfg)
+	if err != nil {
+		klog.Fatalf("Error building ndm clientset: %s", err.Error())
+	}
+
 	// Fetch a reference to the admission server deployment object
 	ownerReference, err := webhook.GetAdmissionReference()
 	if err != nil {
@@ -85,7 +92,7 @@ func main() {
 		klog.Fatal(validatorErr, "failed to initialize validation server")
 	}
 
-	wh, err := webhook.New(parameters, kubeClient, openebsClient, snapClient)
+	wh, err := webhook.New(parameters, kubeClient, openebsClient, snapClient, ndmClient)
 	if err != nil {
 		klog.Fatalf("failed to create validation webhook: %s", err.Error())
 	}
