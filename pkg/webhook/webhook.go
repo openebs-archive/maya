@@ -27,6 +27,7 @@ import (
 
 	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	snapclient "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1/clientset/internalclientset"
 	"github.com/pkg/errors"
@@ -421,6 +422,9 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 	response.Allowed = true
 	klog.Info("Admission webhook request received")
 	switch req.Kind.Kind {
+	case "Namespace":
+		klog.V(2).Infof("Admission webhook request for type %s", req.Kind.Kind)
+		return wh.validateNamespace(ar)
 	case "PersistentVolumeClaim":
 		klog.V(2).Infof("Admission webhook request for type %s", req.Kind.Kind)
 		return wh.validatePVC(ar)
@@ -450,6 +454,72 @@ func (wh *webhook) validatePVC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRe
 	}
 	klog.V(2).Info("Admission wehbook for PVC module not " +
 		"configured for operations other than DELETE and CREATE")
+	return response
+}
+
+func (wh *webhook) validateNamespace(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+	req := ar.Request
+	response := &v1beta1.AdmissionResponse{}
+	response.Allowed = true
+	// validates only if requested operation is CREATE or DELETE
+	if req.Operation == v1beta1.Delete {
+		return wh.validateNamespaceDeleteRequest(req)
+	}
+	klog.V(2).Info("Admission wehbook for PVC module not " +
+		"configured for operations other than DELETE")
+	return response
+}
+
+func (wh *webhook) validateNamespaceDeleteRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+	response := &v1beta1.AdmissionResponse{}
+	response.Allowed = true
+	svcLabel := "openebs.io/controller-service=jiva-controller-svc"
+
+	msg := fmt.Sprintf("either BDCs or services with the label %s exists in the namespace %s.", svcLabel, req.Name)
+
+	// ignore the Delete request of Namespace if resource name is empty
+	if req.Name == "" {
+		return response
+	}
+
+	bdcList, err := blockdeviceclaim.NewKubeClient().
+		WithNamespace(req.Name).
+		List(metav1.ListOptions{})
+	if err != nil {
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: fmt.Sprintf("error listing BDC in namespace %s: %v", req.Name, err.Error()),
+		}
+		return response
+	}
+
+	if len(bdcList.Items) != 0 {
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: msg,
+		}
+		return response
+	}
+
+	svcList, err := wh.kubeClient.CoreV1().Services(req.Name).
+		List(metav1.ListOptions{
+			LabelSelector: svcLabel,
+		})
+	if err != nil {
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: fmt.Sprintf("error listing svc in namespace %s: %v", req.Name, err.Error()),
+		}
+		return response
+	}
+
+	if len(svcList.Items) != 0 {
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: msg,
+		}
+		return response
+	}
 	return response
 }
 
