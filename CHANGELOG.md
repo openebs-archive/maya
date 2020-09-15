@@ -1,5 +1,19 @@
 # Changelog
 
+v2.1.0 / 2020-09-14
+========================
+
+ * feat(webhook): add validation for namspace delete requests [#1757](https://github.com/openebs/maya/pull/1757) ([shubham14bajpai](https://github.com/shubham14bajpai))
+ * chore(upgrade): add valid current versions for 2.1.0 upgrades [#1749](https://github.com/openebs/maya/pull/1749) ([shubham14bajpai](https://github.com/shubham14bajpai))
+ * feat(spc): add capability to specify allowed BD tags on SPC [#1748](https://github.com/openebs/maya/pull/1748) ([sonasingh46](https://github.com/sonasingh46))
+ * fix(spc): provision cStor stripe based pools with single raid group [#1744](https://github.com/openebs/maya/pull/1744) ([mittachaitu](https://github.com/mittachaitu))
+ * fix(volume provisioning): fix CStor volume provisioning request without creating PVC [#1738](https://github.com/openebs/maya/pull/1738) ([mittachaitu](https://github.com/mittachaitu))
+
+v2.1.0-RC2 / 2020-09-11
+========================
+
+ * No changes
+
 v2.1.0-RC1 / 2020-09-08
 ========================
 
