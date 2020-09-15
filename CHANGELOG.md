@@ -1,5 +1,35 @@
 # Changelog
 
+v2.1.0 / 2020-09-14
+========================
+
+ * feat(webhook): add validation for namspace delete requests [#1757](https://github.com/openebs/maya/pull/1757) ([shubham14bajpai](https://github.com/shubham14bajpai))
+ * chore(upgrade): add valid current versions for 2.1.0 upgrades [#1749](https://github.com/openebs/maya/pull/1749) ([shubham14bajpai](https://github.com/shubham14bajpai))
+ * feat(spc): add capability to specify allowed BD tags on SPC [#1748](https://github.com/openebs/maya/pull/1748) ([sonasingh46](https://github.com/sonasingh46))
+ * fix(spc): provision cStor stripe based pools with single raid group [#1744](https://github.com/openebs/maya/pull/1744) ([mittachaitu](https://github.com/mittachaitu))
+ * fix(volume provisioning): fix CStor volume provisioning request without creating PVC [#1738](https://github.com/openebs/maya/pull/1738) ([mittachaitu](https://github.com/mittachaitu))
+
+v2.1.0-RC2 / 2020-09-11
+========================
+
+ * No changes
+
+v2.1.0-RC1 / 2020-09-08
+========================
+
+ * chore(upgrade): add valid current versions for 2.1.0 upgrades [#1749](https://github.com/openebs/maya/pull/1749) ([shubham14bajpai](https://github.com/shubham14bajpai))
+ * feat(spc): add capability to specify allowed BD tags on SPC [#1748](https://github.com/openebs/maya/pull/1748) ([sonasingh46](https://github.com/sonasingh46))
+ * fix(spc): provision cStor stripe based pools with single raid group [#1744](https://github.com/openebs/maya/pull/1744) ([mittachaitu](https://github.com/mittachaitu))
+ * fix(volume provisioning): fix CStor volume provisioning request without creating PVC [#1738](https://github.com/openebs/maya/pull/1738) ([mittachaitu](https://github.com/mittachaitu))
+
+v1.12.1-RC1 / 2020-08-15
+========================
+
+ * refact(localpv): add ENV to allow skipping leader election [#1745](https://github.com/openebs/maya/pull/1745) ([prateekpandey14](https://github.com/prateekpandey14))
+ * cherry-pick(fix): cherry-pick of PR #1738 [#1740](https://github.com/openebs/maya/pull/1740) ([mittachaitu](https://github.com/mittachaitu))
+ * fix(version): fix castemplate output runstask names [#1736](https://github.com/openebs/maya/pull/1736) ([shubham14bajpai](https://github.com/shubham14bajpai))
+ * fix(version): use tagged version instead of VERSION file during build [#1734](https://github.com/openebs/maya/pull/1734) ([shubham14bajpai](https://github.com/shubham14bajpai))
+
 v2.0.0 / 2020-08-13
 ========================
 
