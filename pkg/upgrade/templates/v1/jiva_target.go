@@ -37,11 +37,12 @@ var (
           {
             "name": "{{.ControllerContainerName}}",
             "image": "{{.ControllerImage}}:{{.ImageTag}}"
-          },
+          }{{if .IsMonitorEnabled}},
           {
             "name": "maya-volume-exporter",
             "image": "{{.MExporterImage}}:{{.ImageTag}}"
           }
+          {{end}}
         ]
       }
     }
