@@ -47,6 +47,7 @@ type replicaPatchDetails struct {
 
 type controllerPatchDetails struct {
 	UpgradeVersion, ImageTag, ControllerContainerName, ControllerImage, MExporterImage string
+	IsMonitorEnabled                                                                   bool
 }
 
 type replicaDetails struct {
@@ -92,6 +93,7 @@ func getControllerPatchDetails(d *appsv1.Deployment) (
 	error,
 ) {
 	patchDetails := &controllerPatchDetails{}
+	patchDetails.IsMonitorEnabled = true
 	// verify delpoyment name
 	if d.Name == "" {
 		return nil, errors.New("missing deployment name")
@@ -108,7 +110,11 @@ func getControllerPatchDetails(d *appsv1.Deployment) (
 	patchDetails.ControllerImage = image
 	image, err = getBaseImage(d, "maya-volume-exporter")
 	if err != nil {
-		return nil, err
+		if err.Error() == "image not found for container maya-volume-exporter" {
+			patchDetails.IsMonitorEnabled = false
+		} else {
+			return nil, err
+		}
 	}
 	patchDetails.MExporterImage = image
 	if imageTag != "" {

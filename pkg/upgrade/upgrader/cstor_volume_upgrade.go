@@ -37,6 +37,7 @@ import (
 type cstorTargetPatchDetails struct {
 	CurrentVersion, UpgradeVersion, ImageTag, IstgtImage,
 	BaseDir, MExporterImage, VolumeMgmtImage, PVName string
+	IsMonitorEnabled bool
 }
 
 const (
@@ -69,6 +70,7 @@ func getTargetDeployPatchDetails(
 	d *appsv1.Deployment,
 ) (*cstorTargetPatchDetails, error) {
 	patchDetails := &cstorTargetPatchDetails{}
+	patchDetails.IsMonitorEnabled = true
 	if d.Name == "" {
 		return nil, errors.Errorf("missing deployment name")
 	}
@@ -79,7 +81,11 @@ func getTargetDeployPatchDetails(
 	patchDetails.IstgtImage = istgtImage
 	mexporterImage, err := getBaseImage(d, "maya-volume-exporter")
 	if err != nil {
-		return nil, err
+		if err.Error() == "image not found for container maya-volume-exporter" {
+			patchDetails.IsMonitorEnabled = false
+		} else {
+			return nil, err
+		}
 	}
 	patchDetails.MExporterImage = mexporterImage
 	volumeMgmtImage, err := getBaseImage(d, "cstor-volume-mgmt")

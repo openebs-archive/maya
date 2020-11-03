@@ -44,6 +44,7 @@ var (
             ]
           {{end}}
           },
+          {{if .IsMonitorEnabled}}
           {
             "name": "maya-volume-exporter",
             "image": "{{.MExporterImage}}:{{.ImageTag}}"{{if isCurrentLessThanNewVersion .CurrentVersion "1.7.0"}},
@@ -55,6 +56,7 @@ var (
             ]
           {{end}}
           },
+          {{end}}
           {
             "name": "cstor-volume-mgmt",
             "image": "{{.VolumeMgmtImage}}:{{.ImageTag}}"{{if isCurrentLessThanNewVersion .CurrentVersion "1.7.0"}},
