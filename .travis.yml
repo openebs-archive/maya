@@ -10,12 +10,8 @@ env:
     - MINIKUBE_HOME=$HOME
     - CHANGE_MINIKUBE_NONE_USER=true
     - KUBECONFIG=$HOME/.kube/config
-    - CAN_FAIL=true
 
 jobs:
-  allow_failures:
-    env:
-      - CAN_FAIL=true
   include:
     - os: linux
       arch: amd64
@@ -25,11 +21,6 @@ jobs:
       arch: arm64
       env:
         - RELEASE_TAG_DOWNSTREAM=0
-    - os: linux
-      arch: ppc64le
-      env:
-        - RELEASE_TAG_DOWNSTREAM=0
-        - CAN_FAIL=true
 
 services:
   - docker

@@ -142,7 +142,6 @@ endif
 
 include ./buildscripts/mayactl/Makefile.mk
 include ./buildscripts/apiserver/Makefile.mk
-include ./buildscripts/provisioner-localpv/Makefile.mk
 include ./buildscripts/upgrade/Makefile.mk
 include ./buildscripts/exporter/Makefile.mk
 include ./buildscripts/cstor-pool-mgmt/Makefile.mk
@@ -151,14 +150,11 @@ include ./buildscripts/admission-server/Makefile.mk
 
 .PHONY: all
 all: compile-tests apiserver-image exporter-image pool-mgmt-image volume-mgmt-image \
-	   admission-server-image upgrade-image provisioner-localpv-image
+	   admission-server-image upgrade-image 
 
 .PHONY: all.arm64
 all.arm64: apiserver-image.arm64 exporter-image.arm64 pool-mgmt-image.arm64 volume-mgmt-image.arm64 \
-           admission-server-image.arm64 upgrade-image.arm64 provisioner-localpv-image.arm64
-
-.PHONY: all.ppc64le
-all.ppc64le: provisioner-localpv-image.ppc64le
+           admission-server-image.arm64 upgrade-image.arm64 
 
 .PHONY: initialize
 initialize: bootstrap

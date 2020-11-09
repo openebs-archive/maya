@@ -17,7 +17,6 @@ if [ ${CI_TAG} != "ci" ]; then
   sudo docker tag ${IMAGE_ORG}/m-exporter:ci ${IMAGE_ORG}/m-exporter:${CI_TAG}
   sudo docker tag ${IMAGE_ORG}/cstor-pool-mgmt:ci ${IMAGE_ORG}/cstor-pool-mgmt:${CI_TAG}
   sudo docker tag ${IMAGE_ORG}/cstor-volume-mgmt:ci ${IMAGE_ORG}/cstor-volume-mgmt:${CI_TAG}
-  sudo docker tag ${IMAGE_ORG}/provisioner-localpv:ci ${IMAGE_ORG}/provisioner-localpv:${CI_TAG}
 fi
 
 #Tag the images with quay.io, since the operator can either have quay or docker images
@@ -27,7 +26,6 @@ sudo docker tag ${IMAGE_ORG}/m-apiserver:ci quay.io/openebs/m-apiserver:${CI_TAG
 sudo docker tag ${IMAGE_ORG}/m-exporter:ci quay.io/openebs/m-exporter:${CI_TAG}
 sudo docker tag ${IMAGE_ORG}/cstor-pool-mgmt:ci quay.io/openebs/cstor-pool-mgmt:${CI_TAG}
 sudo docker tag ${IMAGE_ORG}/cstor-volume-mgmt:ci quay.io/openebs/cstor-volume-mgmt:${CI_TAG}
-sudo docker tag ${IMAGE_ORG}/provisioner-localpv:ci quay.io/openebs/provisioner-localpv:${CI_TAG}
 
 ## install iscsi pkg
 echo "Installing iscsi packages"
