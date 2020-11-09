@@ -42,7 +42,7 @@ Images for the different components are published at the following location:
     https://hub.docker.com/r/openebs/admission-server/tags <br />
     https://hub.docker.com/r/openebs/admission-server-arm64/tags <br />
 
-- LocalPV Provisioner <br />
+- LocalPV Provisioner (Moved to https://github.com/openebs/dynamic-localpv-provisioner) <br />
     https://quay.io/repository/openebs/provisioner-localpv?tab=tags <br />
     https://quay.io/repository/openebs/provisioner-localpv-arm64?tab=tags <br />
     https://hub.docker.com/r/openebs/provisioner-localpv/tags <br />

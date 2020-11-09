@@ -19,37 +19,17 @@ set -e
 ARCH=$(uname -m)
 
 if [ "${ARCH}" = "x86_64" ]; then
-  APISERVER_IMG="${IMAGE_ORG}/m-apiserver"
-  M_EXPORTER_IMG="${IMAGE_ORG}/m-exporter"
-  CSTOR_POOL_MGMT_IMG="${IMAGE_ORG}/cstor-pool-mgmt"
-  CSTOR_VOLUME_MGMT_IMG="${IMAGE_ORG}/cstor-volume-mgmt"
-  ADMISSION_SERVER_IMG="${IMAGE_ORG}/admission-server"
-  UPGRADE_IMG="${IMAGE_ORG}/m-upgrade"
-  PROVISIONER_LOCALPV="${IMAGE_ORG}/provisioner-localpv"
+  ARCH_SUFFIX=""
 elif [ "${ARCH}" = "aarch64" ]; then
-  APISERVER_IMG="${IMAGE_ORG}/m-apiserver-arm64"
-  M_EXPORTER_IMG="${IMAGE_ORG}/m-exporter-arm64"
-  CSTOR_POOL_MGMT_IMG="${IMAGE_ORG}/cstor-pool-mgmt-arm64"
-  CSTOR_VOLUME_MGMT_IMG="${IMAGE_ORG}/cstor-volume-mgmt-arm64"
-  ADMISSION_SERVER_IMG="${IMAGE_ORG}/admission-server-arm64"
-  UPGRADE_IMG="${IMAGE_ORG}/m-upgrade-arm64"
-  PROVISIONER_LOCALPV="${IMAGE_ORG}/provisioner-localpv-arm64"
-elif [ "${ARCH}" = "ppc64le" ]; then
-  PROVISIONER_LOCALPV="${IMAGE_ORG}/provisioner-localpv-ppc64le"
+  ARCH_SUFFIX="-arm64"
 fi
 
 curl --fail https://raw.githubusercontent.com/openebs/charts/gh-pages/scripts/release/buildscripts/push > ./buildscripts/push
 chmod +x ./buildscripts/push
 
-# tag and push all the images
-if [ "${ARCH}" = "ppc64le" ]; then
-  DIMAGE="${PROVISIONER_LOCALPV}" ./buildscripts/push
-else
-  DIMAGE="${APISERVER_IMG}" ./buildscripts/push
-  DIMAGE="${M_EXPORTER_IMG}" ./buildscripts/push
-  DIMAGE="${CSTOR_POOL_MGMT_IMG}" ./buildscripts/push
-  DIMAGE="${CSTOR_VOLUME_MGMT_IMG}" ./buildscripts/push
-  DIMAGE="${ADMISSION_SERVER_IMG}" ./buildscripts/push
-  DIMAGE="${UPGRADE_IMG}" ./buildscripts/push
-  DIMAGE="${PROVISIONER_LOCALPV}" ./buildscripts/push
-fi
+DIMAGE="${IMAGE_ORG}/m-apiserver${ARCH_SUFFIX}" ./buildscripts/push
+DIMAGE="${IMAGE_ORG}/m-exporter${ARCH_SUFFIX}" ./buildscripts/push
+DIMAGE="${IMAGE_ORG}/cstor-pool-mgmt${ARCH_SUFFIX}" ./buildscripts/push
+DIMAGE="${IMAGE_ORG}/cstor-volume-mgmt${ARCH_SUFFIX}" ./buildscripts/push
+DIMAGE="${IMAGE_ORG}/admission-server${ARCH_SUFFIX}" ./buildscripts/push
+DIMAGE="${IMAGE_ORG}/m-upgrade${ARCH_SUFFIX}" ./buildscripts/push
