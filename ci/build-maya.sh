@@ -14,7 +14,6 @@ set -e
 # a non zero exit code, which will result in a build failure.
 if [ ${CI_TAG} != "ci" ]; then
   sudo docker tag ${IMAGE_ORG}/m-apiserver:ci ${IMAGE_ORG}/m-apiserver:${CI_TAG}
-  sudo docker tag ${IMAGE_ORG}/m-exporter:ci ${IMAGE_ORG}/m-exporter:${CI_TAG}
   sudo docker tag ${IMAGE_ORG}/cstor-pool-mgmt:ci ${IMAGE_ORG}/cstor-pool-mgmt:${CI_TAG}
   sudo docker tag ${IMAGE_ORG}/cstor-volume-mgmt:ci ${IMAGE_ORG}/cstor-volume-mgmt:${CI_TAG}
 fi
@@ -23,7 +22,6 @@ fi
 #Note the quay tags are hard-coded to help with CI scripts that might use the quay.io/openebs prefix 
 # The quay images tagged here are not pushed.
 sudo docker tag ${IMAGE_ORG}/m-apiserver:ci quay.io/openebs/m-apiserver:${CI_TAG}
-sudo docker tag ${IMAGE_ORG}/m-exporter:ci quay.io/openebs/m-exporter:${CI_TAG}
 sudo docker tag ${IMAGE_ORG}/cstor-pool-mgmt:ci quay.io/openebs/cstor-pool-mgmt:${CI_TAG}
 sudo docker tag ${IMAGE_ORG}/cstor-volume-mgmt:ci quay.io/openebs/cstor-volume-mgmt:${CI_TAG}
 

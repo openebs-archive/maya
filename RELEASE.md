@@ -60,7 +60,7 @@ Images for the different components are published at the following location:
     https://hub.docker.com/r/openebs/cstor-volume-mgmt/tags <br />
     https://hub.docker.com/r/openebs/cstor-volume-mgmt-arm64/tags <br />
 
-- Maya Exporter <br />
+- Maya Exporter (Moved to https://github.com/openebs/openebs-exporter) <br />
     https://quay.io/repository/openebs/m-exporter?tab=tags <br />
     https://quay.io/repository/openebs/m-exporter-arm64?tab=tags <br />
     https://hub.docker.com/r/openebs/m-exporter/tags <br />
