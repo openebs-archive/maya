@@ -15,6 +15,8 @@
 package sts
 
 import (
+	"strconv"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
@@ -140,7 +142,7 @@ var _ = Describe("StatefulSet", func() {
 			return pvcCount
 		},
 			defaultTimeOut, defaultPollingInterval).
-			Should(Equal(3), "PVC count should be "+string(3))
+			Should(Equal(3), "PVC count should be "+strconv.Itoa(3))
 
 		// Check for CVR to get healthy
 		Eventually(func() int {
@@ -156,7 +158,7 @@ var _ = Describe("StatefulSet", func() {
 				Len()
 		},
 			defaultTimeOut, defaultPollingInterval).
-			Should(Equal(3), "CVR count should be "+string(3))
+			Should(Equal(3), "CVR count should be "+strconv.Itoa(3))
 
 		// Check for statefulset pods to get created and running
 		Eventually(func() int {
@@ -172,7 +174,7 @@ var _ = Describe("StatefulSet", func() {
 				Len()
 		},
 			defaultTimeOut, defaultPollingInterval).
-			Should(Equal(3), "Pod count should be "+string(3))
+			Should(Equal(3), "Pod count should be "+strconv.Itoa(3))
 	})
 
 	AfterEach(func() {
@@ -267,25 +269,25 @@ var _ = Describe("StatefulSet", func() {
 				WithFilter(pvc.ContainsName(STSUnstructured.GetName())).
 				List()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(pvcList.Len()).Should(Equal(3), "pvc count should be "+string(3))
+			Expect(pvcList.Len()).Should(Equal(3), "pvc count should be "+strconv.Itoa(3))
 
 			cvrs, err := cvr.
 				NewKubeclient(cvr.WithNamespace("")).
 				List(metav1.ListOptions{LabelSelector: replicaAntiAffinityLabel})
-			Expect(cvrs.Items).Should(HaveLen(3), "cvr count should be "+string(3))
+			Expect(cvrs.Items).Should(HaveLen(3), "cvr count should be "+strconv.Itoa(3))
 
 			poolNames := cvr.
 				NewListBuilder().
 				WithAPIList(cvrs).
 				List()
 			Expect(poolNames.GetUniquePoolNames()).
-				Should(HaveLen(3), "pool names count should be "+string(3))
+				Should(HaveLen(3), "pool names count should be "+strconv.Itoa(3))
 
 			pools, err := csp.NewKubeClient().List(metav1.ListOptions{})
 			Expect(err).ShouldNot(HaveOccurred())
 			nodeNames := csp.ListBuilder().WithAPIList(pools).List()
 			Expect(nodeNames.GetPoolUIDs()).
-				Should(HaveLen(3), "node names count should be "+string(3))
+				Should(HaveLen(3), "node names count should be "+strconv.Itoa(3))
 		})
 
 		PIt("should co-locate the cstor volume targets with application instances", func() {
