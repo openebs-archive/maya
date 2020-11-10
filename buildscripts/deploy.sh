@@ -28,7 +28,6 @@ curl --fail https://raw.githubusercontent.com/openebs/charts/gh-pages/scripts/re
 chmod +x ./buildscripts/push
 
 DIMAGE="${IMAGE_ORG}/m-apiserver${ARCH_SUFFIX}" ./buildscripts/push
-DIMAGE="${IMAGE_ORG}/m-exporter${ARCH_SUFFIX}" ./buildscripts/push
 DIMAGE="${IMAGE_ORG}/cstor-pool-mgmt${ARCH_SUFFIX}" ./buildscripts/push
 DIMAGE="${IMAGE_ORG}/cstor-volume-mgmt${ARCH_SUFFIX}" ./buildscripts/push
 DIMAGE="${IMAGE_ORG}/admission-server${ARCH_SUFFIX}" ./buildscripts/push
