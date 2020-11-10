@@ -41,6 +41,8 @@ import (
 const (
 	// VolumeReplicaOperator is the name of the tool that makes volume-related operations.
 	VolumeReplicaOperator = "zfs"
+	// Execute is the name of the tool that evaluates the provided command
+	Execute = "/usr/local/bin/execute.sh"
 	// BinaryCapacityUnitSuffix is the suffix for binary capacity unit.
 	BinaryCapacityUnitSuffix = "i"
 	// CreateCmd is the create command for zfs volume.
@@ -69,6 +71,8 @@ const (
 	MaxRestoreRetryCount = 10
 	// RestoreRetryDelay is time(in seconds) to wait before the next attempt for restore transfer
 	RestoreRetryDelay = 5
+	// IsRestoreVol marks CVRs created through restore
+	IsRestoreVol = "isRestoreVol"
 )
 
 const (
@@ -244,7 +248,7 @@ func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolNam
 	return nil
 }
 
-// builldVolumeCreateCommand returns volume create command along with attributes as a string array
+// buildVolumeCreateCommand returns volume create command along with attributes as a string array
 func buildVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolName string, quorum bool) []string {
 	var createVolCmd []string
 
@@ -277,7 +281,7 @@ func buildVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, fullV
 		)
 	}
 
-	if cStorVolumeReplica.Annotations["isRestoreVol"] != "true" {
+	if cStorVolumeReplica.Annotations[IsRestoreVol] != "true" {
 		createVolCmd = append(createVolCmd,
 			"-o", openebsTargetIP,
 		)
@@ -319,6 +323,35 @@ func buildVolumeCloneCommand(cStorVolumeReplica *apis.CStorVolumeReplica, snapNa
 	return cloneVolCmd
 }
 
+func SetTargetIp(fullVolName, targetIp string) error {
+	out, err := zfs.NewVolumeSetProperty().
+		WithProperty("io.openebs:targetip", targetIp).
+		WithDataset(fullVolName).
+		Execute()
+	if err != nil {
+		klog.Errorf("Unable to set target ip to %s. error : %v %s", fullVolName, err, string(out))
+		return errors.Wrapf(err, "failed to set target ip to %s", fullVolName)
+	}
+
+	return nil
+}
+
+func GetTargetIp(fullVolName string) (string, error) {
+	ret, err := zfs.NewVolumeGetProperty().
+		WithScriptedMode(true).
+		WithParsableMode(true).
+		WithField("value").
+		WithProperty("io.openebs:targetip").
+		WithDataset(fullVolName).
+		Execute()
+
+	if err != nil {
+		klog.Errorf("Unable to get target ip from %s. error : %v", fullVolName, err)
+		return "", errors.Wrapf(err, "failed to get target ip: %s", fullVolName)
+	}
+	return strings.Split(string(ret), "\n")[0], nil
+}
+
 // CreateVolumeBackup sends cStor snapshots to remote location specified by cstorbackup.
 func CreateVolumeBackup(bkp *apis.CStorBackup) error {
 	var cmd []string
@@ -332,7 +365,7 @@ func CreateVolumeBackup(bkp *apis.CStorBackup) error {
 	klog.Infof("Backup Command for volume: %v created, Cmd: %v\n", bkp.Spec.VolumeName, cmd)
 
 	for retryCount < MaxBackupRetryCount {
-		stdoutStderr, err = RunnerVar.RunCombinedOutput("/usr/local/bin/execute.sh", cmd...)
+		stdoutStderr, err = RunnerVar.RunCombinedOutput(Execute, cmd...)
 		if err != nil {
 			klog.Errorf("Unable to start backup %s. error : %v retry:%v :%s", bkp.Spec.VolumeName, string(stdoutStderr), retryCount, err.Error())
 			retryCount++
@@ -357,7 +390,7 @@ func CreateVolumeBackup(bkp *apis.CStorBackup) error {
 	return err
 }
 
-// builldVolumeBackupCommand returns volume create command along with attributes as a string array
+// buildVolumeBackupCommand returns volume create command along with attributes as a string array
 func buildVolumeBackupCommand(poolName, fullVolName, oldSnapName, newSnapName, backupDest string) []string {
 	var startBackupCmd []string
 
@@ -383,7 +416,7 @@ func CreateVolumeRestore(rst *apis.CStorRestore) error {
 	klog.Infof("Restore Command for volume: %v created, Cmd: %v\n", rst.Spec.VolumeName, cmd)
 
 	for retryCount < MaxRestoreRetryCount {
-		stdoutStderr, err = RunnerVar.RunCombinedOutput("/usr/local/bin/execute.sh", cmd...)
+		stdoutStderr, err = RunnerVar.RunCombinedOutput(Execute, cmd...)
 		if err != nil {
 			klog.Errorf("Unable to start restore %s. error : %v.. trying again", rst.Spec.VolumeName, string(stdoutStderr))
 			time.Sleep(RestoreRetryDelay * time.Second)

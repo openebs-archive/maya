@@ -16,6 +16,7 @@ package v1alpha1
 
 import (
 	"os"
+	"strconv"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -196,6 +197,6 @@ func checkComponentStatus(namespace, lselector string, Count int) (pods *corev1.
 			Len()
 	},
 		DefaultTimeOut, DefaultPollingInterval).
-		Should(Equal(Count), "Pod count should be "+string(Count))
+		Should(Equal(Count), "Pod count should be "+strconv.Itoa(Count))
 	return
 }

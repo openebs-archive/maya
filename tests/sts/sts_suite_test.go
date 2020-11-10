@@ -17,6 +17,7 @@ package sts
 import (
 	"flag"
 	"os"
+	"strconv"
 
 	"testing"
 
@@ -43,7 +44,7 @@ const (
 	// time in seconds for the Eventually block
 	defaultPollingInterval int = 10
 	// minNodeCount is the minimum number of nodes
-	// neede to run this test
+	// needed to run this test
 	minNodeCount int = 3
 )
 
@@ -61,7 +62,7 @@ var _ = BeforeSuite(func() {
 	configPath, err := kubernetes.GetConfigPath()
 	Expect(err).ShouldNot(HaveOccurred())
 
-	// Setting the path in environemnt variable
+	// Setting the path in environment variable
 	err = os.Setenv(string(v1alpha1.KubeConfigEnvironmentKey), configPath)
 	Expect(err).ShouldNot(HaveOccurred())
 	// Getting clientset
@@ -70,6 +71,7 @@ var _ = BeforeSuite(func() {
 
 	// Checking appropriate node numbers. This test is designed to run on a 3 node cluster
 	nodes, err := cl.CoreV1().Nodes().List(v1.ListOptions{})
+	Expect(err).ShouldNot(HaveOccurred())
 	Expect(nodes.Items).Should(HaveLen(minNodeCount))
 
 	// Fetching the openebs component artifacts
@@ -159,7 +161,7 @@ var _ = BeforeSuite(func() {
 			Len()
 	},
 		defaultTimeOut, defaultPollingInterval).
-		Should(Equal(minNodeCount), "NDM pod count should be "+string(minNodeCount))
+		Should(Equal(minNodeCount), "NDM pod count should be "+strconv.Itoa(minNodeCount))
 
 	// Check for cstor storage pool pods to get created and running
 	Eventually(func() int {
@@ -174,7 +176,7 @@ var _ = BeforeSuite(func() {
 			Len()
 	},
 		defaultTimeOut, defaultPollingInterval).
-		Should(Equal(minNodeCount), "CStor pool pod count should be "+string(minNodeCount))
+		Should(Equal(minNodeCount), "CStor pool pod count should be "+strconv.Itoa(minNodeCount))
 })
 
 var _ = AfterSuite(func() {

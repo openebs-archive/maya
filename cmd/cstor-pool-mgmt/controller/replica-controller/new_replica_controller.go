@@ -214,22 +214,6 @@ func NewCStorVolumeReplicaController(
 					return
 				}
 
-				if newCVR.ResourceVersion != oldCVR.ResourceVersion {
-					// cvr modify is not implemented
-					// hence below is commented
-					// ql.Operation = common.QOpModify
-
-					controller.recorder.Event(
-						newCVR,
-						corev1.EventTypeNormal,
-						string(common.SuccessSynced),
-						string(common.MessageModifySynced),
-					)
-
-					// no further handling needed
-					return
-				}
-
 				// finally !!!
 				// push this operation to workqueue
 				ql.Operation = common.QOpSync
