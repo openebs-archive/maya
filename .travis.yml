@@ -19,10 +19,6 @@ jobs:
       arch: amd64
       env:
         - RELEASE_TAG_DOWNSTREAM=1
-    - os: linux
-      arch: arm64
-      env:
-        - RELEASE_TAG_DOWNSTREAM=0
 
 services:
   - docker
