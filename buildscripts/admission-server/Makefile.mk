@@ -3,7 +3,7 @@
 WEBHOOK=admission-server
 
 # Specify the name of the docker repo for amd64
-ADMISSION_SERVER_REPO_NAME?=admission-server
+ADMISSION_SERVER_REPO_NAME?=admission-server-amd64
 
 # Specify the name of the docker repo for arm64
 ADMISSION_SERVER_REPO_NAME_ARM64?=admission-server-arm64

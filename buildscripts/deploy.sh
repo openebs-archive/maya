@@ -15,14 +15,7 @@
 
 set -e
 
-# Determine the arch/os we're building for
-ARCH=$(uname -m)
-
-if [ "${ARCH}" = "x86_64" ]; then
-  ARCH_SUFFIX=""
-elif [ "${ARCH}" = "aarch64" ]; then
-  ARCH_SUFFIX="-arm64"
-fi
+ARCH_SUFFIX="-amd64"
 
 curl --fail https://raw.githubusercontent.com/openebs/charts/gh-pages/scripts/release/buildscripts/push > ./buildscripts/push
 chmod +x ./buildscripts/push

@@ -119,8 +119,8 @@ endif
 export DBUILD_ARGS=--build-arg DBUILD_DATE=${DBUILD_DATE} --build-arg DBUILD_REPO_URL=${DBUILD_REPO_URL} --build-arg DBUILD_SITE_URL=${DBUILD_SITE_URL} --build-arg ARCH=${ARCH}
 
 # Specify the name of cstor-base image
-CSTOR_BASE_IMAGE= ${IMAGE_ORG}/cstor-base:${BASE_TAG}
-export CSTOR_BASE_IMAGE
+CSTOR_BASE_IMAGE_AMD64= ${IMAGE_ORG}/cstor-base-amd64:${BASE_TAG}
+export CSTOR_BASE_IMAGE_AMD64
 
 ifeq (${CSTOR_BASE_IMAGE_ARM64}, )
   CSTOR_BASE_IMAGE_ARM64= ${IMAGE_ORG}/cstor-base-arm64:${BASE_TAG}
@@ -341,3 +341,5 @@ install: bin/maya/${MAYACTL}
 .PHONY: deploy-images
 deploy-images:
 	@./buildscripts/deploy.sh
+
+include Makefile.buildx.mk
