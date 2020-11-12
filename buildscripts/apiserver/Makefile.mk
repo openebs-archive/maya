@@ -16,7 +16,7 @@
 APISERVER=maya-apiserver
 
 # Specify the name of the docker repo for amd64
-M_APISERVER_REPO_NAME?=m-apiserver
+M_APISERVER_REPO_NAME?=m-apiserver-amd64
 
 # Specify the name of the docker repo for arm64
 M_APISERVER_REPO_NAME_ARM64?=m-apiserver-arm64

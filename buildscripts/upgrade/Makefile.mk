@@ -3,7 +3,7 @@
 UPGRADE=upgrade
 
 # Specify the name of the docker repo for amd64
-UPGRADE_REPO_NAME="m-upgrade"
+UPGRADE_REPO_NAME="m-upgrade-amd64"
 
 # Specify the name of the docker repo for arm64
 UPGRADE_REPO_NAME_ARM64="m-upgrade-arm64"
