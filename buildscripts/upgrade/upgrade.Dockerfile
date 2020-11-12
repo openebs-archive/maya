@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-ARG BASE_IMAGE
 FROM golang:1.14.7 as build
 
+ARG RELEASE_TAG
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT=""
@@ -23,7 +23,8 @@ ENV GO111MODULE=on \
   GOARCH=${TARGETARCH} \
   GOARM=${TARGETVARIANT} \
   DEBIAN_FRONTEND=noninteractive \
-  PATH="/root/go/bin:${PATH}"
+  PATH="/root/go/bin:${PATH}" \
+  RELEASE_TAG=${RELEASE_TAG}
 
 WORKDIR /go/src/github.com/openebs/maya/
 
