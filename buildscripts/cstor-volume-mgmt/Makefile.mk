@@ -3,7 +3,7 @@
 VOLUME_MGMT=cstor-volume-mgmt
 
 # Specify the name of the docker repo for amd64
-CSTOR_VOLUME_MGMT_REPO_NAME?=cstor-volume-mgmt
+CSTOR_VOLUME_MGMT_REPO_NAME?=cstor-volume-mgmt-amd64
 
 # Specify the name of the docker repo for arm64
 CSTOR_VOLUME_MGMT_REPO_NAME_ARM64?=cstor-volume-mgmt-arm64

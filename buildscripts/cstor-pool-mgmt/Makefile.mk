@@ -4,7 +4,7 @@ POOL_MGMT=cstor-pool-mgmt
 CSP_OPERATOR_DEBUG=cstor-pool-mgmt-debug
 
 #Specify the name of the docker repo for amd64
-CSTOR_POOL_MGMT_REPO_NAME?=cstor-pool-mgmt
+CSTOR_POOL_MGMT_REPO_NAME?=cstor-pool-mgmt-amd64
 
 #Specify the name of the docker repo for arm64
 CSTOR_POOL_MGMT_REPO_NAME_ARM64?=cstor-pool-mgmt-arm64
@@ -36,7 +36,7 @@ pool-mgmt-debug-image:
 	@echo "----------------------------"
 	@PNAME=${CSP_OPERATOR_DEBUG} CTLNAME=${POOL_MGMT} BUILD_TAG="-tags=debug" sh -c "'$(PWD)/buildscripts/build.sh'"
 	@cp bin/${CSP_OPERATOR_DEBUG}/${POOL_MGMT} buildscripts/${CSP_OPERATOR_DEBUG}/
-	@cd buildscripts/${CSP_OPERATOR_DEBUG} && sudo docker build -t ${IMAGE_ORG}/${CSTOR_POOL_MGMT_REPO_NAME}:inject --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} ${DBUILD_ARGS} . --no-cache
+	@cd buildscripts/${CSP_OPERATOR_DEBUG} && sudo docker build -t ${IMAGE_ORG}/${CSTOR_POOL_MGMT_REPO_NAME}:inject --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE_AMD64} ${DBUILD_ARGS} . --no-cache
 	@rm buildscripts/${CSP_OPERATOR_DEBUG}/${POOL_MGMT}
 
 .PHONY: pool-mgmt-image.arm64
