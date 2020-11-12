@@ -12,18 +12,18 @@ IMAGE_ORG=${IMAGE_ORG:-openebs}
 set -e
 # If any of the images aren't present the script will exit returning
 # a non zero exit code, which will result in a build failure.
-if [ ${CI_TAG} != "ci" ]; then
-  sudo docker tag ${IMAGE_ORG}/m-apiserver-amd64:ci ${IMAGE_ORG}/m-apiserver:${CI_TAG}
-  sudo docker tag ${IMAGE_ORG}/cstor-pool-mgmt-amd64:ci ${IMAGE_ORG}/cstor-pool-mgmt:${CI_TAG}
-  sudo docker tag ${IMAGE_ORG}/cstor-volume-mgmt-amd64:ci ${IMAGE_ORG}/cstor-volume-mgmt:${CI_TAG}
+if [ "${CI_TAG}" != "ci" ]; then
+  sudo docker tag "${IMAGE_ORG}"/m-apiserver-amd64:ci "${IMAGE_ORG}"/m-apiserver:"${CI_TAG}"
+  sudo docker tag "${IMAGE_ORG}"/cstor-pool-mgmt-amd64:ci "${IMAGE_ORG}"/cstor-pool-mgmt:"${CI_TAG}"
+  sudo docker tag "${IMAGE_ORG}"/cstor-volume-mgmt-amd64:ci "${IMAGE_ORG}"/cstor-volume-mgmt:"${CI_TAG}"
 fi
 
 #Tag the images with quay.io, since the operator can either have quay or docker images
 #Note the quay tags are hard-coded to help with CI scripts that might use the quay.io/openebs prefix 
 # The quay images tagged here are not pushed.
-sudo docker tag ${IMAGE_ORG}/m-apiserver-amd64:ci quay.io/openebs/m-apiserver:${CI_TAG}
-sudo docker tag ${IMAGE_ORG}/cstor-pool-mgmt-amd64:ci quay.io/openebs/cstor-pool-mgmt:${CI_TAG}
-sudo docker tag ${IMAGE_ORG}/cstor-volume-mgmt-amd64:ci quay.io/openebs/cstor-volume-mgmt:${CI_TAG}
+sudo docker tag "${IMAGE_ORG}"/m-apiserver-amd64:ci quay.io/openebs/m-apiserver:"${CI_TAG}"
+sudo docker tag "${IMAGE_ORG}"/cstor-pool-mgmt-amd64:ci quay.io/openebs/cstor-pool-mgmt:"${CI_TAG}"
+sudo docker tag "${IMAGE_ORG}"/cstor-volume-mgmt-amd64:ci quay.io/openebs/cstor-volume-mgmt:"${CI_TAG}"
 
 ## install iscsi pkg
 echo "Installing iscsi packages"
