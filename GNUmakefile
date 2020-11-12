@@ -120,7 +120,7 @@ export DBUILD_ARGS=--build-arg DBUILD_DATE=${DBUILD_DATE} --build-arg DBUILD_REP
 
 # Specify the name of cstor-base image
 CSTOR_BASE_IMAGE_AMD64= ${IMAGE_ORG}/cstor-base-amd64:${BASE_TAG}
-export CSTOR_BASE_IMAGE
+export CSTOR_BASE_IMAGE_AMD64
 
 ifeq (${CSTOR_BASE_IMAGE_ARM64}, )
   CSTOR_BASE_IMAGE_ARM64= ${IMAGE_ORG}/cstor-base-arm64:${BASE_TAG}

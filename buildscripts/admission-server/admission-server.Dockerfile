@@ -45,7 +45,7 @@ ARG DBUILD_DATE
 ARG DBUILD_REPO_URL
 ARG DBUILD_SITE_URL
 LABEL org.label-schema.name="admission-server"
-LABEL org.label-schema.description="webhook admission server policy for OpenEBS"
+LABEL org.label-schema.description="Webhook admission server policy for OpenEBS"
 LABEL org.label-schema.schema-version="1.0"
 LABEL org.label-schema.build-date=$DBUILD_DATE
 LABEL org.label-schema.vcs-url=$DBUILD_REPO_URL

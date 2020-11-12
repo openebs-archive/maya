@@ -43,7 +43,7 @@ ARG DBUILD_DATE
 ARG DBUILD_REPO_URL
 ARG DBUILD_SITE_URL
 LABEL org.label-schema.name="upgrade"
-LABEL org.label-schema.description="upgrades openebs components"
+LABEL org.label-schema.description="Upgrades openebs components"
 LABEL org.label-schema.schema-version="1.0"
 LABEL org.label-schema.build-date=$DBUILD_DATE
 LABEL org.label-schema.vcs-url=$DBUILD_REPO_URL
