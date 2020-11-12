@@ -40,7 +40,7 @@ fi
 ## Populate the version based on release tag
 ## If release tag is set then assign it as VERSION and
 ## if release tag is empty then mark version as ci
-if [ -n "$RELEASE_TAG" ]; then
+if [ -z "$RELEASE_TAG" ]; then
     # Trim the `v` from the RELEASE_TAG if it exists
     # Example: v1.10.0 maps to 1.10.0
     # Example: 1.10.0 maps to 1.10.0
