@@ -41,7 +41,7 @@ type UpgradeOptions struct {
 var (
 	options = &UpgradeOptions{
 		openebsNamespace: "openebs",
-		imageURLPrefix:   "quay.io/openebs/",
+		imageURLPrefix:   "",
 	}
 )
 
