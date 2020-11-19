@@ -6,8 +6,6 @@ v2.3.0 / 2020-11-14
 * chore(build): add support for multi-arch builds ([#1764](https://github.com/openebs/maya/pull/1764),[@shubham14bajpai](https://github.com/shubham14bajpai))
 * refactor(exporter): move builds to openebs-exporter repo ([#1763](https://github.com/openebs/maya/pull/1763),[@shubham14bajpai](https://github.com/shubham14bajpai))
 * fix(upgrade): allow upgrades for volumes without monitor ([#1760](https://github.com/openebs/maya/pull/1760),[@shubham14bajpai](https://github.com/shubham14bajpai))
-* fix(build): propagate RELEASE_TAG to buildx container ([#1766](https://github.com/openebs/maya/pull/1766),[@shubham14bajpai](https://github.com/shubham14bajpai))
-
 
 v2.3.0-RC2 / 2020-11-13
 ========================
@@ -21,8 +19,6 @@ v2.3.0-RC1 / 2020-11-13
 * chore(build): add support for multi-arch builds ([#1764](https://github.com/openebs/maya/pull/1764),[@shubham14bajpai](https://github.com/shubham14bajpai))
 * refactor(exporter): move builds to openebs-exporter repo ([#1763](https://github.com/openebs/maya/pull/1763),[@shubham14bajpai](https://github.com/shubham14bajpai))
 * fix(upgrade): allow upgrades for volumes without monitor ([#1760](https://github.com/openebs/maya/pull/1760),[@shubham14bajpai](https://github.com/shubham14bajpai))
-* fix(build): propagate RELEASE_TAG to buildx container ([#1766](https://github.com/openebs/maya/pull/1766),[@shubham14bajpai](https://github.com/shubham14bajpai))
-
 
 
 v2.2.0-RC2 / 2020-10-14
