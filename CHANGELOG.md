@@ -1,7 +1,7 @@
 v2.3.0 / 2020-11-14
 ========================
 * fix(restore): set targetip on CVRs after restore is completed ([#1761](https://github.com/openebs/maya/pull/1761),[@zlymeda](https://github.com/zlymeda))
-* fix(upgrade): allow upgrades for volumes without monitor ([#1762](https://github.com/openebs/maya/pull/1762),[@kmova](https://github.com/kmova))
+* refactor(localpv): move builds to dynamic-localpv-provisioner repo ([#1762](https://github.com/openebs/maya/pull/1762),[@kmova](https://github.com/kmova))
 * fix(upgrade): remove quay.io as default url-prefix ([#1768](https://github.com/openebs/maya/pull/1768),[@shubham14bajpai](https://github.com/shubham14bajpai))
 * chore(build): add support for multi-arch builds ([#1764](https://github.com/openebs/maya/pull/1764),[@shubham14bajpai](https://github.com/shubham14bajpai))
 * refactor(exporter): move builds to openebs-exporter repo ([#1763](https://github.com/openebs/maya/pull/1763),[@shubham14bajpai](https://github.com/shubham14bajpai))
@@ -16,7 +16,7 @@ v2.3.0-RC2 / 2020-11-13
 v2.3.0-RC1 / 2020-11-13
 ========================
 * fix(restore): set targetip on CVRs after restore is completed ([#1761](https://github.com/openebs/maya/pull/1761),[@zlymeda](https://github.com/zlymeda))
-* fix(upgrade): allow upgrades for volumes without monitor ([#1762](https://github.com/openebs/maya/pull/1762),[@kmova](https://github.com/kmova))
+* refactor(localpv): move builds to dynamic-localpv-provisioner repo ([#1762](https://github.com/openebs/maya/pull/1762),[@kmova](https://github.com/kmova))
 * fix(upgrade): remove quay.io as default url-prefix ([#1768](https://github.com/openebs/maya/pull/1768),[@shubham14bajpai](https://github.com/shubham14bajpai))
 * chore(build): add support for multi-arch builds ([#1764](https://github.com/openebs/maya/pull/1764),[@shubham14bajpai](https://github.com/shubham14bajpai))
 * refactor(exporter): move builds to openebs-exporter repo ([#1763](https://github.com/openebs/maya/pull/1763),[@shubham14bajpai](https://github.com/shubham14bajpai))
