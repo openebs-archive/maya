@@ -72,6 +72,9 @@ spec:
     value: "default"
   - name: VolumeMonitor
     enabled: "true"
+  # ServiceAccountName is the account name assigned to m-apiserver pod
+  - name: ServiceAccountName
+    value: {{env "OPENEBS_SERVICE_ACCOUNT"}}
   # TargetTolerations allows you to specify the tolerations for target
   # Example:
   # - name: TargetTolerations
@@ -872,6 +875,7 @@ spec:
               {{ $sK }}: {{ $sV }}
             {{- end }}
           {{- end}}
+          serviceAccountName: {{ .Config.ServiceAccountName.value }}
           {{- if ne (.TaskResult.sts.applicationName | default "") "" }}
           affinity:
             podAffinity:
@@ -1062,6 +1066,7 @@ spec:
               {{ $sK }}: {{ $sV }}
             {{- end }}
           {{- end}}
+          serviceAccountName: {{ .Config.ServiceAccountName.value }}
           affinity:
             podAntiAffinity:
               requiredDuringSchedulingIgnoredDuringExecution:
