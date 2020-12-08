@@ -71,6 +71,8 @@ var (
 	Ignore = v1beta1.Ignore
 	// Fail means that an error calling the webhook causes the admission to fail.
 	Fail = v1beta1.Fail
+	// SideEffectClassNone means that calling the webhook will have no side effects.
+	SideEffectClassNone = v1beta1.SideEffectClassNone
 	// WebhookFailurePolicye represents failure policy env name to make it configurable
 	// via ENV
 	WebhookFailurePolicy = "ADMISSION_WEBHOOK_FAILURE_POLICY"
@@ -82,6 +84,7 @@ var (
 		addCVCWithUpdateRule,
 		addSPCWithDeleteRule,
 		addNSWithDeleteRule,
+		addSideEffects,
 	}
 	cvcRuleWithOperations = v1beta1.RuleWithOperations{
 		Operations: []v1beta1.OperationType{
@@ -237,6 +240,7 @@ func createValidatingWebhookConfig(
 		},
 		TimeoutSeconds: &five,
 		FailurePolicy:  failurePolicy(),
+		SideEffects:    &SideEffectClassNone,
 	}
 
 	validator := &v1beta1.ValidatingWebhookConfiguration{
@@ -522,6 +526,12 @@ func addSPCWithDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
 func addNSWithDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
 	if util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "2.1.0") {
 		config.Webhooks[0].Rules = append(config.Webhooks[0].Rules, nsRuleWithOperations)
+	}
+}
+
+func addSideEffects(config *v1beta1.ValidatingWebhookConfiguration) {
+	if util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "2.4.0") {
+		config.Webhooks[0].SideEffects = &SideEffectClassNone
 	}
 }
 
