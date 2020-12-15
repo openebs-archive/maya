@@ -1,3 +1,21 @@
+v2.4.0 / 2020-12-13
+========================
+* fix(jiva): add serviceAccount name in jiva deployments ([#1773](https://github.com/openebs/maya/pull/1773),[@prateekpandey14](https://github.com/prateekpandey14))
+* chore(version): add 2.4.0 to upgrade matrix ([#1772](https://github.com/openebs/maya/pull/1772),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* fix(webhook): update webhook config sideEffects to None ([#1774](https://github.com/openebs/maya/pull/1774),[@prateekpandey14](https://github.com/prateekpandey14))
+
+
+v2.4.0-RC2 / 2020-12-12
+========================
+
+
+v2.4.0-RC1 / 2020-12-10
+========================
+* fix(jiva): add serviceAccount name in jiva deployments ([#1773](https://github.com/openebs/maya/pull/1773),[@prateekpandey14](https://github.com/prateekpandey14))
+* chore(version): add 2.4.0 to upgrade matrix ([#1772](https://github.com/openebs/maya/pull/1772),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* fix(webhook): update webhook config sideEffects to None ([#1774](https://github.com/openebs/maya/pull/1774),[@prateekpandey14](https://github.com/prateekpandey14))
+
+
 v2.3.0 / 2020-11-14
 ========================
 * fix(restore): set targetip on CVRs after restore is completed ([#1761](https://github.com/openebs/maya/pull/1761),[@zlymeda](https://github.com/zlymeda))
