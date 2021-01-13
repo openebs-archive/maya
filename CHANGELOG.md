@@ -1,3 +1,15 @@
+v2.5.0 / 2021-01-13
+========================
+
+
+v2.5.0-RC2 / 2021-01-11
+========================
+
+
+v2.5.0-RC1 / 2021-01-08
+========================
+
+
 v2.4.0 / 2020-12-13
 ========================
 * fix(jiva): add serviceAccount name in jiva deployments ([#1773](https://github.com/openebs/maya/pull/1773),[@prateekpandey14](https://github.com/prateekpandey14))
