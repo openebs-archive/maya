@@ -268,6 +268,8 @@ spec:
     enabled: "false"
   - name: ReplicaTolerations
     value: "none"
+  - name: ServiceAccountName
+    value: {{env "OPENEBS_SERVICE_ACCOUNT"}}
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -1337,6 +1339,7 @@ spec:
       {{- end }}
       template:
         spec:
+          serviceAccountName: {{ .Config.ServiceAccountName.value }}
           restartPolicy: OnFailure
           nodeSelector:
             kubernetes.io/hostname: {{ kubeNodeGetHostNameOrNodeName .ListItems.currentRepeatResource }}
