@@ -465,8 +465,16 @@ func (wh *webhook) validateNamespace(ar *v1beta1.AdmissionReview) *v1beta1.Admis
 	req := ar.Request
 	response := &v1beta1.AdmissionResponse{}
 	response.Allowed = true
+	openebsNamespace, err := getOpenebsNamespace()
+	if err != nil {
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: fmt.Sprintf("error getting OPENEBS_NAMESPACE env %s: %v", req.Name, err.Error()),
+		}
+		return response
+	}
 	// validates only if requested operation is DELETE
-	if req.Operation == v1beta1.Delete {
+	if openebsNamespace == req.Name && req.Operation == v1beta1.Delete {
 		return wh.validateNamespaceDeleteRequest(req)
 	}
 	klog.V(2).Info("Admission wehbook for Namespace module not " +
@@ -524,6 +532,18 @@ func (wh *webhook) validateNamespaceDeleteRequest(req *v1beta1.AdmissionRequest)
 		}
 		return response
 	}
+
+	err = wh.kubeClient.AdmissionregistrationV1().
+		ValidatingWebhookConfigurations().
+		Delete(validatorWebhook, &metav1.DeleteOptions{})
+	if err != nil {
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: err.Error(),
+		}
+		return response
+	}
+
 	return response
 }
 
