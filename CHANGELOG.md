@@ -1,3 +1,19 @@
+v2.6.0 / 2021-02-13
+========================
+* fix(webhook): cleanup validatingconfig on openebs namespace deletion ([#1780](https://github.com/openebs/maya/pull/1780),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* fix(jiva): add serviceAccount to clean up jobs ([#1779](https://github.com/openebs/maya/pull/1779),[@shubham14bajpai](https://github.com/shubham14bajpai))
+
+
+v2.6.0-RC2 / 2021-02-11
+========================
+
+
+v2.6.0-RC1 / 2021-02-08
+========================
+* fix(webhook): cleanup validatingconfig on openebs namespace deletion ([#1780](https://github.com/openebs/maya/pull/1780),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* fix(jiva): add serviceAccount to clean up jobs ([#1779](https://github.com/openebs/maya/pull/1779),[@shubham14bajpai](https://github.com/shubham14bajpai))
+
+
 v2.5.0 / 2021-01-13
 ========================
 

@@ -1,0 +1,1 @@
+fix(webhook): cleanup validatingconfig on openebs namespace deletion
