@@ -42,22 +42,6 @@ type CStorCompletedBackupNamespaceListerExpansion interface{}
 // CStorPoolLister.
 type CStorPoolListerExpansion interface{}
 
-// CStorPoolClusterListerExpansion allows custom methods to be added to
-// CStorPoolClusterLister.
-type CStorPoolClusterListerExpansion interface{}
-
-// CStorPoolClusterNamespaceListerExpansion allows custom methods to be added to
-// CStorPoolClusterNamespaceLister.
-type CStorPoolClusterNamespaceListerExpansion interface{}
-
-// CStorPoolInstanceListerExpansion allows custom methods to be added to
-// CStorPoolInstanceLister.
-type CStorPoolInstanceListerExpansion interface{}
-
-// CStorPoolInstanceNamespaceListerExpansion allows custom methods to be added to
-// CStorPoolInstanceNamespaceLister.
-type CStorPoolInstanceNamespaceListerExpansion interface{}
-
 // CStorRestoreListerExpansion allows custom methods to be added to
 // CStorRestoreLister.
 type CStorRestoreListerExpansion interface{}
@@ -73,22 +57,6 @@ type CStorVolumeListerExpansion interface{}
 // CStorVolumeNamespaceListerExpansion allows custom methods to be added to
 // CStorVolumeNamespaceLister.
 type CStorVolumeNamespaceListerExpansion interface{}
-
-// CStorVolumeClaimListerExpansion allows custom methods to be added to
-// CStorVolumeClaimLister.
-type CStorVolumeClaimListerExpansion interface{}
-
-// CStorVolumeClaimNamespaceListerExpansion allows custom methods to be added to
-// CStorVolumeClaimNamespaceLister.
-type CStorVolumeClaimNamespaceListerExpansion interface{}
-
-// CStorVolumePolicyListerExpansion allows custom methods to be added to
-// CStorVolumePolicyLister.
-type CStorVolumePolicyListerExpansion interface{}
-
-// CStorVolumePolicyNamespaceListerExpansion allows custom methods to be added to
-// CStorVolumePolicyNamespaceLister.
-type CStorVolumePolicyNamespaceListerExpansion interface{}
 
 // CStorVolumeReplicaListerExpansion allows custom methods to be added to
 // CStorVolumeReplicaLister.

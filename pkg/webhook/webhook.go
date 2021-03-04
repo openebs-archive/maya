@@ -302,23 +302,6 @@ func (wh *webhook) validatePVCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 		return response
 	}
 
-	cStorVolumeClaims, err := wh.getCstorVolumeClaims(listOptions)
-	if err != nil {
-		response.Allowed = false
-		response.Result = &metav1.Status{
-			Message: fmt.Sprintf("error retrieving CstorVolumeClaims: %v", err.Error()),
-		}
-		return response
-	}
-
-	if len(cStorVolumeClaims.Items) != 0 {
-		response.Allowed = false
-		response.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: "PVC with cloned volumes can't be deleted",
-			Message: fmt.Sprintf("pvc %q has '%v' cloned volume(s)", pvc.Name, len(cStorVolumeClaims.Items)),
-		}
-		return response
-	}
 	return response
 }
 
@@ -435,11 +418,6 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 	case "StoragePoolClaim":
 		klog.V(2).Infof("Admission webhook request for type %s", req.Kind.Kind)
 		return wh.validateSPC(ar)
-	case "CStorPoolCluster":
-		klog.V(2).Infof("Admission webhook request for type %s", req.Kind.Kind)
-		return wh.validateCSPC(ar)
-	case "CStorVolumeClaim":
-		return wh.validateCVC(ar)
 	default:
 		klog.V(2).Infof("Admission webhook not configured for type %s", req.Kind.Kind)
 		return response
@@ -552,11 +530,6 @@ func (wh *webhook) getCstorVolumes(listOptions metav1.ListOptions) (*v1alpha1.CS
 	return wh.clientset.OpenebsV1alpha1().CStorVolumes("").List(listOptions)
 }
 
-// getCstorVolumeClaims gets the list of CstorVolumeclaims based in the source-volume labels
-func (wh *webhook) getCstorVolumeClaims(listOptions metav1.ListOptions) (*v1alpha1.CStorVolumeClaimList, error) {
-	return wh.clientset.OpenebsV1alpha1().CStorVolumeClaims("").List(listOptions)
-}
-
 // Serve method for webhook server, handles http requests for webhooks
 func (wh *webhook) Serve(w http.ResponseWriter, r *http.Request) {
 	var body []byte
@@ -624,19 +597,6 @@ func (wh *webhook) validateSPC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRe
 	}
 	klog.V(4).Info("Admission wehbook for SPC module not "+
 		"configured for operations other than DELETE requested operation %s", req.Operation)
-	return response
-}
-
-func (wh *webhook) validateCVC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
-	req := ar.Request
-	response := &v1beta1.AdmissionResponse{}
-	response.Allowed = true
-	// validates only if requested operation is UPDATE
-	if req.Operation == v1beta1.Update {
-		return wh.validateCVCUpdateRequest(req, getCVCObject)
-	}
-	klog.V(4).Info("Admission wehbook for CVC module not " +
-		"configured for operations other than UPDATE")
 	return response
 }
 

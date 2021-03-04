@@ -61,18 +61,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().CStorCompletedBackups().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("cstorpools"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().CStorPools().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("cstorpoolclusters"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().CStorPoolClusters().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("cstorpoolinstances"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().CStorPoolInstances().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("cstorrestores"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().CStorRestores().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("cstorvolumes"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().CStorVolumes().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("cstorvolumeclaims"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().CStorVolumeClaims().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("cstorvolumepolicies"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().CStorVolumePolicies().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("cstorvolumereplicas"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().CStorVolumeReplicas().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("runtasks"):
