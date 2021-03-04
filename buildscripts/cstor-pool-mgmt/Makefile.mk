@@ -24,7 +24,7 @@ pool-mgmt-image: cstor-pool-mgmt
 	@echo "${IMAGE_ORG}/${CSTOR_POOL_MGMT_REPO_NAME}:${IMAGE_TAG}"
 	@echo "----------------------------"
 	@cp bin/cstor-pool-mgmt/${POOL_MGMT} buildscripts/cstor-pool-mgmt/
-	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t ${IMAGE_ORG}/${CSTOR_POOL_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} ${DBUILD_ARGS} . --no-cache
+	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t ${IMAGE_ORG}/${CSTOR_POOL_MGMT_REPO_NAME}:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE_AMD64} ${DBUILD_ARGS} . --no-cache
 	@rm buildscripts/cstor-pool-mgmt/${POOL_MGMT}
 
 #Use this to build debug image of cstor-pool-mgmt
