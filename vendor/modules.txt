@@ -439,7 +439,6 @@ k8s.io/apimachinery/pkg/util/json
 k8s.io/apimachinery/pkg/util/mergepatch
 k8s.io/apimachinery/pkg/util/naming
 k8s.io/apimachinery/pkg/util/net
-k8s.io/apimachinery/pkg/util/rand
 k8s.io/apimachinery/pkg/util/remotecommand
 k8s.io/apimachinery/pkg/util/runtime
 k8s.io/apimachinery/pkg/util/sets
@@ -725,8 +724,6 @@ k8s.io/kube-openapi/pkg/generators
 k8s.io/kube-openapi/pkg/generators/rules
 k8s.io/kube-openapi/pkg/util/proto
 k8s.io/kube-openapi/pkg/util/sets
-# k8s.io/kubernetes v1.17.3
-k8s.io/kubernetes/pkg/util/slice
 # k8s.io/utils v0.0.0-20200124190032-861946025e34
 k8s.io/utils/buffer
 k8s.io/utils/integer

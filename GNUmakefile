@@ -61,7 +61,7 @@ EXTERNAL_TOOLS=\
 	golang.org/x/tools/cmd/cover \
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html \
-	github.com/golang/protobuf/protoc-gen-go
+	github.com/golang/protobuf/protoc-gen-go@v1.3.2
 
 # list only our .go files i.e. exlcudes any .go files from the vendor directory
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
@@ -283,7 +283,7 @@ generated_files: kubegen protobuf
 # builds vendored version of deepcopy-gen tool
 .PHONY: deepcopy2
 deepcopy2:
-	@go install ./vendor/k8s.io/code-generator/cmd/deepcopy-gen
+	@go install -mod=vendor ./vendor/k8s.io/code-generator/cmd/deepcopy-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
 		echo "+ Generating deepcopy funcs for $$apigrp" ; \
 		deepcopy-gen \
@@ -295,7 +295,7 @@ deepcopy2:
 # builds vendored version of client-gen tool
 .PHONY: clientset2
 clientset2:
-	@go install ./vendor/k8s.io/code-generator/cmd/client-gen
+	@go install -mod=vendor ./vendor/k8s.io/code-generator/cmd/client-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
 		echo "+ Generating clientsets for $$apigrp" ; \
 		client-gen \
@@ -309,7 +309,7 @@ clientset2:
 # builds vendored version of lister-gen tool
 .PHONY: lister2
 lister2:
-	@go install ./vendor/k8s.io/code-generator/cmd/lister-gen
+	@go install -mod=vendor ./vendor/k8s.io/code-generator/cmd/lister-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
 		echo "+ Generating lister for $$apigrp" ; \
 		lister-gen \
@@ -321,7 +321,7 @@ lister2:
 # builds vendored version of informer-gen tool
 .PHONY: informer2
 informer2:
-	@go install ./vendor/k8s.io/code-generator/cmd/informer-gen
+	@go install -mod=vendor ./vendor/k8s.io/code-generator/cmd/informer-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
 		echo "+ Generating informer for $$apigrp" ; \
 		informer-gen \

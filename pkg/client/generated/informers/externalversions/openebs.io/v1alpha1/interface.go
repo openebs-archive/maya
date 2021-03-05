@@ -32,18 +32,10 @@ type Interface interface {
 	CStorCompletedBackups() CStorCompletedBackupInformer
 	// CStorPools returns a CStorPoolInformer.
 	CStorPools() CStorPoolInformer
-	// CStorPoolClusters returns a CStorPoolClusterInformer.
-	CStorPoolClusters() CStorPoolClusterInformer
-	// CStorPoolInstances returns a CStorPoolInstanceInformer.
-	CStorPoolInstances() CStorPoolInstanceInformer
 	// CStorRestores returns a CStorRestoreInformer.
 	CStorRestores() CStorRestoreInformer
 	// CStorVolumes returns a CStorVolumeInformer.
 	CStorVolumes() CStorVolumeInformer
-	// CStorVolumeClaims returns a CStorVolumeClaimInformer.
-	CStorVolumeClaims() CStorVolumeClaimInformer
-	// CStorVolumePolicies returns a CStorVolumePolicyInformer.
-	CStorVolumePolicies() CStorVolumePolicyInformer
 	// CStorVolumeReplicas returns a CStorVolumeReplicaInformer.
 	CStorVolumeReplicas() CStorVolumeReplicaInformer
 	// RunTasks returns a RunTaskInformer.
@@ -85,16 +77,6 @@ func (v *version) CStorPools() CStorPoolInformer {
 	return &cStorPoolInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// CStorPoolClusters returns a CStorPoolClusterInformer.
-func (v *version) CStorPoolClusters() CStorPoolClusterInformer {
-	return &cStorPoolClusterInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// CStorPoolInstances returns a CStorPoolInstanceInformer.
-func (v *version) CStorPoolInstances() CStorPoolInstanceInformer {
-	return &cStorPoolInstanceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
 // CStorRestores returns a CStorRestoreInformer.
 func (v *version) CStorRestores() CStorRestoreInformer {
 	return &cStorRestoreInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
@@ -103,16 +85,6 @@ func (v *version) CStorRestores() CStorRestoreInformer {
 // CStorVolumes returns a CStorVolumeInformer.
 func (v *version) CStorVolumes() CStorVolumeInformer {
 	return &cStorVolumeInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// CStorVolumeClaims returns a CStorVolumeClaimInformer.
-func (v *version) CStorVolumeClaims() CStorVolumeClaimInformer {
-	return &cStorVolumeClaimInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// CStorVolumePolicies returns a CStorVolumePolicyInformer.
-func (v *version) CStorVolumePolicies() CStorVolumePolicyInformer {
-	return &cStorVolumePolicyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // CStorVolumeReplicas returns a CStorVolumeReplicaInformer.

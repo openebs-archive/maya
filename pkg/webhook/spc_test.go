@@ -20,10 +20,28 @@ import (
 	"testing"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
+
+type fixture struct {
+	wh             *webhook
+	openebsObjects []runtime.Object
+}
+
+func newFixture() *fixture {
+	return &fixture{
+		wh: &webhook{},
+	}
+}
+
+func (f *fixture) withOpenebsObjects(objects ...runtime.Object) *fixture {
+	f.openebsObjects = objects
+	f.wh.clientset = openebsFakeClientset.NewSimpleClientset(objects...)
+	return f
+}
 
 func (f *fixture) createCVRsFromCVRList(cvrList *apis.CStorVolumeReplicaList) error {
 	for _, cvrObj := range cvrList.Items {
