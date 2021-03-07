@@ -17,6 +17,7 @@ limitations under the License.
 package webhook
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -242,7 +243,8 @@ func (wh *webhook) validatePVCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 	//}
 
 	// fetch the pvc specifications
-	pvc, err := wh.kubeClient.CoreV1().PersistentVolumeClaims(req.Namespace).Get(req.Name, metav1.GetOptions{})
+	pvc, err := wh.kubeClient.CoreV1().PersistentVolumeClaims(req.Namespace).
+		Get(context.TODO(), req.Name, metav1.GetOptions{})
 	if err != nil {
 		response.Allowed = false
 		response.Result = &metav1.Status{
@@ -335,7 +337,8 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
 	// get the snapshot object to get snapshotdata object
 	// Note: If snapname is empty then below call will retrun error
-	snapObj, err := wh.snapClientSet.VolumesnapshotV1().VolumeSnapshots(pvc.Namespace).Get(snapname, metav1.GetOptions{})
+	snapObj, err := wh.snapClientSet.VolumesnapshotV1().VolumeSnapshots(pvc.Namespace).
+		Get(context.TODO(), snapname, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("failed to get the snapshot object for snapshot name: '%s' namespace: '%s' PVC: '%s'"+
 			"error: '%v'", snapname, pvc.Namespace, pvc.Name, err)
@@ -362,7 +365,8 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 
 	// get the snapDataObj to get the snapshotdataname
 	// Note: If snapDataName is empty then below call will return error
-	snapDataObj, err := wh.snapClientSet.VolumesnapshotV1().VolumeSnapshotDatas().Get(snapDataName, metav1.GetOptions{})
+	snapDataObj, err := wh.snapClientSet.VolumesnapshotV1().VolumeSnapshotDatas().
+		Get(context.TODO(), snapDataName, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("Failed to get the snapshotdata object for snapshotdata  name: '%s' "+
 			"snapName: '%s' namespace: '%s' PVC: '%s' error: '%v'", snapDataName, snapname, snapObj.ObjectMeta.Namespace, pvc.Name, err)
@@ -474,7 +478,7 @@ func (wh *webhook) validateNamespaceDeleteRequest(req *v1beta1.AdmissionRequest)
 
 	bdcList, err := wh.ndmClientset.OpenebsV1alpha1().
 		BlockDeviceClaims(req.Name).
-		List(metav1.ListOptions{})
+		List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		response.Allowed = false
 		response.Result = &metav1.Status{
@@ -492,7 +496,7 @@ func (wh *webhook) validateNamespaceDeleteRequest(req *v1beta1.AdmissionRequest)
 	}
 
 	svcList, err := wh.kubeClient.CoreV1().Services(req.Name).
-		List(metav1.ListOptions{
+		List(context.TODO(), metav1.ListOptions{
 			LabelSelector: svcLabel,
 		})
 	if err != nil {
@@ -513,7 +517,7 @@ func (wh *webhook) validateNamespaceDeleteRequest(req *v1beta1.AdmissionRequest)
 
 	err = wh.kubeClient.AdmissionregistrationV1().
 		ValidatingWebhookConfigurations().
-		Delete(validatorWebhook, &metav1.DeleteOptions{})
+		Delete(context.TODO(), validatorWebhook, metav1.DeleteOptions{})
 	if err != nil {
 		response.Allowed = false
 		response.Result = &metav1.Status{
@@ -527,7 +531,7 @@ func (wh *webhook) validateNamespaceDeleteRequest(req *v1beta1.AdmissionRequest)
 
 // getCstorVolumes gets the list of CstorVolumes based in the source-volume labels
 func (wh *webhook) getCstorVolumes(listOptions metav1.ListOptions) (*v1alpha1.CStorVolumeList, error) {
-	return wh.clientset.OpenebsV1alpha1().CStorVolumes("").List(listOptions)
+	return wh.clientset.OpenebsV1alpha1().CStorVolumes("").List(context.TODO(), listOptions)
 }
 
 // Serve method for webhook server, handles http requests for webhooks
@@ -607,7 +611,7 @@ func (wh *webhook) verifyExistenceOfSnapshots(pvc *corev1.PersistentVolumeClaim)
 	volumeSnapshotList, err := wh.snapClientSet.
 		VolumesnapshotV1().
 		VolumeSnapshots(pvc.Namespace).
-		List(metav1.ListOptions{
+		List(context.TODO(), metav1.ListOptions{
 			LabelSelector: snapshotMetadataPVName + "=" + pvc.Spec.VolumeName,
 		})
 	if err != nil {
@@ -634,7 +638,7 @@ func (wh *webhook) getVolumeSnapshotDataList(
 	snapshotDataList, err := wh.snapClientSet.
 		VolumesnapshotV1().
 		VolumeSnapshotDatas().
-		List(metav1.ListOptions{})
+		List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list volumesnapshotdata related to volume: %s", pvc.Spec.VolumeName)
 	}

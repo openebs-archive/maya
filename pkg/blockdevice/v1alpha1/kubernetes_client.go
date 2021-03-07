@@ -17,25 +17,30 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
+
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Get is Kubernetes client implementation to get block device
 func (k *KubernetesClient) Get(name string, opts metav1.GetOptions) (*BlockDevice, error) {
-	bd, err := k.Clientset.OpenebsV1alpha1().BlockDevices(k.Namespace).Get(name, opts)
+	bd, err := k.Clientset.OpenebsV1alpha1().BlockDevices(k.Namespace).
+		Get(context.TODO(), name, opts)
 
 	return &BlockDevice{bd, nil}, err
 }
 
 // List is kubernetes client implementation to list block device
 func (k *KubernetesClient) List(opts metav1.ListOptions) (*BlockDeviceList, error) {
-	bdl, err := k.Clientset.OpenebsV1alpha1().BlockDevices(k.Namespace).List(opts)
+	bdl, err := k.Clientset.OpenebsV1alpha1().BlockDevices(k.Namespace).
+		List(context.TODO(), opts)
 	return &BlockDeviceList{bdl, nil}, err
 }
 
 // Create is kubernetes client implementation to create block device
 func (k *KubernetesClient) Create(bdObj *ndm.BlockDevice) (*BlockDevice, error) {
-	bdObj, err := k.Clientset.OpenebsV1alpha1().BlockDevices(k.Namespace).Create(bdObj)
+	bdObj, err := k.Clientset.OpenebsV1alpha1().BlockDevices(k.Namespace).
+		Create(context.TODO(), bdObj, metav1.CreateOptions{})
 	return &BlockDevice{bdObj, nil}, err
 }

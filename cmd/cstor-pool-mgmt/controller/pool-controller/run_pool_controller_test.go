@@ -16,6 +16,7 @@ limitations under the License.
 package poolcontroller
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -96,7 +97,8 @@ func TestProcessNextWorkItemModify(t *testing.T) {
 		},
 	}
 
-	_, err := poolController.clientset.OpenebsV1alpha1().CStorPools().Create(testPoolResource["img2PoolResource"].test)
+	_, err := poolController.clientset.OpenebsV1alpha1().CStorPools().
+		Create(context.TODO(), testPoolResource["img2PoolResource"].test, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Unable to create resource : %v", testPoolResource["img2PoolResource"].test.ObjectMeta.Name)
 	}
@@ -150,7 +152,8 @@ func TestProcessNextWorkItemDestroy(t *testing.T) {
 		},
 	}
 
-	_, err := poolController.clientset.OpenebsV1alpha1().CStorPools().Create(testPoolResource["img2PoolResource"].test)
+	_, err := poolController.clientset.OpenebsV1alpha1().CStorPools().
+		Create(context.TODO(), testPoolResource["img2PoolResource"].test, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Unable to create resource : %v", testPoolResource["img2PoolResource"].test.ObjectMeta.Name)
 	}

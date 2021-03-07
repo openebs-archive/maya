@@ -17,6 +17,7 @@ limitations under the License.
 package job
 
 import (
+	"context"
 	"encoding/json"
 
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
@@ -126,7 +127,7 @@ func defaultGet(
 ) (r *batchv1.Job, err error) {
 	r, err = cli.BatchV1().
 		Jobs(namespace).
-		Get(name, opts)
+		Get(context.TODO(), name, opts)
 	return
 }
 
@@ -139,7 +140,7 @@ func defaultList(
 ) (rl *batchv1.JobList, err error) {
 	rl, err = cli.BatchV1().
 		Jobs(namespace).
-		List(opts)
+		List(context.TODO(), opts)
 	return
 }
 
@@ -154,7 +155,7 @@ func defaultDel(
 	opts.PropagationPolicy = &deletePropagation
 	err = cli.BatchV1().
 		Jobs(namespace).
-		Delete(name, opts)
+		Delete(context.TODO(), name, *opts)
 	return
 }
 
@@ -167,7 +168,7 @@ func defaultCreate(
 ) (*batchv1.Job, error) {
 	return cli.BatchV1().
 		Jobs(namespace).
-		Create(job)
+		Create(context.TODO(), job, metav1.CreateOptions{})
 }
 
 // defaultPatch is the default implementation to patch
@@ -181,7 +182,7 @@ func defaultPatch(
 ) (*batchv1.Job, error) {
 	return cli.BatchV1().
 		Jobs(namespace).
-		Patch(name, pt, data, subresources...)
+		Patch(context.TODO(), name, pt, data, metav1.PatchOptions{}, subresources...)
 }
 
 // withDefaults sets the default options of kubeclient instance

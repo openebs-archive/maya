@@ -16,6 +16,7 @@ limitations under the License.
 package replicacontroller
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -104,7 +105,8 @@ func TestProcessNextWorkItemAdd(t *testing.T) {
 			},
 		},
 	}
-	_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas("default").Create(testPoolResource["img2PoolResource"].test)
+	_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas("default").
+		Create(context.TODO(), testPoolResource["img2PoolResource"].test, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Unable to create resource : %v", testPoolResource["img2PoolResource"].test.ObjectMeta.Name)
 	}
@@ -159,7 +161,8 @@ func TestProcessNextWorkItemModify(t *testing.T) {
 			},
 		},
 	}
-	_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas("default").Create(testPoolResource["img2PoolResource"].test)
+	_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas("default").
+		Create(context.TODO(), testPoolResource["img2PoolResource"].test, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("Unable to create resource : %v", testPoolResource["img2PoolResource"].test.ObjectMeta.Name)
 	}

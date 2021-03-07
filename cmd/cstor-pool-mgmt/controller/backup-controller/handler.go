@@ -17,6 +17,7 @@ limitations under the License.
 package backupcontroller
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -61,14 +62,16 @@ func (c *BackupController) syncHandler(key string, operation common.QueueOperati
 		bkp.Status = apis.CStorBackupStatus(status)
 	}
 
-	nbkp, err := c.clientset.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Get(bkp.Name, metav1.GetOptions{})
+	nbkp, err := c.clientset.OpenebsV1alpha1().CStorBackups(bkp.Namespace).
+		Get(context.TODO(), bkp.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	nbkp.Status = bkp.Status
 
-	_, err = c.clientset.OpenebsV1alpha1().CStorBackups(nbkp.Namespace).Update(nbkp)
+	_, err = c.clientset.OpenebsV1alpha1().CStorBackups(nbkp.Namespace).
+		Update(context.TODO(), nbkp, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -107,7 +110,8 @@ func (c *BackupController) syncEventHandler(bkp *apis.CStorBackup) (string, erro
 	// If the backup is in init state then only we will complete the backup
 	if IsInitStatus(bkp) {
 		bkp.Status = apis.BKPCStorStatusInProgress
-		_, err := c.clientset.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Update(bkp)
+		_, err := c.clientset.OpenebsV1alpha1().CStorBackups(bkp.Namespace).
+			Update(context.TODO(), bkp, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Failed to update backup:%s status : %v", bkp.Name, err.Error())
 			return "", err
@@ -141,7 +145,7 @@ func (c *BackupController) getCStorBackupResource(key string) (*apis.CStorBackup
 		return nil, nil
 	}
 
-	bkp, err := c.clientset.OpenebsV1alpha1().CStorBackups(ns).Get(name, metav1.GetOptions{})
+	bkp, err := c.clientset.OpenebsV1alpha1().CStorBackups(ns).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			runtime.HandleError(fmt.Errorf("bkp '%s' in work queue no longer exists", key))
@@ -225,7 +229,8 @@ func IsOnlyStatusChange(oldbkp, newbkp *apis.CStorBackup) bool {
 //  CStorCompletedBackups.Spec.SnapName = b-0
 func (c *BackupController) updateCStorCompletedBackup(bkp *apis.CStorBackup) error {
 	lastbkpname := bkp.Spec.BackupName + "-" + bkp.Spec.VolumeName
-	bkplast, err := c.clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
+	bkplast, err := c.clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).
+		Get(context.TODO(), lastbkpname, v1.GetOptions{})
 	if err != nil {
 		klog.Errorf("Failed to get last completed backup for %s vol:%v", bkp.Spec.BackupName, bkp.Spec.VolumeName)
 		return nil
@@ -236,7 +241,8 @@ func (c *BackupController) updateCStorCompletedBackup(bkp *apis.CStorBackup) err
 
 	// PrevSnapName store the name of last backed up snapshot
 	bkplast.Spec.PrevSnapName = bkp.Spec.SnapName
-	_, err = c.clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Update(bkplast)
+	_, err = c.clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).
+		Update(context.TODO(), bkplast, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Errorf("Failed to update lastbackup for %s", bkplast.Name)
 		return err

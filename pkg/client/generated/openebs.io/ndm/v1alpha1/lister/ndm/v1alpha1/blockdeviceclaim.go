@@ -26,8 +26,10 @@ import (
 )
 
 // BlockDeviceClaimLister helps list BlockDeviceClaims.
+// All objects returned here must be treated as read-only.
 type BlockDeviceClaimLister interface {
 	// List lists all BlockDeviceClaims in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.BlockDeviceClaim, err error)
 	// BlockDeviceClaims returns an object that can list and get BlockDeviceClaims.
 	BlockDeviceClaims(namespace string) BlockDeviceClaimNamespaceLister
@@ -58,10 +60,13 @@ func (s *blockDeviceClaimLister) BlockDeviceClaims(namespace string) BlockDevice
 }
 
 // BlockDeviceClaimNamespaceLister helps list and get BlockDeviceClaims.
+// All objects returned here must be treated as read-only.
 type BlockDeviceClaimNamespaceLister interface {
 	// List lists all BlockDeviceClaims in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.BlockDeviceClaim, err error)
 	// Get retrieves the BlockDeviceClaim from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.BlockDeviceClaim, error)
 	BlockDeviceClaimNamespaceListerExpansion
 }

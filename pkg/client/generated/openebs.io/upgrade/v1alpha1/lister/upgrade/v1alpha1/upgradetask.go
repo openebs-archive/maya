@@ -26,8 +26,10 @@ import (
 )
 
 // UpgradeTaskLister helps list UpgradeTasks.
+// All objects returned here must be treated as read-only.
 type UpgradeTaskLister interface {
 	// List lists all UpgradeTasks in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.UpgradeTask, err error)
 	// UpgradeTasks returns an object that can list and get UpgradeTasks.
 	UpgradeTasks(namespace string) UpgradeTaskNamespaceLister
@@ -58,10 +60,13 @@ func (s *upgradeTaskLister) UpgradeTasks(namespace string) UpgradeTaskNamespaceL
 }
 
 // UpgradeTaskNamespaceLister helps list and get UpgradeTasks.
+// All objects returned here must be treated as read-only.
 type UpgradeTaskNamespaceLister interface {
 	// List lists all UpgradeTasks in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.UpgradeTask, err error)
 	// Get retrieves the UpgradeTask from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.UpgradeTask, error)
 	UpgradeTaskNamespaceListerExpansion
 }

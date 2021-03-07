@@ -26,8 +26,10 @@ import (
 )
 
 // CStorCompletedBackupLister helps list CStorCompletedBackups.
+// All objects returned here must be treated as read-only.
 type CStorCompletedBackupLister interface {
 	// List lists all CStorCompletedBackups in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.CStorCompletedBackup, err error)
 	// CStorCompletedBackups returns an object that can list and get CStorCompletedBackups.
 	CStorCompletedBackups(namespace string) CStorCompletedBackupNamespaceLister
@@ -58,10 +60,13 @@ func (s *cStorCompletedBackupLister) CStorCompletedBackups(namespace string) CSt
 }
 
 // CStorCompletedBackupNamespaceLister helps list and get CStorCompletedBackups.
+// All objects returned here must be treated as read-only.
 type CStorCompletedBackupNamespaceLister interface {
 	// List lists all CStorCompletedBackups in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.CStorCompletedBackup, err error)
 	// Get retrieves the CStorCompletedBackup from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.CStorCompletedBackup, error)
 	CStorCompletedBackupNamespaceListerExpansion
 }

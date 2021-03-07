@@ -19,6 +19,7 @@ limitations under the License.
 package v1
 
 import (
+	"context"
 	time "time"
 
 	snapshotv1 "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
@@ -60,13 +61,13 @@ func NewFilteredVolumeSnapshotDataInformer(client internalclientset.Interface, r
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.VolumesnapshotV1().VolumeSnapshotDatas().List(options)
+				return client.VolumesnapshotV1().VolumeSnapshotDatas().List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.VolumesnapshotV1().VolumeSnapshotDatas().Watch(options)
+				return client.VolumesnapshotV1().VolumeSnapshotDatas().Watch(context.TODO(), options)
 			},
 		},
 		&snapshotv1.VolumeSnapshotData{},

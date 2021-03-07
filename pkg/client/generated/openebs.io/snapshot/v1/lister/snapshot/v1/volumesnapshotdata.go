@@ -26,10 +26,13 @@ import (
 )
 
 // VolumeSnapshotDataLister helps list VolumeSnapshotDatas.
+// All objects returned here must be treated as read-only.
 type VolumeSnapshotDataLister interface {
 	// List lists all VolumeSnapshotDatas in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1.VolumeSnapshotData, err error)
 	// Get retrieves the VolumeSnapshotData from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1.VolumeSnapshotData, error)
 	VolumeSnapshotDataListerExpansion
 }

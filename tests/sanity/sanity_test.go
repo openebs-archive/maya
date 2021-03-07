@@ -15,6 +15,7 @@
 package sanity
 
 import (
+	"context"
 	"time"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -103,7 +104,8 @@ var _ = Describe("Sanity", func() {
 			Expect(err).NotTo(HaveOccurred())
 			status := false
 			for i := 0; i < 300; i++ {
-				pods, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: "openebs.io/persistent-volume=" + cstorpvname})
+				pods, err := clientset.CoreV1().Pods(namespace).
+					List(context.TODO(), metav1.ListOptions{LabelSelector: "openebs.io/persistent-volume=" + cstorpvname})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pods).NotTo(BeNil())
 
@@ -153,7 +155,7 @@ var _ = Describe("Sanity", func() {
 			clientset, err := kubernetes.GetClientSet()
 			Expect(err).NotTo(HaveOccurred())
 
-			svcs, err := clientset.CoreV1().Services(namespace).List(metav1.ListOptions{LabelSelector: "openebs.io/persistent-volume=" + cstorpvname})
+			svcs, err := clientset.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "openebs.io/persistent-volume=" + cstorpvname})
 			Expect(err).ShouldNot(HaveOccurred())
 			if len(svcs.Items) != 1 {
 				Fail("count of cstor service should be 1")
@@ -185,7 +187,7 @@ var _ = Describe("Sanity", func() {
 			Expect(err).NotTo(HaveOccurred())
 			status := false
 			for i := 0; i < 300; i++ {
-				pods, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: "openebs.io/persistent-volume=" + cstorpvname})
+				pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "openebs.io/persistent-volume=" + cstorpvname})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pods).NotTo(BeNil())
 				if len(pods.Items) == 0 {
@@ -243,7 +245,7 @@ var _ = Describe("Sanity", func() {
 			clientset, err := kubernetes.GetClientSet()
 			Expect(err).NotTo(HaveOccurred())
 
-			svcs, err := clientset.CoreV1().Services(namespace).List(metav1.ListOptions{LabelSelector: "openebs.io/persistent-volume=" + cstorpvname})
+			svcs, err := clientset.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "openebs.io/persistent-volume=" + cstorpvname})
 			Expect(err).ShouldNot(HaveOccurred())
 			if len(svcs.Items) != 0 {
 				Fail("count of cstor service should be 0")
@@ -299,7 +301,7 @@ var _ = Describe("Sanity", func() {
 			Expect(err).NotTo(HaveOccurred())
 			status := false
 			for i := 0; i < 300; i++ {
-				pods, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: "openebs.io/controller=jiva-controller,openebs.io/persistent-volume=" + jivapvname})
+				pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "openebs.io/controller=jiva-controller,openebs.io/persistent-volume=" + jivapvname})
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pods).NotTo(BeNil())
@@ -322,7 +324,7 @@ var _ = Describe("Sanity", func() {
 			Expect(err).NotTo(HaveOccurred())
 			status := false
 			for i := 0; i < 300; i++ {
-				pods, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: "openebs.io/replica=jiva-replica,openebs.io/persistent-volume=" + jivapvname})
+				pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "openebs.io/replica=jiva-replica,openebs.io/persistent-volume=" + jivapvname})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pods).NotTo(BeNil())
 
@@ -342,7 +344,7 @@ var _ = Describe("Sanity", func() {
 			clientset, err := kubernetes.GetClientSet()
 			Expect(err).NotTo(HaveOccurred())
 
-			svcs, err := clientset.CoreV1().Services(namespace).List(metav1.ListOptions{LabelSelector: "openebs.io/cas-type=jiva,openebs.io/persistent-volume=" + jivapvname})
+			svcs, err := clientset.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "openebs.io/cas-type=jiva,openebs.io/persistent-volume=" + jivapvname})
 			Expect(err).ShouldNot(HaveOccurred())
 			if len(svcs.Items) != 1 {
 				Fail("count of jiva service should be 1")
@@ -372,7 +374,7 @@ var _ = Describe("Sanity", func() {
 			Expect(err).NotTo(HaveOccurred())
 			status := false
 			for i := 0; i < 300; i++ {
-				pods, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: "openebs.io/controller=jiva-controller,openebs.io/persistent-volume=" + jivapvname})
+				pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "openebs.io/controller=jiva-controller,openebs.io/persistent-volume=" + jivapvname})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pods).NotTo(BeNil())
 				if len(pods.Items) == 0 {
@@ -393,7 +395,7 @@ var _ = Describe("Sanity", func() {
 			Expect(err).NotTo(HaveOccurred())
 			status := false
 			for i := 0; i < 300; i++ {
-				pods, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: "openebs.io/replica=jiva-replica,openebs.io/persistent-volume=" + jivapvname})
+				pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "openebs.io/replica=jiva-replica,openebs.io/persistent-volume=" + jivapvname})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pods).NotTo(BeNil())
 				if len(pods.Items) == 0 {
@@ -412,7 +414,7 @@ var _ = Describe("Sanity", func() {
 			clientset, err := kubernetes.GetClientSet()
 			Expect(err).NotTo(HaveOccurred())
 
-			svcs, err := clientset.CoreV1().Services(namespace).List(metav1.ListOptions{LabelSelector: "openebs.io/cas-type=jiva,openebs.io/persistent-volume=" + jivapvname})
+			svcs, err := clientset.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "openebs.io/cas-type=jiva,openebs.io/persistent-volume=" + jivapvname})
 			Expect(err).ShouldNot(HaveOccurred())
 			if len(svcs.Items) != 0 {
 				Fail("count of jiva service should be 0")

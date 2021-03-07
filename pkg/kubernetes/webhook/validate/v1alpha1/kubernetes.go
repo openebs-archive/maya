@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -95,27 +96,32 @@ func (k *Kubeclient) withDefaults() {
 	}
 	if k.list == nil {
 		k.list = func(cs *kubernetes.Clientset, opts metav1.ListOptions) (*admission.ValidatingWebhookConfigurationList, error) {
-			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().List(opts)
+			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().
+				List(context.TODO(), opts)
 		}
 	}
 	if k.get == nil {
 		k.get = func(cs *kubernetes.Clientset, name string, opts metav1.GetOptions) (*admission.ValidatingWebhookConfiguration, error) {
-			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(name, opts)
+			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().
+				Get(context.TODO(), name, opts)
 		}
 	}
 	if k.create == nil {
 		k.create = func(cs *kubernetes.Clientset, config *admission.ValidatingWebhookConfiguration) (*admission.ValidatingWebhookConfiguration, error) {
-			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Create(config)
+			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().
+				Create(context.TODO(), config, metav1.CreateOptions{})
 		}
 	}
 	if k.del == nil {
 		k.del = func(cs *kubernetes.Clientset, name string, opts *metav1.DeleteOptions) error {
-			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Delete(name, opts)
+			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().
+				Delete(context.TODO(), name, *opts)
 		}
 	}
 	if k.update == nil {
 		k.update = func(cs *kubernetes.Clientset, config *admission.ValidatingWebhookConfiguration) (*admission.ValidatingWebhookConfiguration, error) {
-			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Update(config)
+			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().
+				Update(context.TODO(), config, metav1.UpdateOptions{})
 		}
 	}
 }

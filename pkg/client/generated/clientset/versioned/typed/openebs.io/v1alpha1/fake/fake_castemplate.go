@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -38,7 +40,7 @@ var castemplatesResource = schema.GroupVersionResource{Group: "openebs.io", Vers
 var castemplatesKind = schema.GroupVersionKind{Group: "openebs.io", Version: "v1alpha1", Kind: "CASTemplate"}
 
 // Get takes name of the cASTemplate, and returns the corresponding cASTemplate object, and an error if there is any.
-func (c *FakeCASTemplates) Get(name string, options v1.GetOptions) (result *v1alpha1.CASTemplate, err error) {
+func (c *FakeCASTemplates) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.CASTemplate, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(castemplatesResource, name), &v1alpha1.CASTemplate{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeCASTemplates) Get(name string, options v1.GetOptions) (result *v1al
 }
 
 // List takes label and field selectors, and returns the list of CASTemplates that match those selectors.
-func (c *FakeCASTemplates) List(opts v1.ListOptions) (result *v1alpha1.CASTemplateList, err error) {
+func (c *FakeCASTemplates) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.CASTemplateList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(castemplatesResource, castemplatesKind, opts), &v1alpha1.CASTemplateList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeCASTemplates) List(opts v1.ListOptions) (result *v1alpha1.CASTempla
 }
 
 // Watch returns a watch.Interface that watches the requested cASTemplates.
-func (c *FakeCASTemplates) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeCASTemplates) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(castemplatesResource, opts))
 }
 
 // Create takes the representation of a cASTemplate and creates it.  Returns the server's representation of the cASTemplate, and an error, if there is any.
-func (c *FakeCASTemplates) Create(cASTemplate *v1alpha1.CASTemplate) (result *v1alpha1.CASTemplate, err error) {
+func (c *FakeCASTemplates) Create(ctx context.Context, cASTemplate *v1alpha1.CASTemplate, opts v1.CreateOptions) (result *v1alpha1.CASTemplate, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(castemplatesResource, cASTemplate), &v1alpha1.CASTemplate{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeCASTemplates) Create(cASTemplate *v1alpha1.CASTemplate) (result *v1
 }
 
 // Update takes the representation of a cASTemplate and updates it. Returns the server's representation of the cASTemplate, and an error, if there is any.
-func (c *FakeCASTemplates) Update(cASTemplate *v1alpha1.CASTemplate) (result *v1alpha1.CASTemplate, err error) {
+func (c *FakeCASTemplates) Update(ctx context.Context, cASTemplate *v1alpha1.CASTemplate, opts v1.UpdateOptions) (result *v1alpha1.CASTemplate, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(castemplatesResource, cASTemplate), &v1alpha1.CASTemplate{})
 	if obj == nil {
@@ -95,22 +97,22 @@ func (c *FakeCASTemplates) Update(cASTemplate *v1alpha1.CASTemplate) (result *v1
 }
 
 // Delete takes name of the cASTemplate and deletes it. Returns an error if one occurs.
-func (c *FakeCASTemplates) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeCASTemplates) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(castemplatesResource, name), &v1alpha1.CASTemplate{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeCASTemplates) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(castemplatesResource, listOptions)
+func (c *FakeCASTemplates) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(castemplatesResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.CASTemplateList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched cASTemplate.
-func (c *FakeCASTemplates) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CASTemplate, err error) {
+func (c *FakeCASTemplates) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.CASTemplate, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(castemplatesResource, name, pt, data, subresources...), &v1alpha1.CASTemplate{})
 	if obj == nil {

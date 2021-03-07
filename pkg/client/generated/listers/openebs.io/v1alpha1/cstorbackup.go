@@ -26,8 +26,10 @@ import (
 )
 
 // CStorBackupLister helps list CStorBackups.
+// All objects returned here must be treated as read-only.
 type CStorBackupLister interface {
 	// List lists all CStorBackups in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.CStorBackup, err error)
 	// CStorBackups returns an object that can list and get CStorBackups.
 	CStorBackups(namespace string) CStorBackupNamespaceLister
@@ -58,10 +60,13 @@ func (s *cStorBackupLister) CStorBackups(namespace string) CStorBackupNamespaceL
 }
 
 // CStorBackupNamespaceLister helps list and get CStorBackups.
+// All objects returned here must be treated as read-only.
 type CStorBackupNamespaceLister interface {
 	// List lists all CStorBackups in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.CStorBackup, err error)
 	// Get retrieves the CStorBackup from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.CStorBackup, error)
 	CStorBackupNamespaceListerExpansion
 }

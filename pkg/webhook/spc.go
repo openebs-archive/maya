@@ -17,6 +17,7 @@ limitations under the License.
 package webhook
 
 import (
+	"context"
 	"net/http"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -31,7 +32,8 @@ func (wh *webhook) validateSPCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 		SetAllowed().
 		WithResultAsSuccess(http.StatusAccepted).AR
 
-	spcObj, err := wh.clientset.OpenebsV1alpha1().StoragePoolClaims().Get(req.Name, metav1.GetOptions{})
+	spcObj, err := wh.clientset.OpenebsV1alpha1().StoragePoolClaims().
+		Get(context.TODO(), req.Name, metav1.GetOptions{})
 	if err != nil {
 		err = errors.Wrapf(err, "failed to get spc %s", req.Name)
 		response = BuildForAPIObject(response).UnSetAllowed().WithResultAsFailure(err, http.StatusBadRequest).AR
@@ -43,7 +45,7 @@ func (wh *webhook) validateSPCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 		return response
 	}
 
-	cspList, err := wh.clientset.OpenebsV1alpha1().CStorPools().List(
+	cspList, err := wh.clientset.OpenebsV1alpha1().CStorPools().List(context.TODO(),
 		metav1.ListOptions{
 			LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + req.Name,
 		})
@@ -55,9 +57,10 @@ func (wh *webhook) validateSPCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 	}
 	for _, cspObj := range cspList.Items {
 		// list cvrs in all namespaces
-		cvrList, err := wh.clientset.OpenebsV1alpha1().CStorVolumeReplicas("").List(metav1.ListOptions{
-			LabelSelector: string(apis.CStorPoolKey) + "=" + cspObj.Name,
-		})
+		cvrList, err := wh.clientset.OpenebsV1alpha1().CStorVolumeReplicas("").
+			List(context.TODO(), metav1.ListOptions{
+				LabelSelector: string(apis.CStorPoolKey) + "=" + cspObj.Name,
+			})
 		if err != nil {
 			err = errors.Wrapf(err, "Could not list cvr for csp %s", cspObj.Name)
 			klog.Error(err)

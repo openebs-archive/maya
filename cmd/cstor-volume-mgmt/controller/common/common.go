@@ -17,6 +17,7 @@ limitations under the License.
 package common
 
 import (
+	"context"
 	"time"
 
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
@@ -159,7 +160,8 @@ func CheckForCStorVolumeCRD(clientset clientset.Interface) {
 		// or not, we are trying to handle only the error of CVR CR List api indirectly.
 		// CRD has only two types of scope, cluster and namespaced. If CR list api
 		// for default namespace works fine, then CR list api works for all namespaces.
-		_, err := clientset.OpenebsV1alpha1().CStorVolumes(string(DefaultNameSpace)).List(metav1.ListOptions{})
+		_, err := clientset.OpenebsV1alpha1().CStorVolumes(string(DefaultNameSpace)).
+			List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			klog.Errorf("CStorVolume CRD not found. Retrying after %v, err : %v", CRDRetryInterval, err)
 			time.Sleep(CRDRetryInterval)

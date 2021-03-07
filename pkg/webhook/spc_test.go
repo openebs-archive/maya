@@ -17,6 +17,7 @@ limitations under the License.
 package webhook
 
 import (
+	"context"
 	"testing"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -45,7 +46,8 @@ func (f *fixture) withOpenebsObjects(objects ...runtime.Object) *fixture {
 
 func (f *fixture) createCVRsFromCVRList(cvrList *apis.CStorVolumeReplicaList) error {
 	for _, cvrObj := range cvrList.Items {
-		_, err := f.wh.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cvrObj.Namespace).Create(&cvrObj)
+		_, err := f.wh.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cvrObj.Namespace).
+			Create(context.TODO(), &cvrObj, metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}
@@ -55,7 +57,8 @@ func (f *fixture) createCVRsFromCVRList(cvrList *apis.CStorVolumeReplicaList) er
 
 func (f *fixture) createCSPsFromCSPList(cspList *apis.CStorPoolList) error {
 	for _, cspObj := range cspList.Items {
-		_, err := f.wh.clientset.OpenebsV1alpha1().CStorPools().Create(&cspObj)
+		_, err := f.wh.clientset.OpenebsV1alpha1().CStorPools().
+			Create(context.TODO(), &cspObj, metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}
@@ -237,7 +240,8 @@ func TestValidateSPCDeleteRequest(t *testing.T) {
 				},
 			}
 			if test.spcObj != nil {
-				_, err := f.wh.clientset.OpenebsV1alpha1().StoragePoolClaims().Create(test.spcObj)
+				_, err := f.wh.clientset.OpenebsV1alpha1().StoragePoolClaims().
+					Create(context.TODO(), test.spcObj, metav1.CreateOptions{})
 				if err != nil {
 					t.Errorf("failed to create SPC error: %s", err.Error())
 				}

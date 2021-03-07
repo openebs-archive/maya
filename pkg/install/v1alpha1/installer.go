@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
+
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
@@ -174,7 +176,8 @@ func (i *simpleInstaller) Clean() error {
 			return err
 		}
 		err = k8sDynamic.Resource(gvr).Namespace(res.namespace).DeleteCollection(
-			&metav1.DeleteOptions{},
+			context.TODO(),
+			metav1.DeleteOptions{},
 			metav1.ListOptions{
 				LabelSelector: "version!=" + version.Current(),
 			},

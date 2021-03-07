@@ -15,6 +15,7 @@
 package volumecontroller
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -93,7 +94,8 @@ func TestGetVolumeResource(t *testing.T) {
 	}
 	for desc, ut := range testVolumeResource {
 		// Create Volume resource
-		_, err := volumeController.clientset.OpenebsV1alpha1().CStorVolumes(string(common.DefaultNameSpace)).Create(ut.test)
+		_, err := volumeController.clientset.OpenebsV1alpha1().CStorVolumes(string(common.DefaultNameSpace)).
+			Create(context.TODO(), ut.test, metav1.CreateOptions{})
 		if err != nil {
 			t.Fatalf("Desc:%v, Unable to create resource : %v", desc, ut.test.ObjectMeta.Name)
 		}

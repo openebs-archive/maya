@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	time "time"
 
 	ndmv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
@@ -61,13 +62,13 @@ func NewFilteredBlockDeviceClaimInformer(client internalclientset.Interface, nam
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenebsV1alpha1().BlockDeviceClaims(namespace).List(options)
+				return client.OpenebsV1alpha1().BlockDeviceClaims(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenebsV1alpha1().BlockDeviceClaims(namespace).Watch(options)
+				return client.OpenebsV1alpha1().BlockDeviceClaims(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&ndmv1alpha1.BlockDeviceClaim{},

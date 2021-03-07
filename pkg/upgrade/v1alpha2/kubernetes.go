@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"context"
 	"strings"
 	"sync"
 
@@ -155,7 +156,8 @@ func defaultList(
 	namespace string,
 	opts metav1.ListOptions,
 ) (*apis.UpgradeTaskList, error) {
-	return cli.OpenebsV1alpha1().UpgradeTasks(namespace).List(opts)
+	return cli.OpenebsV1alpha1().UpgradeTasks(namespace).
+		List(context.TODO(), opts)
 }
 
 func defaultGet(
@@ -163,7 +165,8 @@ func defaultGet(
 	namespace, name string,
 	opts metav1.GetOptions,
 ) (*apis.UpgradeTask, error) {
-	return cli.OpenebsV1alpha1().UpgradeTasks(namespace).Get(name, opts)
+	return cli.OpenebsV1alpha1().UpgradeTasks(namespace).
+		Get(context.TODO(), name, opts)
 }
 
 func defaultCreate(
@@ -171,7 +174,8 @@ func defaultCreate(
 	namespace string,
 	upgradeTask *apis.UpgradeTask,
 ) (*apis.UpgradeTask, error) {
-	return cli.OpenebsV1alpha1().UpgradeTasks(namespace).Create(upgradeTask)
+	return cli.OpenebsV1alpha1().UpgradeTasks(namespace).
+		Create(context.TODO(), upgradeTask, metav1.CreateOptions{})
 }
 
 func defaultDel(
@@ -181,7 +185,7 @@ func defaultDel(
 ) error {
 	return cli.OpenebsV1alpha1().
 		UpgradeTasks(namespace).
-		Delete(name, opts)
+		Delete(context.TODO(), name, *opts)
 }
 
 func defaultPatch(
@@ -193,7 +197,7 @@ func defaultPatch(
 ) (*apis.UpgradeTask, error) {
 	return cli.OpenebsV1alpha1().
 		UpgradeTasks(namespace).
-		Patch(name, pt, data, subresources...)
+		Patch(context.TODO(), name, pt, data, metav1.PatchOptions{}, subresources...)
 }
 
 func defaultUpdate(
@@ -201,7 +205,8 @@ func defaultUpdate(
 	namespace string,
 	upgradeTask *apis.UpgradeTask,
 ) (*apis.UpgradeTask, error) {
-	return cli.OpenebsV1alpha1().UpgradeTasks(namespace).Update(upgradeTask)
+	return cli.OpenebsV1alpha1().UpgradeTasks(namespace).
+		Update(context.TODO(), upgradeTask, metav1.UpdateOptions{})
 }
 
 // WithDefaults sets the default options

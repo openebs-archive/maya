@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -67,7 +68,7 @@ func (k *Kubeclient) withDefaults() {
 			opts metav1.GetOptions) (*apis.RunTask, error) {
 			return cs.OpenebsV1alpha1().
 				RunTasks(namespace).
-				Get(name, opts)
+				Get(context.TODO(), name, opts)
 		}
 	}
 }

@@ -26,8 +26,10 @@ import (
 )
 
 // UpgradeResultLister helps list UpgradeResults.
+// All objects returned here must be treated as read-only.
 type UpgradeResultLister interface {
 	// List lists all UpgradeResults in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.UpgradeResult, err error)
 	// UpgradeResults returns an object that can list and get UpgradeResults.
 	UpgradeResults(namespace string) UpgradeResultNamespaceLister
@@ -58,10 +60,13 @@ func (s *upgradeResultLister) UpgradeResults(namespace string) UpgradeResultName
 }
 
 // UpgradeResultNamespaceLister helps list and get UpgradeResults.
+// All objects returned here must be treated as read-only.
 type UpgradeResultNamespaceLister interface {
 	// List lists all UpgradeResults in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.UpgradeResult, err error)
 	// Get retrieves the UpgradeResult from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.UpgradeResult, error)
 	UpgradeResultNamespaceListerExpansion
 }

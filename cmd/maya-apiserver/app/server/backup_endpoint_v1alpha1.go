@@ -17,6 +17,7 @@ limitations under the License.
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -135,7 +136,8 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 		bkp.Spec.VolumeName,
 		bkp.ObjectMeta.Labels["cstorpool.openebs.io/uid"])
 
-	_, err = openebsClient.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Create(bkp)
+	_, err = openebsClient.OpenebsV1alpha1().CStorBackups(bkp.Namespace).
+		Create(context.TODO(), bkp, v1.CreateOptions{})
 	if err != nil {
 		klog.Errorf("Failed to create backup: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
@@ -198,7 +200,8 @@ func findHealthyCVR(openebsClient *versioned.Clientset, volume string) (v1alpha1
 		LabelSelector: "openebs.io/persistent-volume=" + volume,
 	}
 
-	cvrList, err := openebsClient.OpenebsV1alpha1().CStorVolumeReplicas("").List(listOptions)
+	cvrList, err := openebsClient.OpenebsV1alpha1().CStorVolumeReplicas("").
+		List(context.TODO(), listOptions)
 	if err != nil {
 		return v1alpha1.CStorVolumeReplica{}, err
 	}
@@ -216,7 +219,8 @@ func findHealthyCVR(openebsClient *versioned.Clientset, volume string) (v1alpha1
 // getLastBackupSnap will fetch the last successful backup's snapshot name
 func getLastBackupSnap(openebsClient *versioned.Clientset, bkp *v1alpha1.CStorBackup) (string, error) {
 	lastbkpname := bkp.Spec.BackupName + "-" + bkp.Spec.VolumeName
-	b, err := openebsClient.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
+	b, err := openebsClient.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).
+		Get(context.TODO(), lastbkpname, v1.GetOptions{})
 	if err != nil {
 		bk := &v1alpha1.CStorCompletedBackup{
 			ObjectMeta: v1.ObjectMeta{
@@ -230,7 +234,8 @@ func getLastBackupSnap(openebsClient *versioned.Clientset, bkp *v1alpha1.CStorBa
 			},
 		}
 
-		_, err := openebsClient.OpenebsV1alpha1().CStorCompletedBackups(bk.Namespace).Create(bk)
+		_, err := openebsClient.OpenebsV1alpha1().CStorCompletedBackups(bk.Namespace).
+			Create(context.TODO(), bk, v1.CreateOptions{})
 		if err != nil {
 			klog.Errorf("Error creating last completed-backup resource for backup:%v err:%v", bk.Spec.BackupName, err)
 			return "", err
@@ -274,7 +279,8 @@ func (bOps *backupAPIOps) get() (interface{}, error) {
 	}
 
 	bkp.Name = bkp.Spec.SnapName + "-" + bkp.Spec.VolumeName
-	b, err := openebsClient.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Get(bkp.Name, v1.GetOptions{})
+	b, err := openebsClient.OpenebsV1alpha1().CStorBackups(bkp.Namespace).
+		Get(context.TODO(), bkp.Name, v1.GetOptions{})
 	if err != nil {
 		return nil, CodedError(400, fmt.Sprintf("Failed to fetch backup error:%v", err))
 	}
@@ -292,7 +298,8 @@ func (bOps *backupAPIOps) get() (interface{}, error) {
 			updateBackupStatus(openebsClient, b, laststat)
 
 			// Get updated backup object
-			b, err = openebsClient.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Get(bkp.Name, v1.GetOptions{})
+			b, err = openebsClient.OpenebsV1alpha1().CStorBackups(bkp.Namespace).
+				Get(context.TODO(), bkp.Name, v1.GetOptions{})
 			if err != nil {
 				return nil, CodedError(400, fmt.Sprintf("Failed to fetch backup error:%v", err))
 			}
@@ -325,7 +332,8 @@ func checkIfCSPPoolNodeDown(k8sclient *kubernetes.Clientset, cstorID string) boo
 		return nodeDown
 	}
 
-	node, err := k8sclient.CoreV1().Nodes().Get(pod.Spec.NodeName, v1.GetOptions{})
+	node, err := k8sclient.CoreV1().Nodes().
+		Get(context.TODO(), pod.Spec.NodeName, v1.GetOptions{})
 	if err != nil {
 		klog.Infof("Failed to fetch node info for cstorID:%v: %v", cstorID, err)
 		return nodeDown
@@ -370,7 +378,8 @@ func findPodFromCStorID(k8sclient *kubernetes.Clientset, cstorID string) (corev1
 		return corev1.Pod{}, errors.New("Failed to fetch operator namespace")
 	}
 
-	podlist, err := k8sclient.CoreV1().Pods(openebsNs).List(podlistops)
+	podlist, err := k8sclient.CoreV1().Pods(openebsNs).
+		List(context.TODO(), podlistops)
 	if err != nil {
 		klog.Errorf("Failed to fetch pod list :%v", err)
 		return corev1.Pod{}, errors.New("Failed to fetch pod list")
@@ -389,7 +398,8 @@ func findPodFromCStorID(k8sclient *kubernetes.Clientset, cstorID string) (corev1
 // findLastBackupStat will find the status of given backup from last completed-backup
 func findLastBackupStat(clientset versioned.Interface, bkp *v1alpha1.CStorBackup) v1alpha1.CStorBackupStatus {
 	lastbkpname := bkp.Spec.BackupName + "-" + bkp.Spec.VolumeName
-	lastbkp, err := clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
+	lastbkp, err := clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).
+		Get(context.TODO(), lastbkpname, v1.GetOptions{})
 	if err != nil {
 		// Unable to fetch the last backup, so we will return fail state
 		klog.Errorf("Failed to fetch last completed-backup:%s error:%s", lastbkpname, err.Error())
@@ -410,7 +420,8 @@ func findLastBackupStat(clientset versioned.Interface, bkp *v1alpha1.CStorBackup
 func updateBackupStatus(clientset versioned.Interface, bkp *v1alpha1.CStorBackup, status v1alpha1.CStorBackupStatus) {
 	bkp.Status = status
 
-	_, err := clientset.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Update(bkp)
+	_, err := clientset.OpenebsV1alpha1().CStorBackups(bkp.Namespace).
+		Update(context.TODO(), bkp, v1.UpdateOptions{})
 	if err != nil {
 		klog.Errorf("Failed to update backup:%s with status:%v", bkp.Name, status)
 		return
@@ -456,7 +467,8 @@ func deleteBackup(client *versioned.Clientset, backup, volname, ns, schedule str
 
 	// Let's get the cstorCompletedBackup resource for the given backup
 	// CStorCompletedBackups resource stores the information about last two completed snapshots
-	lastbkp, err := client.OpenebsV1alpha1().CStorCompletedBackups(ns).Get(lastCompletedBackup, v1.GetOptions{})
+	lastbkp, err := client.OpenebsV1alpha1().CStorCompletedBackups(ns).
+		Get(context.TODO(), lastCompletedBackup, v1.GetOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
 		return errors.Wrapf(err, "failed to fetch last-completed-backup=%s resource", lastCompletedBackup)
 	}
@@ -466,7 +478,8 @@ func deleteBackup(client *versioned.Clientset, backup, volname, ns, schedule str
 	// completedBackup doesn't have successful backup(len(lastbkp.Spec.PrevSnapName) == 0) then we will delete the lastbkp CR
 	// Deleting this CR make sure that next backup of the schedule will be full backup
 	if lastbkp != nil && (lastbkp.Spec.PrevSnapName == backup || len(lastbkp.Spec.PrevSnapName) == 0) {
-		err := client.OpenebsV1alpha1().CStorCompletedBackups(ns).Delete(lastCompletedBackup, &v1.DeleteOptions{})
+		err := client.OpenebsV1alpha1().CStorCompletedBackups(ns).
+			Delete(context.TODO(), lastCompletedBackup, v1.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
 			return errors.Wrapf(err, "failed to delete last-completed-backup=%s resource", lastCompletedBackup)
 		}
@@ -479,7 +492,7 @@ func deleteBackup(client *versioned.Clientset, backup, volname, ns, schedule str
 	}
 
 	cstorBackup := backup + "-" + volname
-	err = client.OpenebsV1alpha1().CStorBackups(ns).Delete(cstorBackup, &v1.DeleteOptions{})
+	err = client.OpenebsV1alpha1().CStorBackups(ns).Delete(context.TODO(), cstorBackup, v1.DeleteOptions{})
 	if err != nil && !k8serrors.IsNotFound(err) {
 		return errors.Wrapf(err, "failed to delete cstorbackup=%s resource", cstorBackup)
 	}

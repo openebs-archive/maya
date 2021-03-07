@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -39,7 +41,7 @@ var cstorbackupsResource = schema.GroupVersionResource{Group: "openebs.io", Vers
 var cstorbackupsKind = schema.GroupVersionKind{Group: "openebs.io", Version: "v1alpha1", Kind: "CStorBackup"}
 
 // Get takes name of the cStorBackup, and returns the corresponding cStorBackup object, and an error if there is any.
-func (c *FakeCStorBackups) Get(name string, options v1.GetOptions) (result *v1alpha1.CStorBackup, err error) {
+func (c *FakeCStorBackups) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.CStorBackup, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(cstorbackupsResource, c.ns, name), &v1alpha1.CStorBackup{})
 
@@ -50,7 +52,7 @@ func (c *FakeCStorBackups) Get(name string, options v1.GetOptions) (result *v1al
 }
 
 // List takes label and field selectors, and returns the list of CStorBackups that match those selectors.
-func (c *FakeCStorBackups) List(opts v1.ListOptions) (result *v1alpha1.CStorBackupList, err error) {
+func (c *FakeCStorBackups) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.CStorBackupList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(cstorbackupsResource, cstorbackupsKind, c.ns, opts), &v1alpha1.CStorBackupList{})
 
@@ -72,14 +74,14 @@ func (c *FakeCStorBackups) List(opts v1.ListOptions) (result *v1alpha1.CStorBack
 }
 
 // Watch returns a watch.Interface that watches the requested cStorBackups.
-func (c *FakeCStorBackups) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeCStorBackups) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(cstorbackupsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a cStorBackup and creates it.  Returns the server's representation of the cStorBackup, and an error, if there is any.
-func (c *FakeCStorBackups) Create(cStorBackup *v1alpha1.CStorBackup) (result *v1alpha1.CStorBackup, err error) {
+func (c *FakeCStorBackups) Create(ctx context.Context, cStorBackup *v1alpha1.CStorBackup, opts v1.CreateOptions) (result *v1alpha1.CStorBackup, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(cstorbackupsResource, c.ns, cStorBackup), &v1alpha1.CStorBackup{})
 
@@ -90,7 +92,7 @@ func (c *FakeCStorBackups) Create(cStorBackup *v1alpha1.CStorBackup) (result *v1
 }
 
 // Update takes the representation of a cStorBackup and updates it. Returns the server's representation of the cStorBackup, and an error, if there is any.
-func (c *FakeCStorBackups) Update(cStorBackup *v1alpha1.CStorBackup) (result *v1alpha1.CStorBackup, err error) {
+func (c *FakeCStorBackups) Update(ctx context.Context, cStorBackup *v1alpha1.CStorBackup, opts v1.UpdateOptions) (result *v1alpha1.CStorBackup, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(cstorbackupsResource, c.ns, cStorBackup), &v1alpha1.CStorBackup{})
 
@@ -101,7 +103,7 @@ func (c *FakeCStorBackups) Update(cStorBackup *v1alpha1.CStorBackup) (result *v1
 }
 
 // Delete takes name of the cStorBackup and deletes it. Returns an error if one occurs.
-func (c *FakeCStorBackups) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeCStorBackups) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(cstorbackupsResource, c.ns, name), &v1alpha1.CStorBackup{})
 
@@ -109,15 +111,15 @@ func (c *FakeCStorBackups) Delete(name string, options *v1.DeleteOptions) error 
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeCStorBackups) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(cstorbackupsResource, c.ns, listOptions)
+func (c *FakeCStorBackups) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(cstorbackupsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.CStorBackupList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched cStorBackup.
-func (c *FakeCStorBackups) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CStorBackup, err error) {
+func (c *FakeCStorBackups) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.CStorBackup, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(cstorbackupsResource, c.ns, name, pt, data, subresources...), &v1alpha1.CStorBackup{})
 

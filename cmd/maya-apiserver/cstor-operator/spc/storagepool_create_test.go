@@ -16,6 +16,7 @@ limitations under the License.
 package spc
 
 import (
+	"context"
 	"strconv"
 
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha1"
@@ -125,7 +126,8 @@ func (focs *PoolCreateConfig) FakeDiskCreator() {
 				State: DiskStateActive,
 			},
 		}
-		_, err := focs.ndmclientset.OpenebsV1alpha1().BlockDevices("fake-ns").Create(diskObjectList[diskListIndex])
+		_, err := focs.ndmclientset.OpenebsV1alpha1().BlockDevices("fake-ns").
+			Create(context.TODO(), diskObjectList[diskListIndex], metav1.CreateOptions{})
 		if err != nil {
 			klog.Error(err)
 		}
