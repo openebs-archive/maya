@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -38,7 +40,7 @@ var disksResource = schema.GroupVersionResource{Group: "openebs.io", Version: "v
 var disksKind = schema.GroupVersionKind{Group: "openebs.io", Version: "v1alpha1", Kind: "Disk"}
 
 // Get takes name of the disk, and returns the corresponding disk object, and an error if there is any.
-func (c *FakeDisks) Get(name string, options v1.GetOptions) (result *v1alpha1.Disk, err error) {
+func (c *FakeDisks) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.Disk, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(disksResource, name), &v1alpha1.Disk{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeDisks) Get(name string, options v1.GetOptions) (result *v1alpha1.Di
 }
 
 // List takes label and field selectors, and returns the list of Disks that match those selectors.
-func (c *FakeDisks) List(opts v1.ListOptions) (result *v1alpha1.DiskList, err error) {
+func (c *FakeDisks) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.DiskList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(disksResource, disksKind, opts), &v1alpha1.DiskList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeDisks) List(opts v1.ListOptions) (result *v1alpha1.DiskList, err er
 }
 
 // Watch returns a watch.Interface that watches the requested disks.
-func (c *FakeDisks) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeDisks) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(disksResource, opts))
 }
 
 // Create takes the representation of a disk and creates it.  Returns the server's representation of the disk, and an error, if there is any.
-func (c *FakeDisks) Create(disk *v1alpha1.Disk) (result *v1alpha1.Disk, err error) {
+func (c *FakeDisks) Create(ctx context.Context, disk *v1alpha1.Disk, opts v1.CreateOptions) (result *v1alpha1.Disk, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(disksResource, disk), &v1alpha1.Disk{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeDisks) Create(disk *v1alpha1.Disk) (result *v1alpha1.Disk, err erro
 }
 
 // Update takes the representation of a disk and updates it. Returns the server's representation of the disk, and an error, if there is any.
-func (c *FakeDisks) Update(disk *v1alpha1.Disk) (result *v1alpha1.Disk, err error) {
+func (c *FakeDisks) Update(ctx context.Context, disk *v1alpha1.Disk, opts v1.UpdateOptions) (result *v1alpha1.Disk, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(disksResource, disk), &v1alpha1.Disk{})
 	if obj == nil {
@@ -96,7 +98,7 @@ func (c *FakeDisks) Update(disk *v1alpha1.Disk) (result *v1alpha1.Disk, err erro
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeDisks) UpdateStatus(disk *v1alpha1.Disk) (*v1alpha1.Disk, error) {
+func (c *FakeDisks) UpdateStatus(ctx context.Context, disk *v1alpha1.Disk, opts v1.UpdateOptions) (*v1alpha1.Disk, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateSubresourceAction(disksResource, "status", disk), &v1alpha1.Disk{})
 	if obj == nil {
@@ -106,22 +108,22 @@ func (c *FakeDisks) UpdateStatus(disk *v1alpha1.Disk) (*v1alpha1.Disk, error) {
 }
 
 // Delete takes name of the disk and deletes it. Returns an error if one occurs.
-func (c *FakeDisks) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeDisks) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(disksResource, name), &v1alpha1.Disk{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeDisks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(disksResource, listOptions)
+func (c *FakeDisks) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(disksResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.DiskList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched disk.
-func (c *FakeDisks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Disk, err error) {
+func (c *FakeDisks) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.Disk, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(disksResource, name, pt, data, subresources...), &v1alpha1.Disk{})
 	if obj == nil {

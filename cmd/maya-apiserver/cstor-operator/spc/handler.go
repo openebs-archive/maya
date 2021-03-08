@@ -17,6 +17,7 @@ limitations under the License.
 package spc
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -157,7 +158,8 @@ func (c *Controller) syncSpc(spc *apis.StoragePoolClaim) error {
 			"Failed to reconcile spc version",
 			err,
 		)
-		_, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(gotSPC)
+		_, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().
+			Update(context.TODO(), gotSPC, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("failed to update versionDetails status for spc %s:%s", gotSPC.Name, err.Error())
 		}
@@ -388,7 +390,8 @@ func validateROThresholdLimit(spc *apis.StoragePoolClaim) error {
 // getCurrentPoolCount give the current pool count for the given auto provisioned spc.
 func (c *Controller) getCurrentPoolCount(spc *apis.StoragePoolClaim) (int, error) {
 	// Get the current count of provisioned pool for the storagepool claim
-	cspList, err := c.clientset.OpenebsV1alpha1().CStorPools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name})
+	cspList, err := c.clientset.OpenebsV1alpha1().CStorPools().
+		List(context.TODO(), metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name})
 	if err != nil {
 		return 0, errors.Errorf("unable to get current pool count:unable to list cstor pools: %v", err)
 	}
@@ -460,7 +463,8 @@ func (c *Controller) getFreeDiskNodeMap() (map[string]string, error) {
 	//package
 	// Get all block device from kube-apiserver
 	namespace := env.Get(env.OpenEBSNamespace)
-	blockDeviceList, err := c.ndmclientset.OpenebsV1alpha1().BlockDevices(namespace).List(metav1.ListOptions{})
+	blockDeviceList, err := c.ndmclientset.OpenebsV1alpha1().BlockDevices(namespace).
+		List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -498,7 +502,7 @@ func (c *Controller) getUsableNodeCount(spc *apis.StoragePoolClaim) (map[string]
 // TODO: Move to blockDevice package
 func (c *Controller) getUsedBlockDeviceMap() (map[string]int, error) {
 	// Get the list of block devices that has been used already for pool provisioning
-	cspList, err := c.clientset.OpenebsV1alpha1().CStorPools().List(metav1.ListOptions{})
+	cspList, err := c.clientset.OpenebsV1alpha1().CStorPools().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to get the list of cstor pool")
 	}
@@ -546,7 +550,8 @@ func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.Storage
 		spcObj := spc.DeepCopy()
 		if spc.VersionDetails.Status.State != apis.ReconcileInProgress {
 			spcObj.VersionDetails.Status.SetInProgressStatus()
-			spcObj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spcObj)
+			spcObj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().
+				Update(context.TODO(), spcObj, metav1.UpdateOptions{})
 			if err != nil {
 				return spc, err
 			}
@@ -569,7 +574,8 @@ func (c *Controller) reconcileVersion(spc *apis.StoragePoolClaim) (*apis.Storage
 		}
 		spc = spcObj.DeepCopy()
 		spcObj.VersionDetails.SetSuccessStatus()
-		spcObj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spcObj)
+		spcObj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().
+			Update(context.TODO(), spcObj, metav1.UpdateOptions{})
 		if err != nil {
 			return spc, errors.Wrap(err, "failed to update storagepoolclaim")
 		}
@@ -594,7 +600,7 @@ func (c *Controller) populateVersion(spc *apis.StoragePoolClaim) (*apis.StorageP
 		spcObj.VersionDetails.Status.DependentsUpgraded = true
 
 		spcObj, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().
-			Update(spcObj)
+			Update(context.TODO(), spcObj, metav1.UpdateOptions{})
 
 		if err != nil {
 			return spc, err

@@ -17,6 +17,7 @@ limitations under the License.
 package replicacontroller
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -125,7 +126,8 @@ func (c *CStorVolumeReplicaController) syncHandler(
 			err,
 		)
 		_, err = c.clientset.OpenebsV1alpha1().
-			CStorVolumeReplicas(cvrGot.Namespace).Update(cvrGot)
+			CStorVolumeReplicas(cvrGot.Namespace).
+			Update(context.TODO(), cvrGot, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("failed to update versionDetails status for cvr %s:%s", cvrGot.Name, err.Error())
 		}
@@ -165,7 +167,7 @@ func (c *CStorVolumeReplicaController) syncHandler(
 		_, err1 := c.clientset.
 			OpenebsV1alpha1().
 			CStorVolumeReplicas(cvrGot.Namespace).
-			Update(cvrGot)
+			Update(context.TODO(), cvrGot, metav1.UpdateOptions{})
 		if err1 != nil {
 			return errors.Wrapf(
 				err,
@@ -194,7 +196,7 @@ func (c *CStorVolumeReplicaController) syncHandler(
 	_, err = c.clientset.
 		OpenebsV1alpha1().
 		CStorVolumeReplicas(cvrGot.Namespace).
-		Update(cvrGot)
+		Update(context.TODO(), cvrGot, metav1.UpdateOptions{})
 	if err != nil {
 		return errors.Wrapf(
 			err,
@@ -347,7 +349,7 @@ func (c *CStorVolumeReplicaController) removeFinalizer(
 	_, err = c.clientset.
 		OpenebsV1alpha1().
 		CStorVolumeReplicas(cvrObj.Namespace).
-		Patch(cvrObj.Name, types.JSONPatchType, cvrPatchBytes)
+		Patch(context.TODO(), cvrObj.Name, types.JSONPatchType, cvrPatchBytes, metav1.PatchOptions{})
 	if err != nil {
 		return errors.Wrapf(
 			err,
@@ -518,7 +520,7 @@ func (c *CStorVolumeReplicaController) getVolumeReplicaResource(
 
 	cStorVolumeReplicaUpdated, err := c.clientset.OpenebsV1alpha1().
 		CStorVolumeReplicas(namespace).
-		Get(name, metav1.GetOptions{})
+		Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		// The cStorPool resource may no longer exist, in which case we stop
 		// processing.
@@ -703,7 +705,8 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 		if cvrObj.VersionDetails.Status.State != apis.ReconcileInProgress {
 			cvrObj.VersionDetails.Status.SetInProgressStatus()
 			cvrObj, err = c.clientset.OpenebsV1alpha1().
-				CStorVolumeReplicas(cvrObj.Namespace).Update(cvrObj)
+				CStorVolumeReplicas(cvrObj.Namespace).
+				Update(context.TODO(), cvrObj, metav1.UpdateOptions{})
 			if err != nil {
 				return cvr, err
 			}
@@ -725,7 +728,8 @@ func (c *CStorVolumeReplicaController) reconcileVersion(cvr *apis.CStorVolumeRep
 		cvr = cvrObj.DeepCopy()
 		cvrObj.VersionDetails.SetSuccessStatus()
 		cvrObj, err = c.clientset.OpenebsV1alpha1().
-			CStorVolumeReplicas(cvrObj.Namespace).Update(cvrObj)
+			CStorVolumeReplicas(cvrObj.Namespace).
+			Update(context.TODO(), cvrObj, metav1.UpdateOptions{})
 		if err != nil {
 			return cvr, err
 		}
@@ -745,7 +749,7 @@ func (c *CStorVolumeReplicaController) populateVersion(cvr *apis.CStorVolumeRepl
 		cvrObj.VersionDetails.Status.Current = v
 		cvrObj.VersionDetails.Desired = v
 		cvrObj, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cvrObj.Namespace).
-			Update(cvrObj)
+			Update(context.TODO(), cvrObj, metav1.UpdateOptions{})
 
 		if err != nil {
 			return cvr, err
@@ -766,7 +770,8 @@ func setReplicaID(u *upgradeParams) (*apis.CStorVolumeReplica, error) {
 		return cvr, err
 	}
 	cvrObj, err = u.client.OpenebsV1alpha1().
-		CStorVolumeReplicas(cvrObj.Namespace).Update(cvrObj)
+		CStorVolumeReplicas(cvrObj.Namespace).
+		Update(context.TODO(), cvrObj, metav1.UpdateOptions{})
 	if err != nil {
 		return cvr, err
 	}

@@ -16,18 +16,21 @@ limitations under the License.
 package spc
 
 import (
+	"context"
+
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+
+	"os"
+	"strconv"
+	"testing"
 
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/klog"
-	"os"
-	"strconv"
-	"testing"
 )
 
 // SpcCreator will create fake spc objects
@@ -49,7 +52,8 @@ func (focs *clientSet) SpcCreator(poolName string, SpcLeaseKeyPresent bool, SpcL
 			},
 		}
 	}
-	spcGot, err := focs.oecs.OpenebsV1alpha1().StoragePoolClaims().Create(spcObject)
+	spcGot, err := focs.oecs.OpenebsV1alpha1().StoragePoolClaims().
+		Create(context.TODO(), spcObject, metav1.CreateOptions{})
 	if err != nil {
 		klog.Error(err)
 	}
@@ -67,7 +71,8 @@ func PodCreator(fakeKubeClient kubernetes.Interface, podName string) {
 				Phase: v1.PodRunning,
 			},
 		}
-		_, err := fakeKubeClient.CoreV1().Pods("openebs").Create(podObjet)
+		_, err := fakeKubeClient.CoreV1().Pods("openebs").
+			Create(context.TODO(), podObjet, metav1.CreateOptions{})
 		if err != nil {
 			klog.Error("Fake pod object could not be created:", err)
 		}
@@ -151,7 +156,8 @@ func TestHold(t *testing.T) {
 				t.Errorf("Test case failed:expected nil error but got error:'%v'", err)
 			}
 			// Check for lease value
-			spcGot, err := focs.oecs.OpenebsV1alpha1().StoragePoolClaims().Get(test.fakestoragepoolclaim.Name, metav1.GetOptions{})
+			spcGot, err := focs.oecs.OpenebsV1alpha1().StoragePoolClaims().
+				Get(context.TODO(), test.fakestoragepoolclaim.Name, metav1.GetOptions{})
 			if spcGot.Annotations[SpcLeaseKey] != test.expectedResult {
 				t.Errorf("Test case failed: expected lease value '%v' but got '%v' ", test.expectedResult, spcGot.Annotations[SpcLeaseKey])
 

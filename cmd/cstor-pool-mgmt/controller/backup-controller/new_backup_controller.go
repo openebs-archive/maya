@@ -17,6 +17,7 @@ limitations under the License.
 package backupcontroller
 
 import (
+	"context"
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
@@ -167,7 +168,8 @@ func (c *BackupController) cleanupOldBackup(clientset clientset.Interface) {
 	bkplistop := metav1.ListOptions{
 		LabelSelector: bkplabel,
 	}
-	bkplist, err := clientset.OpenebsV1alpha1().CStorBackups(metav1.NamespaceAll).List(bkplistop)
+	bkplist, err := clientset.OpenebsV1alpha1().CStorBackups(metav1.NamespaceAll).
+		List(context.TODO(), bkplistop)
 	if err != nil {
 		return
 	}
@@ -191,7 +193,8 @@ func (c *BackupController) cleanupOldBackup(clientset clientset.Interface) {
 func updateBackupStatus(clientset clientset.Interface, bkp apis.CStorBackup, status apis.CStorBackupStatus) {
 	bkp.Status = status
 
-	_, err := clientset.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Update(&bkp)
+	_, err := clientset.OpenebsV1alpha1().CStorBackups(bkp.Namespace).
+		Update(context.TODO(), &bkp, v1.UpdateOptions{})
 	if err != nil {
 		klog.Errorf("Failed to update backup(%s) status(%s)", status, bkp.Name)
 		return
@@ -201,7 +204,8 @@ func updateBackupStatus(clientset clientset.Interface, bkp apis.CStorBackup, sta
 // findLastBackupStat will find the status of backup from last completed-backup
 func findLastBackupStat(clientset clientset.Interface, bkp apis.CStorBackup) apis.CStorBackupStatus {
 	lastbkpname := bkp.Spec.BackupName + "-" + bkp.Spec.VolumeName
-	lastbkp, err := clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
+	lastbkp, err := clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).
+		Get(context.TODO(), lastbkpname, v1.GetOptions{})
 	if err != nil {
 		// Unable to fetch the last backup, so we will return fail state
 		klog.Errorf("Failed to fetch last completed backup:%s error:%s", lastbkpname, err.Error())

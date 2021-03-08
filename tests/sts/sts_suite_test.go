@@ -15,6 +15,7 @@
 package sts
 
 import (
+	"context"
 	"flag"
 	"os"
 	"strconv"
@@ -70,7 +71,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// Checking appropriate node numbers. This test is designed to run on a 3 node cluster
-	nodes, err := cl.CoreV1().Nodes().List(v1.ListOptions{})
+	nodes, err := cl.CoreV1().Nodes().List(context.TODO(), v1.ListOptions{})
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(nodes.Items).Should(HaveLen(minNodeCount))
 

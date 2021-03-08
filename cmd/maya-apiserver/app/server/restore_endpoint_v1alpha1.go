@@ -17,6 +17,7 @@ limitations under the License.
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -117,14 +118,14 @@ func createRestoreResource(openebsClient *versioned.Clientset, rst *v1alpha1.CSt
 	listOptions := v1.ListOptions{
 		LabelSelector: "openebs.io/persistent-volume=" + rst.Spec.VolumeName,
 	}
-	cvrList, err := openebsClient.OpenebsV1alpha1().CStorVolumeReplicas("").List(listOptions)
+	cvrList, err := openebsClient.OpenebsV1alpha1().CStorVolumeReplicas("").List(context.TODO(), listOptions)
 	if err != nil {
 		return nil, CodedError(500, err.Error())
 	}
 
 	for _, cvr := range cvrList.Items {
 		rst.Name = rst.Spec.RestoreName + "-" + string(uuid.NewUUID())
-		oldrst, err := openebsClient.OpenebsV1alpha1().CStorRestores(rst.Namespace).Get(rst.Name, v1.GetOptions{})
+		oldrst, err := openebsClient.OpenebsV1alpha1().CStorRestores(rst.Namespace).Get(context.TODO(), rst.Name, v1.GetOptions{})
 		if err != nil {
 			rst.Status = v1alpha1.RSTCStorStatusPending
 			rst.ObjectMeta.Labels = map[string]string{
@@ -133,7 +134,8 @@ func createRestoreResource(openebsClient *versioned.Clientset, rst *v1alpha1.CSt
 				"openebs.io/restore":           rst.Spec.RestoreName,
 			}
 
-			_, err = openebsClient.OpenebsV1alpha1().CStorRestores(rst.Namespace).Create(rst)
+			_, err = openebsClient.OpenebsV1alpha1().CStorRestores(rst.Namespace).
+				Create(context.TODO(), rst, v1.CreateOptions{})
 			if err != nil {
 				klog.Errorf("Failed to create restore CR(volume:%s CSP:%s) : error '%s'",
 					rst.Spec.VolumeName, cvr.ObjectMeta.Labels["cstorpool.openebs.io/uid"],
@@ -146,7 +148,8 @@ func createRestoreResource(openebsClient *versioned.Clientset, rst *v1alpha1.CSt
 		} else {
 			oldrst.Status = v1alpha1.RSTCStorStatusPending
 			oldrst.Spec = rst.Spec
-			_, err = openebsClient.OpenebsV1alpha1().CStorRestores(oldrst.Namespace).Update(oldrst)
+			_, err = openebsClient.OpenebsV1alpha1().CStorRestores(oldrst.Namespace).
+				Update(context.TODO(), oldrst, v1.UpdateOptions{})
 			if err != nil {
 				klog.Errorf("Failed to re-initialize old existing restore CR(volume:%s CSP:%s) : error '%s'",
 					rst.Spec.VolumeName, cvr.ObjectMeta.Labels["cstorpool.openebs.io/uid"],
@@ -219,7 +222,8 @@ func getRestoreStatus(rst *v1alpha1.CStorRestore) (v1alpha1.CStorRestoreStatus, 
 		LabelSelector: "openebs.io/restore=" + rst.Spec.RestoreName + ",openebs.io/persistent-volume=" + rst.Spec.VolumeName,
 	}
 
-	rlist, err := openebsClient.OpenebsV1alpha1().CStorRestores(rst.Namespace).List(listOptions)
+	rlist, err := openebsClient.OpenebsV1alpha1().CStorRestores(rst.Namespace).
+		List(context.TODO(), listOptions)
 	if err != nil {
 		return v1alpha1.RSTCStorStatusEmpty, CodedError(400, fmt.Sprintf("Failed to fetch restore error:%v", err))
 	}
@@ -271,7 +275,8 @@ func getCVRRestoreStatus(k8sClient *kubernetes.Clientset, rst v1alpha1.CStorRest
 func updateRestoreStatus(clientset versioned.Interface, rst v1alpha1.CStorRestore, status v1alpha1.CStorRestoreStatus) {
 	rst.Status = status
 
-	_, err := clientset.OpenebsV1alpha1().CStorRestores(rst.Namespace).Update(&rst)
+	_, err := clientset.OpenebsV1alpha1().CStorRestores(rst.Namespace).
+		Update(context.TODO(), &rst, v1.UpdateOptions{})
 	if err != nil {
 		klog.Errorf("Failed to update restore:%s with status:%v", rst.Name, status)
 		return

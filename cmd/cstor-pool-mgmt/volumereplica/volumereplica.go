@@ -17,6 +17,7 @@ limitations under the License.
 package volumereplica
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -815,7 +816,7 @@ func getPeerReplicas(
 	peerCVRList := &apis.CStorVolumeReplicaList{}
 	cvrList, err := clientset.OpenebsV1alpha1().
 		CStorVolumeReplicas(cvr.Namespace).
-		List(metav1.ListOptions{LabelSelector: string(apis.PersistentVolumeCPK) + "=" + volName})
+		List(context.TODO(), metav1.ListOptions{LabelSelector: string(apis.PersistentVolumeCPK) + "=" + volName})
 	if err != nil {
 		return nil, err
 	}

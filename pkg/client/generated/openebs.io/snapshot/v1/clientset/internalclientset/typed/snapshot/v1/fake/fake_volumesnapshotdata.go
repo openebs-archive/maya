@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	snapshotv1 "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -38,7 +40,7 @@ var volumesnapshotdatasResource = schema.GroupVersionResource{Group: "volumesnap
 var volumesnapshotdatasKind = schema.GroupVersionKind{Group: "volumesnapshot.external-storage.k8s.io", Version: "v1", Kind: "VolumeSnapshotData"}
 
 // Get takes name of the volumeSnapshotData, and returns the corresponding volumeSnapshotData object, and an error if there is any.
-func (c *FakeVolumeSnapshotDatas) Get(name string, options v1.GetOptions) (result *snapshotv1.VolumeSnapshotData, err error) {
+func (c *FakeVolumeSnapshotDatas) Get(ctx context.Context, name string, options v1.GetOptions) (result *snapshotv1.VolumeSnapshotData, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(volumesnapshotdatasResource, name), &snapshotv1.VolumeSnapshotData{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeVolumeSnapshotDatas) Get(name string, options v1.GetOptions) (resul
 }
 
 // List takes label and field selectors, and returns the list of VolumeSnapshotDatas that match those selectors.
-func (c *FakeVolumeSnapshotDatas) List(opts v1.ListOptions) (result *snapshotv1.VolumeSnapshotDataList, err error) {
+func (c *FakeVolumeSnapshotDatas) List(ctx context.Context, opts v1.ListOptions) (result *snapshotv1.VolumeSnapshotDataList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(volumesnapshotdatasResource, volumesnapshotdatasKind, opts), &snapshotv1.VolumeSnapshotDataList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeVolumeSnapshotDatas) List(opts v1.ListOptions) (result *snapshotv1.
 }
 
 // Watch returns a watch.Interface that watches the requested volumeSnapshotDatas.
-func (c *FakeVolumeSnapshotDatas) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeVolumeSnapshotDatas) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(volumesnapshotdatasResource, opts))
 }
 
 // Create takes the representation of a volumeSnapshotData and creates it.  Returns the server's representation of the volumeSnapshotData, and an error, if there is any.
-func (c *FakeVolumeSnapshotDatas) Create(volumeSnapshotData *snapshotv1.VolumeSnapshotData) (result *snapshotv1.VolumeSnapshotData, err error) {
+func (c *FakeVolumeSnapshotDatas) Create(ctx context.Context, volumeSnapshotData *snapshotv1.VolumeSnapshotData, opts v1.CreateOptions) (result *snapshotv1.VolumeSnapshotData, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(volumesnapshotdatasResource, volumeSnapshotData), &snapshotv1.VolumeSnapshotData{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeVolumeSnapshotDatas) Create(volumeSnapshotData *snapshotv1.VolumeSn
 }
 
 // Update takes the representation of a volumeSnapshotData and updates it. Returns the server's representation of the volumeSnapshotData, and an error, if there is any.
-func (c *FakeVolumeSnapshotDatas) Update(volumeSnapshotData *snapshotv1.VolumeSnapshotData) (result *snapshotv1.VolumeSnapshotData, err error) {
+func (c *FakeVolumeSnapshotDatas) Update(ctx context.Context, volumeSnapshotData *snapshotv1.VolumeSnapshotData, opts v1.UpdateOptions) (result *snapshotv1.VolumeSnapshotData, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(volumesnapshotdatasResource, volumeSnapshotData), &snapshotv1.VolumeSnapshotData{})
 	if obj == nil {
@@ -96,7 +98,7 @@ func (c *FakeVolumeSnapshotDatas) Update(volumeSnapshotData *snapshotv1.VolumeSn
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeVolumeSnapshotDatas) UpdateStatus(volumeSnapshotData *snapshotv1.VolumeSnapshotData) (*snapshotv1.VolumeSnapshotData, error) {
+func (c *FakeVolumeSnapshotDatas) UpdateStatus(ctx context.Context, volumeSnapshotData *snapshotv1.VolumeSnapshotData, opts v1.UpdateOptions) (*snapshotv1.VolumeSnapshotData, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateSubresourceAction(volumesnapshotdatasResource, "status", volumeSnapshotData), &snapshotv1.VolumeSnapshotData{})
 	if obj == nil {
@@ -106,22 +108,22 @@ func (c *FakeVolumeSnapshotDatas) UpdateStatus(volumeSnapshotData *snapshotv1.Vo
 }
 
 // Delete takes name of the volumeSnapshotData and deletes it. Returns an error if one occurs.
-func (c *FakeVolumeSnapshotDatas) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeVolumeSnapshotDatas) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(volumesnapshotdatasResource, name), &snapshotv1.VolumeSnapshotData{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeVolumeSnapshotDatas) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(volumesnapshotdatasResource, listOptions)
+func (c *FakeVolumeSnapshotDatas) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(volumesnapshotdatasResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &snapshotv1.VolumeSnapshotDataList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched volumeSnapshotData.
-func (c *FakeVolumeSnapshotDatas) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *snapshotv1.VolumeSnapshotData, err error) {
+func (c *FakeVolumeSnapshotDatas) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *snapshotv1.VolumeSnapshotData, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(volumesnapshotdatasResource, name, pt, data, subresources...), &snapshotv1.VolumeSnapshotData{})
 	if obj == nil {

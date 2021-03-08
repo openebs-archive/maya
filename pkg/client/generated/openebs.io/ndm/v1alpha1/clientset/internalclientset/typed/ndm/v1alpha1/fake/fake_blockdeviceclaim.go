@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -39,7 +41,7 @@ var blockdeviceclaimsResource = schema.GroupVersionResource{Group: "openebs.io",
 var blockdeviceclaimsKind = schema.GroupVersionKind{Group: "openebs.io", Version: "v1alpha1", Kind: "BlockDeviceClaim"}
 
 // Get takes name of the blockDeviceClaim, and returns the corresponding blockDeviceClaim object, and an error if there is any.
-func (c *FakeBlockDeviceClaims) Get(name string, options v1.GetOptions) (result *v1alpha1.BlockDeviceClaim, err error) {
+func (c *FakeBlockDeviceClaims) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.BlockDeviceClaim, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(blockdeviceclaimsResource, c.ns, name), &v1alpha1.BlockDeviceClaim{})
 
@@ -50,7 +52,7 @@ func (c *FakeBlockDeviceClaims) Get(name string, options v1.GetOptions) (result 
 }
 
 // List takes label and field selectors, and returns the list of BlockDeviceClaims that match those selectors.
-func (c *FakeBlockDeviceClaims) List(opts v1.ListOptions) (result *v1alpha1.BlockDeviceClaimList, err error) {
+func (c *FakeBlockDeviceClaims) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.BlockDeviceClaimList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(blockdeviceclaimsResource, blockdeviceclaimsKind, c.ns, opts), &v1alpha1.BlockDeviceClaimList{})
 
@@ -72,14 +74,14 @@ func (c *FakeBlockDeviceClaims) List(opts v1.ListOptions) (result *v1alpha1.Bloc
 }
 
 // Watch returns a watch.Interface that watches the requested blockDeviceClaims.
-func (c *FakeBlockDeviceClaims) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeBlockDeviceClaims) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(blockdeviceclaimsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a blockDeviceClaim and creates it.  Returns the server's representation of the blockDeviceClaim, and an error, if there is any.
-func (c *FakeBlockDeviceClaims) Create(blockDeviceClaim *v1alpha1.BlockDeviceClaim) (result *v1alpha1.BlockDeviceClaim, err error) {
+func (c *FakeBlockDeviceClaims) Create(ctx context.Context, blockDeviceClaim *v1alpha1.BlockDeviceClaim, opts v1.CreateOptions) (result *v1alpha1.BlockDeviceClaim, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(blockdeviceclaimsResource, c.ns, blockDeviceClaim), &v1alpha1.BlockDeviceClaim{})
 
@@ -90,7 +92,7 @@ func (c *FakeBlockDeviceClaims) Create(blockDeviceClaim *v1alpha1.BlockDeviceCla
 }
 
 // Update takes the representation of a blockDeviceClaim and updates it. Returns the server's representation of the blockDeviceClaim, and an error, if there is any.
-func (c *FakeBlockDeviceClaims) Update(blockDeviceClaim *v1alpha1.BlockDeviceClaim) (result *v1alpha1.BlockDeviceClaim, err error) {
+func (c *FakeBlockDeviceClaims) Update(ctx context.Context, blockDeviceClaim *v1alpha1.BlockDeviceClaim, opts v1.UpdateOptions) (result *v1alpha1.BlockDeviceClaim, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(blockdeviceclaimsResource, c.ns, blockDeviceClaim), &v1alpha1.BlockDeviceClaim{})
 
@@ -102,7 +104,7 @@ func (c *FakeBlockDeviceClaims) Update(blockDeviceClaim *v1alpha1.BlockDeviceCla
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeBlockDeviceClaims) UpdateStatus(blockDeviceClaim *v1alpha1.BlockDeviceClaim) (*v1alpha1.BlockDeviceClaim, error) {
+func (c *FakeBlockDeviceClaims) UpdateStatus(ctx context.Context, blockDeviceClaim *v1alpha1.BlockDeviceClaim, opts v1.UpdateOptions) (*v1alpha1.BlockDeviceClaim, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(blockdeviceclaimsResource, "status", c.ns, blockDeviceClaim), &v1alpha1.BlockDeviceClaim{})
 
@@ -113,7 +115,7 @@ func (c *FakeBlockDeviceClaims) UpdateStatus(blockDeviceClaim *v1alpha1.BlockDev
 }
 
 // Delete takes name of the blockDeviceClaim and deletes it. Returns an error if one occurs.
-func (c *FakeBlockDeviceClaims) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeBlockDeviceClaims) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(blockdeviceclaimsResource, c.ns, name), &v1alpha1.BlockDeviceClaim{})
 
@@ -121,15 +123,15 @@ func (c *FakeBlockDeviceClaims) Delete(name string, options *v1.DeleteOptions) e
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeBlockDeviceClaims) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(blockdeviceclaimsResource, c.ns, listOptions)
+func (c *FakeBlockDeviceClaims) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(blockdeviceclaimsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.BlockDeviceClaimList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched blockDeviceClaim.
-func (c *FakeBlockDeviceClaims) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.BlockDeviceClaim, err error) {
+func (c *FakeBlockDeviceClaims) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.BlockDeviceClaim, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(blockdeviceclaimsResource, c.ns, name, pt, data, subresources...), &v1alpha1.BlockDeviceClaim{})
 

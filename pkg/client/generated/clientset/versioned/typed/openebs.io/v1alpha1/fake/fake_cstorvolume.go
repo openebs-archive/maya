@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -39,7 +41,7 @@ var cstorvolumesResource = schema.GroupVersionResource{Group: "openebs.io", Vers
 var cstorvolumesKind = schema.GroupVersionKind{Group: "openebs.io", Version: "v1alpha1", Kind: "CStorVolume"}
 
 // Get takes name of the cStorVolume, and returns the corresponding cStorVolume object, and an error if there is any.
-func (c *FakeCStorVolumes) Get(name string, options v1.GetOptions) (result *v1alpha1.CStorVolume, err error) {
+func (c *FakeCStorVolumes) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.CStorVolume, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(cstorvolumesResource, c.ns, name), &v1alpha1.CStorVolume{})
 
@@ -50,7 +52,7 @@ func (c *FakeCStorVolumes) Get(name string, options v1.GetOptions) (result *v1al
 }
 
 // List takes label and field selectors, and returns the list of CStorVolumes that match those selectors.
-func (c *FakeCStorVolumes) List(opts v1.ListOptions) (result *v1alpha1.CStorVolumeList, err error) {
+func (c *FakeCStorVolumes) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.CStorVolumeList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(cstorvolumesResource, cstorvolumesKind, c.ns, opts), &v1alpha1.CStorVolumeList{})
 
@@ -72,14 +74,14 @@ func (c *FakeCStorVolumes) List(opts v1.ListOptions) (result *v1alpha1.CStorVolu
 }
 
 // Watch returns a watch.Interface that watches the requested cStorVolumes.
-func (c *FakeCStorVolumes) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeCStorVolumes) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(cstorvolumesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a cStorVolume and creates it.  Returns the server's representation of the cStorVolume, and an error, if there is any.
-func (c *FakeCStorVolumes) Create(cStorVolume *v1alpha1.CStorVolume) (result *v1alpha1.CStorVolume, err error) {
+func (c *FakeCStorVolumes) Create(ctx context.Context, cStorVolume *v1alpha1.CStorVolume, opts v1.CreateOptions) (result *v1alpha1.CStorVolume, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(cstorvolumesResource, c.ns, cStorVolume), &v1alpha1.CStorVolume{})
 
@@ -90,7 +92,7 @@ func (c *FakeCStorVolumes) Create(cStorVolume *v1alpha1.CStorVolume) (result *v1
 }
 
 // Update takes the representation of a cStorVolume and updates it. Returns the server's representation of the cStorVolume, and an error, if there is any.
-func (c *FakeCStorVolumes) Update(cStorVolume *v1alpha1.CStorVolume) (result *v1alpha1.CStorVolume, err error) {
+func (c *FakeCStorVolumes) Update(ctx context.Context, cStorVolume *v1alpha1.CStorVolume, opts v1.UpdateOptions) (result *v1alpha1.CStorVolume, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(cstorvolumesResource, c.ns, cStorVolume), &v1alpha1.CStorVolume{})
 
@@ -102,7 +104,7 @@ func (c *FakeCStorVolumes) Update(cStorVolume *v1alpha1.CStorVolume) (result *v1
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeCStorVolumes) UpdateStatus(cStorVolume *v1alpha1.CStorVolume) (*v1alpha1.CStorVolume, error) {
+func (c *FakeCStorVolumes) UpdateStatus(ctx context.Context, cStorVolume *v1alpha1.CStorVolume, opts v1.UpdateOptions) (*v1alpha1.CStorVolume, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(cstorvolumesResource, "status", c.ns, cStorVolume), &v1alpha1.CStorVolume{})
 
@@ -113,7 +115,7 @@ func (c *FakeCStorVolumes) UpdateStatus(cStorVolume *v1alpha1.CStorVolume) (*v1a
 }
 
 // Delete takes name of the cStorVolume and deletes it. Returns an error if one occurs.
-func (c *FakeCStorVolumes) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeCStorVolumes) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(cstorvolumesResource, c.ns, name), &v1alpha1.CStorVolume{})
 
@@ -121,15 +123,15 @@ func (c *FakeCStorVolumes) Delete(name string, options *v1.DeleteOptions) error 
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeCStorVolumes) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(cstorvolumesResource, c.ns, listOptions)
+func (c *FakeCStorVolumes) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(cstorvolumesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.CStorVolumeList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched cStorVolume.
-func (c *FakeCStorVolumes) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CStorVolume, err error) {
+func (c *FakeCStorVolumes) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.CStorVolume, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(cstorvolumesResource, c.ns, name, pt, data, subresources...), &v1alpha1.CStorVolume{})
 

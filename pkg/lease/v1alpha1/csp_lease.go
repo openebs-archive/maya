@@ -17,6 +17,7 @@ limitations under the License.
 package lease
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -102,7 +103,8 @@ func (sl *Lease) Update(podName string) (interface{}, error) {
 	} else {
 		sl.putUpdatedValue(podName, newCspObject)
 	}
-	csp, err := sl.Oecs.OpenebsV1alpha1().CStorPools().Update(newCspObject)
+	csp, err := sl.Oecs.OpenebsV1alpha1().CStorPools().
+		Update(context.TODO(), newCspObject, meta_v1.UpdateOptions{})
 	return csp, err
 }
 
@@ -164,7 +166,8 @@ func (sl *Lease) isLeaderALive(leaseValueObj LeaseContract) bool {
 	holderName := leaseValueObj.Holder
 	podDetails := strings.Split(holderName, "/")
 	// Check whether the holder is live or not.
-	pod, err := sl.Kubeclientset.CoreV1().Pods(podDetails[0]).Get(podDetails[1], meta_v1.GetOptions{})
+	pod, err := sl.Kubeclientset.CoreV1().Pods(podDetails[0]).
+		Get(context.TODO(), podDetails[1], meta_v1.GetOptions{})
 	if err != nil {
 		// If the pod does not exist, an error will be thrown and if it is a not found error
 		// meaning pod does not exist, we should return false.
@@ -259,6 +262,7 @@ func (sl *Lease) putUpdatedValue(podName string, newCspObject *apis.CStorPool) (
 // Patch is the specific implementation if Patch() interface for patching CSP objects.
 // Similarly, we can have for other objects, if required.
 func (sl *Lease) Patch(name string, nameSpace string, patchType types.PatchType, patches []byte) (*apis.CStorPool, error) {
-	obj, err := sl.Oecs.OpenebsV1alpha1().CStorPools().Patch(name, patchType, patches)
+	obj, err := sl.Oecs.OpenebsV1alpha1().CStorPools().
+		Patch(context.TODO(), name, patchType, patches, meta_v1.PatchOptions{})
 	return obj, err
 }

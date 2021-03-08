@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	time "time"
 
 	openebsiov1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -60,13 +61,13 @@ func NewFilteredStoragePoolClaimInformer(client versioned.Interface, resyncPerio
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenebsV1alpha1().StoragePoolClaims().List(options)
+				return client.OpenebsV1alpha1().StoragePoolClaims().List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenebsV1alpha1().StoragePoolClaims().Watch(options)
+				return client.OpenebsV1alpha1().StoragePoolClaims().Watch(context.TODO(), options)
 			},
 		},
 		&openebsiov1alpha1.StoragePoolClaim{},

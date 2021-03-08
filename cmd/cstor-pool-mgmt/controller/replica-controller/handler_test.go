@@ -16,6 +16,7 @@ limitations under the License.
 package replicacontroller
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -73,7 +74,8 @@ func TestGetVolumeReplicaResource(t *testing.T) {
 	}
 	for desc, ut := range testVolumeReplicaResource {
 		// Create a volume-replica resource.
-		_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas(ut.test.ObjectMeta.Namespace).Create(ut.test)
+		_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas(ut.test.ObjectMeta.Namespace).
+			Create(context.TODO(), ut.test, metav1.CreateOptions{})
 		if err != nil {
 			t.Fatalf("Desc:%v, Unable to create resource : %v", desc, ut.test.ObjectMeta.Name)
 		}

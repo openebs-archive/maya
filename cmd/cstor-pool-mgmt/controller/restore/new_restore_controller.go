@@ -17,6 +17,7 @@ limitations under the License.
 package restorecontroller
 
 import (
+	"context"
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
@@ -203,7 +204,8 @@ func (c *RestoreController) cleanupOldRestore(clientset clientset.Interface) {
 	rstlistop := metav1.ListOptions{
 		LabelSelector: rstlabel,
 	}
-	rstlist, err := clientset.OpenebsV1alpha1().CStorRestores(metav1.NamespaceAll).List(rstlistop)
+	rstlist, err := clientset.OpenebsV1alpha1().CStorRestores(metav1.NamespaceAll).
+		List(context.TODO(), rstlistop)
 	if err != nil {
 		return
 	}
@@ -223,7 +225,8 @@ func (c *RestoreController) cleanupOldRestore(clientset clientset.Interface) {
 func updateRestoreStatus(clientset clientset.Interface, rst apis.CStorRestore, status apis.CStorRestoreStatus) {
 	rst.Status = status
 
-	_, err := clientset.OpenebsV1alpha1().CStorRestores(rst.Namespace).Update(&rst)
+	_, err := clientset.OpenebsV1alpha1().CStorRestores(rst.Namespace).
+		Update(context.TODO(), &rst, metav1.UpdateOptions{})
 	if err != nil {
 		klog.Errorf("Failed to update restore(%s) status(%s)", status, rst.Name)
 		return

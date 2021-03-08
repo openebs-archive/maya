@@ -17,9 +17,11 @@ limitations under the License.
 package poolcontroller
 
 import (
+	"context"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -128,7 +130,8 @@ func NewCStorPoolController(
 				cStorPool.Status.Phase = apis.CStorPoolStatusPending
 			}
 
-			cStorPool, _ = controller.clientset.OpenebsV1alpha1().CStorPools().Update(cStorPool)
+			cStorPool, _ = controller.clientset.OpenebsV1alpha1().CStorPools().
+				Update(context.TODO(), cStorPool, v1.UpdateOptions{})
 			controller.enqueueCStorPool(cStorPool, q)
 		},
 		UpdateFunc: func(old, new interface{}) {

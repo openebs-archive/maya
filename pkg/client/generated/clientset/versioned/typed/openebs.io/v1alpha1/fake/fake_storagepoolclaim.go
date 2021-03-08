@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -38,7 +40,7 @@ var storagepoolclaimsResource = schema.GroupVersionResource{Group: "openebs.io",
 var storagepoolclaimsKind = schema.GroupVersionKind{Group: "openebs.io", Version: "v1alpha1", Kind: "StoragePoolClaim"}
 
 // Get takes name of the storagePoolClaim, and returns the corresponding storagePoolClaim object, and an error if there is any.
-func (c *FakeStoragePoolClaims) Get(name string, options v1.GetOptions) (result *v1alpha1.StoragePoolClaim, err error) {
+func (c *FakeStoragePoolClaims) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.StoragePoolClaim, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(storagepoolclaimsResource, name), &v1alpha1.StoragePoolClaim{})
 	if obj == nil {
@@ -48,7 +50,7 @@ func (c *FakeStoragePoolClaims) Get(name string, options v1.GetOptions) (result 
 }
 
 // List takes label and field selectors, and returns the list of StoragePoolClaims that match those selectors.
-func (c *FakeStoragePoolClaims) List(opts v1.ListOptions) (result *v1alpha1.StoragePoolClaimList, err error) {
+func (c *FakeStoragePoolClaims) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.StoragePoolClaimList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(storagepoolclaimsResource, storagepoolclaimsKind, opts), &v1alpha1.StoragePoolClaimList{})
 	if obj == nil {
@@ -69,13 +71,13 @@ func (c *FakeStoragePoolClaims) List(opts v1.ListOptions) (result *v1alpha1.Stor
 }
 
 // Watch returns a watch.Interface that watches the requested storagePoolClaims.
-func (c *FakeStoragePoolClaims) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeStoragePoolClaims) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(storagepoolclaimsResource, opts))
 }
 
 // Create takes the representation of a storagePoolClaim and creates it.  Returns the server's representation of the storagePoolClaim, and an error, if there is any.
-func (c *FakeStoragePoolClaims) Create(storagePoolClaim *v1alpha1.StoragePoolClaim) (result *v1alpha1.StoragePoolClaim, err error) {
+func (c *FakeStoragePoolClaims) Create(ctx context.Context, storagePoolClaim *v1alpha1.StoragePoolClaim, opts v1.CreateOptions) (result *v1alpha1.StoragePoolClaim, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(storagepoolclaimsResource, storagePoolClaim), &v1alpha1.StoragePoolClaim{})
 	if obj == nil {
@@ -85,7 +87,7 @@ func (c *FakeStoragePoolClaims) Create(storagePoolClaim *v1alpha1.StoragePoolCla
 }
 
 // Update takes the representation of a storagePoolClaim and updates it. Returns the server's representation of the storagePoolClaim, and an error, if there is any.
-func (c *FakeStoragePoolClaims) Update(storagePoolClaim *v1alpha1.StoragePoolClaim) (result *v1alpha1.StoragePoolClaim, err error) {
+func (c *FakeStoragePoolClaims) Update(ctx context.Context, storagePoolClaim *v1alpha1.StoragePoolClaim, opts v1.UpdateOptions) (result *v1alpha1.StoragePoolClaim, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootUpdateAction(storagepoolclaimsResource, storagePoolClaim), &v1alpha1.StoragePoolClaim{})
 	if obj == nil {
@@ -95,22 +97,22 @@ func (c *FakeStoragePoolClaims) Update(storagePoolClaim *v1alpha1.StoragePoolCla
 }
 
 // Delete takes name of the storagePoolClaim and deletes it. Returns an error if one occurs.
-func (c *FakeStoragePoolClaims) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeStoragePoolClaims) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(storagepoolclaimsResource, name), &v1alpha1.StoragePoolClaim{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeStoragePoolClaims) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(storagepoolclaimsResource, listOptions)
+func (c *FakeStoragePoolClaims) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(storagepoolclaimsResource, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.StoragePoolClaimList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched storagePoolClaim.
-func (c *FakeStoragePoolClaims) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.StoragePoolClaim, err error) {
+func (c *FakeStoragePoolClaims) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.StoragePoolClaim, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootPatchSubresourceAction(storagepoolclaimsResource, name, pt, data, subresources...), &v1alpha1.StoragePoolClaim{})
 	if obj == nil {

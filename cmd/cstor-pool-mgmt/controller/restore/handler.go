@@ -17,6 +17,7 @@ limitations under the License.
 package restorecontroller
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -60,14 +61,16 @@ func (c *RestoreController) syncHandler(key string, operation common.QueueOperat
 		rst.Status = apis.CStorRestoreStatus(status)
 	}
 
-	nrst, err := c.clientset.OpenebsV1alpha1().CStorRestores(rst.Namespace).Get(rst.Name, metav1.GetOptions{})
+	nrst, err := c.clientset.OpenebsV1alpha1().CStorRestores(rst.Namespace).
+		Get(context.TODO(), rst.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	nrst.Status = rst.Status
 
-	_, err = c.clientset.OpenebsV1alpha1().CStorRestores(nrst.Namespace).Update(nrst)
+	_, err = c.clientset.OpenebsV1alpha1().CStorRestores(nrst.Namespace).
+		Update(context.TODO(), nrst, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -109,7 +112,8 @@ func (c *RestoreController) syncEventHandler(rst *apis.CStorRestore) (string, er
 	// If the restore is in init state then only we will complete the restore
 	if IsInitStatus(rst) {
 		rst.Status = apis.RSTCStorStatusInProgress
-		_, err := c.clientset.OpenebsV1alpha1().CStorRestores(rst.Namespace).Update(rst)
+		_, err := c.clientset.OpenebsV1alpha1().CStorRestores(rst.Namespace).
+			Update(context.TODO(), rst, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("Failed to update restore:%s status : %v", rst.Name, err.Error())
 			return "", err
@@ -140,7 +144,8 @@ func (c *RestoreController) getCStorRestoreResource(key string) (*apis.CStorRest
 		return nil, nil
 	}
 
-	rst, err := c.clientset.OpenebsV1alpha1().CStorRestores(ns).Get(name, metav1.GetOptions{})
+	rst, err := c.clientset.OpenebsV1alpha1().CStorRestores(ns).
+		Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("Restore resource for key:%s is missing", name)
 		return nil, err

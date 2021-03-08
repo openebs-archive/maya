@@ -26,8 +26,10 @@ import (
 )
 
 // RunTaskLister helps list RunTasks.
+// All objects returned here must be treated as read-only.
 type RunTaskLister interface {
 	// List lists all RunTasks in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.RunTask, err error)
 	// RunTasks returns an object that can list and get RunTasks.
 	RunTasks(namespace string) RunTaskNamespaceLister
@@ -58,10 +60,13 @@ func (s *runTaskLister) RunTasks(namespace string) RunTaskNamespaceLister {
 }
 
 // RunTaskNamespaceLister helps list and get RunTasks.
+// All objects returned here must be treated as read-only.
 type RunTaskNamespaceLister interface {
 	// List lists all RunTasks in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.RunTask, err error)
 	// Get retrieves the RunTask from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.RunTask, error)
 	RunTaskNamespaceListerExpansion
 }

@@ -26,8 +26,10 @@ import (
 )
 
 // CStorVolumeLister helps list CStorVolumes.
+// All objects returned here must be treated as read-only.
 type CStorVolumeLister interface {
 	// List lists all CStorVolumes in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.CStorVolume, err error)
 	// CStorVolumes returns an object that can list and get CStorVolumes.
 	CStorVolumes(namespace string) CStorVolumeNamespaceLister
@@ -58,10 +60,13 @@ func (s *cStorVolumeLister) CStorVolumes(namespace string) CStorVolumeNamespaceL
 }
 
 // CStorVolumeNamespaceLister helps list and get CStorVolumes.
+// All objects returned here must be treated as read-only.
 type CStorVolumeNamespaceLister interface {
 	// List lists all CStorVolumes in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.CStorVolume, err error)
 	// Get retrieves the CStorVolume from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.CStorVolume, error)
 	CStorVolumeNamespaceListerExpansion
 }

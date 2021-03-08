@@ -19,6 +19,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
 	time "time"
 
 	runtaskv1beta1 "github.com/openebs/maya/pkg/apis/openebs.io/runtask/v1beta1"
@@ -61,13 +62,13 @@ func NewFilteredRunTaskInformer(client internalclientset.Interface, namespace st
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenebsV1beta1().RunTasks(namespace).List(options)
+				return client.OpenebsV1beta1().RunTasks(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenebsV1beta1().RunTasks(namespace).Watch(options)
+				return client.OpenebsV1beta1().RunTasks(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&runtaskv1beta1.RunTask{},

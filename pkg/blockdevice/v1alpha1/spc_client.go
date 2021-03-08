@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
+
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
@@ -36,7 +38,8 @@ func (s *SpcObjectClient) Get(name string, opts metav1.GetOptions) (*BlockDevice
 		return nil, errors.Errorf("Disk %s not found in the given SPC %s", diskName, s.Spc.Name)
 	}
 	namespace := env.Get(env.OpenEBSNamespace)
-	d, err := s.Clientset.OpenebsV1alpha1().BlockDevices(namespace).Get(diskName, opts)
+	d, err := s.Clientset.OpenebsV1alpha1().BlockDevices(namespace).
+		Get(context.TODO(), diskName, opts)
 	return &BlockDevice{d, nil}, err
 }
 
@@ -57,7 +60,8 @@ func (s *SpcObjectClient) List(opts metav1.ListOptions) (*BlockDeviceList, error
 	}
 
 	namespace := env.Get(env.OpenEBSNamespace)
-	getAllDisk, err := s.Clientset.OpenebsV1alpha1().BlockDevices(namespace).List(opts)
+	getAllDisk, err := s.Clientset.OpenebsV1alpha1().BlockDevices(namespace).
+		List(context.TODO(), opts)
 	if getAllDisk.Items == nil {
 		return nil, errors.Wrapf(err, "Could not get disk from kube apiserver")
 	}

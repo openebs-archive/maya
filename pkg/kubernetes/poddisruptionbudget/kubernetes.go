@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"strings"
 	"sync"
 
@@ -103,26 +104,26 @@ func (k *Kubeclient) withDefaults() {
 	}
 	if k.del == nil {
 		k.del = func(cs *kubernetes.Clientset, name, namesapce string, opts *metav1.DeleteOptions) error {
-			return cs.PolicyV1beta1().PodDisruptionBudgets(namesapce).Delete(name, opts)
+			return cs.PolicyV1beta1().PodDisruptionBudgets(namesapce).Delete(context.TODO(), name, *opts)
 		}
 	}
 	if k.create == nil {
 		k.create = func(cs *kubernetes.Clientset,
 			namesapce string, pdb *policy.PodDisruptionBudget) (*policy.PodDisruptionBudget, error) {
-			return cs.PolicyV1beta1().PodDisruptionBudgets(namesapce).Create(pdb)
+			return cs.PolicyV1beta1().PodDisruptionBudgets(namesapce).Create(context.TODO(), pdb, metav1.CreateOptions{})
 		}
 	}
 	if k.list == nil {
 		k.list = func(cs *kubernetes.Clientset,
 			namespace string, opts metav1.ListOptions) (*policy.PodDisruptionBudgetList, error) {
-			return cs.PolicyV1beta1().PodDisruptionBudgets(namespace).List(opts)
+			return cs.PolicyV1beta1().PodDisruptionBudgets(namespace).List(context.TODO(), opts)
 		}
 	}
 	if k.get == nil {
 		k.get = func(
 			cs *kubernetes.Clientset,
 			name, namespace string, opts metav1.GetOptions) (*policy.PodDisruptionBudget, error) {
-			return cs.PolicyV1beta1().PodDisruptionBudgets(namespace).Get(name, opts)
+			return cs.PolicyV1beta1().PodDisruptionBudgets(namespace).Get(context.TODO(), name, opts)
 		}
 	}
 }

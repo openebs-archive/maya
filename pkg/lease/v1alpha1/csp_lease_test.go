@@ -16,6 +16,8 @@ limitations under the License.
 package lease
 
 import (
+	"context"
+
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 
 	"os"
@@ -54,7 +56,8 @@ func (focs *fakeClientset) CspCreator(poolName string, CspLeaseKeyPresent bool, 
 			},
 		}
 	}
-	cspGot, err := focs.oecs.OpenebsV1alpha1().CStorPools().Create(cspObject)
+	cspGot, err := focs.oecs.OpenebsV1alpha1().CStorPools().
+		Create(context.TODO(), cspObject, metav1.CreateOptions{})
 	if err != nil {
 		klog.Error(err)
 	}
@@ -72,7 +75,8 @@ func PodCreator(fakeKubeClient kubernetes.Interface, podName string) {
 				Phase: corev1.PodRunning,
 			},
 		}
-		_, err := fakeKubeClient.CoreV1().Pods("openebs").Create(podObjet)
+		_, err := fakeKubeClient.CoreV1().Pods("openebs").
+			Create(context.TODO(), podObjet, metav1.CreateOptions{})
 		if err != nil {
 			klog.Error("Fake pod object could not be created:", err)
 		}
@@ -157,7 +161,8 @@ func TestHold(t *testing.T) {
 				t.Errorf("Test case failed:expected nil error but got error:'%v'", err)
 			}
 			// Check for lease value
-			cspGot, _ := focs.oecs.OpenebsV1alpha1().CStorPools().Get(test.fakestoragepoolclaim.Name, metav1.GetOptions{})
+			cspGot, _ := focs.oecs.OpenebsV1alpha1().CStorPools().
+				Get(context.TODO(), test.fakestoragepoolclaim.Name, metav1.GetOptions{})
 			if cspGot.Annotations[CspLeaseKey] != test.expectedResult {
 				t.Errorf("Test case failed: expected lease value '%v' but got '%v' ", test.expectedResult, cspGot.Annotations[CspLeaseKey])
 

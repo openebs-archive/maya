@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"strings"
 	"sync"
 
@@ -133,38 +134,45 @@ func (k *Kubeclient) WithDefaults() {
 	}
 	if k.list == nil {
 		k.list = func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.BlockDeviceClaimList, error) {
-			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).List(opts)
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+				List(context.TODO(), opts)
 		}
 	}
 
 	if k.get == nil {
 		k.get = func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*apis.BlockDeviceClaim, error) {
-			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).Get(name, opts)
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+				Get(context.TODO(), name, opts)
 		}
 	}
 	if k.create == nil {
 		k.create = func(cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
-			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).Create(bdc)
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+				Create(context.TODO(), bdc, metav1.CreateOptions{})
 		}
 	}
 	if k.del == nil {
 		k.del = func(cli *clientset.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error {
-			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).Delete(name, deleteOpts)
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+				Delete(context.TODO(), name, *deleteOpts)
 		}
 	}
 	if k.delCollection == nil {
 		k.delCollection = func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
-			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).DeleteCollection(deleteOpts, listOpts)
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+				DeleteCollection(context.TODO(), *deleteOpts, listOpts)
 		}
 	}
 	if k.patch == nil {
 		k.patch = func(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error) {
-			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).Patch(name, pt, data, subresources...)
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+				Patch(context.TODO(), name, pt, data, metav1.PatchOptions{}, subresources...)
 		}
 	}
 	if k.update == nil {
 		k.update = func(cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
-			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).Update(bdc)
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).
+				Update(context.TODO(), bdc, metav1.UpdateOptions{})
 		}
 	}
 }

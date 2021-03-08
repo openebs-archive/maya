@@ -17,6 +17,8 @@ limitations under the License.
 package secret
 
 import (
+	"context"
+
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -92,27 +94,27 @@ func (k *Kubeclient) withDefaults() {
 	}
 	if k.get == nil {
 		k.get = func(cli *kubernetes.Clientset, namespace, name string, opts metav1.GetOptions) (*corev1.Secret, error) {
-			return cli.CoreV1().Secrets(namespace).Get(name, opts)
+			return cli.CoreV1().Secrets(namespace).Get(context.TODO(), name, opts)
 		}
 	}
 	if k.create == nil {
 		k.create = func(cli *kubernetes.Clientset, namespace string, secret *corev1.Secret) (*corev1.Secret, error) {
-			return cli.CoreV1().Secrets(namespace).Create(secret)
+			return cli.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
 		}
 	}
 	if k.list == nil {
 		k.list = func(cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*corev1.SecretList, error) {
-			return cli.CoreV1().Secrets(namespace).List(opts)
+			return cli.CoreV1().Secrets(namespace).List(context.TODO(), opts)
 		}
 	}
 	if k.update == nil {
 		k.update = func(cli *kubernetes.Clientset, namespace string, secret *corev1.Secret) (*corev1.Secret, error) {
-			return cli.CoreV1().Secrets(namespace).Update(secret)
+			return cli.CoreV1().Secrets(namespace).Update(context.TODO(), secret, metav1.UpdateOptions{})
 		}
 	}
 	if k.del == nil {
 		k.del = func(cli *kubernetes.Clientset, namespace, name string, opts *metav1.DeleteOptions) error {
-			return cli.CoreV1().Secrets(namespace).Delete(name, opts)
+			return cli.CoreV1().Secrets(namespace).Delete(context.TODO(), name, *opts)
 		}
 	}
 }

@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -39,7 +41,7 @@ var upgradetasksResource = schema.GroupVersionResource{Group: "openebs.io", Vers
 var upgradetasksKind = schema.GroupVersionKind{Group: "openebs.io", Version: "v1alpha1", Kind: "UpgradeTask"}
 
 // Get takes name of the upgradeTask, and returns the corresponding upgradeTask object, and an error if there is any.
-func (c *FakeUpgradeTasks) Get(name string, options v1.GetOptions) (result *v1alpha1.UpgradeTask, err error) {
+func (c *FakeUpgradeTasks) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.UpgradeTask, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(upgradetasksResource, c.ns, name), &v1alpha1.UpgradeTask{})
 
@@ -50,7 +52,7 @@ func (c *FakeUpgradeTasks) Get(name string, options v1.GetOptions) (result *v1al
 }
 
 // List takes label and field selectors, and returns the list of UpgradeTasks that match those selectors.
-func (c *FakeUpgradeTasks) List(opts v1.ListOptions) (result *v1alpha1.UpgradeTaskList, err error) {
+func (c *FakeUpgradeTasks) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.UpgradeTaskList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(upgradetasksResource, upgradetasksKind, c.ns, opts), &v1alpha1.UpgradeTaskList{})
 
@@ -72,14 +74,14 @@ func (c *FakeUpgradeTasks) List(opts v1.ListOptions) (result *v1alpha1.UpgradeTa
 }
 
 // Watch returns a watch.Interface that watches the requested upgradeTasks.
-func (c *FakeUpgradeTasks) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeUpgradeTasks) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(upgradetasksResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a upgradeTask and creates it.  Returns the server's representation of the upgradeTask, and an error, if there is any.
-func (c *FakeUpgradeTasks) Create(upgradeTask *v1alpha1.UpgradeTask) (result *v1alpha1.UpgradeTask, err error) {
+func (c *FakeUpgradeTasks) Create(ctx context.Context, upgradeTask *v1alpha1.UpgradeTask, opts v1.CreateOptions) (result *v1alpha1.UpgradeTask, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(upgradetasksResource, c.ns, upgradeTask), &v1alpha1.UpgradeTask{})
 
@@ -90,7 +92,7 @@ func (c *FakeUpgradeTasks) Create(upgradeTask *v1alpha1.UpgradeTask) (result *v1
 }
 
 // Update takes the representation of a upgradeTask and updates it. Returns the server's representation of the upgradeTask, and an error, if there is any.
-func (c *FakeUpgradeTasks) Update(upgradeTask *v1alpha1.UpgradeTask) (result *v1alpha1.UpgradeTask, err error) {
+func (c *FakeUpgradeTasks) Update(ctx context.Context, upgradeTask *v1alpha1.UpgradeTask, opts v1.UpdateOptions) (result *v1alpha1.UpgradeTask, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(upgradetasksResource, c.ns, upgradeTask), &v1alpha1.UpgradeTask{})
 
@@ -102,7 +104,7 @@ func (c *FakeUpgradeTasks) Update(upgradeTask *v1alpha1.UpgradeTask) (result *v1
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeUpgradeTasks) UpdateStatus(upgradeTask *v1alpha1.UpgradeTask) (*v1alpha1.UpgradeTask, error) {
+func (c *FakeUpgradeTasks) UpdateStatus(ctx context.Context, upgradeTask *v1alpha1.UpgradeTask, opts v1.UpdateOptions) (*v1alpha1.UpgradeTask, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(upgradetasksResource, "status", c.ns, upgradeTask), &v1alpha1.UpgradeTask{})
 
@@ -113,7 +115,7 @@ func (c *FakeUpgradeTasks) UpdateStatus(upgradeTask *v1alpha1.UpgradeTask) (*v1a
 }
 
 // Delete takes name of the upgradeTask and deletes it. Returns an error if one occurs.
-func (c *FakeUpgradeTasks) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeUpgradeTasks) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(upgradetasksResource, c.ns, name), &v1alpha1.UpgradeTask{})
 
@@ -121,15 +123,15 @@ func (c *FakeUpgradeTasks) Delete(name string, options *v1.DeleteOptions) error 
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeUpgradeTasks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(upgradetasksResource, c.ns, listOptions)
+func (c *FakeUpgradeTasks) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(upgradetasksResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.UpgradeTaskList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched upgradeTask.
-func (c *FakeUpgradeTasks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.UpgradeTask, err error) {
+func (c *FakeUpgradeTasks) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.UpgradeTask, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(upgradetasksResource, c.ns, name, pt, data, subresources...), &v1alpha1.UpgradeTask{})
 

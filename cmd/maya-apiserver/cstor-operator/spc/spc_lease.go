@@ -17,6 +17,7 @@ limitations under the License.
 package spc
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -110,7 +111,8 @@ func (sl *Lease) Update(podName string) error {
 	} else {
 		sl.putUpdatedValue(podName, newSpcObject)
 	}
-	_, err := sl.oecs.OpenebsV1alpha1().StoragePoolClaims().Update(newSpcObject)
+	_, err := sl.oecs.OpenebsV1alpha1().StoragePoolClaims().
+		Update(context.TODO(), newSpcObject, meta_v1.UpdateOptions{})
 	return err
 }
 
@@ -155,7 +157,8 @@ func (sl *Lease) patchSpcLeaseAnnotation() error {
 	if err != nil {
 		return fmt.Errorf("error marshalling spcPatch object: %s", err)
 	}
-	_, err = sl.oecs.OpenebsV1alpha1().StoragePoolClaims().Patch(spcObject.Name, types.JSONPatchType, spcPatchJSON)
+	_, err = sl.oecs.OpenebsV1alpha1().StoragePoolClaims().
+		Patch(context.TODO(), spcObject.Name, types.JSONPatchType, spcPatchJSON, meta_v1.PatchOptions{})
 	return err
 }
 
@@ -168,7 +171,8 @@ func (sl *Lease) isLeaderLive(leaseValueObj LeaseContract) bool {
 	holderName := leaseValueObj.Holder
 	podDetails := strings.Split(holderName, "/")
 	// Check whether the holder is live or not
-	pod, _ := sl.kubeclientset.CoreV1().Pods(podDetails[0]).Get(podDetails[1], meta_v1.GetOptions{})
+	pod, _ := sl.kubeclientset.CoreV1().Pods(podDetails[0]).
+		Get(context.TODO(), podDetails[1], meta_v1.GetOptions{})
 	if pod == nil {
 		return false
 	}

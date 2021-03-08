@@ -15,6 +15,7 @@
 package sanity
 
 import (
+	"context"
 	"flag"
 	"os"
 	"testing"
@@ -76,10 +77,10 @@ var _ = BeforeSuite(func() {
 
 	status := false
 	for i := 0; i < 300; i++ {
-		pods, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+		pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(pods).NotTo(BeNil())
-		expectedStoragePoolPods, err := clientset.CoreV1().Nodes().List(metav1.ListOptions{})
+		expectedStoragePoolPods, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
 		if kubernetes.CheckPodsRunning(*pods, 4+len(expectedStoragePoolPods.Items)) {
 			status = true
@@ -110,7 +111,7 @@ var _ = AfterSuite(func() {
 
 	status := false
 	for i := 0; i < 100; i++ {
-		namespaces, err := clientset.CoreV1().Namespaces().List(metav1.ListOptions{})
+		namespaces, err := clientset.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(namespaces).NotTo(BeNil())
 

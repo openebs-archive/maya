@@ -15,6 +15,7 @@
 package webhook
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
@@ -364,19 +365,22 @@ func TestValidatePVCDeleteRequest(t *testing.T) {
 				Namespace: test.pvc.Namespace,
 			}
 			if test.pvc != nil && test.isRequiresPVCCreation {
-				_, err := wh.kubeClient.CoreV1().PersistentVolumeClaims(test.pvc.Namespace).Create(test.pvc)
+				_, err := wh.kubeClient.CoreV1().PersistentVolumeClaims(test.pvc.Namespace).
+					Create(context.TODO(), test.pvc, metav1.CreateOptions{})
 				if err != nil {
 					t.Fatalf("%q test failed to create fake PVC %s in namespace %s err: %v", name, test.pvc.Name, test.pvc.Namespace, err)
 				}
 			}
 			if test.snapshot != nil {
-				_, err := wh.snapClientSet.VolumesnapshotV1().VolumeSnapshots(test.snapshot.Namespace).Create(test.snapshot)
+				_, err := wh.snapClientSet.VolumesnapshotV1().VolumeSnapshots(test.snapshot.Namespace).
+					Create(context.TODO(), test.snapshot, metav1.CreateOptions{})
 				if err != nil {
 					t.Fatalf("%q test failed to create fake snapshot %s in namespace %s error: %v", name, test.snapshot.Name, test.snapshot.Namespace, err)
 				}
 			}
 			if test.snapshotData != nil {
-				_, err := wh.snapClientSet.VolumesnapshotV1().VolumeSnapshotDatas().Create(test.snapshotData)
+				_, err := wh.snapClientSet.VolumesnapshotV1().VolumeSnapshotDatas().
+					Create(context.TODO(), test.snapshotData, metav1.CreateOptions{})
 				if err != nil {
 					t.Fatalf("%q test failed to create fake snapshotdata %s error: %v", name, test.snapshotData.Name, err)
 				}
@@ -393,13 +397,16 @@ func TestValidatePVCDeleteRequest(t *testing.T) {
 			}
 			// Cleanup objects
 			if test.pvc != nil {
-				wh.kubeClient.CoreV1().PersistentVolumeClaims(test.pvc.Namespace).Delete(test.pvc.Name, &metav1.DeleteOptions{})
+				wh.kubeClient.CoreV1().PersistentVolumeClaims(test.pvc.Namespace).
+					Delete(context.TODO(), test.pvc.Name, metav1.DeleteOptions{})
 			}
 			if test.snapshot != nil {
-				wh.snapClientSet.VolumesnapshotV1().VolumeSnapshots(test.snapshot.Namespace).Delete(test.snapshot.Name, &metav1.DeleteOptions{})
+				wh.snapClientSet.VolumesnapshotV1().VolumeSnapshots(test.snapshot.Namespace).
+					Delete(context.TODO(), test.snapshot.Name, metav1.DeleteOptions{})
 			}
 			if test.snapshotData != nil {
-				wh.snapClientSet.VolumesnapshotV1().VolumeSnapshotDatas().Delete(test.snapshotData.Name, &metav1.DeleteOptions{})
+				wh.snapClientSet.VolumesnapshotV1().VolumeSnapshotDatas().
+					Delete(context.TODO(), test.snapshotData.Name, metav1.DeleteOptions{})
 			}
 		})
 	}

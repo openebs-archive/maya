@@ -17,6 +17,7 @@ limitations under the License.
 package poolcontroller
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -119,7 +120,8 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 			"Failed to reconcile csp version",
 			err,
 		)
-		_, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObject)
+		_, err = c.clientset.OpenebsV1alpha1().CStorPools().
+			Update(context.TODO(), cspObject, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Errorf("failed to update versionDetails status for csp %s:%s", cspObject.Name, err.Error())
 		}
@@ -138,7 +140,8 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 
 	if err != nil {
 		klog.Errorf(err.Error())
-		_, err := c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObject)
+		_, err := c.clientset.OpenebsV1alpha1().CStorPools().
+			Update(context.TODO(), cspObject, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
@@ -153,7 +156,8 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	// ToDo: Instead of having statusSync, capacitySync we can make it generic resource sync which syncs all the
 	// ToDo: requried fields on CSP ( Some code re-organization will be required)
 	c.syncCsp(cspObject)
-	_, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObject)
+	_, err = c.clientset.OpenebsV1alpha1().CStorPools().
+		Update(context.TODO(), cspObject, metav1.UpdateOptions{})
 	if err != nil {
 		c.recorder.Event(cspObject, corev1.EventTypeWarning, string(common.FailedSynced), string(common.MessageResourceSyncFailure)+err.Error())
 		return err
@@ -432,7 +436,8 @@ func (c *CStorPoolController) getPoolResource(key string) (*apis.CStorPool, erro
 		return nil, nil
 	}
 
-	cStorPoolGot, err := c.clientset.OpenebsV1alpha1().CStorPools().Get(name, metav1.GetOptions{})
+	cStorPoolGot, err := c.clientset.OpenebsV1alpha1().CStorPools().
+		Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		// The cStorPool resource may no longer exist, in which case we stop
 		// processing.
@@ -452,7 +457,8 @@ func (c *CStorPoolController) removeFinalizer(cStorPoolGot *apis.CStorPool) erro
 		return nil
 	}
 	cStorPoolGot.Finalizers = util.RemoveString(cStorPoolGot.Finalizers, apis.PoolProtectionFinalizer)
-	_, err := c.clientset.OpenebsV1alpha1().CStorPools().Update(cStorPoolGot)
+	_, err := c.clientset.OpenebsV1alpha1().CStorPools().
+		Update(context.TODO(), cStorPoolGot, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -471,7 +477,7 @@ func (c *CStorPoolController) addPoolProtectionFinalizer(
 	cspObj, err := c.clientset.
 		OpenebsV1alpha1().
 		CStorPools().
-		Update(cStorPool)
+		Update(context.TODO(), cStorPool, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
@@ -692,7 +698,8 @@ func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStor
 		cspObj := csp.DeepCopy()
 		if csp.VersionDetails.Status.State != apis.ReconcileInProgress {
 			cspObj.VersionDetails.Status.SetInProgressStatus()
-			cspObj, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObj)
+			cspObj, err = c.clientset.OpenebsV1alpha1().CStorPools().
+				Update(context.TODO(), cspObj, metav1.UpdateOptions{})
 			if err != nil {
 				return csp, err
 			}
@@ -713,7 +720,8 @@ func (c *CStorPoolController) reconcileVersion(csp *apis.CStorPool) (*apis.CStor
 		}
 		csp = cspObj.DeepCopy()
 		cspObj.VersionDetails.SetSuccessStatus()
-		cspObj, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObj)
+		cspObj, err = c.clientset.OpenebsV1alpha1().CStorPools().
+			Update(context.TODO(), cspObj, metav1.UpdateOptions{})
 		if err != nil {
 			return csp, errors.Wrap(err, "failed to update csp with versionDetails")
 		}
@@ -734,7 +742,7 @@ func (c *CStorPoolController) populateVersion(csp *apis.CStorPool) (
 		cspObj.VersionDetails.Status.Current = v
 		cspObj.VersionDetails.Desired = v
 		cspObj, err = c.clientset.OpenebsV1alpha1().CStorPools().
-			Update(cspObj)
+			Update(context.TODO(), cspObj, metav1.UpdateOptions{})
 
 		if err != nil {
 			return csp, errors.Wrap(err, "failed to update csp while adding versiondetails")

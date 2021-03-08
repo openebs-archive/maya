@@ -17,24 +17,29 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
+
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Get is Kubernetes client implementation to get disk.
 func (k *KubernetesClient) Get(name string) (*StoragePool, error) {
-	sp, err := k.Clientset.OpenebsV1alpha1().StoragePools().Get(name, v1.GetOptions{})
+	sp, err := k.Clientset.OpenebsV1alpha1().StoragePools().
+		Get(context.TODO(), name, v1.GetOptions{})
 	return &StoragePool{sp, nil}, err
 }
 
 // List is kubernetes client implementation to list disk.
 func (k *KubernetesClient) List(opts v1.ListOptions) (*StoragePoolList, error) {
-	spList, err := k.Clientset.OpenebsV1alpha1().StoragePools().List(opts)
+	spList, err := k.Clientset.OpenebsV1alpha1().StoragePools().
+		List(context.TODO(), opts)
 	return &StoragePoolList{spList, nil, nil}, err
 }
 
 // Create is kubernetes client implementation to create disk.
 func (k *KubernetesClient) Create(spObj *apis.StoragePool) (*StoragePool, error) {
-	sp, err := k.Clientset.OpenebsV1alpha1().StoragePools().Create(spObj)
+	sp, err := k.Clientset.OpenebsV1alpha1().StoragePools().
+		Create(context.TODO(), spObj, v1.CreateOptions{})
 	return &StoragePool{sp, nil}, err
 }

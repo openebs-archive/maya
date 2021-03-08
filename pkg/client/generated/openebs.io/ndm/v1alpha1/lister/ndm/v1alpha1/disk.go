@@ -26,10 +26,13 @@ import (
 )
 
 // DiskLister helps list Disks.
+// All objects returned here must be treated as read-only.
 type DiskLister interface {
 	// List lists all Disks in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.Disk, err error)
 	// Get retrieves the Disk from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.Disk, error)
 	DiskListerExpansion
 }

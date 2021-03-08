@@ -15,6 +15,7 @@
 package v1alpha1
 
 import (
+	"context"
 	"os"
 	"strconv"
 
@@ -111,7 +112,7 @@ func (f *Framework) BeforeSuite() {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// Checking appropriate node numbers
-	nodes, _ := cl.CoreV1().Nodes().List(v1.ListOptions{})
+	nodes, _ := cl.CoreV1().Nodes().List(context.TODO(), v1.ListOptions{})
 	Expect(nodes.Items).Should(HaveLen(f.Options.MinNodeCount))
 
 	// Fetching the openebs component artifacts

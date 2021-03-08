@@ -17,7 +17,11 @@ limitations under the License.
 package resourcelock
 
 import (
+	"context"
 	"fmt"
+	clientset "k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -73,13 +77,13 @@ type ResourceLockConfig struct {
 // by the leaderelection code.
 type Interface interface {
 	// Get returns the LeaderElectionRecord
-	Get() (*LeaderElectionRecord, []byte, error)
+	Get(ctx context.Context) (*LeaderElectionRecord, []byte, error)
 
 	// Create attempts to create a LeaderElectionRecord
-	Create(ler LeaderElectionRecord) error
+	Create(ctx context.Context, ler LeaderElectionRecord) error
 
 	// Update will update and existing LeaderElectionRecord
-	Update(ler LeaderElectionRecord) error
+	Update(ctx context.Context, ler LeaderElectionRecord) error
 
 	// RecordEvent is used to record events
 	RecordEvent(string)
@@ -138,4 +142,17 @@ func New(lockType string, ns string, name string, coreClient corev1.CoreV1Interf
 	default:
 		return nil, fmt.Errorf("Invalid lock-type %s", lockType)
 	}
+}
+
+// NewFromKubeconfig will create a lock of a given type according to the input parameters.
+func NewFromKubeconfig(lockType string, ns string, name string, rlc ResourceLockConfig, kubeconfig *restclient.Config, renewDeadline time.Duration) (Interface, error) {
+	// shallow copy, do not modify the kubeconfig
+	config := *kubeconfig
+	timeout := ((renewDeadline / time.Millisecond) / 2) * time.Millisecond
+	if timeout < time.Second {
+		timeout = time.Second
+	}
+	config.Timeout = timeout
+	leaderElectionClient := clientset.NewForConfigOrDie(restclient.AddUserAgent(&config, "leader-election"))
+	return New(lockType, ns, name, leaderElectionClient.CoreV1(), leaderElectionClient.CoordinationV1(), rlc)
 }

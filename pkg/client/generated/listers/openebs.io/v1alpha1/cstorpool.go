@@ -26,10 +26,13 @@ import (
 )
 
 // CStorPoolLister helps list CStorPools.
+// All objects returned here must be treated as read-only.
 type CStorPoolLister interface {
 	// List lists all CStorPools in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.CStorPool, err error)
 	// Get retrieves the CStorPool from the index for a given name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.CStorPool, error)
 	CStorPoolListerExpansion
 }
