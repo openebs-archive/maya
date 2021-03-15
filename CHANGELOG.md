@@ -1,3 +1,27 @@
+v2.7.0 / 2021-03-11
+========================
+* Cleaned up redundant cstor code ([#1787](https://github.com/openebs/maya/pull/1787),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* Cleaned up redundant m-exporter code ([#1785](https://github.com/openebs/maya/pull/1785),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* Cleaned up dockerfiles of deprecated components ([#1788](https://github.com/openebs/maya/pull/1788),[@prateekpandey14](https://github.com/prateekpandey14))
+* Cleaned up redundant runtask upgrade code ([#1784](https://github.com/openebs/maya/pull/1784),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* Bumped k8s and client-go deps to version v0.20.2 ([#1789](https://github.com/openebs/maya/pull/1789),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* Cleaned up dynamic localpv redundant code ([#1790](https://github.com/openebs/maya/pull/1790),[@niladrih](https://github.com/niladrih))
+
+
+v2.7.0-RC2 / 2021-03-10
+========================
+
+
+v2.7.0-RC1 / 2021-03-08
+========================
+* Cleaned up redundant cstor code ([#1787](https://github.com/openebs/maya/pull/1787),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* Cleaned up redundant m-exporter code ([#1785](https://github.com/openebs/maya/pull/1785),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* Cleaned up dockerfiles of deprecated components ([#1788](https://github.com/openebs/maya/pull/1788),[@prateekpandey14](https://github.com/prateekpandey14))
+* Cleaned up redundant runtask upgrade code ([#1784](https://github.com/openebs/maya/pull/1784),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* Bumped k8s and client-go deps to version v0.20.2 ([#1789](https://github.com/openebs/maya/pull/1789),[@shubham14bajpai](https://github.com/shubham14bajpai))
+* Cleaned up dynamic localpv redundant code ([#1790](https://github.com/openebs/maya/pull/1790),[@niladrih](https://github.com/niladrih))
+
+
 v2.6.0 / 2021-02-13
 ========================
 * fix(webhook): cleanup validatingconfig on openebs namespace deletion ([#1780](https://github.com/openebs/maya/pull/1780),[@shubham14bajpai](https://github.com/shubham14bajpai))
