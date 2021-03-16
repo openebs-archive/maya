@@ -22,12 +22,12 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
-	"k8s.io/api/admission/v1beta1"
+	v1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 )
 
-func (wh *webhook) validateSPCDeleteRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+func (wh *webhook) validateSPCDeleteRequest(req *v1.AdmissionRequest) *v1.AdmissionResponse {
 	response := NewAdmissionResponse().
 		SetAllowed().
 		WithResultAsSuccess(http.StatusAccepted).AR

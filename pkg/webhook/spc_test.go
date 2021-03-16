@@ -22,7 +22,7 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
-	"k8s.io/api/admission/v1beta1"
+	v1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -232,8 +232,8 @@ func TestValidateSPCDeleteRequest(t *testing.T) {
 	for name, test := range tests {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
-			ar := &v1beta1.AdmissionRequest{
-				Operation: v1beta1.Delete,
+			ar := &v1.AdmissionRequest{
+				Operation: v1.Delete,
 				Name:      test.spcObj.Name,
 				Object: runtime.RawExtension{
 					Raw: serialize(test.spcObj),

@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
-	admission "k8s.io/api/admissionregistration/v1beta1"
+	admission "k8s.io/api/admissionregistration/v1"
 
 	"k8s.io/client-go/kubernetes"
 )
@@ -96,31 +96,31 @@ func (k *Kubeclient) withDefaults() {
 	}
 	if k.list == nil {
 		k.list = func(cs *kubernetes.Clientset, opts metav1.ListOptions) (*admission.ValidatingWebhookConfigurationList, error) {
-			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().
+			return cs.AdmissionregistrationV1().ValidatingWebhookConfigurations().
 				List(context.TODO(), opts)
 		}
 	}
 	if k.get == nil {
 		k.get = func(cs *kubernetes.Clientset, name string, opts metav1.GetOptions) (*admission.ValidatingWebhookConfiguration, error) {
-			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().
+			return cs.AdmissionregistrationV1().ValidatingWebhookConfigurations().
 				Get(context.TODO(), name, opts)
 		}
 	}
 	if k.create == nil {
 		k.create = func(cs *kubernetes.Clientset, config *admission.ValidatingWebhookConfiguration) (*admission.ValidatingWebhookConfiguration, error) {
-			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().
+			return cs.AdmissionregistrationV1().ValidatingWebhookConfigurations().
 				Create(context.TODO(), config, metav1.CreateOptions{})
 		}
 	}
 	if k.del == nil {
 		k.del = func(cs *kubernetes.Clientset, name string, opts *metav1.DeleteOptions) error {
-			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().
+			return cs.AdmissionregistrationV1().ValidatingWebhookConfigurations().
 				Delete(context.TODO(), name, *opts)
 		}
 	}
 	if k.update == nil {
 		k.update = func(cs *kubernetes.Clientset, config *admission.ValidatingWebhookConfiguration) (*admission.ValidatingWebhookConfiguration, error) {
-			return cs.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().
+			return cs.AdmissionregistrationV1().ValidatingWebhookConfigurations().
 				Update(context.TODO(), config, metav1.UpdateOptions{})
 		}
 	}

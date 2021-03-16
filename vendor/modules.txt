@@ -407,7 +407,7 @@ honnef.co/go/tools/unused
 honnef.co/go/tools/version
 # k8s.io/api v0.20.2 => k8s.io/api v0.20.2
 ## explicit
-k8s.io/api/admission/v1beta1
+k8s.io/api/admission/v1
 k8s.io/api/admissionregistration/v1
 k8s.io/api/admissionregistration/v1beta1
 k8s.io/api/apiserverinternal/v1alpha1
