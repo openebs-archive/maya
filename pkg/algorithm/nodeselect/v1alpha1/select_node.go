@@ -371,6 +371,11 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 			}
 			capacity := volume.ByteCount(bdObj.Spec.Capacity.Storage)
 
+			// WithOwnerReference method accepts an empty interface to enable
+			// setting of OwnerReference to other types of objects
+			var spc_owner interface{}
+			spc_owner = spc
+
 			//TODO: Move below code to some function
 			newBDCObj, err := bdc.NewBuilder().
 				WithName(bdcName).
@@ -379,7 +384,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 				WithBlockDeviceName(bdName).
 				WithHostName(hostName).
 				WithCapacity(capacity).
-				WithOwnerReference(spc).
+				WithOwnerReference(spc_owner).
 				WithFinalizer(spcv1alpha1.SPCFinalizer).
 				Build()
 
