@@ -18,21 +18,13 @@ package v1alpha1
 
 import (
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	// StoragePoolKind holds the value of StoragePoolClaim
-	StoragePoolKind = "StoragePoolClaim"
-
-	// APIVersion holds the value of OpenEBS version
-	APIVersion = "openebs.io/v1alpha1"
-
 	// bdTagKey defines the label selector key
 	// used for grouping block devices using a tag.
 	bdTagKey = "openebs.io/block-device-tag"
@@ -254,50 +246,9 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 
 // WithOwnerReference sets the OwnerReference field in BDC with required
 //fields
-// OwnerReference to PVC is for local-device provisioner
-func (b *Builder) WithOwnerReference(owner interface{}) *Builder {
-	if owner == nil {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build BDC object: owner object is nil"),
-		)
-		return b
-	}
-
-	_, pvc_ok := owner.(*v1.PersistentVolumeClaim)
-	_, spc_ok := owner.(*apis.StoragePoolClaim)
-	if !(pvc_ok || spc_ok) {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build BDC object: owner is not a PVC or an SPC reference type"),
-		)
-		return b
-	}
-
-	trueVal := true
-	if pvc_ok {
-		reference := metav1.OwnerReference{
-			APIVersion:         "v1",
-			Kind:               "PersistentVolumeClaim",
-			UID:                owner.(*v1.PersistentVolumeClaim).ObjectMeta.UID,
-			Name:               owner.(*v1.PersistentVolumeClaim).ObjectMeta.Name,
-			BlockOwnerDeletion: &trueVal,
-			Controller:         &trueVal,
-		}
-		b.BDC.Object.OwnerReferences = append(b.BDC.Object.OwnerReferences, reference)
-		return b
-	} else {
-		reference := metav1.OwnerReference{
-			APIVersion:         APIVersion,
-			Kind:               StoragePoolKind,
-			UID:                owner.(*apis.StoragePoolClaim).ObjectMeta.UID,
-			Name:               owner.(*apis.StoragePoolClaim).ObjectMeta.Name,
-			BlockOwnerDeletion: &trueVal,
-			Controller:         &trueVal,
-		}
-		b.BDC.Object.OwnerReferences = append(b.BDC.Object.OwnerReferences, reference)
-		return b
-	}
+func (b *Builder) WithOwnerReference(owner *metav1.OwnerReference) *Builder {
+	b.BDC.Object.OwnerReferences = append(b.BDC.Object.OwnerReferences, *owner)
+	return b
 }
 
 // WithFinalizer sets the finalizer field in the BDC
