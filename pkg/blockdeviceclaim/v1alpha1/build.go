@@ -246,8 +246,8 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 
 // WithOwnerReference sets the OwnerReference field in BDC with required
 //fields
-func (b *Builder) WithOwnerReference(owner *metav1.OwnerReference) *Builder {
-	b.BDC.Object.OwnerReferences = append(b.BDC.Object.OwnerReferences, *owner)
+func (b *Builder) WithOwnerReference(owner metav1.OwnerReference) *Builder {
+	b.BDC.Object.OwnerReferences = append(b.BDC.Object.OwnerReferences, owner)
 	return b
 }
 

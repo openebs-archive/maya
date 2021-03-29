@@ -382,7 +382,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 			// WithOwnerReference method accepts an OwnerReference object
 			// and uses it to set the owner for the BlockDeviceClaim
 			trueVal := true
-			owner := &metav1.OwnerReference{
+			owner := metav1.OwnerReference{
 				APIVersion:         OpenEBS_APIVersion,
 				Kind:               StoragePoolKind,
 				UID:                spc.ObjectMeta.UID,
