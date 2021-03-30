@@ -22,7 +22,7 @@ import (
 	snapshotapi "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	snapFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1/clientset/internalclientset/fake"
-	"k8s.io/api/admission/v1beta1"
+	v1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,38 +55,38 @@ func TestAdmissionRequired(t *testing.T) {
 func TestValidate(t *testing.T) {
 	wh := webhook{}
 	cases := map[string]struct {
-		testAdmissionRev *v1beta1.AdmissionReview
+		testAdmissionRev *v1.AdmissionReview
 		expectedResponse bool
 	}{
 		"PVC update request": {
-			testAdmissionRev: &v1beta1.AdmissionReview{
-				Request: &v1beta1.AdmissionRequest{
+			testAdmissionRev: &v1.AdmissionReview{
+				Request: &v1.AdmissionRequest{
 					Kind: metav1.GroupVersionKind{
 						Kind: "PersistentVolumeClaim",
 					},
-					Operation: v1beta1.Update,
+					Operation: v1.Update,
 				},
 			},
 			expectedResponse: true,
 		},
 		"PVC connect request": {
-			testAdmissionRev: &v1beta1.AdmissionReview{
-				Request: &v1beta1.AdmissionRequest{
+			testAdmissionRev: &v1.AdmissionReview{
+				Request: &v1.AdmissionRequest{
 					Kind: metav1.GroupVersionKind{
 						Kind: "PersistentVolumeClaim",
 					},
-					Operation: v1beta1.Connect,
+					Operation: v1.Connect,
 				},
 			},
 			expectedResponse: true,
 		},
 		"CSP create request": {
-			testAdmissionRev: &v1beta1.AdmissionReview{
-				Request: &v1beta1.AdmissionRequest{
+			testAdmissionRev: &v1.AdmissionReview{
+				Request: &v1.AdmissionRequest{
 					Kind: metav1.GroupVersionKind{
 						Kind: "CStorPool",
 					},
-					Operation: v1beta1.Create,
+					Operation: v1.Create,
 				},
 			},
 			expectedResponse: true,
@@ -133,8 +133,8 @@ func TestValidatePVCCreateRequest(t *testing.T) {
 		},
 	}
 	for _, test := range cases {
-		webhookReq := &v1beta1.AdmissionRequest{
-			Operation: v1beta1.Create,
+		webhookReq := &v1.AdmissionRequest{
+			Operation: v1.Create,
 			Object: runtime.RawExtension{
 				Raw: serialize(test.fakePVC),
 			},
@@ -354,8 +354,8 @@ func TestValidatePVCDeleteRequest(t *testing.T) {
 	for name, test := range tests {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
-			request := &v1beta1.AdmissionRequest{
-				Operation: v1beta1.Delete,
+			request := &v1.AdmissionRequest{
+				Operation: v1.Delete,
 				Kind: metav1.GroupVersionKind{
 					Group:   "",
 					Version: "v1",

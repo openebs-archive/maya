@@ -30,7 +30,7 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
-	"k8s.io/api/admissionregistration/v1beta1"
+	v1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -59,7 +59,7 @@ const (
 
 type transformSvcFunc func(*corev1.Service)
 type transformSecretFunc func(*corev1.Secret)
-type transformConfigFunc func(*v1beta1.ValidatingWebhookConfiguration)
+type transformConfigFunc func(*v1.ValidatingWebhookConfiguration)
 
 var (
 	// TimeoutSeconds specifies the timeout for this webhook. After the timeout passes,
@@ -68,11 +68,11 @@ var (
 	// The timeout value must be between 1 and 30 seconds.
 	five = int32(5)
 	// Ignore means that an error calling the webhook is ignored.
-	Ignore = v1beta1.Ignore
+	Ignore = v1.Ignore
 	// Fail means that an error calling the webhook causes the admission to fail.
-	Fail = v1beta1.Fail
+	Fail = v1.Fail
 	// SideEffectClassNone means that calling the webhook will have no side effects.
-	SideEffectClassNone = v1beta1.SideEffectClassNone
+	SideEffectClassNone = v1.SideEffectClassNone
 	// WebhookFailurePolicye represents failure policy env name to make it configurable
 	// via ENV
 	WebhookFailurePolicy = "ADMISSION_WEBHOOK_FAILURE_POLICY"
@@ -86,31 +86,31 @@ var (
 		addNSWithDeleteRule,
 		addSideEffects,
 	}
-	cvcRuleWithOperations = v1beta1.RuleWithOperations{
-		Operations: []v1beta1.OperationType{
-			v1beta1.Update,
+	cvcRuleWithOperations = v1.RuleWithOperations{
+		Operations: []v1.OperationType{
+			v1.Update,
 		},
-		Rule: v1beta1.Rule{
+		Rule: v1.Rule{
 			APIGroups:   []string{"*"},
 			APIVersions: []string{"*"},
 			Resources:   []string{"cstorvolumeclaims"},
 		},
 	}
-	spcRuleWithOperations = v1beta1.RuleWithOperations{
-		Operations: []v1beta1.OperationType{
-			v1beta1.Delete,
+	spcRuleWithOperations = v1.RuleWithOperations{
+		Operations: []v1.OperationType{
+			v1.Delete,
 		},
-		Rule: v1beta1.Rule{
+		Rule: v1.Rule{
 			APIGroups:   []string{"*"},
 			APIVersions: []string{"*"},
 			Resources:   []string{"storagepoolclaims"},
 		},
 	}
-	nsRuleWithOperations = v1beta1.RuleWithOperations{
-		Operations: []v1beta1.OperationType{
-			v1beta1.Delete,
+	nsRuleWithOperations = v1.RuleWithOperations{
+		Operations: []v1.OperationType{
+			v1.Delete,
 		},
-		Rule: v1beta1.Rule{
+		Rule: v1.Rule{
 			APIGroups:   []string{"*"},
 			APIVersions: []string{"*"},
 			Resources:   []string{"namespaces"},
@@ -200,27 +200,27 @@ func createValidatingWebhookConfig(
 		)
 	}
 
-	webhookHandler := v1beta1.ValidatingWebhook{
+	webhookHandler := v1.ValidatingWebhook{
 		Name: webhookHandlerName,
-		Rules: []v1beta1.RuleWithOperations{
+		Rules: []v1.RuleWithOperations{
 			{
-				Operations: []v1beta1.OperationType{
-					v1beta1.Create,
-					v1beta1.Delete,
+				Operations: []v1.OperationType{
+					v1.Create,
+					v1.Delete,
 				},
-				Rule: v1beta1.Rule{
+				Rule: v1.Rule{
 					APIGroups:   []string{"*"},
 					APIVersions: []string{"*"},
 					Resources:   []string{"persistentvolumeclaims"},
 				},
 			},
 			{
-				Operations: []v1beta1.OperationType{
-					v1beta1.Create,
-					v1beta1.Update,
-					v1beta1.Delete,
+				Operations: []v1.OperationType{
+					v1.Create,
+					v1.Update,
+					v1.Delete,
 				},
-				Rule: v1beta1.Rule{
+				Rule: v1.Rule{
 					APIGroups:   []string{"openebs.io"},
 					APIVersions: []string{"v1alpha1"},
 					Resources:   []string{"cstorpoolclusters"},
@@ -230,8 +230,8 @@ func createValidatingWebhookConfig(
 			spcRuleWithOperations,
 			nsRuleWithOperations,
 		},
-		ClientConfig: v1beta1.WebhookClientConfig{
-			Service: &v1beta1.ServiceReference{
+		ClientConfig: v1.WebhookClientConfig{
+			Service: &v1.ServiceReference{
 				Namespace: namespace,
 				Name:      serviceName,
 				Path:      StrPtr(validationPath),
@@ -243,10 +243,10 @@ func createValidatingWebhookConfig(
 		SideEffects:    &SideEffectClassNone,
 	}
 
-	validator := &v1beta1.ValidatingWebhookConfiguration{
+	validator := &v1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "validatingWebhookConfiguration",
-			APIVersion: "admissionregistration.k8s.io/v1beta1",
+			APIVersion: "admissionregistration.k8s.io/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: validatorWebhook,
@@ -257,7 +257,7 @@ func createValidatingWebhookConfig(
 			},
 			OwnerReferences: []metav1.OwnerReference{ownerReference},
 		},
-		Webhooks: []v1beta1.ValidatingWebhook{webhookHandler},
+		Webhooks: []v1.ValidatingWebhook{webhookHandler},
 	}
 
 	_, err = validate.KubeClient().Create(validator)
@@ -326,7 +326,7 @@ func createCertsSecret(
 // Openebs namespace.
 func GetValidatorWebhook(
 	validator string,
-) (*v1beta1.ValidatingWebhookConfiguration, error) {
+) (*v1.ValidatingWebhookConfiguration, error) {
 
 	return validate.KubeClient().Get(validator, metav1.GetOptions{})
 }
@@ -486,7 +486,7 @@ func GetAdmissionReference() (*metav1.OwnerReference, error) {
 
 // addCSPCDeleteRule adds the DELETE operation to for CSPC if coming from 1.6.0
 // or older version
-func addCSPCDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
+func addCSPCDeleteRule(config *v1.ValidatingWebhookConfiguration) {
 	if util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "1.7.0") {
 		index := -1
 		// find the index of the RuleWithOperations having CSPC
@@ -500,7 +500,7 @@ func addCSPCDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
 		if index != -1 {
 			config.Webhooks[0].Rules[index].Operations = append(
 				config.Webhooks[0].Rules[index].Operations,
-				v1beta1.Delete,
+				v1.Delete,
 			)
 		}
 	}
@@ -508,7 +508,7 @@ func addCSPCDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
 
 // addCVCWithUpdateRule adds the CVC webhook config with UPDATE operation if coming from
 // previous versions
-func addCVCWithUpdateRule(config *v1beta1.ValidatingWebhookConfiguration) {
+func addCVCWithUpdateRule(config *v1.ValidatingWebhookConfiguration) {
 	if util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "1.8.0") {
 		// Currenly we have only one webhook validation so CVC rule in under
 		// same webhook.
@@ -517,19 +517,19 @@ func addCVCWithUpdateRule(config *v1beta1.ValidatingWebhookConfiguration) {
 	}
 }
 
-func addSPCWithDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
+func addSPCWithDeleteRule(config *v1.ValidatingWebhookConfiguration) {
 	if util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "1.11.0") {
 		config.Webhooks[0].Rules = append(config.Webhooks[0].Rules, spcRuleWithOperations)
 	}
 }
 
-func addNSWithDeleteRule(config *v1beta1.ValidatingWebhookConfiguration) {
+func addNSWithDeleteRule(config *v1.ValidatingWebhookConfiguration) {
 	if util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "2.1.0") {
 		config.Webhooks[0].Rules = append(config.Webhooks[0].Rules, nsRuleWithOperations)
 	}
 }
 
-func addSideEffects(config *v1beta1.ValidatingWebhookConfiguration) {
+func addSideEffects(config *v1.ValidatingWebhookConfiguration) {
 	if util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "2.4.0") {
 		config.Webhooks[0].SideEffects = &SideEffectClassNone
 	}
@@ -576,7 +576,7 @@ func getOldSecret(openebsNamespace string) (*corev1.SecretList, error) {
 
 }
 
-func getOldConfig() (*v1beta1.ValidatingWebhookConfigurationList, error) {
+func getOldConfig() (*v1.ValidatingWebhookConfigurationList, error) {
 	v100HelmConfig := "openebs-validation-webhook-cfg"
 	v100OperatorConfig := "validation-webhook-cfg"
 	// fetch config 1.1.0 onwards based on label
@@ -693,8 +693,8 @@ func preUpgrade(openebsNamespace string) error {
 // deployments.
 //
 // Default failure Policy is `Fail` if not provided.
-func failurePolicy() *v1beta1.FailurePolicyType {
-	var policyType *v1beta1.FailurePolicyType
+func failurePolicy() *v1.FailurePolicyType {
+	var policyType *v1.FailurePolicyType
 	policy, present := os.LookupEnv(WebhookFailurePolicy)
 	if !present {
 		policyType = &Fail

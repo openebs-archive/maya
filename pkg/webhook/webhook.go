@@ -32,8 +32,8 @@ import (
 	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
 	snapclient "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1/clientset/internalclientset"
 	"github.com/pkg/errors"
-	"k8s.io/api/admission/v1beta1"
-	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog"
@@ -98,7 +98,7 @@ type Parameters struct {
 
 func init() {
 	_ = corev1.AddToScheme(runtimeScheme)
-	_ = admissionregistrationv1beta1.AddToScheme(runtimeScheme)
+	_ = admissionregistrationv1.AddToScheme(runtimeScheme)
 	// defaulting with webhooks:
 	// https://github.com/kubernetes/kubernetes/issues/57982
 	_ = v1.AddToScheme(runtimeScheme)
@@ -215,8 +215,8 @@ func validationRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool 
 }
 
 // validatePVCDeleteRequest validates the persistentvolumeclaim(PVC) delete request
-func (wh *webhook) validatePVCDeleteRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
-	response := &v1beta1.AdmissionResponse{}
+func (wh *webhook) validatePVCDeleteRequest(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
+	response := &admissionv1.AdmissionResponse{}
 	response.Allowed = true
 
 	// ignore the Delete request of PVC if resource name is empty which
@@ -308,8 +308,8 @@ func (wh *webhook) validatePVCDeleteRequest(req *v1beta1.AdmissionRequest) *v1be
 }
 
 // validatePVCCreateRequest validates persistentvolumeclaim(PVC) create request
-func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
-	response := &v1beta1.AdmissionResponse{}
+func (wh *webhook) validatePVCCreateRequest(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
+	response := &admissionv1.AdmissionResponse{}
 	response.Allowed = true
 
 	var pvc corev1.PersistentVolumeClaim
@@ -407,9 +407,9 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 }
 
 // validate validates the persistentvolumeclaim(PVC) create, delete request
-func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+func (wh *webhook) validate(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	req := ar.Request
-	response := &v1beta1.AdmissionResponse{}
+	response := &admissionv1.AdmissionResponse{}
 	response.Allowed = true
 	klog.Info("Admission webhook request received")
 	switch req.Kind.Kind {
@@ -428,14 +428,14 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 	}
 }
 
-func (wh *webhook) validatePVC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+func (wh *webhook) validatePVC(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	req := ar.Request
-	response := &v1beta1.AdmissionResponse{}
+	response := &admissionv1.AdmissionResponse{}
 	response.Allowed = true
 	// validates only if requested operation is CREATE or DELETE
-	if req.Operation == v1beta1.Create {
+	if req.Operation == admissionv1.Create {
 		return wh.validatePVCCreateRequest(req)
-	} else if req.Operation == v1beta1.Delete {
+	} else if req.Operation == admissionv1.Delete {
 		return wh.validatePVCDeleteRequest(req)
 	}
 	klog.V(2).Info("Admission wehbook for PVC module not " +
@@ -443,9 +443,9 @@ func (wh *webhook) validatePVC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRe
 	return response
 }
 
-func (wh *webhook) validateNamespace(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+func (wh *webhook) validateNamespace(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	req := ar.Request
-	response := &v1beta1.AdmissionResponse{}
+	response := &admissionv1.AdmissionResponse{}
 	response.Allowed = true
 	openebsNamespace, err := getOpenebsNamespace()
 	if err != nil {
@@ -456,7 +456,7 @@ func (wh *webhook) validateNamespace(ar *v1beta1.AdmissionReview) *v1beta1.Admis
 		return response
 	}
 	// validates only if requested operation is DELETE
-	if openebsNamespace == req.Name && req.Operation == v1beta1.Delete {
+	if openebsNamespace == req.Name && req.Operation == admissionv1.Delete {
 		return wh.validateNamespaceDeleteRequest(req)
 	}
 	klog.V(2).Info("Admission wehbook for Namespace module not " +
@@ -464,8 +464,8 @@ func (wh *webhook) validateNamespace(ar *v1beta1.AdmissionReview) *v1beta1.Admis
 	return response
 }
 
-func (wh *webhook) validateNamespaceDeleteRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
-	response := &v1beta1.AdmissionResponse{}
+func (wh *webhook) validateNamespaceDeleteRequest(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
+	response := &admissionv1.AdmissionResponse{}
 	response.Allowed = true
 	svcLabel := "openebs.io/controller-service=jiva-controller-svc"
 
@@ -556,11 +556,11 @@ func (wh *webhook) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var admissionResponse *v1beta1.AdmissionResponse
-	ar := v1beta1.AdmissionReview{}
+	var admissionResponse *admissionv1.AdmissionResponse
+	ar := admissionv1.AdmissionReview{}
 	if _, _, err := deserializer.Decode(body, nil, &ar); err != nil {
 		klog.Errorf("Can't decode body: %v", err)
-		admissionResponse = &v1beta1.AdmissionResponse{
+		admissionResponse = &admissionv1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
 			},
@@ -571,7 +571,7 @@ func (wh *webhook) Serve(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	admissionReview := v1beta1.AdmissionReview{}
+	admissionReview := admissionv1.AdmissionReview{}
 	if admissionResponse != nil {
 		admissionReview.Response = admissionResponse
 		if ar.Request != nil {
@@ -591,12 +591,12 @@ func (wh *webhook) Serve(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (wh *webhook) validateSPC(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+func (wh *webhook) validateSPC(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	req := ar.Request
-	response := &v1beta1.AdmissionResponse{}
+	response := &admissionv1.AdmissionResponse{}
 	response.Allowed = true
 	// validates only if requested operation is DELETE
-	if req.Operation == v1beta1.Delete {
+	if req.Operation == admissionv1.Delete {
 		return wh.validateSPCDeleteRequest(req)
 	}
 	klog.V(4).Info("Admission wehbook for SPC module not "+

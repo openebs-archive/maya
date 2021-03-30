@@ -17,18 +17,18 @@ limitations under the License.
 package webhook
 
 import (
-	"k8s.io/api/admission/v1beta1"
+	v1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // AdmissionResponse embeds K8S admission response API.
 type AdmissionResponse struct {
-	AR *v1beta1.AdmissionResponse
+	AR *v1.AdmissionResponse
 }
 
 // NewAdmissionResponse returns an empty instance of AdmissionResponse.
 func NewAdmissionResponse() *AdmissionResponse {
-	return &AdmissionResponse{AR: &v1beta1.AdmissionResponse{}}
+	return &AdmissionResponse{AR: &v1.AdmissionResponse{}}
 }
 
 // WithResultAsFailure sets failure result.
@@ -64,6 +64,6 @@ func (ar *AdmissionResponse) UnSetAllowed() *AdmissionResponse {
 }
 
 // BuildForAPIObject builds for api admission response object.
-func BuildForAPIObject(ar *v1beta1.AdmissionResponse) *AdmissionResponse {
+func BuildForAPIObject(ar *v1.AdmissionResponse) *AdmissionResponse {
 	return &AdmissionResponse{AR: ar}
 }
