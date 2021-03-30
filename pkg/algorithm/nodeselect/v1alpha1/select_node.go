@@ -38,6 +38,10 @@ const (
 	// device.
 	// For more info : https://github.com/openebs/node-disk-manager/pull/400
 	BlockDeviceTagLabelKey = "openebs.io/block-device-tag"
+	// StoragePoolKind holds the value of StoragePoolClaim
+	StoragePoolKind = "StoragePoolClaim"
+	// APIVersion holds the value of OpenEBS version
+	OpenEBS_APIVersion = "openebs.io/v1alpha1"
 )
 
 // BDDetails holds the claimed block device details
@@ -371,6 +375,22 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 			}
 			capacity := volume.ByteCount(bdObj.Spec.Capacity.Storage)
 
+			// Setting OwnerReference
+			if spc == nil {
+				return nil, errors.Errorf("failed to build BDC object: spc object is nil")
+			}
+			// WithOwnerReference method accepts an OwnerReference object
+			// and uses it to set the owner for the BlockDeviceClaim
+			trueVal := true
+			owner := metav1.OwnerReference{
+				APIVersion:         OpenEBS_APIVersion,
+				Kind:               StoragePoolKind,
+				UID:                spc.ObjectMeta.UID,
+				Name:               spc.ObjectMeta.Name,
+				BlockOwnerDeletion: &trueVal,
+				Controller:         &trueVal,
+			}
+
 			//TODO: Move below code to some function
 			newBDCObj, err := bdc.NewBuilder().
 				WithName(bdcName).
@@ -379,7 +399,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 				WithBlockDeviceName(bdName).
 				WithHostName(hostName).
 				WithCapacity(capacity).
-				WithOwnerReference(spc).
+				WithOwnerReference(owner).
 				WithFinalizer(spcv1alpha1.SPCFinalizer).
 				Build()
 
