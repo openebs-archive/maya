@@ -254,7 +254,7 @@ for i in $(seq 1 $retry_cnt) ; do
 	## Iterate over all the finalizers and verify for existence of pool protection
 	## finalizer.
 	for finalizer in $(echo "$finalizerList" | tr "," " "); do
-		if [ "$finalizer" == "openebs.io/pool-protection" ]; then
+		if [ "$finalizer" == "\"openebs.io/pool-protection\"" ]; then
 			finalizer_found=1
 			break
 		fi
