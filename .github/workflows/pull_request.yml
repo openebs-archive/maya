@@ -16,6 +16,9 @@ name: ci
 
 on:
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - 'changelogs/**'
     branches:
       # on pull requests to master and release branches
       - master
