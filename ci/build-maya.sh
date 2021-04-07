@@ -16,6 +16,7 @@ if [ ${CI_TAG} != "ci" ]; then
   sudo docker tag ${IMAGE_ORG}/m-apiserver-amd64:ci ${IMAGE_ORG}/m-apiserver:${CI_TAG}
   sudo docker tag ${IMAGE_ORG}/cstor-pool-mgmt-amd64:ci ${IMAGE_ORG}/cstor-pool-mgmt:${CI_TAG}
   sudo docker tag ${IMAGE_ORG}/cstor-volume-mgmt-amd64:ci ${IMAGE_ORG}/cstor-volume-mgmt:${CI_TAG}
+  sudo docker tag ${IMAGE_ORG}/admission-server-amd64:ci ${IMAGE_ORG}/admission-server:${CI_TAG}
 fi
 
 #Tag the images with quay.io, since the operator can either have quay or docker images

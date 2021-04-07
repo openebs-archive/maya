@@ -67,7 +67,6 @@ script:
     be available"; kubectl get pods --all-namespaces; done
   - ./buildscripts/travis-build.sh
   - ./ci/travis-ci.sh;
-  - make deploy-images
   # If this build is running due to travis release tag, and
   # this job indicates to push the release downstream, then
   # go ahead and tag the dependent repo.
