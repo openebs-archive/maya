@@ -38,7 +38,7 @@ addons:
 before_install:
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo apt-get update -qq
-  - sudo apt-get install --yes -qq gcc jq
+  - sudo apt-get install --yes -qq gcc jq zip conntrack
   - sudo apt-get install --yes -qq libudev-dev
 
 install: true
@@ -46,35 +46,27 @@ install: true
   - make format
 
 before_script:
-  # Install build/test dependencies for each platform
-  # Download kubectl, which is a requirement for using minikube.
-  # Download minikube.
-  # Wait for Kubernetes to be up and ready.
-  - if [ "$TRAVIS_CPU_ARCH" == "amd64" ]; then
-      curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/;
-      curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.35.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/;
-      mkdir -p $HOME/.kube $HOME/.minikube;
-      touch $KUBECONFIG;
-      sudo minikube start --vm-driver=none --kubernetes-version=v1.13.0;
-      sudo chown -R travis /home/travis/.minikube/;
-      JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done;
-    fi
-  # install zip package for arm64
-  - if [[ "$TRAVIS_CPU_ARCH" == "arm64" || "$TRAVIS_CPU_ARCH" == "ppc64le" ]]; then
-      sudo apt-get install --yes zip;
-    fi
+- curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.20.1/bin/linux/amd64/kubectl
+  && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+- curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.16.0/minikube-linux-amd64
+  && chmod +x minikube && sudo mv minikube /usr/local/bin/
+- mkdir -p $HOME/.kube $HOME/.minikube
+- touch $KUBECONFIG
+- sudo minikube start --profile=minikube --vm-driver=none --kubernetes-version=v1.20.1
+- minikube update-context --profile=minikube
+- "sudo chown -R travis: /home/travis/.minikube/"
+- eval "$(minikube docker-env --profile=minikube)" && export DOCKER_CLI='docker'
+- JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}';
+  until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do
+  sleep 1; done
 script:
-  # Verify kube-addon-manager.
-  # kube-addon-manager is responsible for managing other kubernetes components, such as kube-dns, dashboard, storage-provisioner.
-  - if [ "$TRAVIS_CPU_ARCH" == "amd64" ]; then
-      kubectl cluster-info;
-      JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n kube-system get pods -lcomponent=kube-addon-manager -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1;echo "waiting for kube-addon-manager to be available"; kubectl get pods --all-namespaces; done;
-      kubectl get deployment;
-    fi
+  - kubectl cluster-info
+  - JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}';
+    until kubectl -n kube-system get pods -lk8s-app=kube-dns -o jsonpath="$JSONPATH"
+    2>&1 | grep -q "Ready=True"; do sleep 1;echo "waiting for kube-dns to
+    be available"; kubectl get pods --all-namespaces; done
   - ./buildscripts/travis-build.sh
-  - if [ "$TRAVIS_CPU_ARCH" == "amd64" ]; then
-      ./ci/travis-ci.sh;
-    fi
+  - ./ci/travis-ci.sh;
   - make deploy-images
   # If this build is running due to travis release tag, and
   # this job indicates to push the release downstream, then
