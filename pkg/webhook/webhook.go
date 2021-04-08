@@ -571,7 +571,12 @@ func (wh *webhook) Serve(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	admissionReview := admissionv1.AdmissionReview{}
+	admissionReview := admissionv1.AdmissionReview{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: admissionv1.SchemeGroupVersion.String(),
+			Kind:       "AdmissionReview",
+		},
+	}
 	if admissionResponse != nil {
 		admissionReview.Response = admissionResponse
 		if ar.Request != nil {

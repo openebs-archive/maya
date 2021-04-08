@@ -238,9 +238,10 @@ func createValidatingWebhookConfig(
 			},
 			CABundle: signingCert,
 		},
-		TimeoutSeconds: &five,
-		FailurePolicy:  failurePolicy(),
-		SideEffects:    &SideEffectClassNone,
+		TimeoutSeconds:          &five,
+		FailurePolicy:           failurePolicy(),
+		AdmissionReviewVersions: []string{"v1"},
+		SideEffects:             &SideEffectClassNone,
 	}
 
 	validator := &v1.ValidatingWebhookConfiguration{
@@ -666,7 +667,7 @@ func preUpgrade(openebsNamespace string) error {
 	for _, config := range webhookConfigList.Items {
 		if config.Labels[string(apis.OpenEBSVersionKey)] != version.Current() {
 			if config.Labels[string(apis.OpenEBSVersionKey)] == "" ||
-				util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "1.12.0") {
+				util.IsCurrentLessThanNewVersion(config.Labels[string(apis.OpenEBSVersionKey)], "2.8.0") {
 				err = validate.KubeClient().Delete(config.Name, &metav1.DeleteOptions{})
 				if err != nil {
 					return fmt.Errorf("failed to delete older webhook config %s: %s", config.Name, err.Error())
