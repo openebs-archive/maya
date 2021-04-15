@@ -1,3 +1,19 @@
+v2.8.0 / 2021-04-14
+========================
+* refact(webhook): use v1 admission apis for webhook specific configs ([#1794](https://github.com/openebs/maya/pull/1794),[@prateekpandey14](https://github.com/prateekpandey14))
+* refact(builder): add ownerReference as a parameter to BDC ([#1795](https://github.com/openebs/maya/pull/1795),[@niladrih](https://github.com/niladrih))
+
+
+v2.8.0-RC2 / 2021-04-12
+========================
+
+
+v2.8.0-RC1 / 2021-04-08
+========================
+* refact(webhook): use v1 admission apis for webhook specific configs ([#1794](https://github.com/openebs/maya/pull/1794),[@prateekpandey14](https://github.com/prateekpandey14))
+* refact(builder): add ownerReference as a parameter to BDC ([#1795](https://github.com/openebs/maya/pull/1795),[@niladrih](https://github.com/niladrih))
+
+
 v2.7.0 / 2021-03-11
 ========================
 * Cleaned up redundant cstor code ([#1787](https://github.com/openebs/maya/pull/1787),[@shubham14bajpai](https://github.com/shubham14bajpai))
