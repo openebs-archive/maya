@@ -14,13 +14,24 @@
 name: build
 
 on:
+  create:
   push:
+    branches:
+      - 'master'
+      - 'v*'
     paths-ignore:
-    - 'docs/**'
-    - 'changelogs/**'
+      - '*.md'
+      - 'BUILDMETA'
+      - 'changelogs/**'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'MAINTAINERS'
+      - 'VERSION'
 
 jobs:
   lint:
+    # to ignore builds on release
+    if: ${{ (github.event.ref_type != 'tag') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
