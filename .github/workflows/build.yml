@@ -53,6 +53,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Set Image Org
+        # sets the default IMAGE_ORG to openebs
+        run: |
+          [ -z "${{ secrets.IMAGE_ORG }}" ] && IMAGE_ORG=openebs || IMAGE_ORG=${{ secrets.IMAGE_ORG }}
+          echo "IMAGE_ORG=${IMAGE_ORG}" >> $GITHUB_ENV
+
+      - name: Set Build Date
+        id: date
+        run: |
+          echo "::set-output name=DATE::$(date -u +'%Y-%m-%dT%H:%M:%S%Z')"
+
       - name: Set Tag
         run: |
           BRANCH="${GITHUB_REF##*/}"
@@ -63,10 +74,23 @@ jobs:
           echo "TAG=${CI_TAG}" >> $GITHUB_ENV
           echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
       
+      - name: Docker meta
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v1
+        with:
+          # add each registry to which the image needs to be pushed here
+          images: |
+            ${{ env.IMAGE_ORG }}/m-apiserver
+            quay.io/${{ env.IMAGE_ORG }}/m-apiserver
+          tag-latest: false
+          tag-custom-only: true
+          tag-custom: |
+            ${{ env.TAG }}
+
       - name: Print Tag info
         run: |
           echo "BRANCH: ${BRANCH}"
-          echo "TAG: ${TAG}"
+          echo "${{ steps.docker_meta.outputs.tags }}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -85,12 +109,27 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Login to Quay
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_TOKEN }}
+
       - name: Build & Push Image
-        env:
-          IMAGE_ORG: ${{ secrets.IMAGE_ORG}}
-        run: |
-          make docker.buildx.apiserver
-          make buildx.push.apiserver
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./buildscripts/apiserver/apiserver.Dockerfile
+          push: true
+          platforms: linux/amd64, linux/arm64
+          tags: |
+            ${{ steps.docker_meta.outputs.tags }}
+          build-args: |
+            DBUILD_DATE=${{ steps.date.outputs.DATE }}
+            DBUILD_REPO_URL=https://github.com/openebs/maya
+            DBUILD_SITE_URL=https://openebs.io
+            BRANCH=${{ env.BRANCH }}
 
   cstor-pool-mgmt:
     runs-on: ubuntu-latest
@@ -99,6 +138,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Set Image Org
+        # sets the default IMAGE_ORG to openebs
+        run: |
+          [ -z "${{ secrets.IMAGE_ORG }}" ] && IMAGE_ORG=openebs || IMAGE_ORG=${{ secrets.IMAGE_ORG }}
+          echo "IMAGE_ORG=${IMAGE_ORG}" >> $GITHUB_ENV
+
+      - name: Set Build Date
+        id: date
+        run: |
+          echo "::set-output name=DATE::$(date -u +'%Y-%m-%dT%H:%M:%S%Z')"
+
       - name: Set Tag
         run: |
           BRANCH="${GITHUB_REF##*/}"
@@ -109,10 +159,23 @@ jobs:
           echo "TAG=${CI_TAG}" >> $GITHUB_ENV
           echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
           
+      - name: Docker meta
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v1
+        with:
+          # add each registry to which the image needs to be pushed here
+          images: |
+            ${{ env.IMAGE_ORG }}/cstor-pool-mgmt
+            quay.io/${{ env.IMAGE_ORG }}/cstor-pool-mgmt
+          tag-latest: false
+          tag-custom-only: true
+          tag-custom: |
+            ${{ env.TAG }}
+      
       - name: Print Tag info
         run: |
           echo "BRANCH: ${BRANCH}"
-          echo "TAG: ${TAG}"
+          echo "${{ steps.docker_meta.outputs.tags }}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -131,13 +194,29 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Login to Quay
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_TOKEN }}
+
       - name: Build & Push Image
-        env:
-          IMAGE_ORG: ${{ secrets.IMAGE_ORG}}
-        run: |
-          make docker.buildx.cstor-pool-mgmt
-          make buildx.push.cstor-pool-mgmt
-  
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./buildscripts/cstor-pool-mgmt/cstor-pool-mgmt.Dockerfile
+          push: true
+          platforms: linux/amd64, linux/arm64
+          tags: |
+            ${{ steps.docker_meta.outputs.tags }}
+          build-args: |
+            DBUILD_DATE=${{ steps.date.outputs.DATE }}
+            DBUILD_REPO_URL=https://github.com/openebs/maya
+            DBUILD_SITE_URL=https://openebs.io
+            BRANCH=${{ env.BRANCH }}
+            BASE_IMAGE=${{ env.IMAGE_ORG }}/cstor-base:${{ env.TAG }}
+
   cstor-volume-mgmt:
     runs-on: ubuntu-latest
     needs: ['lint']
@@ -145,6 +224,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Set Image Org
+        # sets the default IMAGE_ORG to openebs
+        run: |
+          [ -z "${{ secrets.IMAGE_ORG }}" ] && IMAGE_ORG=openebs || IMAGE_ORG=${{ secrets.IMAGE_ORG }}
+          echo "IMAGE_ORG=${IMAGE_ORG}" >> $GITHUB_ENV
+
+      - name: Set Build Date
+        id: date
+        run: |
+          echo "::set-output name=DATE::$(date -u +'%Y-%m-%dT%H:%M:%S%Z')"
+
       - name: Set Tag
         run: |
           BRANCH="${GITHUB_REF##*/}"
@@ -155,10 +245,23 @@ jobs:
           echo "TAG=${CI_TAG}" >> $GITHUB_ENV
           echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
           
+      - name: Docker meta
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v1
+        with:
+          # add each registry to which the image needs to be pushed here
+          images: |
+            ${{ env.IMAGE_ORG }}/cstor-volume-mgmt
+            quay.io/${{ env.IMAGE_ORG }}/cstor-volume-mgmt
+          tag-latest: false
+          tag-custom-only: true
+          tag-custom: |
+            ${{ env.TAG }}      
+
       - name: Print Tag info
         run: |
           echo "BRANCH: ${BRANCH}"
-          echo "TAG: ${TAG}"
+          echo "${{ steps.docker_meta.outputs.tags }}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -177,13 +280,28 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Login to Quay
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_TOKEN }}
+
       - name: Build & Push Image
-        env:
-          IMAGE_ORG: ${{ secrets.IMAGE_ORG}}
-        run: |
-          make docker.buildx.cstor-volume-mgmt
-          make buildx.push.cstor-volume-mgmt
-  
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./buildscripts/cstor-volume-mgmt/cstor-volume-mgmt.Dockerfile
+          push: true
+          platforms: linux/amd64, linux/arm64
+          tags: |
+            ${{ steps.docker_meta.outputs.tags }}
+          build-args: |
+            DBUILD_DATE=${{ steps.date.outputs.DATE }}
+            DBUILD_REPO_URL=https://github.com/openebs/maya
+            DBUILD_SITE_URL=https://openebs.io
+            BRANCH=${{ env.BRANCH }}
+
   admission-server:
     runs-on: ubuntu-latest
     needs: ['lint']
@@ -191,6 +309,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Set Image Org
+        # sets the default IMAGE_ORG to openebs
+        run: |
+          [ -z "${{ secrets.IMAGE_ORG }}" ] && IMAGE_ORG=openebs || IMAGE_ORG=${{ secrets.IMAGE_ORG }}
+          echo "IMAGE_ORG=${IMAGE_ORG}" >> $GITHUB_ENV
+
+      - name: Set Build Date
+        id: date
+        run: |
+          echo "::set-output name=DATE::$(date -u +'%Y-%m-%dT%H:%M:%S%Z')"
+
       - name: Set Tag
         run: |
           BRANCH="${GITHUB_REF##*/}"
@@ -201,10 +330,23 @@ jobs:
           echo "TAG=${CI_TAG}" >> $GITHUB_ENV
           echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
           
+      - name: Docker meta
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v1
+        with:
+          # add each registry to which the image needs to be pushed here
+          images: |
+            ${{ env.IMAGE_ORG }}/admission-server
+            quay.io/${{ env.IMAGE_ORG }}/admission-server
+          tag-latest: false
+          tag-custom-only: true
+          tag-custom: |
+            ${{ env.TAG }}
+
       - name: Print Tag info
         run: |
           echo "BRANCH: ${BRANCH}"
-          echo "TAG: ${TAG}"
+          echo "${{ steps.docker_meta.outputs.tags }}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -223,12 +365,27 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Login to Quay
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_TOKEN }}
+
       - name: Build & Push Image
-        env:
-          IMAGE_ORG: ${{ secrets.IMAGE_ORG}}
-        run: |
-          make docker.buildx.admission-server
-          make buildx.push.admission-server
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./buildscripts/admission-server/admission-server.Dockerfile
+          push: true
+          platforms: linux/amd64, linux/arm64
+          tags: |
+            ${{ steps.docker_meta.outputs.tags }}
+          build-args: |
+            DBUILD_DATE=${{ steps.date.outputs.DATE }}
+            DBUILD_REPO_URL=https://github.com/openebs/maya
+            DBUILD_SITE_URL=https://openebs.io
+            BRANCH=${{ env.BRANCH }}
 
   upgrade:
     runs-on: ubuntu-latest
@@ -237,6 +394,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Set Image Org
+        # sets the default IMAGE_ORG to openebs
+        run: |
+          [ -z "${{ secrets.IMAGE_ORG }}" ] && IMAGE_ORG=openebs || IMAGE_ORG=${{ secrets.IMAGE_ORG }}
+          echo "IMAGE_ORG=${IMAGE_ORG}" >> $GITHUB_ENV
+
+      - name: Set Build Date
+        id: date
+        run: |
+          echo "::set-output name=DATE::$(date -u +'%Y-%m-%dT%H:%M:%S%Z')"
+
       - name: Set Tag
         run: |
           BRANCH="${GITHUB_REF##*/}"
@@ -246,11 +414,24 @@ jobs:
           fi
           echo "TAG=${CI_TAG}" >> $GITHUB_ENV
           echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
-         
+      
+      - name: Docker meta
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v1
+        with:
+          # add each registry to which the image needs to be pushed here
+          images: |
+            ${{ env.IMAGE_ORG }}/m-upgrade
+            quay.io/${{ env.IMAGE_ORG }}/m-upgrade
+          tag-latest: false
+          tag-custom-only: true
+          tag-custom: |
+            ${{ env.TAG }}
+
       - name: Print Tag info
         run: |
           echo "BRANCH: ${BRANCH}"
-          echo "TAG: ${TAG}"
+          echo "${{ steps.docker_meta.outputs.tags }}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -269,9 +450,24 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Login to Quay
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_TOKEN }}
+
       - name: Build & Push Image
-        env:
-          IMAGE_ORG: ${{ secrets.IMAGE_ORG}}
-        run: |
-          make docker.buildx.upgrade
-          make buildx.push.upgrade
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./buildscripts/upgrade/upgrade.Dockerfile
+          push: true
+          platforms: linux/amd64, linux/arm64
+          tags: |
+            ${{ steps.docker_meta.outputs.tags }}
+          build-args: |
+            DBUILD_DATE=${{ steps.date.outputs.DATE }}
+            DBUILD_REPO_URL=https://github.com/openebs/maya
+            DBUILD_SITE_URL=https://openebs.io
+            BRANCH=${{ env.BRANCH }}
