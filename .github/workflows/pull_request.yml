@@ -18,8 +18,16 @@ on:
   pull_request:
     branches:
       # on pull requests to master and release branches
-      - master
+      - 'master'
       - 'v*'
+    paths-ignore:
+      - '*.md'
+      - 'BUILDMETA'
+      - 'changelogs/**'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'MAINTAINERS'
+      - 'VERSION'
 
 jobs:
   lint:
@@ -55,10 +63,15 @@ jobs:
         with:
           version: v0.5.1
 
-      - name: Build Image
-        env:
-          IMG_RESULT: cache
-        run: make docker.buildx.apiserver
+      - name: Build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./buildscripts/apiserver/apiserver.Dockerfile
+          push: false
+          platforms: linux/amd64, linux/arm64
+          tags: |
+            openebs/m-apiserver:ci
 
   cstor-pool-mgmt:
     runs-on: ubuntu-latest
@@ -78,10 +91,17 @@ jobs:
         with:
           version: v0.5.1
 
-      - name: Build Image
-        env:
-          IMG_RESULT: cache
-        run: make docker.buildx.cstor-pool-mgmt
+      - name: Build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./buildscripts/cstor-pool-mgmt/cstor-pool-mgmt.Dockerfile
+          push: false
+          platforms: linux/amd64, linux/arm64
+          tags: |
+            openebs/cstor-pool-mgmt:ci
+          build-args: |
+            BASE_IMAGE=openebs/cstor-base:ci
 
   cstor-volume-mgmt:
     runs-on: ubuntu-latest
@@ -101,10 +121,15 @@ jobs:
         with:
           version: v0.5.1
 
-      - name: Build Image
-        env:
-          IMG_RESULT: cache
-        run: make docker.buildx.cstor-volume-mgmt
+      - name: Build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./buildscripts/cstor-volume-mgmt/cstor-volume-mgmt.Dockerfile
+          push: false
+          platforms: linux/amd64, linux/arm64
+          tags: |
+            openebs/cstor-volume-mgmt:ci
 
   admission-server:
     runs-on: ubuntu-latest
@@ -124,10 +149,15 @@ jobs:
         with:
           version: v0.5.1
 
-      - name: Build Image
-        env:
-          IMG_RESULT: cache
-        run: make docker.buildx.admission-server
+      - name: Build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./buildscripts/admission-server/admission-server.Dockerfile
+          push: false
+          platforms: linux/amd64, linux/arm64
+          tags: |
+            openebs/admission-server:ci
   
   upgrade:
     runs-on: ubuntu-latest
@@ -147,7 +177,12 @@ jobs:
         with:
           version: v0.5.1
 
-      - name: Build Image
-        env:
-          IMG_RESULT: cache
-        run: make docker.buildx.upgrade
+      - name: Build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./buildscripts/upgrade/upgrade.Dockerfile
+          push: false
+          platforms: linux/amd64, linux/arm64
+          tags: |
+            openebs/m-upgrade:ci
