@@ -11,6 +11,14 @@
 
 *Visit [https://docs.openebs.io](https://docs.openebs.io) to learn about Container Attached Storage(CAS) and full documentation on using OpenEBS Maya*.
 
+## Project Status: Deprecated
+
+Although all the components still work, this repo is now deprecated, moving work to following repo, come join us there !
+
+- [cstor-operators](https://github.com/openebs/cstor-operators)
+- [Jiva-operators](https://github.com/openebs/jiva-operator)
+- [LocalPV](https://github.com/openebs/dynamic-localpv-provisioner)
+
 *OpenEBS Maya* extends the capabilities of Kubernetes to orchestrate CAS (aka Container Native) Storage Solutions like OpenEBS Jiva, OpenEBS cStor, etc. *Maya* (meaning *Magic*), seamlessly integrates into the Kubernetes Storage Workflow and helps provision and manage the CAS based Storage Volumes. The core-features of *Maya* include:
 
 -   Maintaining the inventory of the underlying disks on the Kubernetes Nodes.
@@ -51,7 +59,20 @@ Head over to the [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Community
 
-See the [OpenEBS Community page](https://github.com/openebs/openebs/tree/master/community) for reaching out to the OpenEBS Developers.
+OpenEBS welcomes your feedback and contributions in any form possible.
+
+- [Join OpenEBS community on Kubernetes Slack](https://kubernetes.slack.com)
+  - Already signed up? Head to our discussions at [#openebs](https://kubernetes.slack.com/messages/openebs/)
+- Want to raise an issue or help with fixes and features?
+  - See [open issues](https://github.com/openebs/openebs/issues)
+  - See [contributing guide](./CONTRIBUTING.md)
+  - See [Project Roadmap](https://github.com/orgs/openebs/projects)
+  - Checkout our existing [adopters](https://github.com/openebs/openebs/tree/master/adopters) and their [feedbacks](https://github.com/openebs/openebs/issues/2719).
+  - Want to join our contributor community meetings, [check this out](https://hackmd.io/mfG78r7MS86oMx8oyaV8Iw?view).
+- Join our OpenEBS CNCF Mailing lists
+  - For OpenEBS project updates, subscribe to [OpenEBS Announcements](https://lists.cncf.io/g/cncf-openebs-announcements)
+  - For interacting with other OpenEBS users, subscribe to [OpenEBS Users](https://lists.cncf.io/g/cncf-openebs-users)
+
 
 ## More Info
 
