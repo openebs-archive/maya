@@ -373,3 +373,47 @@ func TestRemoveString(t *testing.T) {
 		})
 	}
 }
+
+func TestIsCurrentLessThanNewVersion(t *testing.T) {
+	type args struct {
+		old string
+		new string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "old is less than new",
+			args: args{
+				old: "1.12.0",
+				new: "2.8.0",
+			},
+			want: true,
+		},
+		{
+			name: "old is greater than new",
+			args: args{
+				old: "2.10.0-RC2",
+				new: "2.8.0",
+			},
+			want: false,
+		},
+		{
+			name: "old is same as new",
+			args: args{
+				old: "2.8.0",
+				new: "2.8.0",
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsCurrentLessThanNewVersion(tt.args.old, tt.args.new); got != tt.want {
+				t.Errorf("IsCurrentLessThanNewVersion() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
