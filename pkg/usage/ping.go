@@ -17,12 +17,11 @@ limitations under the License.
 package usage
 
 import (
+	"os"
 	"time"
-
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 )
 
-var OpenEBSPingPeriod menv.ENVKey = "OPENEBS_IO_ANALYTICS_PING_INTERVAL"
+var OpenEBSPingPeriod string = "OPENEBS_IO_ANALYTICS_PING_INTERVAL"
 
 const (
 	// defaultPingPeriod sets the default ping heartbeat interval
@@ -34,22 +33,31 @@ const (
 )
 
 // PingCheck sends ping events to Google Analytics
-func PingCheck() {
+func PingCheck() error {
 	// Create a new usage field
-	u := New()
+	u, err := New().Build()
+	if err != nil {
+		return err
+	}
+
 	duration := getPingPeriod()
 	ticker := time.NewTicker(duration)
 	for _ = range ticker.C {
-		u.Build().
-			InstallBuilder(true).
+		u.InstallBuilder(true).
 			SetCategory(Ping).
-			Send()
+			Send(false)
 	}
+
+	return nil
 }
 
 // getPingPeriod sets the duration of health events, defaults to 24
 func getPingPeriod() time.Duration {
-	value := menv.GetOrDefault(OpenEBSPingPeriod, string(defaultPingPeriod))
+	value := os.Getenv(OpenEBSPingPeriod)
+	if value == "" {
+		value = string(defaultPingPeriod)
+	}
+
 	duration, _ := time.ParseDuration(value)
 	// Sanitychecks for setting time duration of health events
 	// This way, we are checking for negative and zero time duration and we

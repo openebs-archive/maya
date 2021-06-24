@@ -16,7 +16,8 @@ limitations under the License.
 package usage
 
 import (
-	k8sapi "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
+	"fmt"
+	"strings"
 )
 
 // Usage struct represents all information about a usage metric sent to
@@ -33,6 +34,12 @@ type Usage struct {
 
 	// Embedded Gclient struct
 	Gclient
+
+	// version represent the k8s information
+	version *versionSet
+
+	// url to send the data
+	url string
 }
 
 // Event is a represents usage of OpenEBS
@@ -62,7 +69,7 @@ func (u *Usage) NewEvent(c, a, l string, v int64) *Usage {
 
 // Application struct holds details about the Application
 type Application struct {
-	// eg. project version
+	// eg. project version with commit hash (version-commitHash)
 	appVersion string
 
 	// eg. kubernetes version
@@ -118,6 +125,7 @@ func (u *Usage) SetTrackingID(track string) *Usage {
 
 // SetCampaignName : set the name of the PVC or will be empty.
 func (u *Usage) SetCampaignName(campaignName string) *Usage {
+	fmt.Printf("setting asoadoas %s\n", campaignName)
 	u.campaignName = campaignName
 	return u
 }
@@ -149,8 +157,13 @@ func (u *Usage) SetApplicationID(appID string) *Usage {
 }
 
 // SetApplicationVersion : usecase(project-version)
-func (u *Usage) SetApplicationVersion(appVersion string) *Usage {
-	u.appVersion = appVersion
+func (u *Usage) SetApplicationVersion(appVersion, gitcommit string) *Usage {
+	if gitcommit == "" {
+		u.appVersion = appVersion
+		return u
+	}
+
+	u.appVersion = strings.Join([]string{appVersion, gitcommit[0:7]}, "-")
 	return u
 }
 
@@ -190,32 +203,6 @@ func (u *Usage) SetValue(v int64) *Usage {
 	return u
 }
 
-// Build is a builder method for Usage struct
-func (u *Usage) Build() *Usage {
-	// Default ApplicationID for openebs project is OpenEBS
-	v := NewVersion()
-	v.getVersion(false)
-	u.SetApplicationID(AppName).
-		SetTrackingID(GAclientID).
-		SetClientID(v.id).
-		SetCampaignSource(v.installerType)
-	// TODO: Add condition for version over-ride
-	// Case: CAS/Jiva version, etc
-	return u
-}
-
-// Application builder is used for adding k8s&openebs environment detail
-// for non install events
-func (u *Usage) ApplicationBuilder() *Usage {
-	v := NewVersion()
-	v.getVersion(false)
-	u.SetApplicationVersion(v.openebsVersion).
-		SetApplicationName(v.k8sArch).
-		SetApplicationInstallerID(v.k8sVersion).
-		SetDataSource(v.nodeType)
-	return u
-}
-
 // SetVolumeCapacity sets the storage capacity of the volume for a volume event
 func (u *Usage) SetVolumeCapacity(volCapG string) *Usage {
 	s, _ := toGigaUnits(volCapG)
@@ -250,17 +237,50 @@ func (u *Usage) SetReplicaCount(count, method string) *Usage {
 	return u
 }
 
+// SetUrl set destination url for the data
+func (u *Usage) SetUrl(url string) {
+	u.url = url
+}
+
+// Build is a builder method for Usage struct
+func (u *Usage) Build() (*Usage, error) {
+	// Default ApplicationID for openebs project is OpenEBS
+	v, err := NewVersion()
+	if err != nil {
+		return nil, err
+	}
+
+	v.setOpenEBSVersion(u.appVersion)
+	v.getVersion(false)
+	u.version = v
+	u.SetApplicationID(AppName).
+		SetTrackingID(GAclientID).
+		SetClientID(v.id).
+		SetCampaignSource(v.installerType)
+	// TODO: Add condition for version over-ride
+	// Case: CAS/Jiva version, etc
+	return u, nil
+}
+
 // InstallBuilder is a concrete builder for install events
 func (u *Usage) InstallBuilder(override bool) *Usage {
-	v := NewVersion()
-	clusterSize, _ := k8sapi.NumberOfNodes()
-	v.getVersion(override)
-	u.SetApplicationVersion(v.openebsVersion).
-		SetApplicationName(v.k8sArch).
-		SetApplicationInstallerID(v.k8sVersion).
-		SetDataSource(v.nodeType).
-		SetDocumentTitle(v.id).
-		SetApplicationID(AppName).
+	clusterSize, _ := u.version.GetNumberOfNodes()
+	u.version.getVersion(override)
+	u.SetApplicationVersion(u.version.openebsVersion, "").
+		SetApplicationName(u.version.k8sArch).
+		SetApplicationInstallerID(u.version.k8sVersion).
+		SetDataSource(u.version.nodeType).
+		SetDocumentTitle(u.version.id).
 		NewEvent(InstallEvent, RunningStatus, EventLabelNode, int64(clusterSize))
+	return u
+}
+
+// Application builder is used for adding k8s&openebs environment detail
+// for non install events
+func (u *Usage) ApplicationBuilder() *Usage {
+	u.version.getVersion(false)
+	u.SetApplicationVersion(u.version.openebsVersion, "").
+		SetApplicationInstallerID(u.version.k8sVersion).
+		SetDataSource(u.version.nodeType)
 	return u
 }

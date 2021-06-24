@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors.
+Copyright 2021 The OpenEBS Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,25 +16,30 @@ limitations under the License.
 package usage
 
 import (
-	k8sapi "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
-	env "github.com/openebs/maya/pkg/env/v1alpha1"
-	openebsversion "github.com/openebs/maya/pkg/version"
+	"context"
+	"os"
+	"strings"
+
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog"
+	"k8s.io/apimachinery/pkg/version"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 var (
-	clusterUUID    env.ENVKey = "OPENEBS_IO_USAGE_UUID"
-	clusterVersion env.ENVKey = "OPENEBS_IO_K8S_VERSION"
-	clusterArch    env.ENVKey = "OPENEBS_IO_K8S_ARCH"
-	openEBSversion env.ENVKey = "OPENEBS_IO_VERSION_TAG"
-	nodeType       env.ENVKey = "OPENEBS_IO_NODE_TYPE"
-	installerType  env.ENVKey = "OPENEBS_IO_INSTALLER_TYPE"
+	clusterUUID    string = "OPENEBS_IO_USAGE_UUID"
+	clusterVersion string = "OPENEBS_IO_K8S_VERSION"
+	clusterArch    string = "OPENEBS_IO_K8S_ARCH"
+	openEBSversion string = "OPENEBS_IO_VERSION_TAG"
+	nodeType       string = "OPENEBS_IO_NODE_TYPE"
+	installerType  string = "OPENEBS_IO_INSTALLER_TYPE"
 )
 
-// versionSet is a struct which stores (sort of) fixed information about a
+// versionSet is a struct which stores (sort of) information about a
 // k8s environment
 type versionSet struct {
+	clientset      *kubernetes.Clientset
 	id             string // OPENEBS_IO_USAGE_UUID
 	k8sVersion     string // OPENEBS_IO_K8S_VERSION
 	k8sArch        string // OPENEBS_IO_K8S_ARCH
@@ -43,37 +48,48 @@ type versionSet struct {
 	installerType  string // OPENEBS_IO_INSTALLER_TYPE
 }
 
-// NewVersion returns a new versionSet struct
-func NewVersion() *versionSet {
-	return &versionSet{}
+// NewVersion returns a new versionSet struct with given application version
+func NewVersion() (*versionSet, error) {
+	clientset, err := getK8sClient()
+	if err != nil {
+		return nil, err
+	}
+
+	return &versionSet{
+		clientset: clientset,
+	}, nil
+}
+
+// setAppVersion set openebs version info with given value
+func (v *versionSet) setOpenEBSVersion(version string) {
+	v.openebsVersion = version
 }
 
 // fetchAndSetVersion consumes the Kubernetes API to get environment constants
 // and returns a versionSet struct
 func (v *versionSet) fetchAndSetVersion() error {
 	var err error
-	v.id, err = getUUIDbyNS("default")
+	v.id, err = v.getUUIDbyNS("default")
 	if err != nil {
 		return err
 	}
-	env.Set(clusterUUID, v.id)
+	envSet(clusterUUID, v.id)
 
-	k8s, err := k8sapi.GetServerVersion()
+	k8s, err := v.getServerVersion()
 	if err != nil {
 		return err
 	}
 	// eg. linux/amd64
 	v.k8sArch = k8s.Platform
 	v.k8sVersion = k8s.GitVersion
-	env.Set(clusterArch, v.k8sArch)
-	env.Set(clusterVersion, v.k8sVersion)
-	v.nodeType, err = k8sapi.GetOSAndKernelVersion()
-	env.Set(nodeType, v.nodeType)
+	envSet(clusterArch, v.k8sArch)
+	envSet(clusterVersion, v.k8sVersion)
+	v.nodeType, err = v.getOSAndKernelVersion()
+	envSet(nodeType, v.nodeType)
 	if err != nil {
 		return err
 	}
-	v.openebsVersion = openebsversion.GetVersionDetails()
-	env.Set(openEBSversion, v.openebsVersion)
+	envSet(openEBSversion, v.openebsVersion)
 	return nil
 }
 
@@ -81,26 +97,24 @@ func (v *versionSet) fetchAndSetVersion() error {
 func (v *versionSet) getVersion(override bool) error {
 	// If ENVs aren't set or the override is true, fetch the required
 	// values from the K8s APIserver
-	if _, present := env.Lookup(openEBSversion); !present || override {
+	if _, present := os.LookupEnv(openEBSversion); !present || override {
 		if err := v.fetchAndSetVersion(); err != nil {
-			klog.Error(err.Error())
 			return err
 		}
 	}
 	// Fetch data from ENV
-	v.id = env.Get(clusterUUID)
-	v.k8sArch = env.Get(clusterArch)
-	v.k8sVersion = env.Get(clusterVersion)
-	v.nodeType = env.Get(nodeType)
-	v.openebsVersion = env.Get(openEBSversion)
-	v.installerType = env.Get(installerType)
+	v.id = envGet(clusterUUID)
+	v.k8sArch = envGet(clusterArch)
+	v.k8sVersion = envGet(clusterVersion)
+	v.nodeType = envGet(nodeType)
+	v.openebsVersion = envGet(openEBSversion)
+	v.installerType = envGet(installerType)
 	return nil
 }
 
 // getUUIDbyNS returns the metadata.object.uid of a namespace in Kubernetes
-func getUUIDbyNS(namespace string) (string, error) {
-	ns := k8sapi.Namespace()
-	NSstruct, err := ns.Get(namespace, metav1.GetOptions{})
+func (v *versionSet) getUUIDbyNS(namespace string) (string, error) {
+	NSstruct, err := v.clientset.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -108,4 +122,48 @@ func getUUIDbyNS(namespace string) (string, error) {
 		return string(NSstruct.GetObjectMeta().GetUID()), nil
 	}
 	return "", nil
+}
+
+func envSet(key string, value string) error {
+	return os.Setenv(key, value)
+}
+
+func envGet(key string) string {
+	return strings.TrimSpace(os.Getenv(key))
+}
+
+// getServerVersion uses the client-go Discovery client to get the
+// kubernetes version struct
+func (v *versionSet) getServerVersion() (*version.Info, error) {
+	return v.clientset.Discovery().ServerVersion()
+}
+
+// getOSAndKernelVersion gets us the OS,Kernel version
+func (v *versionSet) getOSAndKernelVersion() (string, error) {
+	firstNode, err := v.clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{Limit: 1})
+	if err != nil {
+		return "unknown, unknown", errors.Wrapf(err, "failed to get the os kernel/arch")
+	}
+	nodedetails := firstNode.Items[0].Status.NodeInfo
+	return nodedetails.OSImage + ", " + nodedetails.KernelVersion, nil
+}
+
+// GetNumberOfNodes returns the number of nodes registered in a Kubernetes cluster
+func (v *versionSet) GetNumberOfNodes() (int, error) {
+	nodes, err := v.clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return 0, errors.Wrapf(err, "failed to get the number of nodes")
+	} else {
+		return len(nodes.Items), nil
+	}
+}
+
+// getK8sClient returns a new instance of kubernetes clientset
+func getK8sClient() (*kubernetes.Clientset, error) {
+	conf, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, errors.New("error fetching cluster config")
+	}
+
+	return kubernetes.NewForConfig(conf)
 }
