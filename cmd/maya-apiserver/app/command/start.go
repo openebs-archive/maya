@@ -213,7 +213,14 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 	}()
 
 	if env.Truthy(env.OpenEBSEnableAnalytics) {
-		usage.New().Build().InstallBuilder(true).Send()
+		obj, err := usage.New().
+			SetApplicationVersion(version.GetVersion(), version.GetGitCommit()).
+			Build()
+		if err == nil {
+			obj.InstallBuilder(true).Send(false)
+		} else {
+			klog.Errorf("Error fetching analytic object err=%s", err)
+		}
 		go usage.PingCheck()
 	}
 

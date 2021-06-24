@@ -24,6 +24,7 @@ import (
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	"github.com/openebs/maya/pkg/usage"
+	"github.com/openebs/maya/pkg/version"
 	"github.com/openebs/maya/pkg/volume"
 	errors "github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -57,14 +58,20 @@ type volumeAPIOpsV1alpha1 struct {
 // sendEventOrIgnore sends anonymous volume (de)-provision events
 func sendEventOrIgnore(cvol *v1alpha1.CASVolume, pvcName, method string) {
 	if menv.Truthy(menv.OpenEBSEnableAnalytics) && cvol != nil {
-		usage.New().Build().ApplicationBuilder().
+		obj, err := usage.New().
+			SetApplicationVersion(version.GetVersion(), version.GetGitCommit()).
 			SetVolumeType(cvol.Spec.CasType, method).
 			SetDocumentTitle(cvol.ObjectMeta.Name).
 			SetCampaignName(pvcName).
 			SetLabel(usage.EventLabelCapacity).
 			SetReplicaCount(cvol.Spec.Replicas, method).
 			SetCategory(method).
-			SetVolumeCapacity(cvol.Spec.Capacity).Send()
+			SetVolumeCapacity(cvol.Spec.Capacity).
+			Build()
+		if err != nil {
+			klog.Errorf("Error fetching analytic object err=%s", err)
+		}
+		obj.ApplicationBuilder().Send(false)
 	}
 }
 
