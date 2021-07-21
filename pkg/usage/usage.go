@@ -37,9 +37,6 @@ type Usage struct {
 
 	// version represent the k8s information
 	version *versionSet
-
-	// url to send the data
-	url string
 }
 
 // Event is a represents usage of OpenEBS
@@ -235,11 +232,6 @@ func (u *Usage) SetReplicaCount(count, method string) *Usage {
 		u.SetAction(Replica + count)
 	}
 	return u
-}
-
-// SetUrl set destination url for the data
-func (u *Usage) SetUrl(url string) {
-	u.url = url
 }
 
 // Build is a builder method for Usage struct

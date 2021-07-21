@@ -71,7 +71,7 @@ func sendEventOrIgnore(cvol *v1alpha1.CASVolume, pvcName, method string) {
 		if err != nil {
 			klog.Errorf("Error fetching analytic object err=%s", err)
 		}
-		obj.ApplicationBuilder().Send(false)
+		obj.ApplicationBuilder().Send()
 	}
 }
 

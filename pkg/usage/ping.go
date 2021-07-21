@@ -45,7 +45,7 @@ func PingCheck() error {
 	for _ = range ticker.C {
 		u.InstallBuilder(true).
 			SetCategory(Ping).
-			Send(false)
+			Send()
 	}
 
 	return nil

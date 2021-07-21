@@ -19,10 +19,10 @@ import (
 	analytics "github.com/jpillora/go-ogle-analytics"
 )
 
-// SendGoogleAnalytic sends a single usage metric to Google Analytics with some
+// Send sends a single usage metric to Google Analytics with some
 // compulsory fields defined in Google Analytics API
 // bindings(jpillora/go-ogle-analytics)
-func (u *Usage) SendGoogleAnalytic() error {
+func (u *Usage) Send() error {
 	// Instantiate a Gclient with the tracking ID
 	// Un-wrap the gaClient struct back here
 	gaClient, err := analytics.NewClient(u.Gclient.trackID)
