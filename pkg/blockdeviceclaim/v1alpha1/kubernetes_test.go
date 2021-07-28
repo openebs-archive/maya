@@ -15,6 +15,7 @@
 package v1alpha1
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
@@ -38,27 +39,27 @@ func fakeGetClientsetForPathErr(fakeConfigPath string) (cli *clientset.Clientset
 	return nil, errors.New("fake error")
 }
 
-func fakeGetFnOk(cli *clientset.Clientset, name, namespace string, opts metav1.GetOptions) (*apis.BlockDeviceClaim, error) {
+func fakeGetFnOk(ctx context.Context, cli *clientset.Clientset, name, namespace string, opts metav1.GetOptions) (*apis.BlockDeviceClaim, error) {
 	return &apis.BlockDeviceClaim{}, nil
 }
 
-func fakeListFnOk(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.BlockDeviceClaimList, error) {
+func fakeListFnOk(ctx context.Context, cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.BlockDeviceClaimList, error) {
 	return &apis.BlockDeviceClaimList{}, nil
 }
 
-func fakeDeleteFnOk(cli *clientset.Clientset, name, namespace string, opts *metav1.DeleteOptions) error {
+func fakeDeleteFnOk(ctx context.Context, cli *clientset.Clientset, name, namespace string, opts *metav1.DeleteOptions) error {
 	return nil
 }
 
-func fakeListFnErr(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.BlockDeviceClaimList, error) {
+func fakeListFnErr(ctx context.Context, cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.BlockDeviceClaimList, error) {
 	return &apis.BlockDeviceClaimList{}, errors.New("some error")
 }
 
-func fakeGetFnErr(cli *clientset.Clientset, name, namespace string, opts metav1.GetOptions) (*apis.BlockDeviceClaim, error) {
+func fakeGetFnErr(ctx context.Context, cli *clientset.Clientset, name, namespace string, opts metav1.GetOptions) (*apis.BlockDeviceClaim, error) {
 	return &apis.BlockDeviceClaim{}, errors.New("some error")
 }
 
-func fakeDeleteFnErr(cli *clientset.Clientset, name, namespace string, opts *metav1.DeleteOptions) error {
+func fakeDeleteFnErr(ctx context.Context, cli *clientset.Clientset, name, namespace string, opts *metav1.DeleteOptions) error {
 	return errors.New("some error")
 }
 
@@ -66,19 +67,19 @@ func fakeGetClientsetErr() (clientset *clientset.Clientset, err error) {
 	return nil, errors.New("Some error")
 }
 
-func fakeCreateFnOk(cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
+func fakeCreateFnOk(ctx context.Context, cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
 	return &apis.BlockDeviceClaim{}, nil
 }
 
-func fakeCreateErr(cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
+func fakeCreateErr(ctx context.Context, cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
 	return nil, errors.New("failed to create BDC")
 }
 
-func fakePatchFnOk(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error) {
+func fakePatchFnOk(ctx context.Context, cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error) {
 	return &apis.BlockDeviceClaim{}, nil
 }
 
-func fakePatchFnErr(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error) {
+func fakePatchFnErr(ctx context.Context, cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error) {
 	return nil, errors.New("fake error")
 }
 
@@ -286,7 +287,7 @@ func TestBlockDeviceClaimList(t *testing.T) {
 				kubeConfigPath:      mock.kubeConfigPath,
 				list:                mock.list,
 			}
-			_, err := fc.List(metav1.ListOptions{})
+			_, err := fc.List(context.TODO(), metav1.ListOptions{})
 			if mock.expectedErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -324,7 +325,7 @@ func TestBlockDeviceClaimGet(t *testing.T) {
 				namespace:           "default",
 				get:                 mock.get,
 			}
-			_, err := k.Get(mock.bdName, metav1.GetOptions{})
+			_, err := k.Get(context.TODO(), mock.bdName, metav1.GetOptions{})
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -363,7 +364,7 @@ func TestBlockDeviceClaimDelete(t *testing.T) {
 				namespace:           "",
 				del:                 mock.delete,
 			}
-			err := k.Delete(mock.bdName, &metav1.DeleteOptions{})
+			err := k.Delete(context.TODO(), mock.bdName, &metav1.DeleteOptions{})
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -434,7 +435,7 @@ func TestBlockDeviceClaimCreate(t *testing.T) {
 				kubeConfigPath:      mock.kubeConfigPath,
 				create:              mock.create,
 			}
-			_, err := fc.Create(mock.bdc)
+			_, err := fc.Create(context.TODO(), mock.bdc)
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -473,7 +474,7 @@ func TestBlockDeviceClaimPatch(t *testing.T) {
 			}
 			//fake data
 			data, _ := json.Marshal(mock)
-			_, err := k.Patch(mock.bdName, types.MergePatchType, data)
+			_, err := k.Patch(context.TODO(), mock.bdName, types.MergePatchType, data)
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}

@@ -17,6 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
+	"strings"
+
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
@@ -28,7 +31,6 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
-	"strings"
 )
 
 const (
@@ -185,7 +187,7 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) (*n
 		// created filter and use it
 		bdcList, err = bdc.NewKubeClient().
 			WithNamespace(ac.Namespace).
-			List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
+			List(context.TODO(), metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to select node and blockdevices")
 		}
@@ -344,7 +346,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 	nodeClaimedBDs.NodeName = nodeBDs.NodeName
 	pendingBDCCount := 0
 
-	bdcObjList, err := bdcKubeclient.List(metav1.ListOptions{LabelSelector: lselector})
+	bdcObjList, err := bdcKubeclient.List(context.TODO(), metav1.ListOptions{LabelSelector: lselector})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list block device claims for {%s}", spc.Name)
 	}
@@ -415,7 +417,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to build block device claim for bd {%s}", bdName)
 			}
-			_, err = bdcKubeclient.Create(newBDCObj.Object)
+			_, err = bdcKubeclient.Create(context.TODO(), newBDCObj.Object)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to create block device claim for bdc {%s}", bdcName)
 			}

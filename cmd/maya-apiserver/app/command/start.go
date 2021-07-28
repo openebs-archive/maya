@@ -17,6 +17,7 @@ limitations under the License.
 package command
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -132,7 +133,7 @@ func performPreflightChecks() error {
 
 // checks existence of NDM related CRDs
 func checkForNDMrelatedCRDs() error {
-	_, err := bdc.NewKubeClient().List(metav1.ListOptions{})
+	_, err := bdc.NewKubeClient().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return errors.Errorf("precheck for bdc failed: %v", err)
 	}

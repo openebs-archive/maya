@@ -18,6 +18,7 @@ package tests
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -743,7 +744,7 @@ func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) 
 func (ops *Operations) GetBDCCountEventually(listOptions metav1.ListOptions, expectedBDCCount int, namespace string) int {
 	var bdcCount int
 	for i := 0; i < maxRetry; i++ {
-		bdcAPIList, err := ops.BDCClient.WithNamespace(namespace).List(listOptions)
+		bdcAPIList, err := ops.BDCClient.WithNamespace(namespace).List(context.TODO(), listOptions)
 		Expect(err).To(BeNil())
 		bdcCount = len(bdcAPIList.Items)
 		if bdcCount == expectedBDCCount {
@@ -769,7 +770,7 @@ func (ops *Operations) IsSPCNotExists(spcName string) bool {
 // IsFinalizerExistsOnBDC returns true if the object with provided name contains the finalizer.
 func (ops *Operations) IsFinalizerExistsOnBDC(bdcName, finalizer string) bool {
 	for i := 0; i < maxRetry; i++ {
-		bdcObj, err := ops.BDCClient.Get(bdcName, metav1.GetOptions{})
+		bdcObj, err := ops.BDCClient.Get(context.TODO(), bdcName, metav1.GetOptions{})
 		Expect(err).To(BeNil())
 		for _, f := range bdcObj.Finalizers {
 			if f == finalizer {
@@ -801,7 +802,7 @@ func (ops *Operations) IsSPCFinalizerExistsOnSPC(spcName, spcFinalizer string) b
 func (ops *Operations) IsCSPCFinalizerExistsOnBDCs(listOptions metav1.ListOptions, cspcFinalizer string) bool {
 	for i := 0; i < maxRetry; i++ {
 		cspcFinalizerPresent := true
-		gotBDCList, err := ops.BDCClient.WithNamespace(ops.NameSpace).List(listOptions)
+		gotBDCList, err := ops.BDCClient.WithNamespace(ops.NameSpace).List(context.TODO(), listOptions)
 		Expect(err).To(BeNil())
 		for _, BDCObj := range gotBDCList.Items {
 			BDCObj := BDCObj
@@ -824,7 +825,7 @@ func (ops *Operations) IsCSPCFinalizerExistsOnBDCs(listOptions metav1.ListOption
 func (ops *Operations) IsSPCFinalizerExistsOnBDCs(listOptions metav1.ListOptions, spcFinalizer string) bool {
 	for i := 0; i < maxRetry; i++ {
 		spcFinalizerPresent := true
-		gotBDCList, err := ops.BDCClient.List(listOptions)
+		gotBDCList, err := ops.BDCClient.List(context.TODO(), listOptions)
 		Expect(err).To(BeNil())
 		for _, BDCObj := range gotBDCList.Items {
 			BDCObj := BDCObj
@@ -1004,7 +1005,7 @@ func (ops *Operations) VerifyUpgradeResultTasksIsNotFail(namespace, lselector st
 func (ops *Operations) GetBDCCount(lSelector, namespace string) int {
 	bdcList, err := ops.BDCClient.
 		WithNamespace(namespace).
-		List(metav1.ListOptions{LabelSelector: lSelector})
+		List(context.TODO(), metav1.ListOptions{LabelSelector: lSelector})
 	Expect(err).ShouldNot(HaveOccurred())
 	return len(bdcList.Items)
 }

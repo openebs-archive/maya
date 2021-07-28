@@ -273,6 +273,7 @@ func removeSPCFinalizerOnAssociatedBDC(spc *apis.StoragePoolClaim) error {
 	}
 
 	bdcList, err := bdc.NewKubeClient().WithNamespace(namespace).List(
+		context.TODO(),
 		metav1.ListOptions{
 			LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name,
 		})
