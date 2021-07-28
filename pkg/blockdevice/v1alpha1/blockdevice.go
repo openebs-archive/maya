@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"strings"
 
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
@@ -231,7 +232,7 @@ func (bdl *BlockDeviceList) GetUsableBlockDevices(spcName, namespace string) (*B
 	for _, bdObj := range bdl.Items {
 		if bdObj.Status.ClaimState == ndm.BlockDeviceClaimed {
 			bdcName := bdObj.Spec.ClaimRef.Name
-			bdcObj, err := bdcClient.Get(bdcName, metav1.GetOptions{})
+			bdcObj, err := bdcClient.Get(context.TODO(), bdcName, metav1.GetOptions{})
 			if err != nil {
 				return nil, errors.Wrapf(err,
 					"failed to get blockdeviceclaim %s details of blockdevice %s",
