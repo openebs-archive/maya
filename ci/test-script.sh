@@ -22,6 +22,8 @@ function waitForDeployment() {
       echo "Waiting for ${DEPLOY} to be ready"
       if [ ${DEPLOY} != "maya-apiserver" ] && [ ${DEPLOY} != "openebs-provisioner" ]; then
         dumpMayaAPIServerLogs 10
+        dumpDeploymentLogs 10
+        dumpDeploymentLogs $NS $DEPLOY 10
       fi
       sleep 10
     fi
@@ -52,6 +54,21 @@ function dumpMayaAPIServerLogs() {
   MAPIPOD=$(kubectl get pods -o jsonpath='{.items[?(@.spec.containers[0].name=="maya-apiserver")].metadata.name}' -n openebs)
   kubectl logs --tail=${LC} $MAPIPOD -n openebs
   printf "\n\n"
+}
+
+function dumpDeploymentLogs() {
+  NS=$1
+  Deployment=$2
+  LC=$3
+
+  containerList=($(kubectl  get deploy -n ${NS} ${Deployment}  -o yaml  -o jsonpath='{..spec.containers[*].name}'))
+
+  for i in "${containerList[@]}"
+  do
+    echo "Logs for deployment ${NS}/${Deployment} and container $i"
+    kubectl logs --tail=${LC} -n ${NS} deploy/${Deployment} -c ${i}
+    printf "\n\n"
+  done
 }
 
 waitForDeployment maya-apiserver openebs
