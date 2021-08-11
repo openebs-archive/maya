@@ -15,11 +15,6 @@ limitations under the License.
 */
 package usage
 
-import (
-	"fmt"
-	"strings"
-)
-
 // Usage struct represents all information about a usage metric sent to
 // Google Analytics with respect to the application
 type Usage struct {
@@ -122,7 +117,6 @@ func (u *Usage) SetTrackingID(track string) *Usage {
 
 // SetCampaignName : set the name of the PVC or will be empty.
 func (u *Usage) SetCampaignName(campaignName string) *Usage {
-	fmt.Printf("setting asoadoas %s\n", campaignName)
 	u.campaignName = campaignName
 	return u
 }
@@ -160,7 +154,7 @@ func (u *Usage) SetApplicationVersion(appVersion, gitcommit string) *Usage {
 		return u
 	}
 
-	u.appVersion = strings.Join([]string{appVersion, gitcommit[0:7]}, "-")
+	u.appVersion = appVersion + "-" + gitcommit[0:7]
 	return u
 }
 

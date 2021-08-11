@@ -217,7 +217,7 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 			SetApplicationVersion(version.GetVersion(), version.GetGitCommit()).
 			Build()
 		if err == nil {
-			obj.InstallBuilder(true).Send()
+			go obj.InstallBuilder(true).Send()
 		} else {
 			klog.Errorf("Error fetching analytic object err=%s", err)
 		}
