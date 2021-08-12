@@ -22,7 +22,6 @@ function waitForDeployment() {
       echo "Waiting for ${DEPLOY} to be ready"
       if [ ${DEPLOY} != "maya-apiserver" ] && [ ${DEPLOY} != "openebs-provisioner" ]; then
         dumpMayaAPIServerLogs 10
-        dumpDeploymentLogs 10
         dumpDeploymentLogs $NS $DEPLOY 10
       fi
       sleep 10
