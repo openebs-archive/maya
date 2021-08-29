@@ -20,11 +20,12 @@ import (
 	"reflect"
 	"testing"
 
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
-	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 )
 
 func TestBuilderWithName(t *testing.T) {
@@ -229,6 +230,82 @@ func TestBuilderWithBlockDeviceTag(t *testing.T) {
 			}
 			if !mock.expectErr && len(b.errs) > 0 {
 				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestBuilder_WithSelector(t *testing.T) {
+	tests := map[string]struct {
+		labelSelector map[string]string
+		ExpectedBuilder   *Builder
+		expectErr bool
+	}{
+		"Test Builder with empty labelSelector map": {
+			labelSelector: map[string]string{},
+			ExpectedBuilder: &Builder{
+				BDC: &BlockDeviceClaim{
+					Object: &apis.BlockDeviceClaim{
+						Spec: apis.DeviceClaimSpec{
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{},
+							},
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"Test Builder with labelSelector map key having empty value": {
+			labelSelector: map[string]string{
+				"testKey": "",
+			},
+			ExpectedBuilder: &Builder{
+				BDC: &BlockDeviceClaim{
+					Object: &apis.BlockDeviceClaim{
+						Spec: apis.DeviceClaimSpec{
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{},
+							},
+						},
+					},
+				},
+			},
+			expectErr: false,
+		},
+		"Test Builder with non-empty labelSelector map": {
+			labelSelector: map[string]string{
+				"testKey": "testValue",
+			},
+			ExpectedBuilder: &Builder{
+				BDC: &BlockDeviceClaim{
+					Object: &apis.BlockDeviceClaim{
+						Spec: apis.DeviceClaimSpec{
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"testKey": "testValue",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectErr: false,
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			b := NewBuilder().WithSelector(tt.labelSelector)
+			if tt.expectErr && len(b.errs) == 0 {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !tt.expectErr && len(b.errs) > 0 {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+			if !tt.expectErr {
+				if !reflect.DeepEqual(b.BDC.Object.Spec.Selector.MatchLabels, tt.ExpectedBuilder.BDC.Object.Spec.Selector.MatchLabels) {
+					t.Fatalf("WithSelector() = %v, want %v", b.BDC.Object.Spec.Selector.MatchLabels, tt.ExpectedBuilder.BDC.Object.Spec.Selector.MatchLabels)
+				}
 			}
 		})
 	}
