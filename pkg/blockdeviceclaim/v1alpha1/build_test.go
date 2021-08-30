@@ -237,9 +237,9 @@ func TestBuilderWithBlockDeviceTag(t *testing.T) {
 
 func TestBuilder_WithSelector(t *testing.T) {
 	tests := map[string]struct {
-		labelSelector map[string]string
-		ExpectedBuilder   *Builder
-		expectErr bool
+		labelSelector   map[string]string
+		ExpectedBuilder *Builder
+		expectErr       bool
 	}{
 		"Test Builder with empty labelSelector map": {
 			labelSelector: map[string]string{},
