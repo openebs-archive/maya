@@ -87,7 +87,12 @@ func RegisteredArtifacts() (list artifactList) {
 
 	list.Items = append(list.Items, VolumeStatsArtifacts().Items...)
 
+	// NOTE: LocalPV storageClasses creation via the maya-apiserver
+	// container is no longer required
+	// Ref: github.com/openebs/charts/pull/257
+	//
 	// Local PV Artifacts
-	list.Items = append(list.Items, LocalPVArtifacts().Items...)
+	// list.Items = append(list.Items, LocalPVArtifacts().Items...)
+
 	return
 }
