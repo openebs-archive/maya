@@ -14,6 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// NOTE: LocalPV storageClasses creation via the maya-apiserver
+// container is no longer required
+// Ref: github.com/openebs/charts/pull/257
+/*
 package v1alpha1
 
 const localPVSCYamls = `
@@ -24,7 +28,7 @@ metadata:
   name: openebs-hostpath
   annotations:
     #Define a new CAS Type called "local"
-    #which indicates that Data is stored 
+    #which indicates that Data is stored
     #directly onto hostpath. The hostpath can be:
     #- device (as block or mounted path)
     #- hostpath (sub directory on OS or mounted path)
@@ -33,7 +37,7 @@ metadata:
       - name: StorageType
         value: "hostpath"
       - name: BasePath
-        value: {{env "OPENEBS_IO_LOCALPV_HOSTPATH_DIR" | default "/var/openebs/local"}} 
+        value: {{env "OPENEBS_IO_LOCALPV_HOSTPATH_DIR" | default "/var/openebs/local"}}
 provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: Delete
@@ -44,7 +48,7 @@ metadata:
   name: openebs-device
   annotations:
     #Define a new CAS Type called "local"
-    #which indicates that Data is stored 
+    #which indicates that Data is stored
     #directly onto hostpath. The hostpath can be:
     #- device (as block or mounted path)
     #- hostpath (sub directory on OS or mounted path)
@@ -75,3 +79,4 @@ type localPVSCs struct{}
 func (j localPVSCs) FetchYamls() string {
 	return localPVSCYamls
 }
+*/
