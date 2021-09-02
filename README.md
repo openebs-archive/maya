@@ -14,17 +14,17 @@ As the OpenEBS community started to add new engines, the engine specific control
 - Jiva operator and CSI driver have moved to [openebs/jiva-operator](https://github.com/openebs/jiva-operator)
 - Local PV Hostpath and Device provisioner has been moved to [openebs/dynamic-localpv-provisioner](https://github.com/openebs/dynamic-localpv-provisioner)
 - Jiva and cStor prometheus metrics exporter been moved to [openebs/m-exporter](https://github.com/openebs/m-exporter)
-- `mayactl` for displaying status of jiva and cstor volumes is merged into [openebs/openebsctl](https://github.com/openebs/openebsctl)
+- `mayactl` for displaying status of Jiva and cStor volumes is merged into [openebs/openebsctl](https://github.com/openebs/openebsctl)
 
-This repository mainly contains code required for running the legacy cstor and jiva pools and volumes like: 
-- `m-apiserver` - used for provisoining the legacy cstor and jiva pools and volumes.
-- `mayactl` - packaged along with `m-apiserver` for fetching the legacy cstor and jiva volume status. 
-- `admission-server` - used for validating jiva and cstor pool and volume requests. 
-- `m-upgrade` - used for upgrading the legacy jiva volumes, cstor pools and volumes.
-- `cstor-pool-mgmt` and `cstor-volume-mgmt` - used for managing the legacy cstor pool and volumes. 
+This repository mainly contains code required for running the legacy cStor and Jiva pools and volumes like: 
+- `m-apiserver` - used for provisoining the legacy cStor and Jiva pools and volumes.
+- `mayactl` - packaged along with `m-apiserver` for fetching the legacy cStor and Jiva volume status. 
+- `admission-server` - used for validating Jiva and cStor pool and volume requests. 
+- `m-upgrade` - used for upgrading the legacy Jiva volumes, cStor pools and volumes.
+- `cstor-pool-mgmt` and `cstor-volume-mgmt` - used for managing the legacy cStor pool and volumes. 
 
 With OpenEBS 3.0, all of the above legacy components are deprecated and users are requested to migrate towards using:
-- cStor CSI Driver
+- CStor CSI Driver
 - Jiva CSI Driver
 
 The steps to migrate are provided here: https://github.com/openebs/upgrade.
