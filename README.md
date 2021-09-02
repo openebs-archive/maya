@@ -1,92 +1,62 @@
-## Overview
-
-[![Build Status](https://travis-ci.org/openebs/maya.svg?branch=master)](https://travis-ci.org/openebs/maya)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/703aa9066b2e4c3499971856eb50f72c)](https://www.codacy.com/app/OpenEBS/maya?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=openebs/maya&amp;utm_campaign=Badge_Grade)
+[![Build Status](https://app.travis-ci.com/openebs/maya.svg?branch=v2.12.x)](https://app.travis-ci.com/openebs/maya)
 [![Go Report](https://goreportcard.com/badge/github.com/openebs/maya)](https://goreportcard.com/report/github.com/openebs/maya)
-[![codecov](https://codecov.io/gh/openebs/maya/branch/master/graph/badge.svg)](https://codecov.io/gh/openebs/maya)
-[![GoDoc](https://godoc.org/github.com/openebs/maya?status.svg)](https://godoc.org/github.com/openebs/maya)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/openebs/maya/blob/master/LICENSE)
+[![codecov](https://codecov.io/gh/openebs/maya/branch/v2.12.x/graph/badge.svg?token=nDwloue1T5)](https://codecov.io/gh/openebs/maya)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/openebs/maya/blob/HEAD/LICENSE)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopenebs%2Fmaya.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopenebs%2Fmaya?ref=badge_shield)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1753/badge)](https://bestpractices.coreinfrastructure.org/projects/1753)
 
-*Visit [https://docs.openebs.io](https://docs.openebs.io) to learn about Container Attached Storage(CAS) and full documentation on using OpenEBS Maya*.
+## Overview
 
-## Project Status: Deprecated
+OpenEBS control plane components like provisioners and operators were hosted in this repository. 
 
-Although all the components still work, this repo is now deprecated, moving work to following repo, come join us there !
+As the OpenEBS community started to add new engines, the engine specific control plane components have been moved to their respective repositories.
+- cStor operators and CSI driver have moved to [openebs/cstor-operators](https://github.com/openebs/cstor-operators) and [openebs/cstor-csi](https://github.com/openebs/cstor-csi) respectively.
+- Jiva operator and CSI driver have moved to [openebs/jiva-operator](https://github.com/openebs/jiva-operator)
+- Local PV Hostpath and Device provisioner has been moved to [openebs/dynamic-localpv-provisioner](https://github.com/openebs/dynamic-localpv-provisioner)
+- Jiva and cStor prometheus metrics exporter been moved to [openebs/m-exporter](https://github.com/openebs/m-exporter)
+- `mayactl` for displaying status of jiva and cstor volumes is merged into [openebs/openebsctl](https://github.com/openebs/openebsctl)
 
-- [cstor-operators](https://github.com/openebs/cstor-operators)
-- [Jiva-operators](https://github.com/openebs/jiva-operator)
-- [LocalPV](https://github.com/openebs/dynamic-localpv-provisioner)
+This repository mainly contains code required for running the legacy cstor and jiva pools and volumes like: 
+- `m-apiserver` - used for provisoining the legacy cstor and jiva pools and volumes.
+- `mayactl` - packaged along with `m-apiserver` for fetching the legacy cstor and jiva volume status. 
+- `admission-server` - used for validating jiva and cstor pool and volume requests. 
+- `m-upgrade` - used for upgrading the legacy jiva volumes, cstor pools and volumes.
+- `cstor-pool-mgmt` and `cstor-volume-mgmt` - used for managing the legacy cstor pool and volumes. 
 
-*OpenEBS Maya* extends the capabilities of Kubernetes to orchestrate CAS (aka Container Native) Storage Solutions like OpenEBS Jiva, OpenEBS cStor, etc. *Maya* (meaning *Magic*), seamlessly integrates into the Kubernetes Storage Workflow and helps provision and manage the CAS based Storage Volumes. The core-features of *Maya* include:
+With OpenEBS 3.0, all of the above legacy components are deprecated and users are requested to migrate towards using:
+- cStor CSI Driver
+- Jiva CSI Driver
 
--   Maintaining the inventory of the underlying disks on the Kubernetes Nodes.
+The steps to migrate are provided here: https://github.com/openebs/upgrade.
 
--   Managing the allocation of Disks to CAS Storage Engines.
-
--   Provisioning of CAS Volumes by interfacing with K8s Dynamic Volume Provisioner.
-
--   Managing the high availability of the CAS volumes by tuning the scheduling parameters of CAS Deployments (Pods).
-
--   Provide adapters to CAS Volumes to interact with Kubernetes and related infrastructure components like Prometheus, Grafana etc.
-
-*Maya* orchestration and management capabilities are delivered through a set of services and tools. Currently, these services support deploying the CAS Storage Solutions in Kubernetes Clusters. In future, these can be extended to support other Container Orchestrators.
-
-## Maya Architecture
-
-![Maya Architecture](./docs/openebs-maya-architecture.png)
-
-**Maya** components can be broadly classified based on their deployment type as follows:
-
--   **Control Plane Components** - These are containers that are initialized as part of enabling OpenEBS in a Kubernetes cluster.
-    -   *maya-apiserver* helps with the creation of CAS Volumes and provides API endpoints to manage those volumes. *maya-apiserver* can also be considered as a template engine that can be easily extended to support any kind of CAS storage solutions. It takes as input a set of CAS templates that are converted into CAS K8s YAMLs based on user requests.
-    -   *provisioner* is an implementation of Kubernetes Dynamic Provisioner that processes the PVC requests by interacting with maya-apiserver.
-
--   **CAS Side-car Components** - These are adapter components that help with managing the CAS containers that do not inherently come up with the required endpoints. For example:
-    -   *maya-exporter* helps in providing a metrics endpoint to the CAS container.
-    -   *cas-mgmt* components can be attached as side-cars for helping to store/retrieve configuration information from Kubernetes Config Store (etcd). For cStor CAS solution, cstor-pool-mgmt is one such *cas-mgmt* component.
-
--   **CLI** - While most of the operations can be performed via the kubectl, *Maya* also comes with *mayactl* that helps retrieve storage related information for debugging/troubleshooting storage related issues.
+`v2.12.x` is the last active branch on this repository, that will be used to mainly resolve any security vulnerability or kubernetes compatibility issues found on production setups using the legacy provisioners. New features will be developed only cStor and Jiva CSI drivers.
 
 ## Install
 
-Please refer to our documentation at [OpenEBS Documentation](http://docs.openebs.io/).
+Please refer to our documentation at [OpenEBS Documentation](http://openebs.io/).
+
+## Release
+
+Prior to creating a release tag on this repository on `v2.12.x` branch with the required fixes, ensure that the dependent data engine repositories and provisioner are tagged. Once the code is merged, use the following sequence to release a new version for the legacy components:
+- New release tag on v2.12.x branches of [openebs/cstor](https://github.com/openebs/cstor) and [openebs/libcstor](https://github.com/openebs/libcstor)
+- New release tag on v2.12.x branches of [openebs/openebs-k8s-provisioner](https://github.com/openebs/openebs-k8s-provisioner) and [openebs/m-exporter](https://github.com/openebs/m-exporter)
+- Tag a new release under this repo [openebs/maya](https://github.com/openebs/maya)
+- Tag a new release under [openebs/velero-plugin](https://github.com/openebs/velero-plugin)
 
 ## Contributing
 
-Head over to the [CONTRIBUTING.md](./CONTRIBUTING.md).
+We are looking at further refactoring this repository by moving the common packages from this repository into a new common repository. If you are interested in helping with the refactoring efforts, please reach out to the OpenEBS Community. 
+
+For details on setting up the development environment and fixing the code, head over to the [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Community
 
 OpenEBS welcomes your feedback and contributions in any form possible.
 
 - [Join OpenEBS community on Kubernetes Slack](https://kubernetes.slack.com)
-  - Already signed up? Head to our discussions at [#openebs](https://kubernetes.slack.com/messages/openebs/)
-- Want to raise an issue or help with fixes and features?
-  - See [open issues](https://github.com/openebs/openebs/issues)
-  - See [contributing guide](./CONTRIBUTING.md)
-  - See [Project Roadmap](https://github.com/orgs/openebs/projects)
-  - Checkout our existing [adopters](https://github.com/openebs/openebs/tree/master/adopters) and their [feedbacks](https://github.com/openebs/openebs/issues/2719).
-  - Want to join our contributor community meetings, [check this out](https://hackmd.io/mfG78r7MS86oMx8oyaV8Iw?view).
-- Join our OpenEBS CNCF Mailing lists
-  - For OpenEBS project updates, subscribe to [OpenEBS Announcements](https://lists.cncf.io/g/cncf-openebs-announcements)
-  - For interacting with other OpenEBS users, subscribe to [OpenEBS Users](https://lists.cncf.io/g/cncf-openebs-users)
-
-
-## More Info
-
--   Design proposals for *Maya* components are located at [OpenEBS Designs directory](https://github.com/openebs/openebs/tree/master/contribute/design).
-
--   The issues related to *Maya* are logged under [openebs/openebs](https://github.com/openebs/openebs/issues).
-
--   To build Maya from the source code, see [developer's documentation](https://github.com/openebs/maya/blob/master/docs/developer.md).
-
--   Maya uses [golang dep](https://github.com/golang/dep) to manage dependencies.
-
--   The source code for OpenEBS Provisioner is available at [openebs/external-storage](https://github.com/openebs/external-storage).
-
--   *mayactl* is shipped along with the maya-apiserver container.
+  - Already signed up? Head to our discussions at:
+    -  [#openebs](https://kubernetes.slack.com/messages/openebs/)
+    -  [#openebs-dev](https://kubernetes.slack.com/messages/openebs-dev/)
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopenebs%2Fmaya.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopenebs%2Fmaya?ref=badge_large)
