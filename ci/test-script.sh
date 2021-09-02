@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # set -x
 
-wget https://raw.githubusercontent.com/openebs/openebs/${CI_BRANCH}/k8s/openebs-operator.yaml
+wget https://raw.githubusercontent.com/openebs/charts/gh-pages/versioned/legacy-v2.12.x/legacy-openebs-operator-ci.yaml
+
 IMAGE_ORG=${IMAGE_ORG:-openebs}
-sed -i "s/quay.io\/openebs/${IMAGE_ORG}/g" openebs-operator.yaml
+sed -i "s/quay.io\/openebs/${IMAGE_ORG}/g" legacy-openebs-operator-ci.yaml
 
 echo "Specify Sparse blockdevice count as 5"
-sed -i "s/value: \"1\"/value: \"5\"/g" openebs-operator.yaml
-kubectl apply -f openebs-operator.yaml
+sed -i "s/value: \"1\"/value: \"5\"/g" legacy-openebs-operator-ci.yaml
+kubectl apply -f legacy-openebs-operator-ci.yaml
 
 function waitForDeployment() {
   DEPLOY=$1

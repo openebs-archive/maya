@@ -93,7 +93,7 @@ spec:
     storage: true
     served: true
     deprecated: true
-    deprecationWarning: "openebs.io/v1alpha1 StoragePoolClaim is deprecated; see https://github.com/openebs/upgrade/blob/master/README.md for instructions to migrate to cstor.openebs.io/v1 CStorPoolCluster"
+    deprecationWarning: "openebs.io/v1alpha1 StoragePoolClaim is deprecated; see https://github.com/openebs/upgrade/blob/HEAD/README.md for instructions to migrate to cstor.openebs.io/v1 CStorPoolCluster"
     schema:
       openAPIV3Schema:
         x-kubernetes-preserve-unknown-fields: true
@@ -124,7 +124,7 @@ spec:
     storage: true
     served: true
     deprecated: true
-    deprecationWarning: "openebs.io/v1alpha1 StoragePool is deprecated; see https://github.com/openebs/upgrade/blob/master/README.md for instructions to migrate to openebs.io/v1alpha1 JivaVolumePolicy"
+    deprecationWarning: "openebs.io/v1alpha1 StoragePool is deprecated; see https://github.com/openebs/upgrade/blob/HEAD/README.md for instructions to migrate to openebs.io/v1alpha1 JivaVolumePolicy"
     schema:
       openAPIV3Schema:
         x-kubernetes-preserve-unknown-fields: true
@@ -155,7 +155,7 @@ spec:
     storage: true
     served: true
     deprecated: true
-    deprecationWarning: "openebs.io/v1alpha1 CStorPool is deprecated; see https://github.com/openebs/upgrade/blob/master/README.md for instructions to migrate to cstor.openebs.io/v1 CStorPoolInstance"
+    deprecationWarning: "openebs.io/v1alpha1 CStorPool is deprecated; see https://github.com/openebs/upgrade/blob/HEAD/README.md for instructions to migrate to cstor.openebs.io/v1 CStorPoolInstance"
     schema:
       openAPIV3Schema:
         x-kubernetes-preserve-unknown-fields: true
@@ -214,7 +214,7 @@ spec:
     storage: true
     served: true
     deprecated: true
-    deprecationWarning: "openebs.io/v1alpha1 CStorVolume is deprecated; see https://github.com/openebs/upgrade/blob/master/README.md for instructions to migrate to cstor.openebs.io/v1 CStorVolume"
+    deprecationWarning: "openebs.io/v1alpha1 CStorVolume is deprecated; see https://github.com/openebs/upgrade/blob/HEAD/README.md for instructions to migrate to cstor.openebs.io/v1 CStorVolume"
     schema:
       openAPIV3Schema:
         x-kubernetes-preserve-unknown-fields: true
@@ -257,7 +257,7 @@ spec:
     storage: true
     served: true
     deprecated: true
-    deprecationWarning: "openebs.io/v1alpha1 CStorVolumeReplica is deprecated; see https://github.com/openebs/upgrade/blob/master/README.md for instructions to migrate to cstor.openebs.io/v1 CStorVolumeReplica"
+    deprecationWarning: "openebs.io/v1alpha1 CStorVolumeReplica is deprecated; see https://github.com/openebs/upgrade/blob/HEAD/README.md for instructions to migrate to cstor.openebs.io/v1 CStorVolumeReplica"
     schema:
       openAPIV3Schema:
         x-kubernetes-preserve-unknown-fields: true
@@ -301,7 +301,7 @@ spec:
     storage: true
     served: true
     deprecated: true
-    deprecationWarning: "openebs.io/v1alpha1 CStorBackups is deprecated; see https://github.com/openebs/upgrade/blob/master/README.md for instructions to migrate to cstor.openebs.io/v1 CStorBackups"
+    deprecationWarning: "openebs.io/v1alpha1 CStorBackups is deprecated; see https://github.com/openebs/upgrade/blob/HEAD/README.md for instructions to migrate to cstor.openebs.io/v1 CStorBackups"
     schema:
       openAPIV3Schema:
         x-kubernetes-preserve-unknown-fields: true
@@ -340,7 +340,7 @@ spec:
     storage: true
     served: true
     deprecated: true
-    deprecationWarning: "openebs.io/v1alpha1 CStorCompletedBackup is deprecated; see https://github.com/openebs/upgrade/blob/master/README.md for instructions to migrate to cstor.openebs.io/v1 CStorCompletedBackup"
+    deprecationWarning: "openebs.io/v1alpha1 CStorCompletedBackup is deprecated; see https://github.com/openebs/upgrade/blob/HEAD/README.md for instructions to migrate to cstor.openebs.io/v1 CStorCompletedBackup"
     schema:
       openAPIV3Schema:
         x-kubernetes-preserve-unknown-fields: true
@@ -377,7 +377,7 @@ spec:
     storage: true
     served: true
     deprecated: true
-    deprecationWarning: "openebs.io/v1alpha1 CStorRestore is deprecated; see https://github.com/openebs/upgrade/blob/master/README.md for instructions to migrate to cstor.openebs.io/v1 CStorRestore"
+    deprecationWarning: "openebs.io/v1alpha1 CStorRestore is deprecated; see https://github.com/openebs/upgrade/blob/HEAD/README.md for instructions to migrate to cstor.openebs.io/v1 CStorRestore"
     schema:
       openAPIV3Schema:
         x-kubernetes-preserve-unknown-fields: true
