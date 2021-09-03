@@ -38,10 +38,14 @@ Please refer to our documentation at [OpenEBS Documentation](http://openebs.io/)
 ## Release
 
 Prior to creating a release tag on this repository on `v2.12.x` branch with the required fixes, ensure that the dependent data engine repositories and provisioner are tagged. Once the code is merged, use the following sequence to release a new version for the legacy components:
-- New release tag on v2.12.x branches of [openebs/cstor](https://github.com/openebs/cstor) and [openebs/libcstor](https://github.com/openebs/libcstor)
-- New release tag on v2.12.x branches of [openebs/openebs-k8s-provisioner](https://github.com/openebs/openebs-k8s-provisioner) and [openebs/m-exporter](https://github.com/openebs/m-exporter)
-- Tag a new release under this repo [openebs/maya](https://github.com/openebs/maya)
-- Tag a new release under [openebs/velero-plugin](https://github.com/openebs/velero-plugin)
+- (Optional) New release tag on v2.12.x branch of [openebs/linux-utils](https://github.com/openebs/linux-utils)
+- (Optional) New release tag on v0.6.x branch of [openebs/ndm](https://github.com/openebs/ndm)
+- New release tag on v2.12.x branch of [openebs/cstor](https://github.com/openebs/cstor) and [openebs/libcstor](https://github.com/openebs/libcstor)
+- New release tag on v2.12.x branch of [openebs/jiva](https://github.com/openebs/jiva)
+- New release tag on v2.12.x branch of [openebs/openebs-k8s-provisioner](https://github.com/openebs/openebs-k8s-provisioner) 
+- New release tag on v2.12.x branch of [openebs/m-exporter](https://github.com/openebs/m-exporter)
+- New release tag on v2.12.x branch of [openebs/maya](https://github.com/openebs/maya)
+- New release tag on v2.12.x branch of [openebs/velero-plugin](https://github.com/openebs/velero-plugin)
 
 ## Contributing
 
