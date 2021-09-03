@@ -5,7 +5,7 @@ OpenEBS uses the standard GitHub pull requests process to review and accept cont
 * If you are a first-time contributor, please see [Steps to Contribute](#steps-to-contribute).
 * If you have documentation improvement ideas, go ahead and create a pull request. See [Pull Request checklist](#pull-request-checklist).
 * If you would like to make code contributions, please start with [Setting up the Development Environment](#setting-up-your-development-environment).
-* If you would like to work on something more involved, please connect with the OpenEBS Contributors. See [OpenEBS Community](https://github.com/openebs/openebs/tree/master/community).
+* If you would like to work on something more involved, please connect with the OpenEBS Contributors. See [OpenEBS Community](https://github.com/openebs/openebs/tree/HEAD/community).
 
 ## Steps to Contribute
 
@@ -30,11 +30,11 @@ OpenEBS is an Apache 2.0 Licensed project and all your commits should be signed 
   - Commit header (first line) should convey what changed.
   - Commit body should include details such as why the changes are required and how the proposed changes.
   - DCO Signed.
-* If your PR is not getting reviewed or you need a specific person to review it, please reach out to the OpenEBS Contributors. See [OpenEBS Community](https://github.com/openebs/openebs/tree/master/community).
+* If your PR is not getting reviewed or you need a specific person to review it, please reach out to the OpenEBS Contributors. See [OpenEBS Community](https://github.com/openebs/openebs/tree/HEAD/community).
 
 ## Sign your work
 
-We use the Developer Certificate of Origin (DCO) as an additional safeguard for the OpenEBS project. This is a well established and widely used mechanism to assure that contributors have confirmed their right to license their contribution under the project's license. Please read [dcofile](https://github.com/openebs/openebs/blob/master/contribute/developer-certificate-of-origin). If you can certify it, then just add a line to every git commit message:
+We use the Developer Certificate of Origin (DCO) as an additional safeguard for the OpenEBS project. This is a well established and widely used mechanism to assure that contributors have confirmed their right to license their contribution under the project's license. Please read [dcofile](https://github.com/openebs/openebs/blob/HEAD/contribute/developer-certificate-of-origin). If you can certify it, then just add a line to every git commit message:
 
 ```
   Signed-off-by: Random J Developer <random@developer.example.org>
@@ -57,7 +57,7 @@ For setting up a Development environment on your local host, see the detailed in
 ## Reviews against Pull Requests
 
 A PR can be reviewed by both core as well as external contributors. Below can be referred to during reviews:
-- contributor should be familiar with maya's [idiomatic standards](https://github.com/openebs/maya/blob/master/docs/idiomatic-maya-guide.md)
+- contributor should be familiar with maya's [idiomatic standards](https://github.com/openebs/maya/blob/HEAD/docs/idiomatic-maya-guide.md)
 - contributor should fix all the linting issues raised by the lint tools integrated with maya
 - contributor should try to implement relevant golang based unit tests for the fix/enhancement
 - contributor should try to rework on the review comments as much as possible

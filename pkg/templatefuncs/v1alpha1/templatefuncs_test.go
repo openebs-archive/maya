@@ -25,10 +25,10 @@ limitations under the License.
 // - https://golang.org/src/text/template/funcs.go
 //
 // Custom template funcs:
-// - https://github.com/Masterminds/sprig/tree/master/docs
+// - https://github.com/Masterminds/sprig/tree/HEAD/docs
 //
 // Templating guides:
-// - https://github.com/kubernetes/helm/tree/master/docs/chart_template_guide
+// - https://github.com/kubernetes/helm/tree/HEAD/docs/chart_template_guide
 // - https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html
 package templatefuncs
 

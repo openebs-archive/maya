@@ -18,8 +18,7 @@ set -e
 
 #./ci/helm_install_openebs.sh
 # global env vars to be used in test scripts
-export CI_BRANCH="master"
-export CI_TAG="ci"
+export CI_TAG="v2.12.x-ci"
 export MAYACTL="$GOPATH/src/github.com/openebs/maya/bin/maya/mayactl"
 
 ./ci/build-maya.sh

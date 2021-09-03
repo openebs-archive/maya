@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This file has been taken from https://github.com/kubernetes/code-generator/blob/master/generate-groups.sh
+# This file has been taken from https://github.com/kubernetes/code-generator/blob/HEAD/generate-groups.sh
 # A small modification is made in this file at line number 56.
 
 set -o errexit
