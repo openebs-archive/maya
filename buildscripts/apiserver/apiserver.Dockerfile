@@ -41,7 +41,7 @@ COPY . .
 RUN make mayactl apiserver
 RUN chmod +x buildscripts/apiserver/entrypoint.sh
 
-FROM alpine:3.11.5
+FROM openebs/linux-utils:2.12.x-ci
 ENV MAYA_API_SERVER_NETWORK="eth0"
 
 RUN apk add --no-cache \

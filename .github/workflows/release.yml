@@ -52,6 +52,7 @@ jobs:
           images: |
             ${{ env.IMAGE_ORG }}/m-apiserver
             quay.io/${{ env.IMAGE_ORG }}/m-apiserver
+            ghcr.io/${{ env.IMAGE_ORG }}/m-apiserver
           tag-latest: true
           tag-semver: |
             {{version}}
@@ -131,6 +132,7 @@ jobs:
           images: |
             ${{ env.IMAGE_ORG }}/cstor-pool-mgmt
             quay.io/${{ env.IMAGE_ORG }}/cstor-pool-mgmt
+            ghcr.io/${{ env.IMAGE_ORG }}/cstor-pool-mgmt
           tag-latest: true
           tag-semver: |
             {{version}}
@@ -211,6 +213,7 @@ jobs:
           images: |
             ${{ env.IMAGE_ORG }}/cstor-volume-mgmt
             quay.io/${{ env.IMAGE_ORG }}/cstor-volume-mgmt
+            ghcr.io/${{ env.IMAGE_ORG }}/cstor-volume-mgmt
           tag-latest: true
           tag-semver: |
             {{version}}
@@ -290,6 +293,7 @@ jobs:
           images: |
             ${{ env.IMAGE_ORG }}/admission-server
             quay.io/${{ env.IMAGE_ORG }}/admission-server
+            ghcr.io/${{ env.IMAGE_ORG }}/admission-server
           tag-latest: true
           tag-semver: |
             {{version}}
@@ -369,6 +373,7 @@ jobs:
           images: |
             ${{ env.IMAGE_ORG }}/m-upgrade
             quay.io/${{ env.IMAGE_ORG }}/m-upgrade
+            ghcr.io/${{ env.IMAGE_ORG }}/m-upgrade
           tag-latest: true
           tag-semver: |
             {{version}}

@@ -3,7 +3,7 @@
 # maya api server's releases.
 #
 
-FROM alpine:3.11.5
+FROM openebs/linux-utils:2.12.x-ci
 
 # TODO: The following env variables should be auto detected.
 ENV MAYA_API_SERVER_NETWORK="eth0"

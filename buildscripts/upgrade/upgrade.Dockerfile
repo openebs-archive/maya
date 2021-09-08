@@ -40,7 +40,7 @@ COPY . .
 
 RUN make upgrade
 
-FROM alpine:3.11.5
+FROM openebs/linux-utils:2.12.x-ci
 
 ARG DBUILD_DATE
 ARG DBUILD_REPO_URL

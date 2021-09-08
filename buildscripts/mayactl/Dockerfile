@@ -2,7 +2,7 @@
 # This Dockerfile builds a recent maya container with latest code
 #
 
-FROM alpine:3.11.5
+FROM openebs/linux-utils:2.12.x-ci
 
 RUN apk --no-cache add libc6-compat
 
