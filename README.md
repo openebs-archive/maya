@@ -37,7 +37,11 @@ Please refer to our documentation at [OpenEBS Documentation](http://openebs.io/)
 
 ## Release
 
-Prior to creating a release tag on this repository on `v2.12.x` branch with the required fixes, ensure that the dependent data engine repositories and provisioner are tagged. Once the code is merged, use the following sequence to release a new version for the legacy components:
+Prior to creating a release tag on this repository on `v2.12.x` branch with the required fixes, ensure that:
+- the dependent data engine repositories and provisioner are tagged. 
+- update the [versionDetails.go](./pkg/apis/openebs.io/v1alpha1/versionDetails.go) to include the supported upgrade path.
+
+Once the code is merged, use the following sequence to release a new version for the legacy components:
 - New release tag on v2.12.x branch of [openebs/linux-utils](https://github.com/openebs/linux-utils)
 - (If required) New release tag on v0.6.x branch of [openebs/ndm](https://github.com/openebs/node-disk-manager)
 - New release tag on v2.12.x branch of [openebs/cstor](https://github.com/openebs/cstor) and [openebs/libcstor](https://github.com/openebs/libcstor)
