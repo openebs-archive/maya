@@ -3,7 +3,7 @@
 # its latest binary
 #
 
-FROM alpine:3.11.5
+FROM openebs/linux-utils:2.12.x-ci
 
 # copy the latest binary
 COPY upgrade /usr/local/bin/upgrade

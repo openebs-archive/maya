@@ -18,7 +18,7 @@ As the OpenEBS community started to add new engines, the engine specific control
 
 This repository mainly contains code required for running the legacy cStor and Jiva pools and volumes like: 
 - `m-apiserver` - used for provisoining the legacy cStor and Jiva pools and volumes.
-- `mayactl` - packaged along with `m-apiserver` for fetching the legacy cStor and Jiva volume status. 
+  - `mayactl` - packaged along with `m-apiserver` for fetching the legacy cStor and Jiva volume status. 
 - `admission-server` - used for validating Jiva and cStor pool and volume requests. 
 - `m-upgrade` - used for upgrading the legacy Jiva volumes, cStor pools and volumes.
 - `cstor-pool-mgmt` and `cstor-volume-mgmt` - used for managing the legacy cStor pool and volumes. 
@@ -37,15 +37,27 @@ Please refer to our documentation at [OpenEBS Documentation](http://openebs.io/)
 
 ## Release
 
-Prior to creating a release tag on this repository on `v2.12.x` branch with the required fixes, ensure that the dependent data engine repositories and provisioner are tagged. Once the code is merged, use the following sequence to release a new version for the legacy components:
-- (Optional) New release tag on v2.12.x branch of [openebs/linux-utils](https://github.com/openebs/linux-utils)
-- (Optional) New release tag on v0.6.x branch of [openebs/ndm](https://github.com/openebs/node-disk-manager)
+Prior to creating a release tag on this repository on `v2.12.x` branch with the required fixes, ensure that:
+- the dependent data engine repositories and provisioner are tagged. 
+- update the [versionDetails.go](./pkg/apis/openebs.io/v1alpha1/versionDetails.go) to include the supported upgrade path.
+
+Once the code is merged, use the following sequence to release a new version for the legacy components:
+- New release tag on v2.12.x branch of [openebs/linux-utils](https://github.com/openebs/linux-utils)
+- (If required) New release tag on v0.6.x branch of [openebs/ndm](https://github.com/openebs/node-disk-manager)
 - New release tag on v2.12.x branch of [openebs/cstor](https://github.com/openebs/cstor) and [openebs/libcstor](https://github.com/openebs/libcstor)
 - New release tag on v2.12.x branch of [openebs/jiva](https://github.com/openebs/jiva)
 - New release tag on v2.12.x branch of [openebs/openebs-k8s-provisioner](https://github.com/openebs/openebs-k8s-provisioner) 
 - New release tag on v2.12.x branch of [openebs/m-exporter](https://github.com/openebs/m-exporter)
 - New release tag on v2.12.x branch of [openebs/maya](https://github.com/openebs/maya)
 - New release tag on v2.12.x branch of [openebs/velero-plugin](https://github.com/openebs/velero-plugin)
+
+Note: The github release workflows are setup to push the tag to the dependent repositories. In the above case, if a release tag is created on v2.12.x branch of `linux-utils`, then it will trigger the releases down to `velero-plugin` repo.
+
+Once the tags are generated update the helm charts and YAMLs at:
+- https://github.com/openebs/charts/tree/2.x/charts/openebs/templates/legacy
+- https://github.com/openebs/charts/tree/main/charts/openebs/templates/legacy
+- https://github.com/openebs/charts/blob/gh-pages/legacy-openebs-operator.yaml
+
 
 ## Contributing
 
