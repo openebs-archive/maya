@@ -66,11 +66,13 @@ func ConfigToMap(all []v1alpha1.Config) (m map[string]interface{}, err error) {
 			return nil, err
 		}
 		confHierarchy := map[string]interface{}{
-			configName: map[string]string{
+			configName: map[string]interface{}{
 				string(v1alpha1.EnabledPTP): config.Enabled,
 				string(v1alpha1.ValuePTP):   config.Value,
+				string(v1alpha1.DataPTP):    config.Data,
 			},
 		}
+
 		isMerged := util.MergeMapOfObjects(m, confHierarchy)
 		if !isMerged {
 			err = errors.Errorf("failed to transform cas config to map: failed to merge: %s", config)
