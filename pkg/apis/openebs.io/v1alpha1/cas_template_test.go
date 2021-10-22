@@ -64,8 +64,9 @@ func TestCASConfigJSONIndent(t *testing.T) {
 				Name:    "Replicas",
 				Value:   "2",
 				Enabled: "false",
+				List:    []string{"openebs.io/cpu-node"},
 			},
-			[]string{`"name": "Replicas"`, `"value": "2"`, `"enabled": "false"`},
+			[]string{`"name": "Replicas"`, `"value": "2"`, `"enabled": "false"`, `"openebs.io/cpu-node"`},
 		},
 	}
 	for name, mock := range tests {
