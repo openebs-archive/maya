@@ -25,7 +25,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8
 	go.uber.org/zap v1.13.0
-	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
+	golang.org/x/net v0.7.0
 	google.golang.org/grpc v1.27.1
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v2 v2.2.8
