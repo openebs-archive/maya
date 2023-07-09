@@ -276,7 +276,7 @@ func (k *Kubeclient) DeleteCollection(ctx context.Context, listOpts metav1.ListO
 }
 
 // Delete deletes a bdc instance from the
-// kubecrnetes cluster
+// kubernetes cluster
 func (k *Kubeclient) Delete(ctx context.Context, name string, deleteOpts *metav1.DeleteOptions) error {
 	if strings.TrimSpace(name) == "" {
 		return errors.New("failed to delete bdc: missing bdc name")
