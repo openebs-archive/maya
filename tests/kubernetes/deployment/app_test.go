@@ -64,7 +64,7 @@ var _ = Describe("TEST DEPLOYMENT CREATION ", func() {
 				Build()
 			Expect(err).ShouldNot(
 				HaveOccurred(),
-				"while building delpoyment {%s} in namespace {%s}",
+				"while building deployment {%s} in namespace {%s}",
 				deployName,
 				namespaceObj.Name,
 			)
