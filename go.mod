@@ -13,11 +13,11 @@ require (
 	github.com/hashicorp/hcl v1.0.0
 	github.com/huandu/xstrings v1.3.1 // indirect
 	github.com/imdario/mergo v0.3.8 // indirect
-	github.com/jpillora/go-ogle-analytics v0.0.0-20161213085824-14b04e0594ef
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
+	github.com/openebs/go-ogle-analytics v0.1.1-0.20231107050511-bb5caf280e64
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/ryanuber/columnize v2.1.0+incompatible

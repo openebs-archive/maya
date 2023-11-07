@@ -16,7 +16,7 @@ limitations under the License.
 package usage
 
 import (
-	analytics "github.com/jpillora/go-ogle-analytics"
+	analytics "github.com/openebs/go-ogle-analytics"
 	"k8s.io/klog"
 )
 
