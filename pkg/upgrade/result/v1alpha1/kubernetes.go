@@ -30,7 +30,7 @@ import (
 	errors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // getClientsetFunc is a typed function that
@@ -120,21 +120,28 @@ var (
 // KubeClientInstanceOrDie returns the singleton instance of Kubeclient
 //
 // NOTE:
-//  Here singleton points to CoreClient instance only since a Kubeclient
+//
+//	Here singleton points to CoreClient instance only since a Kubeclient
+//
 // instance needs to change at runtime based on namespace. CoreClient's
 // clientset instance is the only field that is needed to be initialized
 // to consider Kubeclient as a singleton.
 //
 // NOTE:
-//  In order to keep this logic more caller code friendly, this function
+//
+//	In order to keep this logic more caller code friendly, this function
+//
 // is not named as CoreClientInstanceOrDie.
 //
 // Usage:
-//  Caller code will use syntax(-es) as shown below:
+//
+//	Caller code will use syntax(-es) as shown below:
 //
 // ```go
 // import (
-//  uresult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+//
+//	uresult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+//
 // )
 //
 // uresult.KubeClientInstanceOrDie().WithNamespace("my_ns").Get(...)

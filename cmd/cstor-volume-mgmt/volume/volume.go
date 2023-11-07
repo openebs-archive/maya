@@ -31,7 +31,7 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // VolumeOperator is the name of the tool that makes volume-related operations.
@@ -113,10 +113,10 @@ var (
 `
 )
 
-//FileOperatorVar is used for doing File Operations
+// FileOperatorVar is used for doing File Operations
 var FileOperatorVar util.FileOperator
 
-//UnixSockVar is used for communication through Unix Socket
+// UnixSockVar is used for communication through Unix Socket
 var UnixSockVar util.UnixSock
 
 func init() {

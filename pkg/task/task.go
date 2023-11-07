@@ -48,7 +48,7 @@ import (
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -69,7 +69,9 @@ type Executor interface {
 // specifications
 //
 // NOTE:
-//  The output format is specified in the
+//
+//	The output format is specified in the
+//
 // RunTask itself
 type OutputExecutor interface {
 	Output() (output []byte, err error)
@@ -142,7 +144,8 @@ func (m *executor) getK8sClient() *m_k8s_client.K8sClient {
 // RunTask meant for templating only purpose
 //
 // NOTE:
-//  This implements OutputExecutor interface
+//
+//	This implements OutputExecutor interface
 func (m *executor) Output() ([]byte, error) {
 	output, err := template.AsTemplatedBytes(
 		"output",
@@ -160,16 +163,20 @@ func (m *executor) Output() ([]byte, error) {
 // the updated template values
 //
 // NOTE:
-//  Logic to determine NotFound error is specified at
+//
+//	Logic to determine NotFound error is specified at
+//
 // Post property which is executed after the task's
 // execution.
 //
 // NOTE:
-//  In case of NotFound error, template values
+//
+//	In case of NotFound error, template values
+//
 // is set with NotFound error against below
 // nested key
 //
-//  .TaskResult.<taskID>.notFoundErr
+//	.TaskResult.<taskID>.notFoundErr
 func (m *executor) getNotFoundError() interface{} {
 	return util.GetNestedField(
 		m.Values,
@@ -183,15 +190,19 @@ func (m *executor) getNotFoundError() interface{} {
 // if any; post the execution of this runtask
 //
 // NOTE:
-//  Logic to determine VersionMismatch error is specified at
+//
+//	Logic to determine VersionMismatch error is specified at
+//
 // Post property which is executed after the task's execution.
 //
 // NOTE:
-//  In case of VersionMismatch error, template values
+//
+//	In case of VersionMismatch error, template values
+//
 // is set with VersionMismatch error against below nested
 // key
 //
-//  .TaskResult.<taskID>.versionMismatchErr
+//	.TaskResult.<taskID>.versionMismatchErr
 func (m *executor) getTaskResultVersionMismatchError() interface{} {
 	return util.GetNestedField(
 		m.Values,
@@ -205,14 +216,18 @@ func (m *executor) getTaskResultVersionMismatchError() interface{} {
 // post the execution of this runtask
 //
 // NOTE:
-//  Logic to determine Verify error is specified at Post
+//
+//	Logic to determine Verify error is specified at Post
+//
 // property which is executed after the task's execution.
 //
 // NOTE:
-//  In case of Verify error, template values is
+//
+//	In case of Verify error, template values is
+//
 // set with Verify error against below nested key
 //
-//  .TaskResult.<taskID>.verifyErr
+//	.TaskResult.<taskID>.verifyErr
 func (m *executor) getVerifyError() interface{} {
 	return util.GetNestedField(
 		m.Values,
@@ -226,15 +241,19 @@ func (m *executor) getVerifyError() interface{} {
 // post the execution of this runtask
 //
 // NOTE:
-//  If a runtask results in Verify error, its execution
+//
+//	If a runtask results in Verify error, its execution
+//
 // can be retried by reseting Verify error
 //
 // NOTE:
-//  Reset here implies setting the verification error's
+//
+//	Reset here implies setting the verification error's
+//
 // placeholder value to nil
 //
-//  Below property is reset with 'nil':
-//  .TaskResult.<taskID>.verifyErr
+//	Below property is reset with 'nil':
+//	.TaskResult.<taskID>.verifyErr
 func (m *executor) resetTaskResultVerifyError() {
 	util.SetNestedField(
 		m.Values,
@@ -249,12 +268,16 @@ func (m *executor) resetTaskResultVerifyError() {
 // repeatWith property of meta task specifications.
 //
 // NOTE:
-//  With this property RunTask can be executed repeatedly
+//
+//	With this property RunTask can be executed repeatedly
+//
 // based on the resource names set against the repeatWith
 // property.
 //
 // NOTE:
-//  Each task execution depends on the current resource
+//
+//	Each task execution depends on the current resource
+//
 // index
 func (m *executor) repeatWith() (err error) {
 	rptExec := m.MetaExec.getRepeatExecutor()
@@ -389,7 +412,9 @@ func (m *executor) Execute() (err error) {
 // after executing a task.
 //
 // NOTE:
-//  This go template is a set of template functions
+//
+//	This go template is a set of template functions
+//
 // that queries specified properties from the result
 // of task's execution & stores them at placeholders
 // within the **template values**. These stored values

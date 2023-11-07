@@ -19,11 +19,11 @@ package v1alpha1
 import (
 	"strings"
 
-	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/task"
 	"github.com/openebs/maya/pkg/util"
 	errors "github.com/pkg/errors"
+	"sigs.k8s.io/yaml"
 )
 
 // UnMarshallToConfig un-marshals the provided
@@ -202,7 +202,9 @@ func (c *engine) SetConfig(v map[string]interface{}) {
 // during cas template execution
 //
 // NOTE:
-//  This is not the same thing as cas config.
+//
+//	This is not the same thing as cas config.
+//
 // One way to understand this is to enable
 // engine to accept run time values, etc that
 // may be required to execute cas template.

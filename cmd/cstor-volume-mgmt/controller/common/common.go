@@ -22,7 +22,7 @@ import (
 
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // DefaultSharedInformerInterval is used to sync watcher controller.
@@ -35,7 +35,7 @@ const (
 	EventMsgFormatter = "Volume is in %s state"
 )
 
-//EventReason is used as part of the Event reason when a resource goes through different phases
+// EventReason is used as part of the Event reason when a resource goes through different phases
 type EventReason string
 
 const (
@@ -99,7 +99,7 @@ const (
 	ResourceWorkerInterval = time.Second
 )
 
-//CStorVolumeStatus represents the status of a CStorVolume object
+// CStorVolumeStatus represents the status of a CStorVolume object
 type CStorVolumeStatus string
 
 // Status written onto CStorVolume objects.
@@ -134,10 +134,10 @@ const (
 	OpenEBSIOCStorVolumeID Environment = "OPENEBS_IO_CSTOR_VOLUME_ID"
 )
 
-//QueueOperation represents the type of operation on resource
+// QueueOperation represents the type of operation on resource
 type QueueOperation string
 
-//Different type of operations on the controller
+// Different type of operations on the controller
 const (
 	QOpAdd          QueueOperation = "add"
 	QOpDestroy      QueueOperation = "destroy"

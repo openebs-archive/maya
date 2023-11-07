@@ -44,7 +44,7 @@ jobs:
           reporter: github-pr-review
           path: '.'
           pattern: '*.sh'
-          exclude: './.git/*,./vendor/*'
+          exclude: './.git/*'
 
   apiserver:
     runs-on: ubuntu-latest
@@ -52,6 +52,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.13
 
       - name: Set Image Org
         # sets the default IMAGE_ORG to openebs
@@ -145,6 +150,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.13
 
       - name: Set Image Org
         # sets the default IMAGE_ORG to openebs
@@ -240,6 +250,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.13
+
       - name: Set Image Org
         # sets the default IMAGE_ORG to openebs
         run: |
@@ -333,6 +348,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.13
+
       - name: Set Image Org
         # sets the default IMAGE_ORG to openebs
         run: |
@@ -425,6 +445,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.13
 
       - name: Set Image Org
         # sets the default IMAGE_ORG to openebs

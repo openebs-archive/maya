@@ -24,7 +24,7 @@ import (
 	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // PoolCreateConfig is config object used to create a cstor pool.
@@ -44,9 +44,9 @@ type CasPoolBuilder struct {
 // to be created or deleted for a storagepool creation or deletion respectively.
 
 // CreateStoragePool is a function that does following:
-// 1. It receives storagepoolclaim object from the spc watcher event handler.
-// 2. After successful validation, it will call a worker function for actual storage creation
-//    via the cas template specified in storagepoolclaim.
+//  1. It receives storagepoolclaim object from the spc watcher event handler.
+//  2. After successful validation, it will call a worker function for actual storage creation
+//     via the cas template specified in storagepoolclaim.
 func (pc *PoolCreateConfig) CreateStoragePool(spcGot *apis.StoragePoolClaim) error {
 	newCasPool, err := pc.getCasPool(spcGot)
 	if err != nil {

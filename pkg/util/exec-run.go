@@ -24,7 +24,7 @@ import (
 
 	"context"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // Runner interface implements various methods of running binaries which can be
@@ -111,7 +111,7 @@ func (r RealRunner) RunCommandWithTimeoutContext(timeout time.Duration, command 
 	return out, nil
 }
 
-//TestRunner is used as a dummy Runner
+// TestRunner is used as a dummy Runner
 type TestRunner struct{}
 
 // RunCombinedOutput is to mock Real runner exec.

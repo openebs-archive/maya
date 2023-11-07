@@ -29,7 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // ResourceCreator abstracts creating an unstructured instance in kubernetes
@@ -200,7 +200,9 @@ type ResourceCreateOrUpdater struct {
 // build an instance of ResourceCreateOrUpdater
 //
 // NOTE:
+//
 //	This follows the pattern known as "functional options". It
+//
 // is a function that operates on a given structure as a value
 // to build (initialise, configure, sensible defaults, etc) this
 // same structure.

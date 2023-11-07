@@ -29,7 +29,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -161,7 +161,7 @@ func NewCStorVolumeReplicaController(
 					CStorVolumeReplicas(cvrObj.Namespace).
 					Update(context.TODO(), cvrObj, v1.UpdateOptions{})
 
-					// push this operation to workqueue
+				// push this operation to workqueue
 				ql.Operation = common.QOpAdd
 				controller.enqueueCStorReplica(cvrObj, ql)
 			},

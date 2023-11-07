@@ -30,7 +30,7 @@ import (
 	"github.com/openebs/maya/pkg/volume"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 const (

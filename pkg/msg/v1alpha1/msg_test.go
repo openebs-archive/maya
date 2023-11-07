@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"testing"
 )
 

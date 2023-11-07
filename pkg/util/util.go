@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -83,7 +83,7 @@ func CheckErr(err error, handleErr func(string)) {
 // Fatal prints the message (if provided) and then exits. If V(2) or greater,
 // klog.Fatal is invoked for extended information.
 func Fatal(msg string) {
-	if klog.V(2) {
+	if klog.V(2).Enabled() {
 		klog.FatalDepth(2, msg)
 	}
 	if len(msg) > 0 {
@@ -115,7 +115,8 @@ func StringToInt32(val string) (*int32, error) {
 // *int32 type
 //
 // NOTE:
-//  This swallows the error if any
+//
+//	This swallows the error if any
 func StrToInt32(val string) *int32 {
 	n32, _ := StringToInt32(val)
 	return n32

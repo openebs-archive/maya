@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/Masterminds/sprig"
-	"github.com/ghodss/yaml"
 	poolselection "github.com/openebs/maya/pkg/algorithm/cstorpoolselect/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha2"
@@ -37,7 +36,8 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	kubever "github.com/openebs/maya/pkg/version/kubernetes"
 	"github.com/pkg/errors"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/yaml"
 )
 
 // empty returns true if the given value has the zero value for its type.
@@ -147,11 +147,13 @@ func isLen(expected int, given interface{}) bool {
 // Example:
 // {{- jsonpath .JsonDoc "{.items[*].kind}" | saveAs "TaskResult.kinds" .Values | noop -}}
 //
-//  Above runs jsonpath template function against .JsonDoc value with the
+//	Above runs jsonpath template function against .JsonDoc value with the
+//
 // provided json path and then saves the result into specific path in Values
 // object i.e. at .Values.TaskResult.kinds
 //
-//  The assumptions here are:
+//	The assumptions here are:
+//
 // - '.Values' is of type 'map[string]interface{}'
 // - '.JsonDoc' is of type '[]byte'
 func jsonPath(json []byte, path string) string {
@@ -166,7 +168,9 @@ func jsonPath(json []byte, path string) string {
 // noop as its name suggests does nothing
 //
 // NOTE:
-//  It is intended to be used as a template function where the output of another
+//
+//	It is intended to be used as a template function where the output of another
+//
 // template function is piped to noop to be consumed and this in-turn returns a
 // blank. This is required for cases where we would like to preserve the
 // yaml/template format.
@@ -198,10 +202,12 @@ func noop(given ...interface{}) (op string) {
 // first item whose suffix matches the provided match.
 //
 // NOTE:
-//  This is intended to be used as a template function
+//
+//	This is intended to be used as a template function
 //
 // Example:
-//  {{- "jiva-rep, cstor" | splitList ", " | pickSuffix "-rep" | noop -}}
+//
+//	{{- "jiva-rep, cstor" | splitList ", " | pickSuffix "-rep" | noop -}}
 func pickSuffix(match string, given []string) (matched string) {
 	for _, givenItem := range given {
 		if strings.HasSuffix(givenItem, match) {
@@ -217,10 +223,12 @@ func pickSuffix(match string, given []string) (matched string) {
 // first item whose prefix matches the provided match.
 //
 // NOTE:
-//  This is intended to be used as a template function
+//
+//	This is intended to be used as a template function
 //
 // Example:
-//  {{- "pvc-jiva-rep, cstor" | splitList ", " | pickPrefix "pvc-" | noop -}}
+//
+//	{{- "pvc-jiva-rep, cstor" | splitList ", " | pickPrefix "pvc-" | noop -}}
 func pickPrefix(match string, given []string) (matched string) {
 	for _, givenItem := range given {
 		if strings.HasPrefix(givenItem, match) {
@@ -236,10 +244,12 @@ func pickPrefix(match string, given []string) (matched string) {
 // first item which contains the provided match.
 //
 // NOTE:
-//  This is intended to be used as a template function
+//
+//	This is intended to be used as a template function
 //
 // Example:
-//  {{- "pvc-jiva-rep, cstor" | splitList ", " | pickContains "-jiva-" | noop -}}
+//
+//	{{- "pvc-jiva-rep, cstor" | splitList ", " | pickContains "-jiva-" | noop -}}
 func pickContains(match string, given []string) (matched string) {
 	for _, givenItem := range given {
 		if strings.Contains(givenItem, match) {
@@ -259,33 +269,39 @@ func pickContains(match string, given []string) (matched string) {
 // parameters here.
 //
 // NOTE:
-//  Technically, it forms a map[string]interface{} structure where interface{}
+//
+//	Technically, it forms a map[string]interface{} structure where interface{}
+//
 // is a map[string]string.
 //
 // NOTE:
-//  This is intended to be used as a template function
+//
+//	This is intended to be used as a template function
 //
 // NOTE:
-//  This appends current value to original value if any.
+//
+//	This appends current value to original value if any.
 //
 // Example:
-//  {{- "pkey=openebs--stor1=jiva--stor2=cstor" | splitList " " | splitKeyMap "-- =" "vals" .Target | noop -}}
-//  {{- "co1=swarm--co2=k8s" | splitList " " | splitKeyMap "-- =" "vals" .Target | noop -}}
-//  {{- "pkey=openebs--stor2=mstor" | splitList " " | splitKeyMap "-- =" "vals" .Target | noop -}}
+//
+//	{{- "pkey=openebs--stor1=jiva--stor2=cstor" | splitList " " | splitKeyMap "-- =" "vals" .Target | noop -}}
+//	{{- "co1=swarm--co2=k8s" | splitList " " | splitKeyMap "-- =" "vals" .Target | noop -}}
+//	{{- "pkey=openebs--stor2=mstor" | splitList " " | splitKeyMap "-- =" "vals" .Target | noop -}}
 //
 // Above will result into following:
-//  Target: map[string]interface{}{
-//    "vals": map[string]interface{}{
-//      "openebs": map[string]interface{}{
-//        "stor1": "jiva",
-//        "stor2": "cstor, mstor",
-//      },
-//      "pkey": map[string]interface{}{
-//        "co1": "swarm",
-//        "co2": "k8s",
-//      },
-//    },
-//  }
+//
+//	Target: map[string]interface{}{
+//	  "vals": map[string]interface{}{
+//	    "openebs": map[string]interface{}{
+//	      "stor1": "jiva",
+//	      "stor2": "cstor, mstor",
+//	    },
+//	    "pkey": map[string]interface{}{
+//	      "co1": "swarm",
+//	      "co2": "k8s",
+//	    },
+//	  },
+//	}
 //
 // The assumption here is '.Target' is of type 'map[string]interface{}'
 func splitKeyMap(splitters, destinationFields string, destination map[string]interface{}, given []string) interface{} {
@@ -413,33 +429,39 @@ func splitKeyMap(splitters, destinationFields string, destination map[string]int
 // resulting pkey:map pairs are set against the destination object.
 //
 // NOTE:
-//  Technically, it forms a map[string]interface{} structure where interface{}
+//
+//	Technically, it forms a map[string]interface{} structure where interface{}
+//
 // is a map[string]string.
 //
 // NOTE:
-//  This is intended to be used as a template function
+//
+//	This is intended to be used as a template function
 //
 // NOTE:
-//  This appends current value to original value if any.
+//
+//	This appends current value to original value if any.
 //
 // Example:
-//  {{- "pkey=openebs,stor1=jiva,stor2=cstor" | splitList " " | keyMap "vals" .Target | noop -}}
-//  {{- "co1=swarm,co2=k8s" | splitList " " | keyMap "vals" .Target | noop -}}
-//  {{- "pkey=openebs,stor2=mstor" | splitList " " | keyMap "vals" .Target | noop -}}
+//
+//	{{- "pkey=openebs,stor1=jiva,stor2=cstor" | splitList " " | keyMap "vals" .Target | noop -}}
+//	{{- "co1=swarm,co2=k8s" | splitList " " | keyMap "vals" .Target | noop -}}
+//	{{- "pkey=openebs,stor2=mstor" | splitList " " | keyMap "vals" .Target | noop -}}
 //
 // Above will result into following:
-//  Target: map[string]interface{}{
-//    "vals": map[string]interface{}{
-//      "openebs": map[string]interface{}{
-//        "stor1": "jiva",
-//        "stor2": "cstor, mstor",
-//      },
-//      "pkey": map[string]interface{}{
-//        "co1": "swarm",
-//        "co2": "k8s",
-//      },
-//    },
-//  }
+//
+//	Target: map[string]interface{}{
+//	  "vals": map[string]interface{}{
+//	    "openebs": map[string]interface{}{
+//	      "stor1": "jiva",
+//	      "stor2": "cstor, mstor",
+//	    },
+//	    "pkey": map[string]interface{}{
+//	      "co1": "swarm",
+//	      "co2": "k8s",
+//	    },
+//	  },
+//	}
 //
 // The assumption here is '.Target' is of type 'map[string]interface{}'
 func keyMap(destinationFields string, destination map[string]interface{}, given []string) interface{} {
@@ -453,31 +475,35 @@ func keyMap(destinationFields string, destination map[string]interface{}, given 
 // then set into the provided destination object.
 //
 // NOTE:
-//  This is intended to be used as a template function
+//
+//	This is intended to be used as a template function
 //
 // NOTE:
-//  This appends current value to original value if any.
+//
+//	This appends current value to original value if any.
 //
 // Example:
-//  {{- "default/mypod@app=jiva openebs/mypod@app=cstor" | splitList " " | nestedKeyMap "@ =" .Target | noop -}}
-//  {{- "default/mypod@backend=true" | splitList " " | nestedKeyMap "@ =" .Target | noop -}}
-//  {{- "litmus/mypod@backend=true" | splitList " " | nestedKeyMap "/ @ =" .Target | noop -}}
+//
+//	{{- "default/mypod@app=jiva openebs/mypod@app=cstor" | splitList " " | nestedKeyMap "@ =" .Target | noop -}}
+//	{{- "default/mypod@backend=true" | splitList " " | nestedKeyMap "@ =" .Target | noop -}}
+//	{{- "litmus/mypod@backend=true" | splitList " " | nestedKeyMap "/ @ =" .Target | noop -}}
 //
 // Above will result into following:
-//  Target: map[string]interface{}{
-//    "default/mypod": map[string]interface{}{
-//      "app": "jiva",
-//      "backend": true,
-//    },
-//    "openebs/mypod": map[string]interface{}{
-//      "app": "cstor",
-//    },
-//    "litmus": map[string]interface{}{
-//      "mypod": map[string]interface{}{
-//        "backend": true,
-//      },
-//    },
-//  }
+//
+//	Target: map[string]interface{}{
+//	  "default/mypod": map[string]interface{}{
+//	    "app": "jiva",
+//	    "backend": true,
+//	  },
+//	  "openebs/mypod": map[string]interface{}{
+//	    "app": "cstor",
+//	  },
+//	  "litmus": map[string]interface{}{
+//	    "mypod": map[string]interface{}{
+//	      "backend": true,
+//	    },
+//	  },
+//	}
 //
 // Above assumes that .Target is defined as a map[string]interface{} before
 // executing the go template
@@ -532,11 +558,15 @@ func nestedKeyMap(delimiters string, destination map[string]interface{}, given [
 // fields inside the values object.
 //
 // NOTE:
-//  This hierarchy along with the provided value is added or appended
+//
+//	This hierarchy along with the provided value is added or appended
+//
 // (as comma separated) in the values object.
 //
 // NOTE:
-//  fields is represented as a single string with each field separated by dot
+//
+//	fields is represented as a single string with each field separated by dot
+//
 // i.e. '.'
 //
 // Example:
@@ -571,11 +601,15 @@ func addTo(fields string, values map[string]interface{}, value string) string {
 // fields inside the values object.
 //
 // NOTE:
-//  This hierarchy along with the provided value is added or updated
+//
+//	This hierarchy along with the provided value is added or updated
+//
 // (i.e. overridden) in the values object.
 //
 // NOTE:
-//  fields is represented as a single string with each field separated by dot
+//
+//	fields is represented as a single string with each field separated by dot
+//
 // i.e. '.'
 //
 // Example:
@@ -606,11 +640,15 @@ func saveAs(fields string, destination map[string]interface{}, given interface{}
 // determined by the fields has a non-empty value set previously.
 //
 // NOTE:
-//  This hierarchy along with the provided value is formed/updated in the
+//
+//	This hierarchy along with the provided value is formed/updated in the
+//
 // values object.
 //
 // NOTE:
-//  fields is represented as a single string with each field separated by dot
+//
+//	fields is represented as a single string with each field separated by dot
+//
 // i.e. '.'
 //
 // Example:
@@ -643,7 +681,8 @@ func saveIf(fields string, values map[string]interface{}, value interface{}) int
 // notFoundErr throws NotFoundError if given object is empty
 //
 // NOTE:
-//  This function is intended to be used as a go template function
+//
+//	This function is intended to be used as a go template function
 //
 // Example:
 // {{- "" | notFoundErr "empty object" | saveIf "errMsg" .Values | noop -}}
@@ -676,7 +715,8 @@ func notFoundErr(errMessage string, given interface{}) (err error) {
 // verifyErr returns VerifyError if given verification flag failed i.e. is true
 //
 // NOTE:
-//  This is intended to be used as a go template function
+//
+//	This is intended to be used as a go template function
 //
 // Example:
 // {{- "" | empty | verifyErr "empty value provided" | saveIf "errMsg" .Values | noop -}}
@@ -729,7 +769,8 @@ func debugf(msg string, args interface{}) (err error) {
 // failed i.e. is true
 //
 // NOTE:
-//  This is intended to be used as a go template function
+//
+//	This is intended to be used as a go template function
 //
 // Example:
 // {{- "vsm" | eq "vsm" | versionMismatchErr "vsm not supported in 0.7.0" | saveIf "errMsg" .Values | noop -}}
@@ -761,7 +802,8 @@ func versionMismatchErr(errMessage string, isWrongVersion bool) (err error) {
 // This is designed to be called from a template.
 //
 // NOTE: Borrowed from a similar function in helm
-//  https://github.com/kubernetes/helm/blob/HEAD/pkg/chartutil/files.go
+//
+//	https://github.com/kubernetes/helm/blob/HEAD/pkg/chartutil/files.go
 func ToYaml(v interface{}) (yamlstr string) {
 	data, err := yaml.Marshal(v)
 	if err != nil {
@@ -862,10 +904,12 @@ func AllCustomFuncs() template.FuncMap {
 // returns an array of strings split on separator
 //
 // NOTE:
-//  This is intended to be used as a template function
+//
+//	This is intended to be used as a template function
 //
 // Example:
-//  {{- $pools =: "pool1;pool2;" | splitListTrim ";" | -}}
+//
+//	{{- $pools =: "pool1;pool2;" | splitListTrim ";" | -}}
 //
 // Above operation would assign an array of strings containing
 // 'pool1' and 'pool2' to pools
@@ -878,10 +922,12 @@ func splitListTrim(sep, orig string) []string {
 // returns length of the new array of strings
 //
 // NOTE:
-//  This is intended to be used as a template function
+//
+//	This is intended to be used as a template function
 //
 // Example:
-//  {{- $nodes =: "node1,node2" | splitListLen "," | -}}
+//
+//	{{- $nodes =: "node1,node2" | splitListLen "," | -}}
 //
 // Above operation would assign the length of the list to nodes.
 func splitListLen(sep, orig string) int {

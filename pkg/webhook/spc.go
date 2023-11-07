@@ -24,7 +24,7 @@ import (
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 func (wh *webhook) validateSPCDeleteRequest(req *v1.AdmissionRequest) *v1.AdmissionResponse {

@@ -39,7 +39,6 @@ package v1alpha1
 import (
 	"strings"
 
-	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
@@ -48,6 +47,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/yaml"
 )
 
 // kind represents the name of the kubernetes kind
@@ -57,7 +57,9 @@ type kind string
 // resource's name
 //
 // NOTE:
-//  This may not be the best of approaches to get name of a resource. However,
+//
+//	This may not be the best of approaches to get name of a resource. However,
+//
 // this fits the current requirement. This might need a revisit depending on
 // future requirements.
 func (k kind) resource() (resource string) {
@@ -75,7 +77,9 @@ func (k kind) resource() (resource string) {
 // isNamespaced flags if the kind is namespaced or not
 //
 // NOTE:
-//  This may not be the best of approaches to flag a resource as namespaced or
+//
+//	This may not be the best of approaches to flag a resource as namespaced or
+//
 // not. However, this fits the current requirement. This might need a revisit
 // depending on future requirements.
 func (k kind) isNamespaced() (no bool) {
@@ -104,7 +108,8 @@ func (k kind) isNamespaced() (no bool) {
 // unstructured instance by making use of this instance's GroupVersionKind info
 //
 // NOTE:
-//  Resource is assumed as plural of Kind
+//
+//	Resource is assumed as plural of Kind
 func GroupVersionResourceFromGVK(unstructured *unstructured.Unstructured) (gvr schema.GroupVersionResource) {
 	if unstructured == nil {
 		return
@@ -127,7 +132,8 @@ type WithBytesUnstructuredCreator func(raw []byte) (*unstructured.Unstructured, 
 // provided YAML document in bytes
 //
 // NOTE:
-//  This is an implementation of WithBytesUnstructuredCreator
+//
+//	This is an implementation of WithBytesUnstructuredCreator
 func CreateUnstructuredFromYamlBytes(raw []byte) (*unstructured.Unstructured, error) {
 	m := map[string]interface{}{}
 	err := yaml.Unmarshal(raw, &m)
@@ -198,7 +204,8 @@ func (l UnstructuredPredicateList) Any(given *unstructured.Unstructured) bool {
 // scoped
 //
 // NOTE:
-//  This is a UnstructuredPredicate implementation
+//
+//	This is a UnstructuredPredicate implementation
 func IsNamespaceScoped(given *unstructured.Unstructured) bool {
 	if given == nil {
 		return false
@@ -210,7 +217,8 @@ func IsNamespaceScoped(given *unstructured.Unstructured) bool {
 // scoped
 //
 // NOTE:
-//  This is a UnstructuredPredicate implementation
+//
+//	This is a UnstructuredPredicate implementation
 func IsCASTemplate(given *unstructured.Unstructured) bool {
 	if given == nil {
 		return false
@@ -222,7 +230,8 @@ func IsCASTemplate(given *unstructured.Unstructured) bool {
 // version as its suffix
 //
 // NOTE:
-//  This is a UnstructuredPredicate implementation
+//
+//	This is a UnstructuredPredicate implementation
 func IsNameUnVersioned(given *unstructured.Unstructured) bool {
 	if given == nil {
 		return false
@@ -234,7 +243,8 @@ func IsNameUnVersioned(given *unstructured.Unstructured) bool {
 // version as its suffix
 //
 // NOTE:
-//  This is a UnstructuredPredicate implementation
+//
+//	This is a UnstructuredPredicate implementation
 func IsNameVersioned(given *unstructured.Unstructured) bool {
 	if given == nil {
 		return false
@@ -246,7 +256,8 @@ func IsNameVersioned(given *unstructured.Unstructured) bool {
 // scoped
 //
 // NOTE:
-//  This is a UnstructuredPredicate implementation
+//
+//	This is a UnstructuredPredicate implementation
 func IsRunTask(given *unstructured.Unstructured) bool {
 	if given == nil {
 		return false

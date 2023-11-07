@@ -39,7 +39,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 type upgradeParams struct {
@@ -565,13 +565,14 @@ func (c *CStorVolumeController) triggerScaleUpProcess(
 
 // triggerScaleDownProcess returns error in case of any error during the scaledown
 // process else it will return cstorvolume object. Following steps are executed
-// 1. Verify whether all the replicas are healthy other than removing replica.
-// 2. If step1 is passed then update the istgt.conf file with latest
-//    information.
-// 3. Update cStorVolume CR(replicationFactor, ConsistencyFactor and known
-//    replica list.
-// 4. Trigger istgtcontrol command (istgtcontrol drf <vol_name> <value>
-//    <remaining_replica_list>
+//  1. Verify whether all the replicas are healthy other than removing replica.
+//  2. If step1 is passed then update the istgt.conf file with latest
+//     information.
+//  3. Update cStorVolume CR(replicationFactor, ConsistencyFactor and known
+//     replica list.
+//  4. Trigger istgtcontrol command (istgtcontrol drf <vol_name> <value>
+//     <remaining_replica_list>
+//
 // In triggerScaleDownProcess cStorVolumeAPI is used to access fields in CV
 // object and cStorvolume is used to access methods of cStorVolume
 func (c *CStorVolumeController) triggerScaleDownProcess(

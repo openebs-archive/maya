@@ -18,7 +18,7 @@ package v1alpha1
 
 import (
 	"fmt"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 // YamlString returns the provided object as a yaml formatted string

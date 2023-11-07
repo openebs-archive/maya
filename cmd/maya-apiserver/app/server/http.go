@@ -29,13 +29,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	errors "github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/ugorji/go/codec"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -312,8 +312,9 @@ func (s *HTTPServer) Shutdown() {
 // NOTE - The curried func (due to wrap) is set as mux handler
 // NOTE - The original handler is passed as a func to the wrap method
 // NOTE - For every endpoint you need to create a Counter and a Duration
-//        variable to capture the response. These variables will store
-//        the response time and no of times they are requested.
+//
+//	variable to capture the response. These variables will store
+//	the response time and no of times they are requested.
 func (s *HTTPServer) registerHandlers(serviceProvider string, enableDebug bool) {
 	s.mux.HandleFunc("/latest/meta-data/", s.wrap(latestOpenEBSMetaDataRequestCounter,
 		latestOpenEBSMetaDataRequestDuration, s.MetaSpecificRequest))

@@ -24,7 +24,7 @@ import (
 	"github.com/openebs/maya/pkg/client/generated/cstor-volume-mgmt/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"google.golang.org/grpc"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // StartServer instantiates CStorVolume gRPC server

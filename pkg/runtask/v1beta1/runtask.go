@@ -17,9 +17,9 @@ limitations under the License.
 package v1beta1
 
 import (
-	"github.com/ghodss/yaml"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/runtask/v1beta1"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/yaml"
 )
 
 type errs []error

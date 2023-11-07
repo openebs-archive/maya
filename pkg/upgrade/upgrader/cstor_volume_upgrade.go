@@ -26,7 +26,7 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	templates "github.com/openebs/maya/pkg/upgrade/templates/v1"
 	"github.com/openebs/maya/pkg/util"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	errors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"

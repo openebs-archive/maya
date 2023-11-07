@@ -36,7 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -643,7 +643,7 @@ func isEmptyReplicaID(cVR *apis.CStorVolumeReplica) bool {
 	return cVR.Spec.ReplicaID == ""
 }
 
-//  getCVRStatus is a wrapper that fetches the status of cstor volume.
+// getCVRStatus is a wrapper that fetches the status of cstor volume.
 func (c *CStorVolumeReplicaController) getCVRStatus(
 	cVR *apis.CStorVolumeReplica,
 ) (string, error) {

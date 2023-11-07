@@ -27,7 +27,7 @@ import (
 	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -46,7 +46,7 @@ const (
 	ZpoolStatusUnavail     = "UNAVAIL"
 )
 
-//PoolAddEventHandled is a flag representing if the pool has been initially imported or created
+// PoolAddEventHandled is a flag representing if the pool has been initially imported or created
 var PoolAddEventHandled = false
 
 // PoolNamePrefix is a typed string to store pool name prefix

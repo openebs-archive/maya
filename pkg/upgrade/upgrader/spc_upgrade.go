@@ -24,7 +24,7 @@ import (
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	errors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // to verify that no two csp are on same node

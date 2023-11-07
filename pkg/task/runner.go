@@ -25,14 +25,16 @@ import (
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	errors "github.com/pkg/errors"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // redactJsonResult will update the provided map by removing the original json
 // result doc i.e. bytes and replace it with "--redacted--"
 //
 // NOTE:
-//  This should be done once the task group runner has finished executing all
+//
+//	This should be done once the task group runner has finished executing all
+//
 // its tasks or when executing a task met an error & is now exiting by logging
 // the error.
 func redactJsonResult(templateValues map[string]interface{}) {
@@ -85,7 +87,8 @@ func (m *TaskGroupRunner) AddRunTask(runtask *v1alpha1.RunTask) (err error) {
 // to return the output after successful execution of this runner.
 //
 // NOTE:
-//  This output format is specified in the provided run task.
+//
+//	This output format is specified in the provided run task.
 func (m *TaskGroupRunner) SetOutputTask(runtask *v1alpha1.RunTask) (err error) {
 	if runtask == nil {
 		err = fmt.Errorf("failed to set output task: nil run task found")
@@ -132,7 +135,9 @@ func (m *TaskGroupRunner) isTaskIDUnique(identity string) (unique bool) {
 // the tasks. This will add to the list of rollback tasks
 //
 // NOTE:
-//  This is just the planning for rollback & not actual rollback.
+//
+//	This is just the planning for rollback & not actual rollback.
+//
 // In the events of issues this planning will be useful.
 func (m *TaskGroupRunner) planForRollback(te *executor, objectName string) error {
 	// There are cases where multiple objects may be created due to a single

@@ -19,7 +19,7 @@ import (
 	"strings"
 	"sync"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -66,8 +66,8 @@ type ListBuilder struct {
 	filters PredicateList
 }
 
-//CVReplicationDetails enables to update RF,CF and
-//known replicas into etcd
+// CVReplicationDetails enables to update RF,CF and
+// known replicas into etcd
 type CVReplicationDetails struct {
 	VolumeName        string `json:"volumeName"`
 	ReplicationFactor int    `json:"replicationFactor"`
@@ -76,8 +76,8 @@ type CVReplicationDetails struct {
 	ReplicaGUID       string `json:"replicaZvolGuid"`
 }
 
-//CStorVolumeConfig embed CVReplicationDetails and Kubeclient of
-//corresponding namespace
+// CStorVolumeConfig embed CVReplicationDetails and Kubeclient of
+// corresponding namespace
 type CStorVolumeConfig struct {
 	*CVReplicationDetails
 	*Kubeclient

@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // A map of resources that is restricted to be updated by this
@@ -48,7 +48,8 @@ type Installer interface {
 // simpleInstaller installs artifacts by making use of install config
 //
 // NOTE:
-//  This is an implementation of Installer
+//
+//	This is an implementation of Installer
 type simpleInstaller struct {
 	artifactTemplater ArtifactMiddleware
 	envLister         EnvLister
@@ -126,7 +127,8 @@ func (i *simpleInstaller) setRules(ulist k8s.UnstructedList) (ul []*unstructured
 // Install the resources specified in the install config
 //
 // NOTE:
-//  This is an implementation of Installer interface
+//
+//	This is an implementation of Installer interface
 func (i *simpleInstaller) Install() []error {
 	ulist := i.prepareResources()
 	ul := i.setRules(ulist)

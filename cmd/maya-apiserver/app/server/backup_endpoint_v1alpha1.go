@@ -35,7 +35,7 @@ import (
 	snapshot "github.com/openebs/maya/pkg/snapshot/v1alpha1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 type backupAPIOps struct {

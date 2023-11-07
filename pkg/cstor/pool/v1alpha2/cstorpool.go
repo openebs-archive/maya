@@ -17,7 +17,7 @@ package v1alpha2
 import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"text/template"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"

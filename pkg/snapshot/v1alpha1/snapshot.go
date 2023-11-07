@@ -19,7 +19,6 @@ package snapshot
 import (
 	"strings"
 
-	yaml "github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
@@ -27,7 +26,8 @@ import (
 	"github.com/pkg/errors"
 	v1_storage "k8s.io/api/storage/v1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
+	yaml "sigs.k8s.io/yaml"
 )
 
 // options contains the options with respect to

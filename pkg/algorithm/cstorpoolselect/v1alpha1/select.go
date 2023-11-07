@@ -17,7 +17,7 @@ package v1alpha1
 import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"strings"
 	"text/template"
 
@@ -456,11 +456,15 @@ func (pl *policyList) getTopPriority() policy {
 // based on the registered policies
 //
 // NOTE:
-//  There can be cases where multiple policies
+//
+//	There can be cases where multiple policies
+//
 // can be set to determine the required pools
 //
 // NOTE:
-//  This code will evolve as we try implementing
+//
+//	This code will evolve as we try implementing
+//
 // different set of policies
 type selection struct {
 	// list of original pools aginst whom

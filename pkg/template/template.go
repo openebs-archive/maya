@@ -23,7 +23,7 @@ import (
 	"text/template"
 
 	"github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // AsTemplatedBytes returns a byte slice

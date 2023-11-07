@@ -19,14 +19,14 @@ package v1alpha1
 import (
 	"fmt"
 
-	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/yaml"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//UpgradeResult holds the apis upgraderesult object
+// UpgradeResult holds the apis upgraderesult object
 type UpgradeResult struct {
 	// upgrade result object
 	object *apis.UpgradeResult

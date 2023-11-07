@@ -22,9 +22,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/template"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/yaml"
 
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,11 +34,15 @@ import (
 // namespace.
 //
 // NOTE:
-//  Providing a run namespace can be optional. It is optional for cluster wide
+//
+//	Providing a run namespace can be optional. It is optional for cluster wide
+//
 // operations.
 //
 // NOTE:
-//  In cases where more than one namespaces are involved, **repeat**
+//
+//	In cases where more than one namespaces are involved, **repeat**
+//
 // metatask property is used.
 func newK8sClient(namespace string) (kc *m_k8s_client.K8sClient, err error) {
 	ns := strings.TrimSpace(namespace)
@@ -114,7 +118,8 @@ type MetaTaskProps struct {
 // addition each property=value pair is separated from other pair via '::'.
 //
 // Example:
-//  runNamespace=default::objectName=MySvc::retry=3,20s
+//
+//	runNamespace=default::objectName=MySvc::retry=3,20s
 func (m MetaTaskProps) toString() string {
 	return fmt.Sprintf("runNamespace=%s::owner=%s::objectName=%s::options=%s::retry=%s::disable=%t",
 		m.RunNamespace,
@@ -634,7 +639,9 @@ func getRollbackMetaInstances(given MetaTaskSpec, objectName string) (m MetaTask
 // of the rollback task same as the original task
 //
 // NOTE:
-//  The bool return with value as `false` implies there is no
+//
+//	The bool return with value as `false` implies there is no
+//
 // need for a rollback
 func (m *MetaExecutor) asRollbackInstance(objectName string) (*MetaExecutor, bool, error) {
 	// there is no rollback when task is disabled

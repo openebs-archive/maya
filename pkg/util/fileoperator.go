@@ -22,10 +22,10 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
-//FileOperator operates on files
+// FileOperator operates on files
 type FileOperator interface {
 	Write(filename string, data []byte, perm os.FileMode) error
 	Updatefile(fileName, updateVal, searchString string, perm os.FileMode) error
@@ -33,7 +33,7 @@ type FileOperator interface {
 	UpdateOrAppendMultipleLines(fileName string, keyUpdateValue map[string]string, perm os.FileMode) error
 }
 
-//RealFileOperator is used for writing the actual files without mocking
+// RealFileOperator is used for writing the actual files without mocking
 type RealFileOperator struct{}
 
 // the real file operator for the actual program,
@@ -129,20 +129,20 @@ func (r RealFileOperator) UpdateOrAppendMultipleLines(fileName string,
 	return err
 }
 
-//TestFileOperator is used as a dummy FileOperator
+// TestFileOperator is used as a dummy FileOperator
 type TestFileOperator struct{}
 
-//Write is to mock write operation for FileOperator interface
+// Write is to mock write operation for FileOperator interface
 func (r TestFileOperator) Write(filename string, data []byte, perm os.FileMode) error {
 	return nil
 }
 
-//Updatefile is to mock Updatefile operation for FileOperator interface
+// Updatefile is to mock Updatefile operation for FileOperator interface
 func (r TestFileOperator) Updatefile(fileName, updateStorageVal, searchString string, perm os.FileMode) error {
 	return nil
 }
 
-//GetLineDetails is to mock operation for FileOperator interface
+// GetLineDetails is to mock operation for FileOperator interface
 func (r TestFileOperator) GetLineDetails(filename, searchString string) (int, string, error) {
 	return -1, "", nil
 }

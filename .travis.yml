@@ -29,7 +29,7 @@ cache:
   directories:
     - $HOME/.cache/go-build
 go:
-  - 1.14.7
+  - 1.19.13
 
 addons:
   apt:

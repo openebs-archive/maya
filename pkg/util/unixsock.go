@@ -19,7 +19,7 @@ import (
 	"net"
 	"strings"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // IstgtUctlUnxpath is the storage path for the UNIX domain socket from istgt
@@ -29,13 +29,13 @@ const (
 	IstgtHeader      = "iSCSI Target Controller version"
 )
 
-//IsResponseEOD will detect if the data coming from UNIX pipe is completely received
+// IsResponseEOD will detect if the data coming from UNIX pipe is completely received
 func IsResponseEOD(resp []string, cmd string) bool {
 	return (len(resp) != 0 && !strings.HasPrefix(resp[len(resp)-1], IstgtHeader) &&
 		!strings.HasPrefix(resp[len(resp)-1], cmd))
 }
 
-//Reader reads the response from unix domain socket
+// Reader reads the response from unix domain socket
 func Reader(r io.Reader, cmd string) []string {
 	resp := []string{}
 	//collect bytes into fulllines buffer till the end of line character is reached
@@ -72,7 +72,7 @@ func Reader(r io.Reader, cmd string) []string {
 	return resp
 }
 
-//Writer writes a command to unix domain socket
+// Writer writes a command to unix domain socket
 func Writer(w io.Writer, msg string) error {
 	_, err := w.Write([]byte(msg))
 	if err != nil {
@@ -83,15 +83,15 @@ func Writer(w io.Writer, msg string) error {
 	return err
 }
 
-//UnixSock operates on unix domain sockets
+// UnixSock operates on unix domain sockets
 type UnixSock interface {
 	SendCommand(cmd string) ([]string, error)
 }
 
-//RealUnixSock is used for sending data through real unix domain sockets
+// RealUnixSock is used for sending data through real unix domain sockets
 type RealUnixSock struct{}
 
-//SendCommand for the real unix sock for the actual program,
+// SendCommand for the real unix sock for the actual program,
 func (r RealUnixSock) SendCommand(cmd string) ([]string, error) {
 	c, err := net.Dial("unix", IstgtUctlUnxpath)
 	if err != nil {
@@ -107,10 +107,10 @@ func (r RealUnixSock) SendCommand(cmd string) ([]string, error) {
 	return resp, err
 }
 
-//TestUnixSock is used as a dummy UnixSock
+// TestUnixSock is used as a dummy UnixSock
 type TestUnixSock struct{}
 
-//SendCommand for the real unix sock for the actual program,
+// SendCommand for the real unix sock for the actual program,
 func (r TestUnixSock) SendCommand(cmd string) ([]string, error) {
 	return nil, nil
 }

@@ -21,7 +21,7 @@ import (
 	"text/template"
 	"time"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	utask "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"

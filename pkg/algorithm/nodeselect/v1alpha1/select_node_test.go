@@ -30,7 +30,7 @@ import (
 	sp "github.com/openebs/maya/pkg/sp/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 var blockDeviceK8sClient *blockdevice.KubernetesClient

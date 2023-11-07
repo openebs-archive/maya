@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM golang:1.14.7 as build
+FROM golang:1.19.13 as build
 
 ARG RELEASE_TAG
 ARG BRANCH

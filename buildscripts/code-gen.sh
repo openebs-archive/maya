@@ -53,8 +53,12 @@ shift 4
   # To support running this script from anywhere, we have to first cd into this directory
   # so we can install the tools.
   #cd $(dirname "${0}")
-  cd vendor/k8s.io/code-generator/ 
-  go install ./cmd/{defaulter-gen,client-gen,lister-gen,informer-gen,deepcopy-gen}
+
+  go install k8s.io/code-generator/cmd/defaulter-gen
+  go install k8s.io/code-generator/cmd/client-gen
+  go install k8s.io/code-generator/cmd/lister-gen
+  go install k8s.io/code-generator/cmd/informer-gen
+  go install k8s.io/code-generator/cmd/deepcopy-gen
 )
 
 function codegen::join() { local IFS="$1"; shift; echo "$*"; }

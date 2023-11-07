@@ -19,7 +19,7 @@ package command
 import (
 	goflag "flag"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/start-controller"
 	"github.com/spf13/cobra"

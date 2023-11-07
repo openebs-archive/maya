@@ -24,7 +24,7 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"

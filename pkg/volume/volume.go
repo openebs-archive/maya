@@ -19,12 +19,12 @@ package volume
 import (
 	"strings"
 
-	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/openebs/maya/pkg/version"
+	"sigs.k8s.io/yaml"
 
 	"github.com/openebs/maya/pkg/util"
 	errors "github.com/pkg/errors"

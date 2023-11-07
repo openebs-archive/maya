@@ -21,8 +21,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/template"
+	"sigs.k8s.io/yaml"
 )
 
 func TestMetaTaskPropsSelectOverride(t *testing.T) {

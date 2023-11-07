@@ -25,7 +25,7 @@ import (
 	"syscall"
 	"time"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	cstorv1alpha1 "github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	"github.com/pkg/errors"
@@ -86,7 +86,7 @@ func Reader(r io.Reader) (string, error) {
 	return "", errors.Errorf("failed to read data connection closed")
 }
 
-//ServeRequest process the request from the client
+// ServeRequest process the request from the client
 func ServeRequest(conn net.Conn, kubeClient *cstorv1alpha1.Kubeclient) {
 	var err error
 	var readData string

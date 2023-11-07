@@ -20,7 +20,7 @@ import (
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	openebsversion "github.com/openebs/maya/pkg/version"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 var (

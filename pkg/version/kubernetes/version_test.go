@@ -18,8 +18,8 @@ package kubernetes
 
 import (
 	"bytes"
-	"github.com/ghodss/yaml"
 	"reflect"
+	"sigs.k8s.io/yaml"
 	"testing"
 	"text/template"
 )

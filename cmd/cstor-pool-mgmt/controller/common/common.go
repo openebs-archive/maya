@@ -28,10 +28,10 @@ import (
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	"github.com/openebs/maya/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
-//EventReason is used as part of the Event reason when a resource goes through different phases
+// EventReason is used as part of the Event reason when a resource goes through different phases
 type EventReason string
 
 const (

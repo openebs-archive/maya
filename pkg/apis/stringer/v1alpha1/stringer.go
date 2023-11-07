@@ -27,7 +27,7 @@ package v1alpha1
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 // Yaml returns the provided object

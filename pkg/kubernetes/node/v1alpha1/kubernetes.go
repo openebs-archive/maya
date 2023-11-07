@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"k8s.io/client-go/kubernetes"
 )
@@ -145,11 +145,14 @@ func NewKubeClient(opts ...KubeClientBuildOption) *Kubeclient {
 // KubeClientInstanceOrDie returns the singleton instance of Kubeclient
 //
 // Usage:
-//  Caller code will use syntax(-es) as shown below:
+//
+//	Caller code will use syntax(-es) as shown below:
 //
 // ```go
 // import (
-//  node "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
+//
+//	node "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
+//
 // )
 //
 // node.KubeClientInstanceOrDie().Get(...)

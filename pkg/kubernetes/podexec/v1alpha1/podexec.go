@@ -19,8 +19,8 @@ package v1alpha1
 import (
 	"fmt"
 
-	"github.com/ghodss/yaml"
 	api_core_v1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/yaml"
 )
 
 // PodExec represents the details of pod exec options

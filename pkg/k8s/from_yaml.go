@@ -19,7 +19,7 @@ package k8s
 import (
 	"fmt"
 
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
@@ -193,21 +193,21 @@ func (m *ServiceYml) AsCoreV1Service() (*api_core_v1.Service, error) {
 	return svc, nil
 }
 
-//CStorPoolYml provides utility methods to generate K8s CStorPool objects
+// CStorPoolYml provides utility methods to generate K8s CStorPool objects
 type CStorPoolYml struct {
 	// YmlInBytes represents a CStorPool in
 	// yaml format
 	YmlInBytes []byte
 }
 
-//CStorVolumeYml provides utility methods to generate K8s CStorVolume objects
+// CStorVolumeYml provides utility methods to generate K8s CStorVolume objects
 type CStorVolumeYml struct {
 	// YmlInBytes represents a CStorVolume in
 	// yaml format
 	YmlInBytes []byte
 }
 
-//StoragePoolYml provides utility methods to generate K8s StoragePool objects
+// StoragePoolYml provides utility methods to generate K8s StoragePool objects
 type StoragePoolYml struct {
 	// YmlInBytes represents a StoragePool in
 	// yaml format

@@ -18,8 +18,8 @@ package v1alpha1
 
 import (
 	"fmt"
-	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/yaml"
 )
 
 // ConfigUnmarshaller abstracts un-marshalling of

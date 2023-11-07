@@ -31,7 +31,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -225,8 +225,9 @@ func IsOnlyStatusChange(oldbkp, newbkp *apis.CStorBackup) bool {
 // CStorCompletedBackups stores the information of last two completed backups
 // For example, if schedule `b` has last two backups b-0 and b-1 (b-0 created first and after that b-1 was created) having snapshots
 // b-0 and b-1 respectively then CStorCompletedBackups for the schedule `b` will have following information :
-//	CStorCompletedBackups.Spec.PrevSnapName =  b-1
-//  CStorCompletedBackups.Spec.SnapName = b-0
+//
+//		CStorCompletedBackups.Spec.PrevSnapName =  b-1
+//	 CStorCompletedBackups.Spec.SnapName = b-0
 func (c *BackupController) updateCStorCompletedBackup(bkp *apis.CStorBackup) error {
 	lastbkpname := bkp.Spec.BackupName + "-" + bkp.Spec.VolumeName
 	bkplast, err := c.clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).

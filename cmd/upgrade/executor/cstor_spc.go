@@ -21,7 +21,7 @@ import (
 
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	upgrader "github.com/openebs/maya/pkg/upgrade/upgrader"

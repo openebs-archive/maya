@@ -36,7 +36,7 @@ import (
 	zfs "github.com/openebs/maya/pkg/zfs/cmd/v1alpha1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -709,14 +709,14 @@ func GetAndUpdateReplicaID(cvr *apis.CStorVolumeReplica) error {
 
 // GetAndUpdateSnapshotInfo get the snapshot list from ZFS and updates in CVR status.
 // Execution happens in following steps:
-// 1. Get snapshot list from ZFS
-// 2. Checks whether above snapshots exist on CVR under Status.Snapshots:
-//    2.1 If snapshot doesn't exist then get the info of snapshot from ZFS and update
-//        the details in CVR.Status.Snapshots
-// 3. Verify and delete the snapshot details on CVR if it is deleted from ZFS
-// 4. Update the pending list of snapshots by verifying with snapshot list obtained from step1
-// 5. If replica is under rebuilding get the snapshot list from peer CVR and update them
-//    under pending snapshot list
+//  1. Get snapshot list from ZFS
+//  2. Checks whether above snapshots exist on CVR under Status.Snapshots:
+//     2.1 If snapshot doesn't exist then get the info of snapshot from ZFS and update
+//     the details in CVR.Status.Snapshots
+//  3. Verify and delete the snapshot details on CVR if it is deleted from ZFS
+//  4. Update the pending list of snapshots by verifying with snapshot list obtained from step1
+//  5. If replica is under rebuilding get the snapshot list from peer CVR and update them
+//     under pending snapshot list
 func GetAndUpdateSnapshotInfo(
 	clientset clientset.Interface, cvr *apis.CStorVolumeReplica) error {
 	volName := cvr.GetLabels()[string(apis.PersistentVolumeCPK)]

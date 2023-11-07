@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
@@ -38,7 +38,8 @@ type TaskSpecFetcher interface {
 // from K8s cluster
 //
 // NOTE:
-//  A task is a K8s ConfigMap
+//
+//	A task is a K8s ConfigMap
 type K8sTaskSpecFetcher struct {
 	// k8sClient to make K8s API calls
 	//
@@ -51,7 +52,8 @@ type K8sTaskSpecFetcher struct {
 // string format
 //
 // NOTE:
-//  This is an implementation of TaskSpecFetcher interface
+//
+//	This is an implementation of TaskSpecFetcher interface
 func (f *K8sTaskSpecFetcher) Fetch(taskName string) (runtask *v1alpha1.RunTask, err error) {
 	rtGetter := defaultRunTaskGetter(getRunTaskSpec{
 		taskName:  taskName,
@@ -65,7 +67,9 @@ func (f *K8sTaskSpecFetcher) Fetch(taskName string) (runtask *v1alpha1.RunTask, 
 // provided namespace.
 //
 // NOTE:
-//  SearchNamespace refers to the K8s namespace where a task
+//
+//	SearchNamespace refers to the K8s namespace where a task
+//
 // is expected to be found
 func NewK8sTaskSpecFetcher(searchNamespace string) (*K8sTaskSpecFetcher, error) {
 	kc, err := m_k8s_client.NewK8sClient(searchNamespace)
@@ -146,7 +150,8 @@ func getRunTaskFromCustomResource(g getRunTaskSpec) (runtask *v1alpha1.RunTask, 
 // getter strategies
 //
 // NOTE:
-//  This is an implementation of runTaskGetter
+//
+//	This is an implementation of runTaskGetter
 type getRunTask struct {
 	// getRunTaskSpec is the specifications required to fetch runtask instance
 	getRunTaskSpec

@@ -40,7 +40,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 type upgradeParams struct {
@@ -416,7 +416,7 @@ func (c *CStorPoolController) cStorPoolDestroyEventHandler(cStorPoolGot *apis.CS
 
 }
 
-//  getPoolStatus is a wrapper that fetches the status of cstor pool.
+// getPoolStatus is a wrapper that fetches the status of cstor pool.
 func (c *CStorPoolController) getPoolStatus(cStorPoolGot *apis.CStorPool) (string, bool, error) {
 	poolStatus, readOnly, err := pool.Status(string(pool.PoolPrefix) + string(cStorPoolGot.ObjectMeta.UID))
 	if err != nil {

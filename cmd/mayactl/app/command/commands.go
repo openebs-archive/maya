@@ -20,7 +20,7 @@ import (
 	"os"
 
 	"github.com/openebs/maya/cmd/mayactl/app/command/pool"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	//"github.com/openebs/maya/cmd/mayactl/app/command/snapshot"
 	"github.com/openebs/maya/pkg/client/mapiserver"

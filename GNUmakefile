@@ -15,10 +15,10 @@
 include buildscripts/common.mk
 
 # list only the source code directories
-PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated\|tests')
+PACKAGES = $(shell go list ./... | grep -v 'pkg/client/generated\|tests')
 
 # list only the integration tests code directories
-PACKAGES_IT = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated' | grep 'tests')
+PACKAGES_IT = $(shell go list ./... | grep -v 'pkg/client/generated' | grep 'tests')
 
 GO111MODULE ?= on
 export GO111MODULE
@@ -61,10 +61,7 @@ EXTERNAL_TOOLS=\
 	golang.org/x/tools/cmd/cover \
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html \
-	github.com/golang/protobuf/protoc-gen-go@v1.3.2
-
-# list only our .go files i.e. exlcudes any .go files from the vendor directory
-GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
+	google.golang.org/protobuf/protoc-gen-go@v1.3.2
 
 ifeq (${IMAGE_TAG}, )
   IMAGE_TAG = ci
@@ -172,10 +169,6 @@ verify-deps: deps
 		echo "go module files are out of date, please commit the changes to go.mod and go.sum"; exit 1; \
 	fi
 
-.PHONY: vendor
-vendor: go.mod go.sum deps
-	@go mod vendor
-
 .PHONY: clean
 clean: cleanup-upgrade
 	go clean -testcache
@@ -212,7 +205,7 @@ testv: format
 
 .PHONY: cover
 cover:
-	go list ./... | grep -v vendor | xargs -n1 go test --cover
+	go list ./... | xargs -n1 go test --cover
 
 .PHONY: format
 format:
@@ -237,13 +230,13 @@ vet:
 		go get golang.org/x/tools/cmd/vet; \
 	fi
 	@echo "--> Running go tool vet ..."
-	@go tool vet $(VETARGS) ${GOFILES_NOVENDOR} ; if [ $$? -eq 1 ]; then \
+	@go tool vet $(VETARGS); if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "[LINT] Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \
 	fi
 
-	@git grep -n `echo "log"".Print"` | grep -v 'vendor/' ; if [ $$? -eq 0 ]; then \
+	@git grep -n `echo "log"".Print"`; if [ $$? -eq 0 ]; then \
 		echo "[LINT] Found "log"".Printf" calls. These should use Maya's logger instead."; \
 	fi
 
@@ -280,10 +273,10 @@ kubegendelete:
 .PHONY: generated_files
 generated_files: kubegen protobuf
 
-# builds vendored version of deepcopy-gen tool
+# builds deepcopy-gen tool
 .PHONY: deepcopy2
 deepcopy2:
-	@go install -mod=vendor ./vendor/k8s.io/code-generator/cmd/deepcopy-gen
+	@go install -mod=mod k8s.io/code-generator/cmd/deepcopy-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
 		echo "+ Generating deepcopy funcs for $$apigrp" ; \
 		deepcopy-gen \
@@ -292,10 +285,10 @@ deepcopy2:
 			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
 	done
 
-# builds vendored version of client-gen tool
+# builds client-gen tool
 .PHONY: clientset2
 clientset2:
-	@go install -mod=vendor ./vendor/k8s.io/code-generator/cmd/client-gen
+	@go install -mod=mod k8s.io/code-generator/cmd/client-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
 		echo "+ Generating clientsets for $$apigrp" ; \
 		client-gen \
@@ -306,10 +299,10 @@ clientset2:
 			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
 	done
 
-# builds vendored version of lister-gen tool
+# builds lister-gen tool
 .PHONY: lister2
 lister2:
-	@go install -mod=vendor ./vendor/k8s.io/code-generator/cmd/lister-gen
+	@go install -mod=mod k8s.io/code-generator/cmd/lister-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
 		echo "+ Generating lister for $$apigrp" ; \
 		lister-gen \
@@ -318,10 +311,10 @@ lister2:
 			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
 	done
 
-# builds vendored version of informer-gen tool
+# builds informer-gen tool
 .PHONY: informer2
 informer2:
-	@go install -mod=vendor ./vendor/k8s.io/code-generator/cmd/informer-gen
+	@go install -mod=mod k8s.io/code-generator/cmd/informer-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
 		echo "+ Generating informer for $$apigrp" ; \
 		informer-gen \

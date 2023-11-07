@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"strings"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstor/pool/v1alpha3"

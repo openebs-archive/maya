@@ -27,7 +27,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/common"
 	volumecontroller "github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/volume-controller"

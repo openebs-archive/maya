@@ -40,7 +40,7 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 func TestAddTo(t *testing.T) {
@@ -748,7 +748,9 @@ func TestSplitKeyMap(t *testing.T) {
 // go object to []byte & vice-versa
 //
 // NOTE:
-//  The properties of this struct should be CapitalCased for marshal & un-marshal
+//
+//	The properties of this struct should be CapitalCased for marshal & un-marshal
+//
 // to work properly
 type MockJsonList struct {
 	ApiVersion string     `json:"apiVersion"`
@@ -759,7 +761,9 @@ type MockJsonList struct {
 // object to []byte & vice-versa
 //
 // NOTE:
-//  The properties of this struct should be CapitalCased for marshal & un-marshal
+//
+//	The properties of this struct should be CapitalCased for marshal & un-marshal
+//
 // to work properly
 type MockJson struct {
 	Labels    map[string]string `json:"labels"`
