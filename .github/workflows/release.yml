@@ -36,7 +36,7 @@ jobs:
       - name: Set Build Date
         id: date
         run: |
-          echo "::set-output name=DATE::$(date -u +'%Y-%m-%dT%H:%M:%S%Z')"
+          echo "DATE=$(date -u +'%Y-%m-%dT%H:%M:%S%Z')" >> $GITHUB_OUTPUT
 
       - name: Set Tag
         run: |
@@ -123,7 +123,7 @@ jobs:
       - name: Set Build Date
         id: date
         run: |
-          echo "::set-output name=DATE::$(date -u +'%Y-%m-%dT%H:%M:%S%Z')"
+          echo "DATE=$(date -u +'%Y-%m-%dT%H:%M:%S%Z')" >> $GITHUB_OUTPUT
 
       - name: Set Tag
         run: |
@@ -211,7 +211,7 @@ jobs:
       - name: Set Build Date
         id: date
         run: |
-          echo "::set-output name=DATE::$(date -u +'%Y-%m-%dT%H:%M:%S%Z')"
+          echo "DATE=$(date -u +'%Y-%m-%dT%H:%M:%S%Z')" >> $GITHUB_OUTPUT
 
       - name: Set Tag
         run: |
@@ -298,7 +298,7 @@ jobs:
       - name: Set Build Date
         id: date
         run: |
-          echo "::set-output name=DATE::$(date -u +'%Y-%m-%dT%H:%M:%S%Z')"
+          echo "DATE=$(date -u +'%Y-%m-%dT%H:%M:%S%Z')" >> $GITHUB_OUTPUT
 
       - name: Set Tag
         run: |
@@ -385,7 +385,7 @@ jobs:
       - name: Set Build Date
         id: date
         run: |
-          echo "::set-output name=DATE::$(date -u +'%Y-%m-%dT%H:%M:%S%Z')"
+          echo "DATE=$(date -u +'%Y-%m-%dT%H:%M:%S%Z')" >> $GITHUB_OUTPUT
 
       - name: Set Tag
         run: |
